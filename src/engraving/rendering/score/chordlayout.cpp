@@ -2741,6 +2741,13 @@ void ChordLayout::layoutChords3(const std::vector<Chord*>& chords,
             }
 
             double ny = (note->line() + stepOffset) * stepDistance;
+            // JiMStaff (Milestone 1): a lattice-identified note on a JiMS
+            // staff takes its y from the single StaffType cents seam, not
+            // from the diatonic step product (audited second-writer site).
+            const StaffType* jimsSt = chord->staff() ? chord->staff()->staffTypeForElement(chord) : nullptr;
+            if (jimsSt && jimsSt->isJiMS() && note->hasJimsPitch() && note->jimsCentsValid()) {
+                ny = jimsSt->jimsYFromCents(note->jimsCentsAboveDo()) * chord->spatium();
+            }
             if (note->ldata()->pos().y() != ny) {
                 note->mutldata()->setPosY(ny);
                 if (stem) {

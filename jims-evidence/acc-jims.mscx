@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<museScore version="4.70">
+  <programVersion>4.7.4</programVersion>
+  <programRevision>abc123456</programRevision>
+  <Score>
+    <eid>uLjCOCJJ+RC_JwP+BRlZjHP</eid>
+    <Division>480</Division>
+    <showInvisible>1</showInvisible>
+    <showUnprintable>1</showUnprintable>
+    <showFrames>1</showFrames>
+    <showMargins>0</showMargins>
+    <open>1</open>
+    <metaTag name="arranger"></metaTag>
+    <metaTag name="composer"></metaTag>
+    <metaTag name="copyright"></metaTag>
+    <metaTag name="creationDate">2026-08-13</metaTag>
+    <metaTag name="lyricist"></metaTag>
+    <metaTag name="movementNumber"></metaTag>
+    <metaTag name="movementTitle"></metaTag>
+    <metaTag name="originalFormat">musicxml</metaTag>
+    <metaTag name="platform">Apple Macintosh</metaTag>
+    <metaTag name="source"></metaTag>
+    <metaTag name="translator"></metaTag>
+    <metaTag name="workNumber"></metaTag>
+    <metaTag name="workTitle">JiMS five-class accidental fixture</metaTag>
+    <Part id="1">
+      <Staff>
+        <eid>KM0jXkgJa+I_qWHnQseafcE</eid>
+        <StaffType group="pitched">
+        <name>jims12tet</name>
+        <lines>13</lines>
+        <clef>0</clef>
+        <keysig>0</keysig>
+        <ledgerlines>0</ledgerlines>
+        <jims>1</jims>
+        <jimsStateJson>{"scale":["M2","m2","M2","M2","M2","m2","M2"],"collection_rotation":0,"mode_rotation":0,"generator_cents":700.0,"period_cents":1200.0,"embedding":{"large_steps":5,"small_steps":2},"extent":{"lower_do_register":4,"period_count":1},"reference":"none"}</jimsStateJson>
+        </StaffType>
+        </Staff>
+      <trackName>JiMStaff</trackName>
+      <Instrument id="grand-piano">
+        <longName>JiMStaff</longName>
+        <trackName></trackName>
+        <instrumentId>keyboard.piano.grand</instrumentId>
+        <Articulation>
+          <velocity>100</velocity>
+          <gateTime>100</gateTime>
+          </Articulation>
+        <Articulation name="staccatissimo">
+          <velocity>100</velocity>
+          <gateTime>33</gateTime>
+          </Articulation>
+        <Articulation name="staccato">
+          <velocity>100</velocity>
+          <gateTime>50</gateTime>
+          </Articulation>
+        <Articulation name="portato">
+          <velocity>100</velocity>
+          <gateTime>67</gateTime>
+          </Articulation>
+        <Articulation name="tenuto">
+          <velocity>100</velocity>
+          <gateTime>100</gateTime>
+          </Articulation>
+        <Articulation name="marcato">
+          <velocity>120</velocity>
+          <gateTime>67</gateTime>
+          </Articulation>
+        <Articulation name="sforzato">
+          <velocity>150</velocity>
+          <gateTime>100</gateTime>
+          </Articulation>
+        <Articulation name="sforzatoStaccato">
+          <velocity>150</velocity>
+          <gateTime>50</gateTime>
+          </Articulation>
+        <Articulation name="marcatoStaccato">
+          <velocity>120</velocity>
+          <gateTime>50</gateTime>
+          </Articulation>
+        <Articulation name="marcatoTenuto">
+          <velocity>120</velocity>
+          <gateTime>100</gateTime>
+          </Articulation>
+        <Channel>
+          <program value="0"/>
+          <controller ctrl="10" value="63"/>
+          <synti>Fluid</synti>
+          </Channel>
+        </Instrument>
+      </Part>
+    <Staff id="1">
+      <VBox>
+        <height>10</height>
+        <eid>Oql08O88HEM_LoN/B69WWkE</eid>
+        <Text>
+          <eid>49PtPiL+WfH_b6NEcFqCxNF</eid>
+          <style>title</style>
+          <text>JiMS five-class accidental fixture</text>
+          </Text>
+        </VBox>
+      <Measure>
+        <eid>YRjePPh+MzI_GN2h1mIarRE</eid>
+        <voice>
+          <TimeSig>
+            <eid>2XSlFRmQHqF_OqkqPsnsd6I</eid>
+            <sigN>5</sigN>
+            <sigD>4</sigD>
+            </TimeSig>
+          <Chord>
+            <eid>QUMiTCYktlL_2FYSMwLsJQD</eid>
+            <durationType>quarter</durationType>
+            <Note>
+              <jimsNPer>1</jimsNPer>
+              <jimsNGen>-2</jimsNGen>
+              <eid>imHFW0bvTm_L8e/u+ZqvMI</eid>
+              <pitch>60</pitch>
+              <tpc>14</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <eid>0cY/mzfuX8L_EGLmrfVIIq</eid>
+            <durationType>quarter</durationType>
+            <Note>
+              <jimsNPer>-3</jimsNPer>
+              <jimsNGen>5</jimsNGen>
+              <eid>djN0h7JG99G_kMFlgpAxJuO</eid>
+              <Accidental>
+                <subtype>accidentalSharp</subtype>
+                <eid>9hgPu0iMHVC_s3pbV9vY/vD</eid>
+                </Accidental>
+              <pitch>61</pitch>
+              <tpc>21</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <eid>Ruhfe37PI2F_yk5b8zj3neD</eid>
+            <durationType>quarter</durationType>
+            <Note>
+              <jimsNPer>3</jimsNPer>
+              <jimsNGen>-4</jimsNGen>
+              <eid>IUQ1hUbLMUJ_bJIbGl/w9sB</eid>
+              <Accidental>
+                <subtype>accidentalFlat</subtype>
+                <eid>ejim1Gkw8rM_/c5rsXYr1nP</eid>
+                </Accidental>
+              <pitch>70</pitch>
+              <tpc>12</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <eid>8sRpIqy5xMN_A6+8iWz1FwN</eid>
+            <durationType>quarter</durationType>
+            <Note>
+              <jimsNPer>-6</jimsNPer>
+              <jimsNGen>11</jimsNGen>
+              <eid>pzPMfTd13rN_9P1ZG5Mm70L</eid>
+              <Accidental>
+                <subtype>accidentalDoubleSharp</subtype>
+                <eid>lA8E4vU793O_wi9FPDNk1yF</eid>
+                </Accidental>
+              <pitch>67</pitch>
+              <tpc>27</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <eid>kx94oIvRbjF_qD8pdwbMYUG</eid>
+            <durationType>quarter</durationType>
+            <Note>
+              <jimsNPer>8</jimsNPer>
+              <jimsNGen>-14</jimsNGen>
+              <eid>n/wP025h+fG_p9J98yTGKbN</eid>
+              <Accidental>
+                <subtype>accidentalDoubleFlat</subtype>
+                <eid>0335D8CAB9E_1JetDvfBRHJ</eid>
+                </Accidental>
+              <pitch>60</pitch>
+              <tpc>2</tpc>
+              </Note>
+            </Chord>
+          <BarLine>
+            <eid>//8+JCuEIwL_O86D+O3fNZK</eid>
+            </BarLine>
+          </voice>
+        </Measure>
+      </Staff>
+    </Score>
+  </museScore>

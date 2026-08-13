@@ -3325,6 +3325,10 @@ bool TRead::readProperties(Note* n, XmlReader& e, ReadContext& ctx)
         n->setFixed(e.readBool());
     } else if (tag == "fixedLine") {
         n->setFixedLine(e.readInt());
+    } else if (tag == "jimsNPer") {
+        TRead::readProperty(n, e, ctx, Pid::JIMS_NPER);
+    } else if (tag == "jimsNGen") {
+        TRead::readProperty(n, e, ctx, Pid::JIMS_NGEN);
     } else if (tag == "headScheme") {
         TRead::readProperty(n, e, ctx, Pid::HEAD_SCHEME);
     } else if (tag == "head") {
@@ -4010,6 +4014,12 @@ void TRead::read(StaffType* t, XmlReader& e, ReadContext& ctx)
             t->setInvisible(e.readInt());
         } else if (tag == "color") {
             t->setColor(e.readColor());
+        } else if (tag == "jims") {
+            t->setJiMS(e.readInt());
+        } else if (tag == "jimsStateJson") {
+            t->setJimsStateJson(e.readText());
+        } else if (tag == "jimsTonicExtent") {
+            t->setJimsTonicExtent(e.readText());
         } else if (tag == "durations") {
             t->setGenDurations(e.readBool());
         } else if (tag == "durationFontName") {

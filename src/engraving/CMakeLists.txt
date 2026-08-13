@@ -65,6 +65,16 @@ target_sources(engraving PRIVATE
     engravingmodule.cpp
     engravingmodule.h
     engravingerrors.h
+    jims/jimsbridge.cpp
+    jims/jimsbridge.h
+    jims/jimsstrings.h
+)
+
+# Keep the JiMS sources out of unity batches: their addition would reshuffle
+# the upstream unity groups, which collide the two 'compat' namespaces.
+set_source_files_properties(jims/jimsbridge.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE)
+
+target_sources(engraving PRIVATE
     engravingproject.cpp
     engravingproject.h
     iengravingpluginapihelper.h
@@ -414,6 +424,12 @@ target_include_directories(engraving PRIVATE
 )
 
 target_link_libraries(engraving PRIVATE muse::draw)
+
+# JiMStaff Milestone 1: build and link the jims-musescore-bridge C ABI
+# staticlib (Apache-2.0, from the JiMS Kernel repository) — the license/ABI
+# seam through which every JiMS musical fact reaches this fork.
+include(${CMAKE_CURRENT_LIST_DIR}/jims/SetupJiMSBridge.cmake)
+setup_jims_bridge(engraving)
 
 if (MUSE_QT_SUPPORT)
     target_link_libraries(engraving PRIVATE Qt::Quick)

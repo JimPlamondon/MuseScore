@@ -49,6 +49,18 @@ public:
     const std::vector<LineF>& lines() const { return m_lines; }
     void setLines(const std::vector<LineF>& l) { m_lines = l; }
 
+    // JiMStaff guide lines (Milestone 1): the only drawn lines on a JiMS
+    // staff — solid red Do-lines at the period boundaries and the dashed
+    // yellow mid-period line. Derived at layout, never serialized. Empty
+    // on every non-JiMS staff, which keeps the stock draw path untouched.
+    struct JimsGuideLine {
+        LineF line;
+        bool dashed = false;
+        int rgb = 0;        // 0xRRGGBB
+    };
+    const std::vector<JimsGuideLine>& jimsGuideLines() const { return m_jimsGuideLines; }
+    void setJimsGuideLines(const std::vector<JimsGuideLine>& l) { m_jimsGuideLines = l; }
+
     Measure* measure() const { return (Measure*)explicitParent(); }
     double y1() const;
 
@@ -66,6 +78,7 @@ private:
 
     double m_lw = 0.0;
     std::vector<LineF> m_lines;
+    std::vector<JimsGuideLine> m_jimsGuideLines;
 };
 }
 

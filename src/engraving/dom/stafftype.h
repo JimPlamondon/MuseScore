@@ -127,6 +127,7 @@ enum class StaffTypes : signed char {
     TAB_ITALIAN, TAB_FRENCH,
     TAB_7COMMON, TAB_8COMMON, TAB_9COMMON, TAB_10COMMON,
     TAB_7SIMPLE, TAB_8SIMPLE, TAB_9SIMPLE, TAB_10SIMPLE,
+    JIMS_12TET,
     STAFF_TYPES,
     // some useful shorthands:
     PERC_DEFAULT = StaffTypes::PERC_5LINE,
@@ -228,6 +229,21 @@ public:
     int     physStringToVisual(int strg) const;                   // return the string in visual order from physical string
     int     visualStringToPhys(int line) const;                   // return the string in physical order from visual string
     double   physStringToYOffset(int strg) const;                  // return the string Y offset (in sp, chord-relative)
+
+    // JiMStaff (Milestone 1): the STANDARD-group JiMS staff variant.
+    bool isJiMS() const { return m_jims; }
+    void setJiMS(bool val) { m_jims = val; }
+    const String& jimsStateJson() const { return m_jimsStateJson; }
+    void setJimsStateJson(const String& s) { m_jimsStateJson = s; }
+    const String& jimsTonicExtent() const { return m_jimsTonicExtent; }
+    void setJimsTonicExtent(const String& s) { m_jimsTonicExtent = s; }
+    // The single seam for ALL JiMStaff vertical arithmetic: cents above
+    // the staff's lower Do to a chord-relative y in spatium units. The
+    // staff spans exactly one 1200-cent period, 100 cents per staff
+    // location (one line distance); y grows downward, so 1200 cents (the
+    // upper Do boundary) sits at 0 sp and 0 cents at 12 line distances.
+    // No other code may embed a cents-to-y formula.
+    double jimsYFromCents(double centsAboveDo) const;
     String tabBassStringPrefix(int strg, bool* hasFret) const;   // return a string with the prefix, if any, identifying a bass string
     int     numOfTabLedgerLines(int string) const;
 
@@ -338,6 +354,13 @@ private:
     int m_lines = 5;
     int m_stepOffset = 0;
     Spatium m_lineDistance = 1_sp;
+
+    // JiMStaff (Milestone 1): marker, Kernel-owned serialized section
+    // state, and the tonic-extent token (jims.tonic-extent.v1 envelope).
+    // Only authoritative state — projected geometry is never stored.
+    bool m_jims = false;
+    String m_jimsStateJson;
+    String m_jimsTonicExtent;
 
     bool m_showBarlines = true;
     bool m_showLedgerLines = true;

@@ -2377,7 +2377,8 @@ void TWrite::write(const Note* item, XmlWriter& xml, WriteContext& ctx)
     }
     for (Pid id : { Pid::PITCH, Pid::CENT_OFFSET, Pid::TPC1, Pid::TPC2, Pid::SMALL, Pid::MIRROR_HEAD, Pid::DOT_POSITION,
                     Pid::HEAD_SCHEME, Pid::HEAD_GROUP, Pid::USER_VELOCITY, Pid::PLAY, Pid::TUNING, Pid::FRET, Pid::STRING,
-                    Pid::GHOST, Pid::DEAD, Pid::HEAD_TYPE, Pid::FIXED, Pid::FIXED_LINE }) {
+                    Pid::GHOST, Pid::DEAD, Pid::HEAD_TYPE, Pid::FIXED, Pid::FIXED_LINE,
+                    Pid::JIMS_NPER, Pid::JIMS_NGEN }) {
         writeProperty(item, xml, id);
     }
 
@@ -2944,6 +2945,18 @@ void TWrite::write(const StaffType* item, XmlWriter& xml, WriteContext& ctx)
     }
     if (item->group() == StaffGroup::STANDARD) {
         xml.tag("noteheadScheme", TConv::toXml(item->noteHeadScheme()), TConv::toXml(NoteHeadScheme::HEAD_NORMAL));
+    }
+    if (item->isJiMS()) {
+        // JiMStaff authoritative state only: marker, Kernel-owned
+        // section state, tonic-extent token. Projected geometry,
+        // notehead classes, and memberships are derived, never stored.
+        xml.tag("jims", item->isJiMS());
+        if (!item->jimsStateJson().isEmpty()) {
+            xml.tag("jimsStateJson", item->jimsStateJson());
+        }
+        if (!item->jimsTonicExtent().isEmpty()) {
+            xml.tag("jimsTonicExtent", item->jimsTonicExtent());
+        }
     }
     if (item->group() == StaffGroup::STANDARD || item->group() == StaffGroup::PERCUSSION) {
         if (!item->genKeysig()) {

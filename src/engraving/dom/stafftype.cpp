@@ -27,6 +27,8 @@
 #include "io/file.h"
 #include "translation.h"
 
+#include "../jims/jimsstrings.h"
+
 #include "rw/xmlreader.h"
 #include "style/defaultstyle.h"
 #include "style/style.h"
@@ -177,6 +179,9 @@ bool StaffType::operator==(const StaffType& st) const
     equal &= (m_group == st.m_group);
     equal &= (m_xmlName == st.m_xmlName);
     equal &= (m_name == st.m_name);
+    equal &= (m_jims == st.m_jims);
+    equal &= (m_jimsStateJson == st.m_jimsStateJson);
+    equal &= (m_jimsTonicExtent == st.m_jimsTonicExtent);
     equal &= (m_userMag == st.m_userMag);
     equal &= (m_yoffset == st.m_yoffset);
     equal &= (m_small == st.m_small);
@@ -749,6 +754,28 @@ double StaffType::physStringToYOffset(int strg) const
 }
 
 //---------------------------------------------------------
+//   jimsYFromCents
+//    The single JiMStaff vertical seam (Milestone 1): cents above the
+//    staff's lower Do boundary to a y offset in spatium units. One staff
+//    spans exactly one 1200-cent period across (m_lines - 1) line
+//    distances — 100 cents per staff location — and y grows downward,
+//    so the upper Do boundary (1200 cents) maps to 0. Every JiMS note,
+//    guide line, dot, and indicator ordinate routes through here; no
+//    second cents-to-y formula may exist anywhere.
+//---------------------------------------------------------
+
+double StaffType::jimsYFromCents(double centsAboveDo) const
+{
+    // 100 cents per staff location by design (Q5, 2026-08-13); the staff
+    // frame spans (m_lines - 1) locations — 13 lines per stacked
+    // 1200-cent period, coincident Do boundaries shared. y grows
+    // downward, so the frame's top sits at (m_lines - 1) * 100 cents.
+    const double centsPerLocation = 100.0;
+    const double topCents = (double)(m_lines - 1) * centsPerLocation;
+    return (topCents - centsAboveDo) / centsPerLocation * m_lineDistance.val();
+}
+
+//---------------------------------------------------------
 //   TabDurationSymbol
 //---------------------------------------------------------
 
@@ -1153,6 +1180,25 @@ void StaffType::initStaffTypes(const Color& defaultColor)
         StaffType(StaffGroup::TAB, u"tab9StrSimple",  muse::mtrc("engraving", "Tab. 9-str. simple"),  9,  0, 1.5, true,  true, true, false, false,  defaultColor, u"MuseScore Tab Modern", 15, 0, false, true,  u"MuseScore Tab Sans",                     9, 0,  TablatureSymbolRepeat::NEVER, false, TablatureMinimStyle::NONE,    true,  false, true,  false, false, false, true,  false),
         StaffType(StaffGroup::TAB, u"tab10StrSimple", muse::mtrc("engraving", "Tab. 10-str. simple"), 10, 0, 1.5, true,  true, true, false, false,  defaultColor, u"MuseScore Tab Modern", 15, 0, false, true,  u"MuseScore Tab Sans",                     9, 0,  TablatureSymbolRepeat::NEVER, false, TablatureMinimStyle::NONE,    true,  false, true,  false, false, false, true,  false),
     };
+
+    // JiMStaff 12-TET (Milestone 1): a STANDARD-group variant spanning one
+    // 1200-cent period across 13 staff locations (100 cents = one line
+    // distance). Clef, key signatures, and ledger lines are suppressed;
+    // the three JiMS guide lines are drawn by the JiMS StaffLines branch.
+    // Keep in sync with StaffTypes::JIMS_12TET.
+    StaffType jims(StaffGroup::STANDARD, u"jims12tet", jims::presetName(),
+                   13, 0, 1, false, true, false, true, false, false, false, defaultColor);
+    jims.setJiMS(true);
+    // Kernel-owned default section state: White collection, Do-mode,
+    // 12-TET, one Do-bounded period from register 4 (JiMStaffStateV1).
+    jims.setJimsStateJson(String::fromUtf8(
+                              "{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],"
+                              "\"collection_rotation\":0,\"mode_rotation\":0,"
+                              "\"generator_cents\":700.0,\"period_cents\":1200.0,"
+                              "\"embedding\":{\"large_steps\":5,\"small_steps\":2},"
+                              "\"extent\":{\"lower_do_register\":4,\"period_count\":1},"
+                              "\"reference\":\"none\"}"));
+    m_presets.push_back(jims);
 }
 /* *INDENT-ON* */
 } // namespace mu::engraving

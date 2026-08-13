@@ -78,6 +78,8 @@ static constexpr PropertyMetaData propertyList[] = {
     { Pid::LINE,                                P_TYPE::INT,                       PropertyGroup::NONE,       false, "line",                            QT_TRANSLATE_NOOP("engraving/propertyName", "line") },
     { Pid::FIXED,                               P_TYPE::BOOL,                      PropertyGroup::APPEARANCE, true,  "fixed",                           QT_TRANSLATE_NOOP("engraving/propertyName", "fixed") },
     { Pid::FIXED_LINE,                          P_TYPE::INT,                       PropertyGroup::NONE      , true,  "fixedLine",                       QT_TRANSLATE_NOOP("engraving/propertyName", "fixed line") },
+    { Pid::JIMS_NPER,                           P_TYPE::INT,                       PropertyGroup::NONE      , true,  "jimsNPer",                        QT_TRANSLATE_NOOP("engraving/propertyName", "JiMS period coordinate") },
+    { Pid::JIMS_NGEN,                           P_TYPE::INT,                       PropertyGroup::NONE      , true,  "jimsNGen",                        QT_TRANSLATE_NOOP("engraving/propertyName", "JiMS generator coordinate") },
     { Pid::HEAD_TYPE,                           P_TYPE::NOTEHEAD_TYPE,             PropertyGroup::APPEARANCE, false, "headType",                        QT_TRANSLATE_NOOP("engraving/propertyName", "head type") },
     { Pid::HEAD_GROUP,                          P_TYPE::NOTEHEAD_GROUP,            PropertyGroup::APPEARANCE, true,  "head",                            QT_TRANSLATE_NOOP("engraving/propertyName", "head") },
     { Pid::VELO_TYPE,                           P_TYPE::VELO_TYPE,                 PropertyGroup::APPEARANCE, false, "veloType",                        QT_TRANSLATE_NOOP("engraving/propertyName", "velocity type") },

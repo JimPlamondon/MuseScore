@@ -37,6 +37,8 @@
 #include "types/typesconv.h"
 #include "iengravingfont.h"
 
+#include "../jims/jimsbridge.h"
+
 #include "rendering/score/horizontalspacing.h"
 
 #include "accidental.h"
@@ -931,6 +933,34 @@ SymId Note::noteHead() const
     const Staff* st = chord() ? chord()->staff() : nullptr;
 
     NoteHeadGroup headGroup = m_headGroup;
+
+    // JiMStaff (Milestone 1): on a JiMS staff, a note with a lattice
+    // identity takes its notehead shape from the Kernel's semantic class
+    // token — never from fork-side degree/alteration logic. Naturals keep
+    // the platform default head; the four accidental classes map onto the
+    // existing shape groups (triangle up/down; the vertex-up square is the
+    // diamond orientation; the edge-up square is the shape-note La square).
+    if (st && chord() && hasJimsPitch()) {
+        const StaffType* jimsSt = st->staffTypeForElement(chord());
+        if (jimsSt && jimsSt->isJiMS()) {
+            muse::String token;
+            if (jims::noteheadToken(jimsSt->jimsStateJson(), m_jimsNGen, token)) {
+                if (token == u"triangle-vertex-up") {
+                    headGroup = NoteHeadGroup::HEAD_TRIANGLE_UP;
+                } else if (token == u"triangle-vertex-down") {
+                    headGroup = NoteHeadGroup::HEAD_TRIANGLE_DOWN;
+                } else if (token == u"square-vertex-up") {
+                    headGroup = NoteHeadGroup::HEAD_DIAMOND;
+                } else if (token == u"square-edge-up") {
+                    headGroup = NoteHeadGroup::HEAD_LA;
+                } else {
+                    headGroup = NoteHeadGroup::HEAD_NORMAL;
+                }
+                return noteHead(up, headGroup, ht);
+            }
+        }
+    }
+
     if (m_headGroup == NoteHeadGroup::HEAD_CUSTOM) {
         if (st) {
             if (st->staffTypeForElement(chord())->isDrumStaff()) {
@@ -2929,6 +2959,25 @@ void Note::updateRelLine(int absLine, bool undoable)
 
     int off  = st->stepOffset();
     double ld = st->lineDistance().val();
+
+    // JiMStaff (Milestone 1): a note with a lattice identity on a JiMS
+    // staff is placed by its Kernel-derived cents-above-Do through the
+    // single StaffType seam — never by the diatonic step arithmetic
+    // above. The cents value is the Kernel's (jims::noteCentsAboveDo);
+    // this branch only projects it to y.
+    if (st->isJiMS() && hasJimsPitch()) {
+        if (!m_jimsCentsValid) {
+            double cents = 0.0;
+            if (jims::noteCentsAboveDo(st->jimsStateJson(), m_jimsNPer, m_jimsNGen, cents)) {
+                setJimsCentsAboveDo(cents);
+            }
+        }
+        if (m_jimsCentsValid) {
+            mutldata()->setPosY(st->jimsYFromCents(m_jimsCentsAboveDo) * spatium());
+            return;
+        }
+    }
+
     mutldata()->setPosY((m_line + off * 2.0) * spatium() * .5 * ld);
 }
 
@@ -3054,6 +3103,10 @@ PropertyValue Note::getProperty(Pid propertyId) const
         return fixed();
     case Pid::FIXED_LINE:
         return fixedLine();
+    case Pid::JIMS_NPER:
+        return m_jimsNPer;
+    case Pid::JIMS_NGEN:
+        return m_jimsNGen;
     case Pid::HAS_PARENTHESES:
         return m_hasParens ? ParenthesesMode::BOTH : ParenthesesMode::NONE;
     case Pid::HIDE_GENERATED_PARENTHESES:
@@ -3167,6 +3220,14 @@ bool Note::setProperty(Pid propertyId, const PropertyValue& v)
     case Pid::FIXED_LINE:
         setFixedLine(v.toInt());
         break;
+    case Pid::JIMS_NPER:
+        m_jimsNPer = v.toInt();
+        m_jimsCentsValid = false;
+        break;
+    case Pid::JIMS_NGEN:
+        m_jimsNGen = v.toInt();
+        m_jimsCentsValid = false;
+        break;
     case Pid::HAS_PARENTHESES:
         if (v.value<ParenthesesMode>() != ParenthesesMode::BOTH && v.value<ParenthesesMode>() != ParenthesesMode::NONE) {
             ASSERT_X("Notes cannot set left & right parens individually");
@@ -3231,6 +3292,10 @@ PropertyValue Note::propertyDefault(Pid propertyId) const
         return false;
     case Pid::FIXED_LINE:
         return 0;
+    case Pid::JIMS_NPER:
+        return JIMS_UNSET;
+    case Pid::JIMS_NGEN:
+        return JIMS_UNSET;
     case Pid::TPC2:
         return getProperty(Pid::TPC1);
     case Pid::PITCH:

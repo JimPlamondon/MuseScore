@@ -21,6 +21,8 @@
  */
 #include "tdraw.h"
 
+#include "../../jims/jimsbridge.h"
+
 #include "defer.h"
 
 #include "draw/fontmetrics.h"
@@ -2712,6 +2714,88 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
     painter->save();
 
     setMask(item, painter);
+
+    if (!item->jimsGuideLines().empty()) {
+        // JiMStaff (Milestone 1): each guide line carries its own style —
+        // the one deliberate exception to the single-pen staff-line rule,
+        // reached only when the JiMS layout branch populated guides.
+        for (const StaffLines::JimsGuideLine& guide : item->jimsGuideLines()) {
+            Color color(guide.rgb >> 16 & 0xff, guide.rgb >> 8 & 0xff, guide.rgb & 0xff);
+            painter->setPen(Pen(color, item->lw(),
+                                guide.dashed ? PenStyle::DashLine : PenStyle::SolidLine,
+                                PenCapStyle::FlatCap));
+            painter->drawLine(guide.line);
+        }
+
+        // First-measure header: scale-dot column, tonic indicator, and
+        // crescent clef, drawn in the left margin. Ordinates and dot
+        // classes come from the Kernel through the bridge; the crescent
+        // path follows the owner-accepted variant-3 construction (outer
+        // half-oval, rx = 4/3 ry, against an inner half-circle; tips on
+        // the frame's Do boundaries).
+        const Staff* jimsStaff = item->staff();
+        const StaffType* jimsSt = jimsStaff ? jimsStaff->staffType(item->measure()->tick()) : nullptr;
+        if (jimsSt && jimsSt->isJiMS() && item->measure()->no() == 0) {
+            const double _spatium = item->spatium();
+            const double topY = item->pos().y();
+            const int periods = std::max(1, (jimsSt->lines() - 1) / 12);
+            const IEngravingFontPtr font = item->score()->engravingFont();
+            std::vector<jims::ScaleDotStack> stacks;
+            if (font && jims::scaleDots(jimsSt->jimsStateJson(), stacks)) {
+                const double dotColumnX = item->pos().x() - 5.0 * _spatium;
+                for (int p = 0; p < periods; ++p) {
+                    for (const auto& stack : stacks) {
+                        double y = topY + jimsSt->jimsYFromCents(stack.cents + 1200.0 * p) * _spatium;
+                        double dx = 0.0;
+                        for (int nGen : stack.frontToBack) {
+                            muse::String token;
+                            SymId dotSym = SymId::noteheadHalf;
+                            if (jims::noteheadToken(jimsSt->jimsStateJson(), nGen, token)) {
+                                if (token == u"triangle-vertex-up") {
+                                    dotSym = SymId::noteheadTriangleUpBlack;
+                                } else if (token == u"triangle-vertex-down") {
+                                    dotSym = SymId::noteheadTriangleDownBlack;
+                                } else if (token == u"square-vertex-up") {
+                                    dotSym = SymId::noteheadDiamondBlack;
+                                } else if (token == u"square-edge-up") {
+                                    dotSym = SymId::noteheadSquareBlack;
+                                }
+                            }
+                            painter->setPen(Pen(item->curColor(opt), item->lw()));
+                            font->draw(dotSym, painter, 1.0, PointF(dotColumnX + dx, y));
+                            dx += 0.15 * _spatium;
+                        }
+                    }
+                    // Tonic indicator: hollow vertex-up square, 1.3x a
+                    // dot, over the tonic member's dot — index 0 in staff
+                    // order is the member on the lower Do boundary, so
+                    // Do-mode (Milestone 1 rendering scope) marks Do.
+                    if (!stacks.empty()) {
+                        double ty = topY
+                                    + jimsSt->jimsYFromCents(stacks.front().cents + 1200.0 * p) * _spatium;
+                        font->draw(SymId::noteheadDiamondWhite, painter, 1.3,
+                                   PointF(dotColumnX - 0.2 * _spatium, ty));
+                    }
+                }
+            }
+            const double frameH = (jimsSt->lines() - 1) * jimsSt->lineDistance().val() * _spatium;
+            const double clefRightX = item->pos().x() - 0.8 * _spatium;
+            const double ry = frameH / 2.0;
+            const double rx = ry * 4.0 / 3.0;
+            PainterPath crescent;
+            crescent.moveTo(clefRightX, topY);
+            crescent.arcTo(RectF(clefRightX - rx, topY, 2.0 * rx, 2.0 * ry), 90.0, 180.0);
+            crescent.arcTo(RectF(clefRightX - ry, topY, 2.0 * ry, 2.0 * ry), 270.0, -180.0);
+            crescent.closeSubpath();
+            painter->setPen(Pen(item->curColor(opt), item->lw() * 1.5, PenStyle::SolidLine));
+            painter->setBrush(Brush(Color::WHITE));
+            painter->drawPath(crescent);
+            painter->setBrush(BrushStyle::NoBrush);
+        }
+
+        painter->restore();
+        return;
+    }
 
     painter->setPen(Pen(item->curColor(opt), item->lw(), PenStyle::SolidLine, PenCapStyle::FlatCap));
     painter->drawLines(item->lines());

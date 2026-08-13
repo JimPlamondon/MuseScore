@@ -5035,6 +5035,44 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
     double y  = item->pos().y();
     ldata->setBbox(x1, -item->lw() * .5 + y, w, (_lines - 1) * dist + item->lw());
 
+    // JiMStaff (Milestone 1): a JiMS staff draws exactly three guide
+    // lines — solid red Do-lines at 0 and 1200 cents and the dashed
+    // yellow mid-period line at 600 cents — never the uniform line set.
+    // Ordinates route through the single StaffType seam. The bbox above
+    // stays the stock (_lines - 1) * dist frame, which for the 13-location
+    // JiMS preset is exactly the one-period staff height.
+    const StaffType* jimsSt = s ? s->staffType(item->measure()->tick()) : nullptr;
+    if (jimsSt && jimsSt->isJiMS()) {
+        std::vector<StaffLines::JimsGuideLine> guides;
+        auto guide = [&](double cents, bool dashed, int rgb) {
+            double gy = y + jimsSt->jimsYFromCents(cents) * _spatium;
+            guides.push_back({ LineF(x1, gy, x2, gy), dashed, rgb });
+        };
+        // One red Do-line per period boundary and one dashed yellow line
+        // per mid-period, across every stacked 1200-cent period the frame
+        // holds ((lines - 1) / 12 periods at 100 cents per location).
+        const int periods = std::max(1, (_lines - 1) / 12);
+        for (int p = 0; p <= periods; ++p) {
+            guide(p * 1200.0, false, 0xE03030);
+            if (p < periods) {
+                guide(p * 1200.0 + 600.0, true, 0xE0C020);
+            }
+        }
+        item->setJimsGuideLines(guides);
+        item->setLines({});
+        if (item->measure() && item->measure()->no() == 0) {
+            // The first measure's frame also hosts the JiMS header
+            // (scale-dot column, tonic indicator, crescent clef) drawn in
+            // the margin to its left; widen the bbox so paint clipping
+            // and culling keep the header visible.
+            const double headerWidth = 7.5 * _spatium;
+            ldata->setBbox(x1 - headerWidth, -item->lw() * .5 + y,
+                           w + headerWidth, (_lines - 1) * dist + item->lw());
+        }
+        return;
+    }
+    item->setJimsGuideLines({});
+
     std::vector<LineF> ll;
     for (int i = 0; i < _lines; ++i) {
         ll.push_back(LineF(x1, y, x2, y));

@@ -90,6 +90,8 @@ enum class Pid : short {
     LINE,
     FIXED,
     FIXED_LINE,
+    JIMS_NPER,
+    JIMS_NGEN,
     HEAD_TYPE,
     HEAD_GROUP,
     VELO_TYPE,

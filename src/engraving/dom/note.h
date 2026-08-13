@@ -217,6 +217,24 @@ public:
     int fixedLine() const { return m_fixedLine; }
     void setFixedLine(int v) { m_fixedLine = v; }
 
+    // JiMStaff lattice identity (Milestone 1).
+    bool hasJimsPitch() const { return m_jimsNPer != JIMS_UNSET && m_jimsNGen != JIMS_UNSET; }
+    int jimsNPer() const { return m_jimsNPer; }
+    int jimsNGen() const { return m_jimsNGen; }
+    void setJimsPitch(int nPer, int nGen)
+    {
+        m_jimsNPer = nPer;
+        m_jimsNGen = nGen;
+        m_jimsCentsValid = false;
+    }
+    bool jimsCentsValid() const { return m_jimsCentsValid; }
+    double jimsCentsAboveDo() const { return m_jimsCentsAboveDo; }
+    void setJimsCentsAboveDo(double cents)
+    {
+        m_jimsCentsAboveDo = cents;
+        m_jimsCentsValid = true;
+    }
+
     int tpc() const;
     int tpc1() const { return m_tpc[0]; }                  // non transposed tpc
     int tpc2() const { return m_tpc[1]; }                  // transposed tpc
@@ -526,6 +544,16 @@ private:
 
     int m_subchannel = 0;       // articulation
     int m_line = INVALID_LINE;  // y-Position; 0 - top line.
+
+    // JiMStaff lattice identity (Milestone 1): authoritative per-note
+    // nPer/nGen, persisted; JIMS_UNSET when the note carries none. The
+    // Do-relative cents value is a derived layout cache obtained from the
+    // Kernel through the FFI seam — never serialized, never computed here.
+    static constexpr int JIMS_UNSET = INT_MIN;
+    int m_jimsNPer = JIMS_UNSET;
+    int m_jimsNGen = JIMS_UNSET;
+    double m_jimsCentsAboveDo = 0.0;
+    bool m_jimsCentsValid = false;
     int m_fret = -1;            // for tablature view
     float m_harmonicFret = -1.0;
     int m_harmonicPitchOffset = 0;
