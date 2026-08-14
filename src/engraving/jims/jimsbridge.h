@@ -37,6 +37,10 @@ struct ScaleDotStack {
 
 /// The Kernel's scale-dot stacks for one staff, in ascending order.
 bool scaleDots(const muse::String& stateJson, std::vector<ScaleDotStack>& stacks);
+
+/// The Kernel-owned tonic-indicator position: cents above Do for the
+/// state's mode-selected (movable) tonic.
+bool tonicCentsAboveDo(const muse::String& stateJson, double& cents);
 }
 
 #endif

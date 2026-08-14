@@ -3,6 +3,11 @@
   <programVersion>4.7.4</programVersion>
   <programRevision>abc123456</programRevision>
   <Score>
+    <Style>
+      <pageWidth>11.69</pageWidth>
+      <pageHeight>8.27</pageHeight>
+      <pagePrintableWidth>10.9</pagePrintableWidth>
+      </Style>
     <eid>59/QckC5ilD_xMCK9jyPr9O</eid>
     <Division>480</Division>
     <showInvisible>1</showInvisible>
@@ -33,6 +38,7 @@
         <keysig>0</keysig>
         <ledgerlines>0</ledgerlines>
         <jims>1</jims>
+        <jimsJiLines>1</jimsJiLines>
         <jimsStateJson>{"scale":["M2","m2","M2","M2","M2","m2","M2"],"collection_rotation":0,"mode_rotation":0,"generator_cents":700.0,"period_cents":1200.0,"embedding":{"large_steps":5,"small_steps":2},"extent":{"lower_do_register":4,"period_count":2},"reference":"none"}</jimsStateJson>
         </StaffType>
         </Staff>

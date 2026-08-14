@@ -2727,22 +2727,36 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             painter->drawLine(guide.line);
         }
 
-        // First-measure header: scale-dot column, tonic indicator, and
-        // crescent clef, drawn in the left margin. Ordinates and dot
-        // classes come from the Kernel through the bridge; the crescent
-        // path follows the owner-accepted variant-3 construction (outer
-        // half-oval, rx = 4/3 ry, against an inner half-circle; tips on
-        // the frame's Do boundaries).
+        // System-head header (owner ruling 2026-08-14): on every stave of
+        // every system-leading measure — scale-dot column and tonic
+        // indicator over the support-line extensions, then one crescent
+        // clef per 1200-cent stave, drawn LAST so its white body occludes
+        // the lines passing behind it. All ordinates, dot classes, and
+        // the tonic position come from the Kernel through the bridge.
         const Staff* jimsStaff = item->staff();
         const StaffType* jimsSt = jimsStaff ? jimsStaff->staffType(item->measure()->tick()) : nullptr;
-        if (jimsSt && jimsSt->isJiMS() && item->measure()->no() == 0) {
+        const bool systemHead = item->measure()->system()
+                                && item->measure()->system()->firstMeasure() == item->measure();
+        if (jimsSt && jimsSt->isJiMS() && systemHead) {
             const double _spatium = item->spatium();
+            const double dist = jimsSt->lineDistance().val() * _spatium;
             const double topY = item->pos().y();
             const int periods = std::max(1, (jimsSt->lines() - 1) / 12);
+            // Same geometry as the layout branch: left edge two indicator
+            // widths left of the clef's leftmost extent; dot centers one
+            // indicator width in from the edge.
+            const double periodH = 12.0 * dist;
+            const double clefRy = periodH / 2.0;
+            const double clefRx = clefRy * 4.0 / 3.0;
+            const double indicatorW = 1.3 * dist;
+            const double clefRight = item->pos().x() - 0.3 * _spatium;
+            const double clefLeft = clefRight - clefRx;
+            const double dotCenterX = clefLeft - 2.0 * indicatorW + indicatorW;
             const IEngravingFontPtr font = item->score()->engravingFont();
             std::vector<jims::ScaleDotStack> stacks;
+            double tonicCents = 0.0;
+            const bool haveTonic = jims::tonicCentsAboveDo(jimsSt->jimsStateJson(), tonicCents);
             if (font && jims::scaleDots(jimsSt->jimsStateJson(), stacks)) {
-                const double dotColumnX = item->pos().x() - 5.0 * _spatium;
                 for (int p = 0; p < periods; ++p) {
                     for (const auto& stack : stacks) {
                         double y = topY + jimsSt->jimsYFromCents(stack.cents + 1200.0 * p) * _spatium;
@@ -2761,36 +2775,40 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                     dotSym = SymId::noteheadSquareBlack;
                                 }
                             }
+                            RectF gb = font->bbox(dotSym, 1.0);
                             painter->setPen(Pen(item->curColor(opt), item->lw()));
-                            font->draw(dotSym, painter, 1.0, PointF(dotColumnX + dx, y));
+                            font->draw(dotSym, painter,  1.0,
+                                       PointF(dotCenterX - gb.width() / 2.0 + dx, y));
                             dx += 0.15 * _spatium;
                         }
                     }
                     // Tonic indicator: hollow vertex-up square, 1.3x a
-                    // dot, over the tonic member's dot — index 0 in staff
-                    // order is the member on the lower Do boundary, so
-                    // Do-mode (Milestone 1 rendering scope) marks Do.
-                    if (!stacks.empty()) {
+                    // dot, centered over the Kernel's mode-selected tonic
+                    // position (movable tonic — any mode).
+                    if (haveTonic) {
                         double ty = topY
-                                    + jimsSt->jimsYFromCents(stacks.front().cents + 1200.0 * p) * _spatium;
+                                    + jimsSt->jimsYFromCents(tonicCents + 1200.0 * p) * _spatium;
+                        RectF ib = font->bbox(SymId::noteheadDiamondWhite, 1.3);
                         font->draw(SymId::noteheadDiamondWhite, painter, 1.3,
-                                   PointF(dotColumnX - 0.2 * _spatium, ty));
+                                   PointF(dotCenterX - ib.width() / 2.0, ty));
                     }
                 }
             }
-            const double frameH = (jimsSt->lines() - 1) * jimsSt->lineDistance().val() * _spatium;
-            const double clefRightX = item->pos().x() - 0.8 * _spatium;
-            const double ry = frameH / 2.0;
-            const double rx = ry * 4.0 / 3.0;
-            PainterPath crescent;
-            crescent.moveTo(clefRightX, topY);
-            crescent.arcTo(RectF(clefRightX - rx, topY, 2.0 * rx, 2.0 * ry), 90.0, 180.0);
-            crescent.arcTo(RectF(clefRightX - ry, topY, 2.0 * ry, 2.0 * ry), 270.0, -180.0);
-            crescent.closeSubpath();
-            painter->setPen(Pen(item->curColor(opt), item->lw() * 1.5, PenStyle::SolidLine));
-            painter->setBrush(Brush(Color::WHITE));
-            painter->drawPath(crescent);
-            painter->setBrush(BrushStyle::NoBrush);
+            // One crescent per stave, drawn last: tips on that stave's
+            // own Do boundary lines, white body occluding the support
+            // lines behind it (variant-3 construction, rx = 4/3 ry).
+            for (int p = 0; p < periods; ++p) {
+                const double staveTop = topY + jimsSt->jimsYFromCents((periods - p) * 1200.0) * _spatium;
+                PainterPath crescent;
+                crescent.moveTo(clefRight, staveTop);
+                crescent.arcTo(RectF(clefRight - clefRx, staveTop, 2.0 * clefRx, 2.0 * clefRy), 90.0, 180.0);
+                crescent.arcTo(RectF(clefRight - clefRy, staveTop, 2.0 * clefRy, 2.0 * clefRy), 270.0, -180.0);
+                crescent.closeSubpath();
+                painter->setPen(Pen(item->curColor(opt), item->lw() * 1.5, PenStyle::SolidLine));
+                painter->setBrush(Brush(Color::WHITE));
+                painter->drawPath(crescent);
+                painter->setBrush(BrushStyle::NoBrush);
+            }
         }
 
         painter->restore();

@@ -72,6 +72,17 @@ bool noteheadToken(const String& stateJson, int nGen, String& token)
     return true;
 }
 
+bool tonicCentsAboveDo(const String& stateJson, double& cents)
+{
+    String envelope = String(u"{\"abi\":1,\"op\":\"tonic_cents_above_do\",\"state\":%1}").arg(stateJson);
+    JsonValue result;
+    if (!okResult(callBridge(envelope), result)) {
+        return false;
+    }
+    cents = result.toDouble();
+    return true;
+}
+
 bool scaleDots(const String& stateJson, std::vector<ScaleDotStack>& stacks)
 {
     String envelope = String(u"{\"abi\":1,\"op\":\"scale_dots\",\"state\":%1}").arg(stateJson);

@@ -182,6 +182,7 @@ bool StaffType::operator==(const StaffType& st) const
     equal &= (m_jims == st.m_jims);
     equal &= (m_jimsStateJson == st.m_jimsStateJson);
     equal &= (m_jimsTonicExtent == st.m_jimsTonicExtent);
+    equal &= (m_jimsJiLines == st.m_jimsJiLines);
     equal &= (m_userMag == st.m_userMag);
     equal &= (m_yoffset == st.m_yoffset);
     equal &= (m_small == st.m_small);

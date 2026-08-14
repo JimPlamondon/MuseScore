@@ -5043,30 +5043,62 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
     // JiMS preset is exactly the one-period staff height.
     const StaffType* jimsSt = s ? s->staffType(item->measure()->tick()) : nullptr;
     if (jimsSt && jimsSt->isJiMS()) {
+        // Header geometry (owner ruling 2026-08-14): each system-leading
+        // measure carries the JiMS header to its left — scale-dot column
+        // and tonic indicator on short "support line" extensions, then
+        // the per-period crescent clefs over the lines (clef body
+        // occludes them). The staff's left edge sits two tonic-indicator
+        // widths left of the clef's leftmost extent; the dot centers sit
+        // one indicator width in from that edge.
+        const bool systemHead = item->measure() && item->measure()->system()
+                                && item->measure()->system()->firstMeasure() == item->measure();
+        const int periods = std::max(1, (_lines - 1) / 12);
+        const double periodH = 12.0 * dist;                  // one 1200-cent stave
+        const double clefRy = periodH / 2.0;
+        const double clefRx = clefRy * 4.0 / 3.0;            // variant-3 oval
+        const double indicatorW = 1.3 * dist;                // 130-cent hollow square
+        const double clefRight = x1 - 0.3 * _spatium;
+        const double clefLeft = clefRight - clefRx;
+        const double leftEdge = clefLeft - 2.0 * indicatorW;
+        const double lineStartX = systemHead ? leftEdge : x1;
+
         std::vector<StaffLines::JimsGuideLine> guides;
         auto guide = [&](double cents, bool dashed, int rgb) {
             double gy = y + jimsSt->jimsYFromCents(cents) * _spatium;
-            guides.push_back({ LineF(x1, gy, x2, gy), dashed, rgb });
+            guides.push_back({ LineF(lineStartX, gy, x2, gy), dashed, rgb });
         };
-        // One red Do-line per period boundary and one dashed yellow line
-        // per mid-period, across every stacked 1200-cent period the frame
-        // holds ((lines - 1) / 12 periods at 100 cents per location).
-        const int periods = std::max(1, (_lines - 1) / 12);
+        // Solid red Do-lines at every period boundary. Between them,
+        // either the dashed yellow mid-period line (default) or — the
+        // EXPERIMENTAL Just Intonation scaffold (owner request
+        // 2026-08-14, opt-in via jimsJiLines, deliberately not locked
+        // in): 3-limit ratios 9/8, 4/3, 3/2 in blue; 5-limit ratios 5/4,
+        // 5/3, 15/8 in green. Cents are the exact 1200*log2(ratio)
+        // values. If adopted, this table moves into the Kernel.
+        static const std::pair<double, int> JI_LINES[] = {
+            { 203.910, 0x2060D0 },   // 9/8, 3-limit blue
+            { 386.314, 0x209040 },   // 5/4, 5-limit green
+            { 498.045, 0x2060D0 },   // 4/3, 3-limit blue
+            { 701.955, 0x2060D0 },   // 3/2, 3-limit blue
+            { 884.359, 0x209040 },   // 5/3, 5-limit green
+            { 1088.269, 0x209040 },  // 15/8, 5-limit green
+        };
         for (int p = 0; p <= periods; ++p) {
             guide(p * 1200.0, false, 0xE03030);
             if (p < periods) {
-                guide(p * 1200.0 + 600.0, true, 0xE0C020);
+                if (jimsSt->jimsJiLines()) {
+                    for (const auto& ji : JI_LINES) {
+                        guide(p * 1200.0 + ji.first, true, ji.second);
+                    }
+                } else {
+                    guide(p * 1200.0 + 600.0, true, 0xE0C020);
+                }
             }
         }
         item->setJimsGuideLines(guides);
         item->setLines({});
-        if (item->measure() && item->measure()->no() == 0) {
-            // The first measure's frame also hosts the JiMS header
-            // (scale-dot column, tonic indicator, crescent clef) drawn in
-            // the margin to its left; widen the bbox so paint clipping
-            // and culling keep the header visible.
-            const double headerWidth = 7.5 * _spatium;
-            ldata->setBbox(x1 - headerWidth, -item->lw() * .5 + y,
+        if (systemHead) {
+            const double headerWidth = x1 - leftEdge;
+            ldata->setBbox(leftEdge, -item->lw() * .5 + y,
                            w + headerWidth, (_lines - 1) * dist + item->lw());
         }
         return;

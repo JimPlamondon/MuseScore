@@ -237,6 +237,10 @@ public:
     void setJimsStateJson(const String& s) { m_jimsStateJson = s; }
     const String& jimsTonicExtent() const { return m_jimsTonicExtent; }
     void setJimsTonicExtent(const String& s) { m_jimsTonicExtent = s; }
+    // EXPERIMENTAL (owner request 2026-08-14, not locked in): draw the
+    // Just Intonation diatonic scaffold instead of the mid-period line.
+    bool jimsJiLines() const { return m_jimsJiLines; }
+    void setJimsJiLines(bool val) { m_jimsJiLines = val; }
     // The single seam for ALL JiMStaff vertical arithmetic: cents above
     // the staff's lower Do to a chord-relative y in spatium units. The
     // staff spans exactly one 1200-cent period, 100 cents per staff
@@ -361,6 +365,7 @@ private:
     bool m_jims = false;
     String m_jimsStateJson;
     String m_jimsTonicExtent;
+    bool m_jimsJiLines = false;
 
     bool m_showBarlines = true;
     bool m_showLedgerLines = true;

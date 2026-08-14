@@ -2957,6 +2957,9 @@ void TWrite::write(const StaffType* item, XmlWriter& xml, WriteContext& ctx)
         if (!item->jimsTonicExtent().isEmpty()) {
             xml.tag("jimsTonicExtent", item->jimsTonicExtent());
         }
+        if (item->jimsJiLines()) {
+            xml.tag("jimsJiLines", item->jimsJiLines());
+        }
     }
     if (item->group() == StaffGroup::STANDARD || item->group() == StaffGroup::PERCUSSION) {
         if (!item->genKeysig()) {

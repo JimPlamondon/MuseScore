@@ -4020,6 +4020,8 @@ void TRead::read(StaffType* t, XmlReader& e, ReadContext& ctx)
             t->setJimsStateJson(e.readText());
         } else if (tag == "jimsTonicExtent") {
             t->setJimsTonicExtent(e.readText());
+        } else if (tag == "jimsJiLines") {
+            t->setJimsJiLines(e.readInt());
         } else if (tag == "durations") {
             t->setGenDurations(e.readBool());
         } else if (tag == "durationFontName") {
