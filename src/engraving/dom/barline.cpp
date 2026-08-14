@@ -273,6 +273,18 @@ void BarLine::calcY()
     double y1 = offset + from * lineDistance * .5 - lineWidth;
     double y2 = offset + (staffType1->lines() * 2 - 2 + to) * lineDistance * .5 + lineWidth;
 
+    // JiMStaff (owner correction 2026-08-14): barlines span the DERIVED
+    // frame, not the nominal line count — a partial stave is shorter
+    // than the preset's lines, and a barline must never overshoot it.
+    if (staffType1->isJiMS() && !spanStaff) {
+        staffType1->jimsEnsureFrame(score(), staffIdx1);
+        const double frameH = (staffType1->jimsFrameTopCents() - staffType1->jimsFrameBottomCents())
+                              / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * lineDistance;
+        data->y1 = offset - lineWidth;
+        data->y2 = offset + frameH + lineWidth;
+        return;
+    }
+
     if (spanStaff) {
         // we need spatium and line distance of bottom staff
         // as it may be scalled diferently
