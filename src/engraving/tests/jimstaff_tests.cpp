@@ -13,7 +13,17 @@
 
 #include <gtest/gtest.h>
 
+#include "engraving/dom/masterscore.h"
+#include "engraving/editing/undo.h"
+#include "engraving/dom/measure.h"
+#include "engraving/dom/note.h"
+#include "engraving/dom/segment.h"
+#include "engraving/dom/staff.h"
+#include "engraving/dom/stafftype.h"
 #include "engraving/jims/jimsbridge.h"
+#include "engraving/jims/jimstuningcontroller.h"
+
+#include "utils/scorerw.h"
 
 #include "engraving/iengravingfontsprovider.h"
 #include "modularity/ioc.h"
@@ -183,4 +193,124 @@ TEST(JiMStaffTests, jimsMusicFontRegisteredWithKernelOutlines)
         muse::RectF fb = fallback->bbox(sym, 1.0);
         EXPECT_TRUE(jb != fb) << "outline identical to fallback - registration had no effect";
     }
+}
+
+namespace {
+constexpr double G19T = 1200.0 * 11.0 / 19.0;
+
+double stateGeneratorCents(const StaffType* st)
+{
+    double g = 0.0, p = 0.0;
+    return jims::staffMetrics(st->jimsStateJson(), g, p) ? g : -1.0;
+}
+}
+
+// M3 Phase 4: the shared tuning controller. Preview mutates every JiMS
+// state span transiently (no undo entries); commit lands exactly one
+// undoable edit; cancel restores the pre-drag state. Every consumer of
+// the seam re-derives — no stale notes, frames, or labels.
+TEST(JiMStaffTests, tuningControllerPreviewCommitCancelUndo)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/mode-change.mscx");
+    ASSERT_TRUE(score);
+    Staff* staff = score->staff(0);
+    ASSERT_TRUE(staff);
+    const StaffType* base = staff->staffType(Fraction(0, 1));
+    ASSERT_TRUE(base && base->isJiMS());
+    EXPECT_NEAR(stateGeneratorCents(base), 700.0, 1e-9);
+
+    jims::TuningController controller(score, 0);
+    EXPECT_NEAR(controller.currentGeneratorCents(), 700.0, 1e-9);
+
+    // Preview: every span updated, zero undo entries.
+    const size_t undoBefore = score->undoStack()->size();
+    ASSERT_TRUE(controller.beginPreview());
+    ASSERT_TRUE(controller.preview(G19T));
+    EXPECT_NEAR(stateGeneratorCents(staff->staffType(Fraction(0, 1))), G19T, 1e-9);
+    EXPECT_EQ(score->undoStack()->size(), undoBefore) << "preview must not create undo entries";
+
+    // Cancel restores the pre-drag value.
+    controller.cancel();
+    EXPECT_NEAR(stateGeneratorCents(staff->staffType(Fraction(0, 1))), 700.0, 1e-9);
+
+    // Commit: exactly ONE undoable edit; undo restores; redo re-applies.
+    ASSERT_TRUE(controller.beginPreview());
+    ASSERT_TRUE(controller.preview(690.0));
+    ASSERT_TRUE(controller.commit(690.0));
+    EXPECT_EQ(score->undoStack()->size(), undoBefore + 1) << "commit is one undoable edit";
+    EXPECT_NEAR(stateGeneratorCents(staff->staffType(Fraction(0, 1))), 690.0, 1e-9);
+    score->undoRedo(true, nullptr);
+    EXPECT_NEAR(stateGeneratorCents(staff->staffType(Fraction(0, 1))), 700.0, 1e-9);
+    score->undoRedo(false, nullptr);
+    EXPECT_NEAR(stateGeneratorCents(staff->staffType(Fraction(0, 1))), 690.0, 1e-9);
+    delete score;
+}
+
+// The update reaches every span (base StaffType AND the measure-boundary
+// StaffTypeChange), replacing only generator_cents — mode rotation and
+// the per-span tonic extents survive untouched.
+TEST(JiMStaffTests, tuningControllerUpdatesEverySpanPreservingIdentity)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/mode-change.mscx");
+    ASSERT_TRUE(score);
+    Staff* staff = score->staff(0);
+    // The fixture's bar-5 StaffTypeChange carries mode_rotation 5.
+    const StaffType* changed = staff->staffType(Fraction(16, 4));
+    ASSERT_TRUE(changed && changed->isJiMS());
+    ASSERT_TRUE(changed->jimsStateJson().contains(u"\"mode_rotation\":5"));
+
+    jims::TuningController controller(score, 0);
+    ASSERT_TRUE(controller.beginPreview());
+    ASSERT_TRUE(controller.preview(G19T));
+    const StaffType* baseAfter = staff->staffType(Fraction(0, 1));
+    const StaffType* changedAfter = staff->staffType(Fraction(16, 4));
+    EXPECT_NEAR(stateGeneratorCents(baseAfter), G19T, 1e-9);
+    EXPECT_NEAR(stateGeneratorCents(changedAfter), G19T, 1e-9);
+    EXPECT_TRUE(changedAfter->jimsStateJson().contains(u"\"mode_rotation\":5"));
+    EXPECT_TRUE(baseAfter->jimsStateJson().contains(u"\"mode_rotation\":0"));
+    EXPECT_TRUE(baseAfter->jimsStateJson().contains(u"tonic-bounded"));
+    controller.cancel();
+    delete score;
+}
+
+// Note heights are cents through the single seam: after a preview to a
+// new tuning, a pinned note's cached cents re-derive to the new value —
+// the cache invalidation the controller performs is what keeps notes and
+// staff on one map (VTR boundary crossing exercised in both directions).
+TEST(JiMStaffTests, tuningControllerRederivesNoteCentsAcrossVtrBoundary)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/mode-change.mscx");
+    ASSERT_TRUE(score);
+    Staff* staff = score->staff(0);
+    // First note of the piece: C4 = (1,-2), 0 cents at any tuning.
+    // Find a G (1,-1): one generator up — tuning-variant.
+    Note* gNote = nullptr;
+    for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg && !gNote;
+         seg = seg->next1(SegmentType::ChordRest)) {
+        EngravingItem* el = seg->element(0);
+        if (el && el->isChord()) {
+            for (Note* note : toChord(el)->notes()) {
+                if (note->jimsNPer() == 1 && note->jimsNGen() == -1) {
+                    gNote = note;
+                    break;
+                }
+            }
+        }
+    }
+    ASSERT_TRUE(gNote) << "fixture must contain G4 = (1,-1)";
+    score->doLayout();
+    EXPECT_NEAR(gNote->jimsCentsAboveDo(), 700.0, 1e-9);
+
+    jims::TuningController controller(score, 0);
+    for (double g : { G19T - 0.01, G19T, G19T + 0.01, 700.0 }) {
+        ASSERT_TRUE(controller.beginPreview());
+        ASSERT_TRUE(controller.preview(g));
+        score->doLayout();
+        EXPECT_NEAR(gNote->jimsCentsAboveDo(), g, 1e-9)
+            << "note cents must re-derive at generator " << g;
+        controller.cancel();
+    }
+    score->doLayout();
+    EXPECT_NEAR(gNote->jimsCentsAboveDo(), 700.0, 1e-9);
+    delete score;
 }
