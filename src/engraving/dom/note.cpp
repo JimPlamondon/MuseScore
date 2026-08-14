@@ -2167,6 +2167,25 @@ static bool hasAlteredUnison(Note* note)
 
 void Note::updateAccidental(AccidentalState* as)
 {
+    // JiMStaff (owner ruling 2026-08-14): there are no accidental signs
+    // in JiMS notation — sharpness/flatness is carried entirely by the
+    // notehead shape and orientation. Never create one on a JiMS staff;
+    // remove any that arrived through import. The accidental STATE and
+    // the placement update still run, so layout stays consistent.
+    if (staff() && hasJimsPitch()) {
+        const StaffType* jimsSt = staff()->staffTypeForElement(this);
+        if (jimsSt && jimsSt->isJiMS()) {
+            if (m_accidental) {
+                score()->undoRemoveElement(m_accidental);
+            }
+            int jimsAbsLine = absStep(tpc(), epitch());
+            as->setAccidentalVal(jimsAbsLine, tpc2alter(tpc()), m_tieBack != 0);
+            as->setForceRestateAccidental(jimsAbsLine, false);
+            updateRelLine(jimsAbsLine, true);
+            return;
+        }
+    }
+
     int absLine = absStep(tpc(), epitch());
 
     // Ensure m_centOffset and microtonal accidental match (they can mismatch when switching from TAB)
@@ -2973,12 +2992,38 @@ void Note::updateRelLine(int absLine, bool undoable)
             }
         }
         if (m_jimsCentsValid) {
-            mutldata()->setPosY(st->jimsYFromCents(m_jimsCentsAboveDo) * spatium());
+            mutldata()->setPosY(jimsPosY(st));
             return;
         }
     }
 
     mutldata()->setPosY((m_line + off * 2.0) * spatium() * .5 * ld);
+}
+
+//---------------------------------------------------------
+//   jimsPosY
+//    The single JiMS note-placement projection (both vertical writers
+//    call this): the StaffType cents seam plus the centroid correction
+//    (owner finding 2026-08-14). A glyph is drawn with its bounding-box
+//    center on the pitch ordinate, but a triangle's visual mass sits at
+//    its centroid — h/6 below the box center for vertex-up, h/6 above
+//    for vertex-down — so triangle heads read ~17 cents off when
+//    box-centered. Shift them so the CENTROID marks the pitch; squares
+//    and ovals are symmetric and need none.
+//---------------------------------------------------------
+
+double Note::jimsPosY(const StaffType* st) const
+{
+    double y = st->jimsYFromCents(m_jimsCentsAboveDo) * spatium();
+    muse::String token;
+    if (jims::noteheadToken(st->jimsStateJson(), m_jimsNGen, token)) {
+        if (token == u"triangle-vertex-up") {
+            y -= headHeight() / 6.0;
+        } else if (token == u"triangle-vertex-down") {
+            y += headHeight() / 6.0;
+        }
+    }
+    return y;
 }
 
 //---------------------------------------------------------

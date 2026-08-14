@@ -2746,7 +2746,7 @@ void ChordLayout::layoutChords3(const std::vector<Chord*>& chords,
             // from the diatonic step product (audited second-writer site).
             const StaffType* jimsSt = chord->staff() ? chord->staff()->staffTypeForElement(chord) : nullptr;
             if (jimsSt && jimsSt->isJiMS() && note->hasJimsPitch() && note->jimsCentsValid()) {
-                ny = jimsSt->jimsYFromCents(note->jimsCentsAboveDo()) * chord->spatium();
+                ny = note->jimsPosY(jimsSt);
             }
             if (note->ldata()->pos().y() != ny) {
                 note->mutldata()->setPosY(ny);

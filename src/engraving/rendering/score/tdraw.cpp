@@ -2776,9 +2776,18 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                 }
                             }
                             RectF gb = font->bbox(dotSym, 1.0);
+                            // Centroid correction (owner finding
+                            // 2026-08-14): triangles mark their pitch
+                            // with their centroid, not their box center.
+                            double centroidDy = 0.0;
+                            if (dotSym == SymId::noteheadTriangleUpBlack) {
+                                centroidDy = -gb.height() / 6.0;
+                            } else if (dotSym == SymId::noteheadTriangleDownBlack) {
+                                centroidDy = gb.height() / 6.0;
+                            }
                             painter->setPen(Pen(item->curColor(opt), item->lw()));
                             font->draw(dotSym, painter,  1.0,
-                                       PointF(dotCenterX - gb.width() / 2.0 + dx, y));
+                                       PointF(dotCenterX - gb.width() / 2.0 + dx, y + centroidDy));
                             dx += 0.15 * _spatium;
                         }
                     }
