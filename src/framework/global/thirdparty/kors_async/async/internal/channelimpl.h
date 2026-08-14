@@ -552,18 +552,28 @@ public:
 
     ~ChannelImpl()
     {
-        for (size_t i = 0; i < m_thdatas.count(); ++i) {
-            ThreadData* thdata = m_thdatas.at(i);
-            assert(thdata);
-            if (!thdata) {
-                break;
+        // JiMS fork fix: during late (static-order) teardown the queue
+        // mutexes may already be destroyed, and the resulting
+        // std::system_error escaping this implicitly-noexcept destructor
+        // aborted the whole app on every quit ("MuseScore Studio quit
+        // unexpectedly"). A failed cleanup at exit is harmless; swallow
+        // it instead of terminating.
+        try {
+            for (size_t i = 0; i < m_thdatas.count(); ++i) {
+                ThreadData* thdata = m_thdatas.at(i);
+                assert(thdata);
+                if (!thdata) {
+                    break;
+                }
+
+                thdata->clearAllQueue();
+                thdata->clearReceivers(this);
             }
 
-            thdata->clearAllQueue();
-            thdata->clearReceivers(this);
+            m_thdatas.clear();
+        } catch (...) {
+            // Intentionally swallowed: process is exiting.
         }
-
-        m_thdatas.clear();
     }
 
     const ChannelOpt& opt() const { return m_opt; }
