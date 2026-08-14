@@ -2835,6 +2835,39 @@ void Note::verticalDrag(EditData& ed)
 
     NoteEditData* ned   = static_cast<NoteEditData*>(ed.getData(this).get());
 
+    // JiMStaff (Milestone 2 Phase 3, owner rulings 2026-08-14): a
+    // vertical drag on a JiMS note quantizes to the NEAREST REALIZABLE
+    // LATTICE PITCH BY CENTS — there is no location grid, and the stock
+    // diatonic step arithmetic below must never touch a JiMS note. The
+    // target height converts to cents through the single seam's inverse;
+    // the Kernel picks the pitch (retaining the current identity at
+    // exact-midpoint ties) and supplies the compatibility spelling.
+    {
+        const StaffType* jimsSt = staffType();
+        if (jimsSt && jimsSt->isJiMS() && hasJimsPitch() && m_jimsCentsValid) {
+            const double centsPerSp = StaffType::JIMS_CENTS_PER_LINE_DISTANCE
+                                      / (spatium() * jimsSt->lineDistance().val());
+            const double targetCents = m_jimsCentsAboveDo - ed.moveDelta.y() * centsPerSp;
+            jims::PitchHit hit;
+            if (jims::nearestPitch(jimsSt->jimsStateJson(), targetCents,
+                                   true, m_jimsNPer, m_jimsNGen, hit)) {
+                if (hit.nPer != m_jimsNPer || hit.nGen != m_jimsNGen) {
+                    const int newPitch = std::clamp(
+                        (hit.octave + 1) * 12 + step2pitch(int(muse::String(u"CDEFGAB").indexOf(muse::Char(hit.step)))) + hit.alter,
+                        0, 127);
+                    const int newTpc = step2tpc(int(muse::String(u"CDEFGAB").indexOf(muse::Char(hit.step))),
+                                                AccidentalVal(hit.alter));
+                    for (Note* nn : tiedNotes()) {
+                        nn->setJimsPitch(hit.nPer, hit.nGen);
+                        nn->setPitch(newPitch, newTpc, newTpc);
+                        nn->triggerLayout();
+                    }
+                }
+            }
+            return;
+        }
+    }
+
     const bool tab = staffType()->isTabStaff();
     double step    = spatium() * staffType()->lineDistance().val() * (tab ? 1.0 : 0.5);
     int lineOffset = lrint(ed.moveDelta.y() / step);
@@ -3077,6 +3110,28 @@ void Note::setNval(const NoteVal& nval, Fraction tick)
     }
 
     m_headGroup = NoteHeadGroup(nval.headGroup);
+
+    // JiMStaff (Milestone 2 Phase 3): a note landing on a JiMS staff
+    // without a lattice identity — interactive entry arrives here — gets
+    // one from the Kernel entry conversion, derived from the spelling
+    // just established above. The spelling-to-letter mapping is
+    // transport; the identity itself comes from the Kernel.
+    if (!hasJimsPitch() && staff() && chord()) {
+        const StaffType* jimsSt = staff()->staffTypeForElement(this);
+        if (jimsSt && jimsSt->isJiMS()) {
+            const int tpcNow = m_tpc[0];
+            if (tpcNow != Tpc::TPC_INVALID) {
+                const char letter = "CDEFGAB"[tpc2step(tpcNow)];
+                const int alter = int(tpc2alter(tpcNow));
+                const int octave = (m_pitch - alter) / 12 - 1;
+                int nPer = 0;
+                int nGen = 0;
+                if (jims::entryFromStandardPitch(letter, alter, octave, nPer, nGen)) {
+                    setJimsPitch(nPer, nGen);
+                }
+            }
+        }
+    }
 }
 
 //---------------------------------------------------------

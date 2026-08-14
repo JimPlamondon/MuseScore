@@ -25,6 +25,8 @@
 #include "translation.h"
 
 #include "../editing/editmeasures.h"
+
+#include "../jims/jimsbridge.h"
 #include "../editing/inserttime.h"
 #include "../editing/transpose.h"
 #include "infrastructure/messagebox.h"
@@ -141,6 +143,27 @@ NoteVal Score::noteValForPosition(Position pos, AccidentalType at, bool& error)
     }
 
     case StaffGroup::STANDARD: {
+        // JiMStaff (Milestone 2 Phase 3): on a JiMS staff a click's
+        // height converts to cents (line units are half line-distances
+        // on the continuous axis) and the Kernel picks the nearest
+        // realizable lattice pitch, supplying the compatibility spelling
+        // — the diatonic step arithmetic below never runs for JiMS.
+        {
+            const StaffType* jimsSt = st->staffType(tick);
+            if (jimsSt && jimsSt->isJiMS()) {
+                const double cents = jimsSt->jimsFrameTopCents()
+                                     - double(line) * StaffType::JIMS_CENTS_PER_LINE_DISTANCE / 2.0;
+                mu::engraving::jims::PitchHit hit;
+                if (mu::engraving::jims::nearestPitch(jimsSt->jimsStateJson(), cents,
+                                                      false, 0, 0, hit)) {
+                    const int stepIndex = int(muse::String(u"CDEFGAB").indexOf(muse::Char(hit.step)));
+                    nval.pitch = std::clamp((hit.octave + 1) * 12 + step2pitch(stepIndex) + hit.alter, 0, 127);
+                    nval.tpc1 = step2tpc(stepIndex, AccidentalVal(hit.alter));
+                    nval.tpc2 = nval.tpc1;
+                }
+                break;
+            }
+        }
         AccidentalVal acci
             = (at == AccidentalType::NONE ? s->measure()->findAccidental(s, staffIdx, line, error) : Accidental::subtype2value(at));
         if (error) {

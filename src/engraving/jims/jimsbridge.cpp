@@ -121,6 +121,44 @@ bool frameForMelody(const String& stateJson, const String& melodyJson,
     return !segments.empty();
 }
 
+bool nearestPitch(const String& stateJson, double targetCents,
+                  bool hasCurrent, int currentNPer, int currentNGen, PitchHit& hit)
+{
+    String current = hasCurrent
+                     ? String(u"{\"nPer\":%1,\"nGen\":%2}").arg(currentNPer).arg(currentNGen)
+                     : String(u"null");
+    String envelope = String(u"{\"abi\":2,\"op\":\"nearest_pitch\",\"state\":%1,\"target_cents\":%2,\"current\":%3}")
+                      .arg(stateJson).arg(String::number(targetCents, 6)).arg(current);
+    JsonValue result;
+    if (!okResult(callBridge(envelope), result)) {
+        return false;
+    }
+    JsonObject o = result.toObject();
+    hit.nPer = o.value("nPer").toInt();
+    hit.nGen = o.value("nGen").toInt();
+    hit.centsAboveLowerDo = o.value("cents_above_lower_do").toDouble();
+    JsonObject cp = o.value("compatibility_pitch").toObject();
+    muse::String step = cp.value("step").toString();
+    hit.step = step.isEmpty() ? 'C' : step.at(0).toAscii();
+    hit.alter = cp.value("alter").toInt();
+    hit.octave = cp.value("octave").toInt();
+    return true;
+}
+
+bool entryFromStandardPitch(char step, int alter, int octave, int& nPer, int& nGen)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"entry_from_standard_pitch\",\"step\":\"%1\",\"alter\":%2,\"octave\":%3}")
+                      .arg(String(muse::Char(step))).arg(alter).arg(octave);
+    JsonValue result;
+    if (!okResult(callBridge(envelope), result)) {
+        return false;
+    }
+    JsonObject o = result.toObject();
+    nPer = o.value("nPer").toInt();
+    nGen = o.value("nGen").toInt();
+    return true;
+}
+
 bool scaleDots(const String& stateJson, std::vector<ScaleDotStack>& stacks)
 {
     String envelope = String(u"{\"abi\":2,\"op\":\"scale_dots\",\"state\":%1}").arg(stateJson);

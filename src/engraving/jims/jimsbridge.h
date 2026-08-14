@@ -66,6 +66,26 @@ struct StaveSegment {
 /// ("tonic-bounded" / "tonic-centered"), derived at authoring and saved.
 bool frameForMelody(const muse::String& stateJson, const muse::String& melodyJson,
                     const muse::String& extentToken, std::vector<StaveSegment>& segments);
+
+/// A quantization hit: the nearest realizable lattice pitch to a target
+/// cents height, with the Kernel compatibility pitch (step/alter/octave)
+/// so the fork never derives spelling itself.
+struct PitchHit {
+    int nPer = 0;
+    int nGen = 0;
+    double centsAboveLowerDo = 0.0;
+    char step = 'C';
+    int alter = 0;
+    int octave = 4;
+};
+
+/// Quantize a drag target (owner rulings 2026-08-14): nearest realizable
+/// pitch; current identity retained at exact-midpoint ties when eligible.
+bool nearestPitch(const muse::String& stateJson, double targetCents,
+                  bool hasCurrent, int currentNPer, int currentNGen, PitchHit& hit);
+
+/// Kernel entry conversion: step/alter/octave to a validated identity.
+bool entryFromStandardPitch(char step, int alter, int octave, int& nPer, int& nGen);
 }
 
 #endif
