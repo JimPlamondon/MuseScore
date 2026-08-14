@@ -2803,6 +2803,31 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     }
                 }
             }
+            // Tuning label (owner ruling 2026-08-14, KISS form): the
+            // generator width as "M5= <cents>¢" — M5 is the Kernel's
+            // canonical name for the fifth, per the (P8, M5) lattice —
+            // above the top stave at the staff's left edge. The value is
+            // read from the fork's own persisted state JSON for display
+            // only (no derivation); migrate to a Kernel getter with the
+            // Milestone-2 seam work.
+            {
+                std::string err;
+                muse::JsonDocument stateDoc
+                    = muse::JsonDocument::fromJson(jimsSt->jimsStateJson().toUtf8(), &err);
+                if (err.empty()) {
+                    double generatorCents
+                        = stateDoc.rootObject().value("generator_cents").toDouble();
+                    muse::String label = muse::String(u"M5= %1¢")
+                                         .arg(muse::String::number(generatorCents, 1));
+                    Font labelFont(u"Edwin", Font::Type::Text);
+                    labelFont.setPointSizeF(10.0 * item->spatium() / item->defaultSpatium());
+                    painter->setFont(labelFont);
+                    painter->setPen(Pen(item->curColor(opt)));
+                    painter->drawText(PointF(clefLeft - 2.0 * indicatorW,
+                                             topY - 1.2 * _spatium), label);
+                }
+            }
+
             // One crescent per stave, drawn last: tips on that stave's
             // own Do boundary lines, white body occluding the support
             // lines behind it (variant-3 construction, rx = 4/3 ry).
