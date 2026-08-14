@@ -6,8 +6,8 @@
  "identities_survive_round_trip": true,
  "tonic_extent_token": "tonic-bounded",
  "no_accidental_tags_after_reload": true,
- "initial_png_sha256": "a0f5993460c32c7b099690f492669ded1e372fd17efcae5a9406df2ed02a39a1",
- "reloaded_png_sha256": "a0f5993460c32c7b099690f492669ded1e372fd17efcae5a9406df2ed02a39a1",
+ "initial_png_sha256": "e031fc8eb030d579fa495e3eb8d9a2191fc88b7092712c14403ac3bf5f08cd06",
+ "reloaded_png_sha256": "e031fc8eb030d579fa495e3eb8d9a2191fc88b7092712c14403ac3bf5f08cd06",
  "reloaded_render_byte_identical": true,
  "notes": [
   {

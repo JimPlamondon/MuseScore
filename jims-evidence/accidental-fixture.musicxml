@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <score-partwise version="4.0">
   <work><work-title>JiMS five-class accidental fixture</work-title></work>
-  <part-list><score-part id="P1"><part-name>JiMStaff</part-name></score-part></part-list>
+  <part-list><score-part id="P1"><part-name>Jimmy</part-name></score-part></part-list>
   <part id="P1">
     <measure number="1">
       <attributes>

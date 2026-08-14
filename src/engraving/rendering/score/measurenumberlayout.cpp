@@ -26,6 +26,8 @@
 #include "textlayout.h"
 
 #include "dom/measure.h"
+#include "dom/staff.h"
+#include "dom/stafftype.h"
 #include "dom/score.h"
 #include "dom/segment.h"
 #include "dom/system.h"
@@ -92,6 +94,17 @@ void MeasureNumberLayout::layoutMeasureNumber(MeasureNumber* item, MeasureNumber
     }
 
     checkBarlineCollisions(item, barlineSeg, hPlacement, ldata);
+
+    // JiMStaff (owner correction 2026-08-14): the number stays tied to
+    // its measure, tight above the staff frame — the header's label
+    // band must not push it away via autoplace, and nothing overlaps
+    // it there (the tuning label lives in the header's own x-range).
+    const Staff* jstaff = item->staff();
+    const StaffType* jimsSt = jstaff ? jstaff->staffTypeForElement(item) : nullptr;
+    if (jimsSt && jimsSt->isJiMS() && item->placeAbove()) {
+        const_cast<MeasureNumber*>(item)->setAutoplace(false);
+        ldata->setPosY(-0.5 * item->spatium() - itemBBox.bottom());
+    }
 }
 
 void MeasureNumberLayout::layoutMMRestRange(MMRestRange* item, MMRestRange::LayoutData* ldata, const LayoutContext& ctx)
