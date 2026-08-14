@@ -5071,15 +5071,21 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         // either the dashed yellow mid-period line (default) or — the
         // EXPERIMENTAL Just Intonation scaffold (owner request
         // 2026-08-14, opt-in via jimsJiLines, deliberately not locked
-        // in): 3-limit ratios 9/8, 4/3, 3/2 in blue; 5-limit ratios 5/4,
-        // 5/3, 15/8 in green. Cents are the exact 1200*log2(ratio)
+        // in): every line is a tuning-independent ratio fact, so the
+        // staff stays constant while noteheads migrate as tuning
+        // changes. 3-limit ratios in violet, 5-limit in green, and the
+        // 7-limit septimal Blue Notes in blue (owner: "make the Blue
+        // Note lines blue"). Cents are the exact 1200*log2(ratio)
         // values. If adopted, this table moves into the Kernel.
         static const std::pair<double, int> JI_LINES[] = {
-            { 203.910, 0x2060D0 },   // 9/8, 3-limit blue
+            { 203.910, 0x9040C0 },   // 9/8, 3-limit violet
+            { 266.871, 0x2060D0 },   // 7/6, 7-limit BLUE (blues third)
             { 386.314, 0x209040 },   // 5/4, 5-limit green
-            { 498.045, 0x2060D0 },   // 4/3, 3-limit blue
-            { 701.955, 0x2060D0 },   // 3/2, 3-limit blue
+            { 498.045, 0x9040C0 },   // 4/3, 3-limit violet
+            { 582.512, 0x2060D0 },   // 7/5, 7-limit BLUE (blues flat five)
+            { 701.955, 0x9040C0 },   // 3/2, 3-limit violet
             { 884.359, 0x209040 },   // 5/3, 5-limit green
+            { 968.826, 0x2060D0 },   // 7/4, 7-limit BLUE (blues seventh)
             { 1088.269, 0x209040 },  // 15/8, 5-limit green
         };
         for (int p = 0; p <= periods; ++p) {
