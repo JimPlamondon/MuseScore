@@ -80,6 +80,7 @@ static void engraving_init_qrc()
 #ifndef NO_QT_SUPPORT
     Q_INIT_RESOURCE(engraving);
 
+    Q_INIT_RESOURCE(fonts_JiMSMusic);
     Q_INIT_RESOURCE(fonts_Leland);
     Q_INIT_RESOURCE(fonts_Bravura);
     Q_INIT_RESOURCE(fonts_Campania);
@@ -184,6 +185,11 @@ void EngravingModule::onInit(const IApplication::RunMode&)
             m_engravingfonts->addInternalFont(name, fontDataKey.family().id().toStdString(), filePath);
         };
 
+        // JiMSMusic (Milestone 3): the Kernel-generated JiMS glyph font —
+        // deterministic build from jims-staff/assets/glyphs (GEN-003).
+        // Selected per-score by the JiMS converter; every non-JiMS symbol
+        // falls back to the stock engraving font.
+        addMusicFont("JiMSMusic", FontDataKey(u"JiMSMusic"), ":/fonts/jimsmusic/JiMSMusic.otf");
         addMusicFont("Bravura", FontDataKey(u"Bravura"), ":/fonts/bravura/Bravura.otf");
         fdb->addFont(FontDataKey(u"Bravura Text"), ":/fonts/bravura/BravuraText.otf");
         addMusicFont("Leland", FontDataKey(u"Leland"), ":/fonts/leland/Leland.otf");

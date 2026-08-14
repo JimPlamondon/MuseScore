@@ -1,0 +1,29 @@
+{
+  "engravingDefaults": {
+    "staffLineThickness": 0.1
+  },
+  "fontName": "JiMSMusic",
+  "fontVersion": "1.0",
+  "glyphs": {
+    "jimsCrescentClef": {
+      "codepoint": "U+F400"
+    },
+    "jimsTonicIndicator": {
+      "codepoint": "U+F401"
+    },
+    "noteheadDiamondBlack": {
+      "codepoint": "U+E0DB"
+    },
+    "noteheadSquareBlack": {
+      "codepoint": "U+E0B9"
+    },
+    "noteheadTriangleDownBlack": {
+      "codepoint": "U+E0C7"
+    },
+    "noteheadTriangleUpBlack": {
+      "codepoint": "U+E0BE"
+    }
+  },
+  "glyphsWithAnchors": {},
+  "provenance": "Generated from jims-staff/assets/glyphs (GEN-003); no third-party outlines."
+}

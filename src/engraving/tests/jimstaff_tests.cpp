@@ -15,6 +15,9 @@
 
 #include "engraving/jims/jimsbridge.h"
 
+#include "engraving/iengravingfontsprovider.h"
+#include "modularity/ioc.h"
+
 using namespace mu::engraving;
 
 namespace {
@@ -159,4 +162,25 @@ TEST(JiMStaffTests, invalidStateFailsVisiblyNotSilently)
                                       u"tonic-bounded", segments));
     jims::PitchHit hit;
     EXPECT_FALSE(jims::nearestPitch(bad, 0.0, false, 0, 0, hit));
+}
+
+// M3 Phase 3: the Kernel-generated JiMSMusic font is registered, its
+// class-notehead outlines are present and nonempty, and they genuinely
+// differ from the fallback font's stock outlines (outline change only —
+// position/size/selection logic is untouched from M1/M2).
+TEST(JiMStaffTests, jimsMusicFontRegisteredWithKernelOutlines)
+{
+    auto provider = muse::modularity::globalIoc()->resolve<IEngravingFontsProvider>("jimstaff_tests");
+    ASSERT_TRUE(provider);
+    IEngravingFontPtr jimsFont = provider->fontByName("JiMSMusic");
+    ASSERT_TRUE(jimsFont) << "JiMSMusic must be registered at engraving-module init";
+    IEngravingFontPtr fallback = provider->fallbackFont();
+    ASSERT_TRUE(fallback);
+    for (SymId sym : { SymId::noteheadTriangleUpBlack, SymId::noteheadTriangleDownBlack,
+                       SymId::noteheadDiamondBlack, SymId::noteheadSquareBlack }) {
+        muse::RectF jb = jimsFont->bbox(sym, 1.0);
+        EXPECT_FALSE(jb.isNull()) << "JiMSMusic outline empty";
+        muse::RectF fb = fallback->bbox(sym, 1.0);
+        EXPECT_TRUE(jb != fb) << "outline identical to fallback - registration had no effect";
+    }
 }

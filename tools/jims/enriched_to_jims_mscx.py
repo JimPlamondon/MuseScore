@@ -145,6 +145,15 @@ def main(enriched_path, mscx_in, mscx_out, lines):
         at = opens[change_measure - 1].end()
         mscx = mscx[:at] + stc_block + mscx[at:]
 
+    # 1c. Engraving font (Milestone 3): a JiMS score selects the
+    # Kernel-generated JiMSMusic outlines; every symbol JiMSMusic does
+    # not carry falls back to the stock engraving font.
+    if "<musicalSymbolFont>" not in mscx:
+        if "<Style>" in mscx:
+            mscx = mscx.replace("<Style>", "<Style>\n      <musicalSymbolFont>JiMSMusic</musicalSymbolFont>", 1)
+        else:
+            mscx = mscx.replace("<Score>", "<Score>\n    <Style>\n      <musicalSymbolFont>JiMSMusic</musicalSymbolFont>\n      </Style>", 1)
+
     # 2. Notes: inject the lattice identity tags in document order.
     notes = list(re.finditer(r"<Note>\n(\s*)", mscx))
     if len(notes) != len(identities):

@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="fonts/jimsmusic/JiMSMusic.otf">../../../../fonts/jimsmusic/JiMSMusic.otf</file>
+        <file alias="fonts/jimsmusic/metadata.json">../../../../fonts/jimsmusic/jimsmusic_metadata.json</file>
+            </qresource>
+</RCC>
