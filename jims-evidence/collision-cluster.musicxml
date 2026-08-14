@@ -18,5 +18,9 @@
       <note><chord/><pitch><step>E</step><octave>4</octave></pitch><duration>2</duration><type>half</type></note>
       <note><chord/><pitch><step>F</step><octave>4</octave></pitch><duration>2</duration><type>half</type></note>
     </measure>
+    <measure number="3">
+      <note><pitch><step>C</step><octave>4</octave></pitch><duration>2</duration><type>half</type></note>
+      <note><pitch><step>C</step><octave>5</octave></pitch><duration>2</duration><type>half</type></note>
+    </measure>
   </part>
 </score-partwise>

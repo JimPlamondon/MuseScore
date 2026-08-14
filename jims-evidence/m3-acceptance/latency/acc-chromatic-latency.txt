@@ -1,1 +1,1 @@
-piece=acc-chromatic ticks=490 median_ms=1.71883 p95_ms=1.76354 max_ms=1.82 dropped=0
+piece=acc-chromatic ticks=490 median_ms=1.71167 p95_ms=1.76946 max_ms=1.88283 dropped=0

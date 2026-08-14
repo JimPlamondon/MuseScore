@@ -150,9 +150,9 @@ def main(enriched_path, mscx_in, mscx_out, lines):
     # not carry falls back to the stock engraving font.
     if "<musicalSymbolFont>" not in mscx:
         if "<Style>" in mscx:
-            mscx = mscx.replace("<Style>", "<Style>\n      <musicalSymbolFont>JiMSMusic</musicalSymbolFont>", 1)
+            mscx = mscx.replace("<Style>", "<Style>\n      <musicalSymbolFont>JiMSMusic</musicalSymbolFont>\n      <hideInstrumentNameIfOneInstrument>0</hideInstrumentNameIfOneInstrument>", 1)
         else:
-            mscx = mscx.replace("<Score>", "<Score>\n    <Style>\n      <musicalSymbolFont>JiMSMusic</musicalSymbolFont>\n      </Style>", 1)
+            mscx = mscx.replace("<Score>", "<Score>\n    <Style>\n      <musicalSymbolFont>JiMSMusic</musicalSymbolFont>\n      <hideInstrumentNameIfOneInstrument>0</hideInstrumentNameIfOneInstrument>\n      </Style>", 1)
 
     # 2. Notes: inject the lattice identity tags in document order.
     notes = list(re.finditer(r"<Note>\n(\s*)", mscx))

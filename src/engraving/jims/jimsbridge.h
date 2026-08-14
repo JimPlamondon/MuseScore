@@ -47,6 +47,10 @@ bool tonicCentsAboveDo(const muse::String& stateJson, double& cents);
 /// this; the fork never parses the state JSON for musical facts.
 bool staffMetrics(const muse::String& stateJson, double& generatorCents, double& periodCents);
 
+/// The Kernel's diatonic Valid Tuning Range in cents — every tuning
+/// control's bounds derive from this, never a fork-side constant.
+bool generatorRange(double& minCents, double& maxCents);
+
 /// One Kernel-owned Just Intonation staff line: exact just cents, prime
 /// limit, and VTR-gated visibility for the state's current generator.
 struct JiLine {

@@ -12,24 +12,30 @@
 #include <QSlider>
 
 #include "engraving/dom/score.h"
+#include "engraving/jims/jimsbridge.h"
 #include "engraving/jims/jimstuningcontroller.h"
 
 using namespace mu::notationscene;
 using namespace mu::engraving;
 
-JimsTuningPanel::JimsTuningPanel(Score* score, std::function<void()> refreshView, QWidget* parent)
+JimsTuningPanel::JimsTuningPanel(Score* score, std::function<void()> refreshView,
+                                 muse::async::Notification scoreChanged, QWidget* parent)
     : QWidget(parent, Qt::Tool), m_refreshView(std::move(refreshView))
 {
     setWindowTitle(QStringLiteral("JiMS Tuning"));
     m_controller = std::make_unique<jims::TuningController>(score, 0);
 
+    // Bounds are the Kernel's diatonic Valid Tuning Range (owner
+    // correction 2026-08-14) — never a fork-side constant.
+    jims::generatorRange(m_minCents, m_maxCents);
+
     auto* layout = new QHBoxLayout(this);
     auto* label = new QLabel(QStringLiteral("M5="), this);
     m_slider = new QSlider(Qt::Horizontal, this);
-    m_slider->setRange(int(MIN_CENTS / SLIDER_STEP), int(MAX_CENTS / SLIDER_STEP));
+    m_slider->setRange(int(m_minCents / SLIDER_STEP), int(m_maxCents / SLIDER_STEP));
     m_slider->setMinimumWidth(320);
     m_spin = new QDoubleSpinBox(this);
-    m_spin->setRange(MIN_CENTS, MAX_CENTS);
+    m_spin->setRange(m_minCents, m_maxCents);
     m_spin->setDecimals(3);
     m_spin->setSingleStep(SLIDER_STEP);
     m_spin->setSuffix(QStringLiteral("¢"));
@@ -43,6 +49,16 @@ JimsTuningPanel::JimsTuningPanel(Score* score, std::function<void()> refreshView
     connect(m_slider, &QSlider::sliderMoved, this, &JimsTuningPanel::onSliderMoved);
     connect(m_slider, &QSlider::sliderReleased, this, &JimsTuningPanel::onSliderReleased);
     connect(m_spin, &QDoubleSpinBox::editingFinished, this, &JimsTuningPanel::onSpinAccepted);
+
+    // Undo/redo (and any other score change) resyncs the controls
+    // (owner correction 2026-08-14: the staff updated, the slider
+    // didn't). Preview drags refresh the view too; skip resync while
+    // the user is the one moving the control.
+    scoreChanged.onNotify(this, [this]() {
+        if (!m_dragging) {
+            syncFromScore();
+        }
+    });
 }
 
 JimsTuningPanel::~JimsTuningPanel() = default;

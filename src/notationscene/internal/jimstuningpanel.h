@@ -16,6 +16,9 @@
 
 #include <QWidget>
 
+#include "async/asyncable.h"
+#include "async/notification.h"
+
 class QSlider;
 class QDoubleSpinBox;
 
@@ -27,13 +30,13 @@ class TuningController;
 }
 
 namespace mu::notationscene {
-class JimsTuningPanel : public QWidget
+class JimsTuningPanel : public QWidget, public muse::async::Asyncable
 {
     Q_OBJECT
 
 public:
     JimsTuningPanel(mu::engraving::Score* score, std::function<void()> refreshView,
-                    QWidget* parent = nullptr);
+                    muse::async::Notification scoreChanged, QWidget* parent = nullptr);
     ~JimsTuningPanel() override;
 
 private:
@@ -43,9 +46,9 @@ private:
     void onSpinAccepted();
     void syncFromScore();
 
-    static constexpr double MIN_CENTS = 600.0;
-    static constexpr double MAX_CENTS = 800.0;
     static constexpr double SLIDER_STEP = 0.1;
+    double m_minCents = 686.0;   // overwritten by the Kernel's range
+    double m_maxCents = 720.0;
 
     std::unique_ptr<mu::engraving::jims::TuningController> m_controller;
     std::function<void()> m_refreshView;

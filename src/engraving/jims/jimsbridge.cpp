@@ -97,6 +97,18 @@ bool staffMetrics(const String& stateJson, double& generatorCents, double& perio
     return true;
 }
 
+bool generatorRange(double& minCents, double& maxCents)
+{
+    JsonValue result;
+    if (!okResult(callBridge(String(u"{\"abi\":2,\"op\":\"generator_range\"}")), result)) {
+        return false;
+    }
+    JsonObject o = result.toObject();
+    minCents = o.value("min_cents").toDouble();
+    maxCents = o.value("max_cents").toDouble();
+    return true;
+}
+
 bool jiLines(const String& stateJson, std::vector<JiLine>& lines)
 {
     String envelope = String(u"{\"abi\":2,\"op\":\"ji_lines\",\"state\":%1}").arg(stateJson);

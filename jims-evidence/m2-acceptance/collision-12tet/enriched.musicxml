@@ -37,5 +37,11 @@
       <note><chord/><pitch><step>F</step><octave>4</octave></pitch>
         <jims:pitch n-per="2" n-gen="-3"/><duration>2</duration><type>half</type></note>
     </measure>
+    <measure number="3">
+      <note><pitch><step>C</step><octave>4</octave></pitch>
+        <jims:pitch n-per="1" n-gen="-2"/><duration>2</duration><type>half</type></note>
+      <note><pitch><step>C</step><octave>5</octave></pitch>
+        <jims:pitch n-per="2" n-gen="-2"/><duration>2</duration><type>half</type></note>
+    </measure>
   </part>
 </score-partwise>

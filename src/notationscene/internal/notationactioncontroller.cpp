@@ -1799,7 +1799,7 @@ void NotationActionController::openJimsTuningPanel()
         if (notation) {
             notation->notationChanged().notify();
         }
-    });
+    }, notation ? notation->notationChanged() : muse::async::Notification());
     panel->setAttribute(Qt::WA_DeleteOnClose);
     panel->show();
     panel->raise();

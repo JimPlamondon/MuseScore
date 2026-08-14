@@ -2,12 +2,12 @@
  "piece": "collision",
  "tuning": "19tet",
  "generator_cents": 694.7368421052631,
- "note_count": 10,
+ "note_count": 12,
  "identities_survive_round_trip": true,
  "tonic_extent_token": "tonic-bounded",
  "no_accidental_tags_after_reload": true,
- "initial_png_sha256": "9893057e033b6ea763683986f59aece8b11f2e0cf9c334c46331d61e89a66c6f",
- "reloaded_png_sha256": "9893057e033b6ea763683986f59aece8b11f2e0cf9c334c46331d61e89a66c6f",
+ "initial_png_sha256": "28439786167e1ac5c20751b1b173482de130626b03a38cafbb7605dc961a249a",
+ "reloaded_png_sha256": "28439786167e1ac5c20751b1b173482de130626b03a38cafbb7605dc961a249a",
  "reloaded_render_byte_identical": true,
  "notes": [
   {
@@ -59,6 +59,16 @@
    "nPer": 2,
    "nGen": -3,
    "cents_above_lower_do": 505.2631578947368
+  },
+  {
+   "nPer": 1,
+   "nGen": -2,
+   "cents_above_lower_do": 0.0
+  },
+  {
+   "nPer": 2,
+   "nGen": -2,
+   "cents_above_lower_do": 1200.0
   }
  ]
 }
