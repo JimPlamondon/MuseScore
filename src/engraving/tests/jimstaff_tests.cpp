@@ -19,7 +19,9 @@
 #include "engraving/dom/masterscore.h"
 #include "engraving/editing/undo.h"
 #include "engraving/dom/measure.h"
+#include "engraving/dom/chord.h"
 #include "engraving/dom/note.h"
+#include "engraving/dom/stem.h"
 #include "engraving/dom/segment.h"
 #include "engraving/dom/staff.h"
 #include "engraving/dom/stafftype.h"
@@ -434,4 +436,57 @@ TEST(JiMStaffTests, evidenceSweepAcceptancePieces)
         EXPECT_LE(applied[n - 1], 50.0) << piece.toStdString();
         delete score;
     }
+}
+
+// Owner correction (2026-08-14, sweep review): stems must attach at the
+// notehead's edge, not its center — the font's SMuFL stem anchors carry
+// that fact, so JiMSMusic must publish nonzero anchors for every class
+// notehead.
+TEST(JiMStaffTests, jimsMusicNoteheadsPublishStemAnchors)
+{
+    auto provider = muse::modularity::globalIoc()->resolve<IEngravingFontsProvider>("jimstaff_tests");
+    ASSERT_TRUE(provider);
+    IEngravingFontPtr jimsFont = provider->fontByName("JiMSMusic");
+    ASSERT_TRUE(jimsFont);
+    for (SymId sym : { SymId::noteheadTriangleUpBlack, SymId::noteheadTriangleDownBlack,
+                       SymId::noteheadDiamondBlack, SymId::noteheadSquareBlack }) {
+        muse::PointF up = jimsFont->smuflAnchor(sym, SmuflAnchorId::stemUpSE, 1.0);
+        muse::PointF down = jimsFont->smuflAnchor(sym, SmuflAnchorId::stemDownNW, 1.0);
+        EXPECT_GT(up.x(), 0.0) << "stemUpSE missing — stem would pierce the head center";
+        EXPECT_LT(down.x(), up.x());
+    }
+}
+
+// Owner correction (2026-08-14, sweep review): a chord's stem must track
+// the heads' Kernel-derived cents span at EVERY tuning — the line-number
+// default leaves the stem short when the tuning moves the heads apart.
+TEST(JiMStaffTests, chordStemSpansCentsHeightAcrossTunings)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+    ASSERT_TRUE(score);
+    jims::TuningController controller(score, 0);
+    for (double g : { 680.0, 700.0, 720.0 }) {
+        ASSERT_TRUE(controller.beginPreview());
+        ASSERT_TRUE(controller.preview(g));
+        score->doLayout();
+        const StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
+        for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
+             seg = seg->next1(SegmentType::ChordRest)) {
+            EngravingItem* el = seg->element(0);
+            if (!el || !el->isChord()) {
+                continue;
+            }
+            Chord* chord = toChord(el);
+            if (chord->notes().size() < 2 || !chord->stem()) {
+                continue;
+            }
+            const double headSpan
+                = std::abs(chord->downNote()->jimsPosY(st) - chord->upNote()->jimsPosY(st));
+            const double stemLen = chord->stem()->length();
+            EXPECT_GE(stemLen, headSpan)
+                << "stem shorter than the chord's cents span at generator " << g;
+        }
+        controller.cancel();
+    }
+    delete score;
 }

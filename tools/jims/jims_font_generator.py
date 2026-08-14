@@ -226,11 +226,30 @@ def build(svg_dir, out_dir):
         bounds = BoundsPen(None)
         recording.replay(bounds)
         if bounds.bounds:
-            x_min, _, x_max, _ = bounds.bounds
+            x_min, y_min, x_max, y_max = bounds.bounds
             metrics[name] = (int(round(x_max - x_min)), int(round(x_min)))
         else:
+            x_min = y_min = 0.0
+            x_max = y_max = 250.0
             metrics[name] = (250, 0)
         metadata_glyphs[name] = {"codepoint": f"U+{cp:04X}"}
+        # SMuFL stem anchors (owner correction 2026-08-14): a stem
+        # attaches at the head's edge, never its center. Units are staff
+        # spaces (1 sp = UPM/4), y-up, relative to the glyph origin.
+        # Triangles attach at their base corners; the vertex-up square
+        # (diamond) and the edge-up square attach at their widest side.
+        sp = UPM / 4.0
+        anchor_y = {
+            "noteheadTriangleUpBlack": y_min,
+            "noteheadTriangleDownBlack": y_max,
+            "noteheadDiamondBlack": (y_min + y_max) / 2.0,
+            "noteheadSquareBlack": (y_min + y_max) / 2.0,
+        }.get(name)
+        if anchor_y is not None:
+            metadata_glyphs[name]["_anchors"] = {
+                "stemUpSE": [round(x_max / sp, 4), round(anchor_y / sp, 4)],
+                "stemDownNW": [round(x_min / sp, 4), round(anchor_y / sp, 4)],
+            }
 
     fb.setupCFF("JiMSMusic", {"FamilyName": "JiMSMusic", "FullName": "JiMSMusic"},
                 charstrings, {})
@@ -256,11 +275,16 @@ def build(svg_dir, out_dir):
     otf_path = os.path.join(out_dir, "JiMSMusic.otf")
     fb.save(otf_path)
 
+    glyphs_with_anchors = {}
+    for name, info in metadata_glyphs.items():
+        anchors = info.pop("_anchors", None)
+        if anchors:
+            glyphs_with_anchors[name] = anchors
     metadata = {
         "fontName": "JiMSMusic",
         "fontVersion": "1.0",
         "engravingDefaults": {"staffLineThickness": 0.1},
-        "glyphsWithAnchors": {},
+        "glyphsWithAnchors": glyphs_with_anchors,
         "glyphs": metadata_glyphs,
         "provenance": "Generated from jims-staff/assets/glyphs (GEN-003); no third-party outlines.",
     }

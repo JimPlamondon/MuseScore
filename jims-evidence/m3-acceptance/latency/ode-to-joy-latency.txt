@@ -1,1 +1,1 @@
-piece=ode-to-joy ticks=490 median_ms=3.20213 p95_ms=3.30121 max_ms=3.41092 dropped=0
+piece=ode-to-joy ticks=490 median_ms=3.24096 p95_ms=3.32079 max_ms=3.36079 dropped=0

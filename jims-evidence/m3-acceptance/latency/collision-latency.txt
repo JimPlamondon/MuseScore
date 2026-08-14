@@ -1,1 +1,1 @@
-piece=collision ticks=490 median_ms=0.876292 p95_ms=0.91475 max_ms=0.953 dropped=0
+piece=collision ticks=490 median_ms=0.940583 p95_ms=0.981542 max_ms=1.02146 dropped=0

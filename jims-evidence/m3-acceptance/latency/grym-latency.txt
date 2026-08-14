@@ -1,1 +1,1 @@
-piece=grym ticks=490 median_ms=6.60921 p95_ms=6.86538 max_ms=6.95787 dropped=0
+piece=grym ticks=490 median_ms=6.77363 p95_ms=6.89513 max_ms=7.04358 dropped=0

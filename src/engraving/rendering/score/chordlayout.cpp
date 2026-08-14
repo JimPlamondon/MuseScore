@@ -1248,6 +1248,24 @@ void ChordLayout::layoutStem(Chord* item, const LayoutContext& ctx)
     // because this length is used for tremolos or other things that attach to where the stem WOULD be
     item->setDefaultStemLength(StemLayout::calcDefaultStemLength(item, ctx));
 
+    // JiMStaff (owner correction 2026-08-14, tuning-sweep finding): the
+    // default length assumes diatonic line spacing, but on the
+    // continuous cents axis the chord's actual head span is the
+    // Kernel-derived ordinate difference — correct by the difference so
+    // the stem tracks the far head at EVERY tuning.
+    {
+        const StaffType* jimsSt = item->staff() ? item->staff()->staffTypeForElement(item) : nullptr;
+        if (jimsSt && jimsSt->isJiMS() && item->notes().size() > 1
+            && item->upNote()->hasJimsPitch() && item->downNote()->hasJimsPitch()
+            && item->upNote()->jimsCentsValid() && item->downNote()->jimsCentsValid()) {
+            const double lineSpan = (item->downLine() - item->upLine()) * 0.5
+                                    * item->spatium() * jimsSt->lineDistance().val();
+            const double centsSpan = std::abs(item->downNote()->jimsPosY(jimsSt)
+                                              - item->upNote()->jimsPosY(jimsSt));
+            item->setDefaultStemLength(item->defaultStemLength() + (centsSpan - lineSpan));
+        }
+    }
+
     if (!item->stem()) {
         return;
     }
