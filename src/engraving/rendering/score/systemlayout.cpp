@@ -2127,6 +2127,28 @@ void SystemLayout::layoutSystem(System* system, LayoutContext& ctx, double xo1, 
         system->setLeftMargin(indent + maxBracketsWidth);
     }
 
+    // JiMStaff (M2 Phase 5/7, header-on-every-system completion): the
+    // JiMS header — scale dots, tonic indicator, crescent clef — draws
+    // left of each system's first measure (owner geometry: left edge =
+    // 2 indicator widths beyond the clef's leftmost extent). Reserve
+    // that width in every system's left margin so the header stays on
+    // the page beyond system 1. Widths mirror TLayout::layoutForWidth.
+    {
+        double jimsHeader = 0.0;
+        for (size_t staffIdx = 0; staffIdx < nstaves; ++staffIdx) {
+            const Staff* jstaff = ctx.dom().staff(staffIdx);
+            const StaffType* jst = jstaff ? jstaff->staffType(Fraction(0, 1)) : nullptr;
+            if (jst && jst->isJiMS()) {
+                const double sp = jstaff->spatium(Fraction(0, 1));
+                const double dist = jst->lineDistance().val() * sp;
+                jimsHeader = std::max(jimsHeader, 0.3 * sp + 10.6 * dist);
+            }
+        }
+        if (jimsHeader > 0.0) {
+            system->setLeftMargin(system->leftMargin() + jimsHeader);
+        }
+    }
+
     for (size_t staffIdx = 0; staffIdx < nstaves; ++staffIdx) {
         SysStaff* s = system->staves().at(staffIdx);
         const Staff* staff = ctx.dom().staff(staffIdx);

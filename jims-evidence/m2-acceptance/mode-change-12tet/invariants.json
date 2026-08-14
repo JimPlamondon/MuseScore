@@ -1,0 +1,144 @@
+{
+ "piece": "mode-change",
+ "tuning": "12tet",
+ "generator_cents": 700.0,
+ "note_count": 26,
+ "identities_survive_round_trip": true,
+ "tonic_extent_token": "tonic-bounded",
+ "no_accidental_tags_after_reload": true,
+ "initial_png_sha256": "7c36eac36e8d4446cd0829f6fafbdefa0e0187662fa93d533c7fa2ed43c223f0",
+ "reloaded_png_sha256": "7c36eac36e8d4446cd0829f6fafbdefa0e0187662fa93d533c7fa2ed43c223f0",
+ "reloaded_render_byte_identical": true,
+ "notes": [
+  {
+   "nPer": 1,
+   "nGen": -2,
+   "cents_above_lower_do": 0.0
+  },
+  {
+   "nPer": -1,
+   "nGen": 2,
+   "cents_above_lower_do": 400.00000000000017
+  },
+  {
+   "nPer": 1,
+   "nGen": -1,
+   "cents_above_lower_do": 700.0
+  },
+  {
+   "nPer": -1,
+   "nGen": 2,
+   "cents_above_lower_do": 400.00000000000017
+  },
+  {
+   "nPer": 2,
+   "nGen": -3,
+   "cents_above_lower_do": 499.99999999999994
+  },
+  {
+   "nPer": 0,
+   "nGen": 0,
+   "cents_above_lower_do": 200.00000000000009
+  },
+  {
+   "nPer": 1,
+   "nGen": -1,
+   "cents_above_lower_do": 700.0
+  },
+  {
+   "nPer": -1,
+   "nGen": 2,
+   "cents_above_lower_do": 400.00000000000017
+  },
+  {
+   "nPer": 1,
+   "nGen": -2,
+   "cents_above_lower_do": 0.0
+  },
+  {
+   "nPer": 0,
+   "nGen": 0,
+   "cents_above_lower_do": 200.00000000000009
+  },
+  {
+   "nPer": -1,
+   "nGen": 2,
+   "cents_above_lower_do": 400.00000000000017
+  },
+  {
+   "nPer": 2,
+   "nGen": -3,
+   "cents_above_lower_do": 499.99999999999994
+  },
+  {
+   "nPer": 1,
+   "nGen": -1,
+   "cents_above_lower_do": 700.0
+  },
+  {
+   "nPer": 0,
+   "nGen": 1,
+   "cents_above_lower_do": 900.0
+  },
+  {
+   "nPer": 2,
+   "nGen": -2,
+   "cents_above_lower_do": 1200.0
+  },
+  {
+   "nPer": -1,
+   "nGen": 3,
+   "cents_above_lower_do": 1100.0000000000005
+  },
+  {
+   "nPer": 0,
+   "nGen": 1,
+   "cents_above_lower_do": 900.0
+  },
+  {
+   "nPer": -1,
+   "nGen": 2,
+   "cents_above_lower_do": 400.00000000000017
+  },
+  {
+   "nPer": 0,
+   "nGen": 1,
+   "cents_above_lower_do": 900.0
+  },
+  {
+   "nPer": 1,
+   "nGen": -1,
+   "cents_above_lower_do": 700.0
+  },
+  {
+   "nPer": -1,
+   "nGen": 3,
+   "cents_above_lower_do": 1100.0000000000005
+  },
+  {
+   "nPer": 0,
+   "nGen": 1,
+   "cents_above_lower_do": 900.0
+  },
+  {
+   "nPer": 1,
+   "nGen": -1,
+   "cents_above_lower_do": 700.0
+  },
+  {
+   "nPer": 2,
+   "nGen": -3,
+   "cents_above_lower_do": 499.99999999999994
+  },
+  {
+   "nPer": -1,
+   "nGen": 2,
+   "cents_above_lower_do": 400.00000000000017
+  },
+  {
+   "nPer": 0,
+   "nGen": 1,
+   "cents_above_lower_do": 900.0
+  }
+ ]
+}

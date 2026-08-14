@@ -1,0 +1,64 @@
+{
+ "piece": "collision",
+ "tuning": "19tet",
+ "generator_cents": 694.7368421052631,
+ "note_count": 10,
+ "identities_survive_round_trip": true,
+ "tonic_extent_token": "tonic-bounded",
+ "no_accidental_tags_after_reload": true,
+ "initial_png_sha256": "28a0717e289c12e4bcb54cb5aeaa27d80073b1050d203ae06682143c4e2874bb",
+ "reloaded_png_sha256": "28a0717e289c12e4bcb54cb5aeaa27d80073b1050d203ae06682143c4e2874bb",
+ "reloaded_render_byte_identical": true,
+ "notes": [
+  {
+   "nPer": -4,
+   "nGen": 7,
+   "cents_above_lower_do": 252.6315789473692
+  },
+  {
+   "nPer": 3,
+   "nGen": -5,
+   "cents_above_lower_do": 315.78947368421046
+  },
+  {
+   "nPer": -4,
+   "nGen": 7,
+   "cents_above_lower_do": 252.6315789473692
+  },
+  {
+   "nPer": 3,
+   "nGen": -5,
+   "cents_above_lower_do": 315.78947368421046
+  },
+  {
+   "nPer": -4,
+   "nGen": 7,
+   "cents_above_lower_do": 252.6315789473692
+  },
+  {
+   "nPer": 3,
+   "nGen": -5,
+   "cents_above_lower_do": 315.78947368421046
+  },
+  {
+   "nPer": 1,
+   "nGen": -2,
+   "cents_above_lower_do": 0.0
+  },
+  {
+   "nPer": 0,
+   "nGen": 0,
+   "cents_above_lower_do": 189.47368421052636
+  },
+  {
+   "nPer": -1,
+   "nGen": 2,
+   "cents_above_lower_do": 378.9473684210527
+  },
+  {
+   "nPer": 2,
+   "nGen": -3,
+   "cents_above_lower_do": 505.2631578947368
+  }
+ ]
+}

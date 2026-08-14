@@ -1,0 +1,144 @@
+{
+ "piece": "mode-change",
+ "tuning": "19tet",
+ "generator_cents": 694.7368421052631,
+ "note_count": 26,
+ "identities_survive_round_trip": true,
+ "tonic_extent_token": "tonic-bounded",
+ "no_accidental_tags_after_reload": true,
+ "initial_png_sha256": "fadd874d07c73cad2ed11948dc5f5b60feec8adec5440f5660e51cf4f97c5965",
+ "reloaded_png_sha256": "fadd874d07c73cad2ed11948dc5f5b60feec8adec5440f5660e51cf4f97c5965",
+ "reloaded_render_byte_identical": true,
+ "notes": [
+  {
+   "nPer": 1,
+   "nGen": -2,
+   "cents_above_lower_do": 0.0
+  },
+  {
+   "nPer": -1,
+   "nGen": 2,
+   "cents_above_lower_do": 378.9473684210527
+  },
+  {
+   "nPer": 1,
+   "nGen": -1,
+   "cents_above_lower_do": 694.7368421052632
+  },
+  {
+   "nPer": -1,
+   "nGen": 2,
+   "cents_above_lower_do": 378.9473684210527
+  },
+  {
+   "nPer": 2,
+   "nGen": -3,
+   "cents_above_lower_do": 505.2631578947368
+  },
+  {
+   "nPer": 0,
+   "nGen": 0,
+   "cents_above_lower_do": 189.47368421052636
+  },
+  {
+   "nPer": 1,
+   "nGen": -1,
+   "cents_above_lower_do": 694.7368421052632
+  },
+  {
+   "nPer": -1,
+   "nGen": 2,
+   "cents_above_lower_do": 378.9473684210527
+  },
+  {
+   "nPer": 1,
+   "nGen": -2,
+   "cents_above_lower_do": 0.0
+  },
+  {
+   "nPer": 0,
+   "nGen": 0,
+   "cents_above_lower_do": 189.47368421052636
+  },
+  {
+   "nPer": -1,
+   "nGen": 2,
+   "cents_above_lower_do": 378.9473684210527
+  },
+  {
+   "nPer": 2,
+   "nGen": -3,
+   "cents_above_lower_do": 505.2631578947368
+  },
+  {
+   "nPer": 1,
+   "nGen": -1,
+   "cents_above_lower_do": 694.7368421052632
+  },
+  {
+   "nPer": 0,
+   "nGen": 1,
+   "cents_above_lower_do": 884.2105263157896
+  },
+  {
+   "nPer": 2,
+   "nGen": -2,
+   "cents_above_lower_do": 1200.0
+  },
+  {
+   "nPer": -1,
+   "nGen": 3,
+   "cents_above_lower_do": 1073.6842105263158
+  },
+  {
+   "nPer": 0,
+   "nGen": 1,
+   "cents_above_lower_do": 884.2105263157896
+  },
+  {
+   "nPer": -1,
+   "nGen": 2,
+   "cents_above_lower_do": 378.9473684210527
+  },
+  {
+   "nPer": 0,
+   "nGen": 1,
+   "cents_above_lower_do": 884.2105263157896
+  },
+  {
+   "nPer": 1,
+   "nGen": -1,
+   "cents_above_lower_do": 694.7368421052632
+  },
+  {
+   "nPer": -1,
+   "nGen": 3,
+   "cents_above_lower_do": 1073.6842105263158
+  },
+  {
+   "nPer": 0,
+   "nGen": 1,
+   "cents_above_lower_do": 884.2105263157896
+  },
+  {
+   "nPer": 1,
+   "nGen": -1,
+   "cents_above_lower_do": 694.7368421052632
+  },
+  {
+   "nPer": 2,
+   "nGen": -3,
+   "cents_above_lower_do": 505.2631578947368
+  },
+  {
+   "nPer": -1,
+   "nGen": 2,
+   "cents_above_lower_do": 378.9473684210527
+  },
+  {
+   "nPer": 0,
+   "nGen": 1,
+   "cents_above_lower_do": 884.2105263157896
+  }
+ ]
+}

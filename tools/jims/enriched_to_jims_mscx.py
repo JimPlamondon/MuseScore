@@ -76,29 +76,74 @@ def main(enriched_path, mscx_in, mscx_out, lines):
     # V2: the token is a first-class field of the state JSON, not a
     # side tag; the Kernel returns the bare serialized token.
     import os, subprocess, tempfile
-    token = os.environ.get("JIMS_TONIC_TOKEN", "")
-    runner = os.environ.get("JIMS_RUNNER", "")
-    if not token and runner:
-        melody = {"notes": [{"nPer": int(a), "nGen": int(b)} for a, b in identities]}
+
+    def derive_token(seg_identities, seg_state_text):
+        """Kernel-classified tonic-extent token for a melody segment."""
+        runner = os.environ.get("JIMS_RUNNER", "")
+        if not runner or not seg_identities:
+            return ""
+        melody = {"notes": [{"nPer": int(a), "nGen": int(b)} for a, b in seg_identities]}
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as mf:
             json.dump(melody, mf)
             melody_path = mf.name
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as sf:
-            sf.write(state_text)
+            sf.write(seg_state_text)
             state_path = sf.name
         try:
             out = subprocess.run([runner, "tonic", melody_path, state_path],
                                  capture_output=True, text=True, timeout=60)
-            if out.returncode == 0:
-                token = json.loads(out.stdout)
+            return json.loads(out.stdout) if out.returncode == 0 else ""
         except Exception:
-            token = ""
-    if token:
-        stated = state_text.rstrip()
+            return ""
+
+    def with_token(seg_state_text, seg_token):
+        stated = seg_state_text.rstrip()
         assert stated.endswith("}")
-        stated = stated[:-1].rstrip().rstrip(",") + f',"tonic_extent":"{token}"}}'
+        return stated[:-1].rstrip().rstrip(",") + f',"tonic_extent":"{seg_token}"}}'
+
+    # Mid-score mode change (acceptance piece 4): JIMS_MODE_CHANGE is
+    # "<measure>:<mode_rotation>". The change measure gets a
+    # StaffTypeChange carrying the rotated state; each state's token is
+    # classified from the notes its span governs.
+    mode_change = os.environ.get("JIMS_MODE_CHANGE", "")
+    change_measure, change_rotation, split_at = 0, 0, len(identities)
+    if mode_change:
+        change_measure, change_rotation = (int(x) for x in mode_change.split(":"))
+        measures = re.findall(r"<measure[^>]*>(.*?)</measure>", enriched, re.S)
+        split_at = sum(len(re.findall(r'<jims:pitch ', m))
+                       for m in measures[:change_measure - 1])
+
+    token = os.environ.get("JIMS_TONIC_TOKEN", "") or derive_token(identities[:split_at], state_text)
+    if token:
         mscx = mscx.replace(f"<jimsStateJson>{state_text}</jimsStateJson>",
-                            f"<jimsStateJson>{stated}</jimsStateJson>", 1)
+                            f"<jimsStateJson>{with_token(state_text, token)}</jimsStateJson>", 1)
+
+    if mode_change:
+        state2 = dict(state)
+        state2["mode_rotation"] = change_rotation
+        state2_text = json.dumps(state2, separators=(",", ":"))
+        token2 = derive_token(identities[split_at:], state2_text)
+        if token2:
+            state2_text = with_token(state2_text, token2)
+        stc_block = (
+            '<StaffTypeChange>\n'
+            '        <StaffType group="pitched">\n'
+            '          <name>jims12tet</name>\n'
+            f'          <lines>{lines}</lines>\n'
+            '          <clef>0</clef>\n'
+            '          <keysig>0</keysig>\n'
+            '          <ledgerlines>0</ledgerlines>\n'
+            '          <jims>1</jims>\n'
+            '          <jimsJiLines>1</jimsJiLines>\n'
+            f'          <jimsStateJson>{state2_text}</jimsStateJson>\n'
+            '          </StaffType>\n'
+            '        </StaffTypeChange>\n'
+            '      ')
+        opens = list(re.finditer(r"<Measure[^>]*>\s*", mscx))
+        if change_measure < 1 or change_measure > len(opens):
+            sys.exit(f"ERROR: mode-change measure {change_measure} out of range")
+        at = opens[change_measure - 1].end()
+        mscx = mscx[:at] + stc_block + mscx[at:]
 
     # 2. Notes: inject the lattice identity tags in document order.
     notes = list(re.finditer(r"<Note>\n(\s*)", mscx))
