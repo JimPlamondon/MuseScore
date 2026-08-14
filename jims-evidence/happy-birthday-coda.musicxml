@@ -56,15 +56,15 @@
     </measure>
   <measure number="10">
       <note><rest/><duration>4</duration><voice>1</voice><type>half</type><staff>1</staff></note>
-      <note><pitch><step>G</step><octave>4</octave></pitch><duration>2</duration><voice>1</voice><type>quarter</type><staff>1</staff><lyric><syllabic>single</syllabic><text>and</text></lyric></note>
+      <note><pitch><step>D</step><alter>1</alter><octave>4</octave></pitch><duration>2</duration><voice>1</voice><type>quarter</type><staff>1</staff><lyric><syllabic>single</syllabic><text>and</text></lyric></note>
     </measure>
     <measure number="11">
-      <note><pitch><step>D</step><alter>1</alter><octave>5</octave></pitch><duration>2</duration><voice>1</voice><type>quarter</type><staff>1</staff><lyric><syllabic>begin</syllabic><text>ma</text></lyric></note>
-      <note><pitch><step>D</step><alter>1</alter><octave>5</octave></pitch><duration>2</duration><voice>1</voice><type>quarter</type><staff>1</staff><lyric><syllabic>end</syllabic><text>ny</text></lyric></note>
-      <note><pitch><step>C</step><octave>5</octave></pitch><duration>2</duration><voice>1</voice><type>quarter</type><staff>1</staff><lyric><syllabic>single</syllabic><text>more!</text></lyric></note>
+      <note><pitch><step>F</step><alter>1</alter><octave>4</octave></pitch><duration>2</duration><voice>1</voice><type>quarter</type><staff>1</staff><lyric><syllabic>begin</syllabic><text>ma</text></lyric></note>
+      <note><pitch><step>D</step><alter>1</alter><octave>4</octave></pitch><duration>2</duration><voice>1</voice><type>quarter</type><staff>1</staff><lyric><syllabic>end</syllabic><text>ny</text></lyric></note>
+      <note><pitch><step>A</step><alter>1</alter><octave>4</octave></pitch><duration>2</duration><voice>1</voice><type>quarter</type><staff>1</staff><lyric><syllabic>single</syllabic><text>more!</text></lyric></note>
     </measure>
     <measure number="12">
-      <note><pitch><step>C</step><octave>5</octave></pitch><duration>6</duration><voice>1</voice><type>half</type><dot/><staff>1</staff></note>
+      <note><pitch><step>A</step><alter>1</alter><octave>4</octave></pitch><duration>6</duration><voice>1</voice><type>half</type><dot/><staff>1</staff></note>
     </measure>
     </part>
 </score-partwise>
