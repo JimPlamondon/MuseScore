@@ -43,7 +43,8 @@ static bool okResult(const String& response, JsonValue& result)
 
 bool available()
 {
-    return jims_musescore_bridge_abi_version() == 1;
+    // V2 contract (Milestone 2 Phase 4): this fork speaks bridge ABI 2.
+    return jims_musescore_bridge_abi_version() == 2;
 }
 
 bool noteCentsAboveDo(const String& stateJson, int nPer, int nGen, double& cents)

@@ -2954,7 +2954,10 @@ void TWrite::write(const StaffType* item, XmlWriter& xml, WriteContext& ctx)
         if (!item->jimsStateJson().isEmpty()) {
             xml.tag("jimsStateJson", item->jimsStateJson());
         }
-        if (!item->jimsTonicExtent().isEmpty()) {
+        // V2: the token lives inside the state JSON; the side tag is
+        // written only for a legacy token with no V2 home to ride in.
+        if (!item->jimsTonicExtent().isEmpty()
+            && !item->jimsStateJson().contains(u"\"tonic_extent\"")) {
             xml.tag("jimsTonicExtent", item->jimsTonicExtent());
         }
         if (item->jimsJiLines()) {

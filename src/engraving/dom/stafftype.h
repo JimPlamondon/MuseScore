@@ -234,7 +234,7 @@ public:
     bool isJiMS() const { return m_jims; }
     void setJiMS(bool val) { m_jims = val; }
     const String& jimsStateJson() const { return m_jimsStateJson; }
-    void setJimsStateJson(const String& s) { m_jimsStateJson = s; }
+    void setJimsStateJson(const String& s);
     const String& jimsTonicExtent() const { return m_jimsTonicExtent; }
     void setJimsTonicExtent(const String& s) { m_jimsTonicExtent = s; }
     // EXPERIMENTAL (owner request 2026-08-14, not locked in): draw the

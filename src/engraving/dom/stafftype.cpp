@@ -755,6 +755,30 @@ double StaffType::physStringToYOffset(int strg) const
 }
 
 //---------------------------------------------------------
+//   setJimsStateJson
+//    JiMStaffStateV2 (Milestone 2): the tonic-extent token is a
+//    first-class field of the Kernel-owned state JSON. When the state
+//    carries it, extract it into the token member so layout consumes
+//    one value regardless of source; the legacy <jimsTonicExtent> tag
+//    remains as read compatibility for pre-V2 files (tread runs after
+//    this setter and may overwrite the member for such files).
+//---------------------------------------------------------
+
+void StaffType::setJimsStateJson(const String& s)
+{
+    m_jimsStateJson = s;
+    static const String marker = u"\"tonic_extent\":\"";
+    size_t at = s.indexOf(marker);
+    if (at != muse::nidx) {
+        size_t from = at + marker.size();
+        size_t end = s.indexOf(u'"', from);
+        if (end != muse::nidx) {
+            m_jimsTonicExtent = s.mid(from, end - from);
+        }
+    }
+}
+
+//---------------------------------------------------------
 //   jimsYFromCents
 //    The single JiMStaff vertical seam (Milestone 1): cents above the
 //    staff's lower Do boundary to a y offset in spatium units. One staff

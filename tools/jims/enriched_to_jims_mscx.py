@@ -61,6 +61,7 @@ def main(enriched_path, mscx_in, mscx_out, lines):
         '        <keysig>0</keysig>\n'
         '        <ledgerlines>0</ledgerlines>\n'
         '        <jims>1</jims>\n'
+        '        <jimsJiLines>1</jimsJiLines>\n'
         f'        <jimsStateJson>{state_text}</jimsStateJson>\n'
         '        </StaffType>'
     )
@@ -71,7 +72,9 @@ def main(enriched_path, mscx_in, mscx_out, lines):
     # Derive-and-save the tonic-extent token (owner Q4 rider): classify
     # via the Kernel when a runner is available; melodies wider than the
     # classifier's window keep whatever token the caller supplies via
-    # JIMS_TONIC_TOKEN, else the tag is omitted (degenerate frame).
+    # JIMS_TONIC_TOKEN, else the field is omitted (degenerate frame).
+    # V2: the token is a first-class field of the state JSON, not a
+    # side tag; the Kernel returns the bare serialized token.
     import os, subprocess, tempfile
     token = os.environ.get("JIMS_TONIC_TOKEN", "")
     runner = os.environ.get("JIMS_RUNNER", "")
@@ -87,12 +90,15 @@ def main(enriched_path, mscx_in, mscx_out, lines):
             out = subprocess.run([runner, "tonic", melody_path, state_path],
                                  capture_output=True, text=True, timeout=60)
             if out.returncode == 0:
-                token = json.loads(out.stdout).get("extent", "")
+                token = json.loads(out.stdout)
         except Exception:
             token = ""
     if token:
-        mscx = mscx.replace("<jims>1</jims>",
-                            f"<jims>1</jims>\n        <jimsTonicExtent>{token}</jimsTonicExtent>", 1)
+        stated = state_text.rstrip()
+        assert stated.endswith("}")
+        stated = stated[:-1].rstrip().rstrip(",") + f',"tonic_extent":"{token}"}}'
+        mscx = mscx.replace(f"<jimsStateJson>{state_text}</jimsStateJson>",
+                            f"<jimsStateJson>{stated}</jimsStateJson>", 1)
 
     # 2. Notes: inject the lattice identity tags in document order.
     notes = list(re.finditer(r"<Note>\n(\s*)", mscx))
