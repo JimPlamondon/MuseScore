@@ -1,0 +1,1 @@
+piece=collision ticks=490 median_ms=0.876292 p95_ms=0.91475 max_ms=0.953 dropped=0

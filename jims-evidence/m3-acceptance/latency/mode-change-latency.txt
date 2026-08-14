@@ -1,0 +1,1 @@
+piece=mode-change ticks=490 median_ms=2.67575 p95_ms=2.78779 max_ms=2.88446 dropped=0

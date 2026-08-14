@@ -1,0 +1,1 @@
+piece=acc-chromatic ticks=490 median_ms=1.6875 p95_ms=1.73887 max_ms=1.78067 dropped=0

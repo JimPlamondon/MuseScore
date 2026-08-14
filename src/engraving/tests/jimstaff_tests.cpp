@@ -13,6 +13,9 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdlib>
+#include <fstream>
+
 #include "engraving/dom/masterscore.h"
 #include "engraving/editing/undo.h"
 #include "engraving/dom/measure.h"
@@ -313,4 +316,122 @@ TEST(JiMStaffTests, tuningControllerRederivesNoteCentsAcrossVtrBoundary)
     score->doLayout();
     EXPECT_NEAR(gNote->jimsCentsAboveDo(), 700.0, 1e-9);
     delete score;
+}
+
+// M3 Phase 6: the scripted evidence driver — the same shared controller
+// the panel uses, swept 680->720 cents and back, three round trips per
+// piece after warm-up, with exact samples at every semantic boundary.
+// Gated by JIMS_SWEEP=1 (artifact dir in JIMS_SWEEP_OUT) so the normal
+// fence stays fast. Semantic artifacts are deterministic; timing is
+// reported separately and statistically.
+TEST(JiMStaffTests, evidenceSweepAcceptancePieces)
+{
+    const char* gate = std::getenv("JIMS_SWEEP");
+    if (!gate || muse::String::fromUtf8(gate) != u"1") {
+        GTEST_SKIP() << "set JIMS_SWEEP=1 to run the evidence sweep";
+    }
+    const char* outDir = std::getenv("JIMS_SWEEP_OUT");
+    ASSERT_TRUE(outDir) << "JIMS_SWEEP_OUT must name the artifact directory";
+
+    const double G17T = 1200.0 * 10.0 / 17.0;
+    const std::vector<double> exactSamples
+        = { 680.0, G19T - 0.01, G19T, G19T + 0.01, 700.0, G17T, 720.0 };
+    const std::vector<muse::String> pieces
+        = { u"collision", u"ode-to-joy", u"acc-chromatic", u"mode-change", u"grym" };
+
+    for (const muse::String& piece : pieces) {
+        Score* score = ScoreRW::readScore(u"jimstaff_data/" + piece + u".mscx");
+        ASSERT_TRUE(score) << piece.toStdString();
+        score->doLayout();
+        jims::TuningController controller(score, 0);
+        ASSERT_NEAR(controller.currentGeneratorCents(), 700.0, 1e-9);
+
+        auto captureSemantics = [&](std::ofstream& sem, double g) {
+            const StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
+            std::vector<jims::JiLine> lines;
+            jims::jiLines(st->jimsStateJson(), lines);
+            int visible = 0;
+            for (const jims::JiLine& line : lines) {
+                visible += line.visible ? 1 : 0;
+            }
+            double mg = 0.0, mp = 0.0;
+            jims::staffMetrics(st->jimsStateJson(), mg, mp);
+            sem << "{\"g\":" << muse::String::number(g, 6).toStdString()
+                << ",\"metrics_g\":" << muse::String::number(mg, 6).toStdString()
+                << ",\"visible_ji_lines\":" << visible
+                << ",\"frame\":[";
+            bool firstSeg = true;
+            for (const StaffType::JimsSegment& seg : st->jimsFrameSegments()) {
+                sem << (firstSeg ? "" : ",") << "["
+                    << muse::String::number(seg.lowerCents, 4).toStdString() << ","
+                    << muse::String::number(seg.upperCents, 4).toStdString() << ","
+                    << (seg.whole ? 1 : 0) << "]";
+                firstSeg = false;
+            }
+            sem << "],\"notes\":[";
+            bool firstNote = true;
+            for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
+                 seg = seg->next1(SegmentType::ChordRest)) {
+                EngravingItem* el = seg->element(0);
+                if (el && el->isChord()) {
+                    for (Note* note : toChord(el)->notes()) {
+                        if (note->hasJimsPitch()) {
+                            sem << (firstNote ? "" : ",") << "["
+                                << note->jimsNPer() << "," << note->jimsNGen() << ","
+                                << muse::String::number(note->jimsCentsAboveDo(), 4).toStdString() << "]";
+                            firstNote = false;
+                        }
+                    }
+                }
+            }
+            sem << "]}\n";
+        };
+
+        std::ofstream sem(std::string(outDir) + "/" + piece.toStdString() + "-semantics.jsonl");
+        std::ofstream lat(std::string(outDir) + "/" + piece.toStdString() + "-latency.txt");
+        std::vector<double> applied;
+
+        // Warm-up: one full round trip, uncaptured.
+        ASSERT_TRUE(controller.beginPreview());
+        for (int i = 0; i <= 80; ++i) {
+            ASSERT_TRUE(controller.preview(680.0 + 0.5 * i));
+        }
+        for (int i = 80; i >= 0; --i) {
+            ASSERT_TRUE(controller.preview(680.0 + 0.5 * i));
+        }
+        // Three captured forward-and-back sweeps.
+        for (int sweep = 0; sweep < 3; ++sweep) {
+            for (int i = 0; i <= 160; ++i) {
+                const double g = (i <= 80) ? 680.0 + 0.5 * i : 720.0 - 0.5 * (i - 80);
+                ASSERT_TRUE(controller.preview(g));
+                applied.push_back(controller.lastApplyMs());
+            }
+        }
+        // Exact boundary samples, semantics captured (sweep-invariant).
+        for (double g : exactSamples) {
+            ASSERT_TRUE(controller.preview(g));
+            applied.push_back(controller.lastApplyMs());
+            captureSemantics(sem, g);
+            const StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
+            double mg = 0.0, mp = 0.0;
+            ASSERT_TRUE(jims::staffMetrics(st->jimsStateJson(), mg, mp));
+            ASSERT_NEAR(mg, g, 1e-9) << "no dropped/stale applied state";
+        }
+        controller.cancel();
+        score->doLayout();
+        ASSERT_NEAR(controller.currentGeneratorCents(), 700.0, 1e-9);
+
+        std::sort(applied.begin(), applied.end());
+        const size_t n = applied.size();
+        lat << "piece=" << piece.toStdString()
+            << " ticks=" << n
+            << " median_ms=" << applied[n / 2]
+            << " p95_ms=" << applied[n * 95 / 100]
+            << " max_ms=" << applied[n - 1]
+            << " dropped=0\n";
+        // The acceptance floor: p95 <= 33.3ms, max <= 50ms per piece.
+        EXPECT_LE(applied[n * 95 / 100], 33.3) << piece.toStdString();
+        EXPECT_LE(applied[n - 1], 50.0) << piece.toStdString();
+        delete score;
+    }
 }
