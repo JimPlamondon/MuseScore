@@ -241,6 +241,11 @@ public:
     // Just Intonation diatonic scaffold instead of the mid-period line.
     bool jimsJiLines() const { return m_jimsJiLines; }
     void setJimsJiLines(bool val) { m_jimsJiLines = val; }
+    // Drawing density for the continuous JiMS cents axis: how many cents
+    // one line-distance spans on the page. Presentation only — never a
+    // musical fact (owner ruling 2026-08-14: the staff has no discrete
+    // locations; notes sit at their Kernel-supplied cents).
+    static constexpr double JIMS_CENTS_PER_LINE_DISTANCE = 100.0;
     // The single seam for ALL JiMStaff vertical arithmetic: cents above
     // the staff's lower Do to a chord-relative y in spatium units. The
     // staff spans exactly one 1200-cent period, 100 cents per staff

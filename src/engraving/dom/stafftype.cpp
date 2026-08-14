@@ -767,13 +767,16 @@ double StaffType::physStringToYOffset(int strg) const
 
 double StaffType::jimsYFromCents(double centsAboveDo) const
 {
-    // 100 cents per staff location by design (Q5, 2026-08-13); the staff
-    // frame spans (m_lines - 1) locations — 13 lines per stacked
-    // 1200-cent period, coincident Do boundaries shared. y grows
-    // downward, so the frame's top sits at (m_lines - 1) * 100 cents.
-    const double centsPerLocation = 100.0;
-    const double topCents = (double)(m_lines - 1) * centsPerLocation;
-    return (topCents - centsAboveDo) / centsPerLocation * m_lineDistance.val();
+    // Continuous cents axis (owner ruling 2026-08-14, Milestone 2): the
+    // staff defines NO discrete locations; a note's height is its cents
+    // value, affinely mapped to spatium space. JIMS_CENTS_PER_LINE_DISTANCE
+    // is pure DRAWING density (how tall a cent draws), not a musical
+    // fact; the frame's total height in cents is likewise drawing
+    // geometry derived from the configured line count. Every musical
+    // cents value entering this map comes from the Kernel. y grows
+    // downward, so the frame top maps to zero.
+    const double topCents = (double)(m_lines - 1) * JIMS_CENTS_PER_LINE_DISTANCE;
+    return (topCents - centsAboveDo) / JIMS_CENTS_PER_LINE_DISTANCE * m_lineDistance.val();
 }
 
 //---------------------------------------------------------

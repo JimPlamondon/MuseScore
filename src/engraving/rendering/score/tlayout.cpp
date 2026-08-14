@@ -5054,8 +5054,13 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         // one indicator width in from that edge.
         const bool systemHead = item->measure() && item->measure()->system()
                                 && item->measure()->system()->firstMeasure() == item->measure();
-        const int periods = std::max(1, (_lines - 1) / 12);
-        const double periodH = 12.0 * dist;                  // one 1200-cent stave
+        // Frame geometry in drawing units: periods derive from the
+        // configured frame height and the Kernel's period size (fetched
+        // with the render model below) — interim until Phase 2's Kernel
+        // frame segments replace frame-from-line-count entirely.
+        const double frameCents = (double)(_lines - 1) * StaffType::JIMS_CENTS_PER_LINE_DISTANCE;
+        const int periods = std::max(1, (int)std::lround(frameCents / 1200.0));
+        const double periodH = (1200.0 / StaffType::JIMS_CENTS_PER_LINE_DISTANCE) * dist;                  // one 1200-cent stave
         const double clefRy = periodH / 2.0;
         const double clefRx = clefRy * 4.0 / 3.0;            // variant-3 oval
         const double indicatorW = 1.3 * dist;                // 130-cent hollow square

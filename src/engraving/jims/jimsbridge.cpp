@@ -50,7 +50,7 @@ bool noteCentsAboveDo(const String& stateJson, int nPer, int nGen, double& cents
 {
     // The staff-frame projection is Kernel-owned end to end: one op, no
     // fork-side ordinate/register/anchor arithmetic.
-    String envelope = String(u"{\"abi\":1,\"op\":\"note_cents_above_lower_do\",\"state\":%1,\"nPer\":%2,\"nGen\":%3}")
+    String envelope = String(u"{\"abi\":2,\"op\":\"note_cents_above_lower_do\",\"state\":%1,\"nPer\":%2,\"nGen\":%3}")
                       .arg(stateJson).arg(nPer).arg(nGen);
     JsonValue result;
     if (!okResult(callBridge(envelope), result)) {
@@ -62,7 +62,7 @@ bool noteCentsAboveDo(const String& stateJson, int nPer, int nGen, double& cents
 
 bool noteheadToken(const String& stateJson, int nGen, String& token)
 {
-    String envelope = String(u"{\"abi\":1,\"op\":\"notehead_class\",\"state\":%1,\"nGen\":%2}")
+    String envelope = String(u"{\"abi\":2,\"op\":\"notehead_class\",\"state\":%1,\"nGen\":%2}")
                       .arg(stateJson).arg(nGen);
     JsonValue result;
     if (!okResult(callBridge(envelope), result)) {
@@ -74,7 +74,7 @@ bool noteheadToken(const String& stateJson, int nGen, String& token)
 
 bool tonicCentsAboveDo(const String& stateJson, double& cents)
 {
-    String envelope = String(u"{\"abi\":1,\"op\":\"tonic_cents_above_do\",\"state\":%1}").arg(stateJson);
+    String envelope = String(u"{\"abi\":2,\"op\":\"tonic_cents_above_do\",\"state\":%1}").arg(stateJson);
     JsonValue result;
     if (!okResult(callBridge(envelope), result)) {
         return false;
@@ -85,7 +85,7 @@ bool tonicCentsAboveDo(const String& stateJson, double& cents)
 
 bool jiLines(const String& stateJson, std::vector<JiLine>& lines)
 {
-    String envelope = String(u"{\"abi\":1,\"op\":\"ji_lines\",\"state\":%1}").arg(stateJson);
+    String envelope = String(u"{\"abi\":2,\"op\":\"ji_lines\",\"state\":%1}").arg(stateJson);
     JsonValue result;
     if (!okResult(callBridge(envelope), result)) {
         return false;
@@ -103,7 +103,7 @@ bool jiLines(const String& stateJson, std::vector<JiLine>& lines)
 
 bool scaleDots(const String& stateJson, std::vector<ScaleDotStack>& stacks)
 {
-    String envelope = String(u"{\"abi\":1,\"op\":\"scale_dots\",\"state\":%1}").arg(stateJson);
+    String envelope = String(u"{\"abi\":2,\"op\":\"scale_dots\",\"state\":%1}").arg(stateJson);
     JsonValue result;
     if (!okResult(callBridge(envelope), result)) {
         return false;
