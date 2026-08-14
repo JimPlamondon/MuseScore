@@ -21,6 +21,8 @@
  */
 #include "notationactioncontroller.h"
 
+#include "jimstuningpanel.h"
+
 #include "io/file.h"
 
 #include "engraving/dom/masterscore.h"
@@ -307,6 +309,7 @@ void NotationActionController::init()
     registerAction("append-textframe", [this]() { addBoxes(BoxType::Text, 1, AddBoxesTarget::AtEndOfScore); });
     registerAction("append-fretframe", [this]() { addBoxes(BoxType::Fret, 1, AddBoxesTarget::AtEndOfScore); });
 
+    registerAction("jims-tuning", &Controller::openJimsTuningPanel);
     registerAction("edit-style", &Controller::openEditStyleDialog);
     registerAction("page-settings", &Controller::openPageSettingsDialog);
     registerAction("staff-properties", &Controller::openStaffProperties);
@@ -1779,6 +1782,28 @@ void NotationActionController::resetBeamMode()
     if (selection->isNone() || selection->isRange()) {
         interaction->resetBeamMode();
     }
+}
+
+void NotationActionController::openJimsTuningPanel()
+{
+    // JiMStaff Milestone 3 (owner decision 1a): slider + numeric field,
+    // routed through the shared jims::TuningController. A floating tool
+    // window keeps the UI surface minimal; the notation view refreshes
+    // through the standard notation-changed notification.
+    mu::engraving::Score* score = currentNotationElements() ? currentNotationElements()->msScore() : nullptr;
+    if (!score) {
+        return;
+    }
+    auto notation = currentNotation();
+    auto* panel = new notationscene::JimsTuningPanel(score, [notation]() {
+        if (notation) {
+            notation->notationChanged().notify();
+        }
+    });
+    panel->setAttribute(Qt::WA_DeleteOnClose);
+    panel->show();
+    panel->raise();
+    panel->activateWindow();
 }
 
 void NotationActionController::openEditStyleDialog(const ActionData& args)

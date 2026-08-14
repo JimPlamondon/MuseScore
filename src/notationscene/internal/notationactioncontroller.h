@@ -148,6 +148,7 @@ private:
     void resetStretch();
     void resetBeamMode();
 
+    void openJimsTuningPanel();
     void openEditStyleDialog(const muse::actions::ActionData& args);
     void openPageSettingsDialog();
     void openStaffProperties();

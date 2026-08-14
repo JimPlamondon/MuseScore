@@ -396,6 +396,12 @@ const UiActionList NotationUiActions::s_actions = {
              TranslatableString("action", "More…"),
              TranslatableString("action", "Select similar elements with more options")
              ),
+    UiAction("jims-tuning",
+             mu::context::UiCtxProjectOpened,
+             mu::context::CTX_NOTATION_OPENED,
+             TranslatableString("action", "&JiMS Tuning…"),
+             TranslatableString("action", "Adjust the JiMS generator width (M5) live")
+             ),
     UiAction("edit-style",
              mu::context::UiCtxProjectOpened,
              mu::context::CTX_NOTATION_OPENED,

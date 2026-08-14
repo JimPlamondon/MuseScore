@@ -356,6 +356,7 @@ MenuItem* AppMenuModel::makeFormatMenu()
 
     MenuItemList formatItems {
         makeMenuItem("edit-style"),
+        makeMenuItem("jims-tuning"),
         makeMenuItem("page-settings"),
         makeSeparator(),
         makeMenuItem("measures-per-system"),

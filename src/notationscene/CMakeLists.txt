@@ -31,6 +31,8 @@ target_sources(notationscene PRIVATE
     internal/notationsceneconfiguration.h
     internal/midiinputoutputcontroller.cpp
     internal/midiinputoutputcontroller.h
+    internal/jimstuningpanel.cpp
+    internal/jimstuningpanel.h
     internal/notationactioncontroller.cpp
     internal/notationactioncontroller.h
     internal/notationuiactions.cpp
@@ -56,3 +58,5 @@ target_link_libraries(notationscene PRIVATE
 if (MUE_BUILD_NOTATIONSCENE_QML)
     add_subdirectory(qml/MuseScore/NotationScene)
 endif()
+
+set_source_files_properties(internal/jimstuningpanel.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE)
