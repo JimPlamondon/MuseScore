@@ -84,6 +84,19 @@ bool tonicCentsAboveDo(const String& stateJson, double& cents)
     return true;
 }
 
+bool staffMetrics(const String& stateJson, double& generatorCents, double& periodCents)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"staff_metrics\",\"state\":%1}").arg(stateJson);
+    JsonValue result;
+    if (!okResult(callBridge(envelope), result)) {
+        return false;
+    }
+    JsonObject o = result.toObject();
+    generatorCents = o.value("generator_cents").toDouble();
+    periodCents = o.value("period_cents").toDouble();
+    return true;
+}
+
 bool jiLines(const String& stateJson, std::vector<JiLine>& lines)
 {
     String envelope = String(u"{\"abi\":2,\"op\":\"ji_lines\",\"state\":%1}").arg(stateJson);
@@ -167,12 +180,11 @@ bool scaleDots(const String& stateJson, std::vector<ScaleDotStack>& stacks)
     if (!okResult(callBridge(envelope), result)) {
         return false;
     }
-    std::string err;
-    JsonDocument stateDoc = JsonDocument::fromJson(stateJson.toUtf8(), &err);
-    if (!err.empty()) {
+    double generatorCents = 0.0;
+    double periodCents = 0.0;
+    if (!staffMetrics(stateJson, generatorCents, periodCents)) {
         return false;
     }
-    double periodCents = stateDoc.rootObject().value("period_cents").toDouble();
 
     stacks.clear();
     JsonArray array = result.toArray();

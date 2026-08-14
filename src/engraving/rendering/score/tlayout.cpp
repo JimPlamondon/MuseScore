@@ -5175,8 +5175,12 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
                                      / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * dist;
         if (systemHead) {
             const double headerWidth = x1 - leftEdge;
-            ldata->setBbox(leftEdge, -item->lw() * .5 + y, w + headerWidth,
-                           frameHeightSp + item->lw());
+            // Label band: the tuning label draws above the frame top at
+            // the system head; the bbox reserves that room so the label
+            // is never clipped and the skyline spaces around it.
+            const double labelBand = 2.6 * _spatium;
+            ldata->setBbox(leftEdge, -item->lw() * .5 + y - labelBand, w + headerWidth,
+                           frameHeightSp + item->lw() + labelBand);
         } else {
             ldata->setBbox(x1, -item->lw() * .5 + y, w, frameHeightSp + item->lw());
         }

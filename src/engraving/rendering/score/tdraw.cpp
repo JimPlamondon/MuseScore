@@ -2763,6 +2763,28 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             const double dotCenterX = clefLeft - 2.0 * indicatorW + indicatorW;
             const IEngravingFontPtr font = item->score()->engravingFont();
 
+            // Tuning label (owner ruling 2026-08-14, KISS form): the
+            // generator width as "M5= <cents>¢" above the top stave at
+            // the staff's left edge — M5 is the Kernel's canonical name
+            // for the fifth, per the (P8, M5) lattice. The value comes
+            // from the Kernel's staff_metrics op (Milestone 2 Phase 5);
+            // the fork never parses the state JSON for musical facts.
+            {
+                double generatorCents = 0.0;
+                double periodCents = 0.0;
+                if (jims::staffMetrics(jimsSt->jimsStateJson(), generatorCents, periodCents)) {
+                    muse::String label = muse::String(u"M5= %1¢")
+                                         .arg(muse::String::number(generatorCents, 1));
+                    Font labelFont(u"Edwin", Font::Type::Text);
+                    labelFont.setPointSizeF(10.0 * item->spatium() / item->defaultSpatium());
+                    painter->setFont(labelFont);
+                    painter->setPen(Pen(item->curColor(opt)));
+                    painter->drawText(PointF(clefLeft - 2.0 * indicatorW,
+                                             yOf(frame.back().upperCents) - 1.2 * _spatium),
+                                      label);
+                }
+            }
+
             std::vector<jims::ScaleDotStack> stacks;
             double tonicCents = 0.0;
             const bool haveTonic = jims::tonicCentsAboveDo(jimsSt->jimsStateJson(), tonicCents);

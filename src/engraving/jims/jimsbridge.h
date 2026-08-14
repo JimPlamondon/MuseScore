@@ -42,6 +42,11 @@ bool scaleDots(const muse::String& stateJson, std::vector<ScaleDotStack>& stacks
 /// state's mode-selected (movable) tonic.
 bool tonicCentsAboveDo(const muse::String& stateJson, double& cents);
 
+/// The staff's tuning metrics (generator and period widths in cents),
+/// Kernel-validated. The tuning label and any width-derived drawing use
+/// this; the fork never parses the state JSON for musical facts.
+bool staffMetrics(const muse::String& stateJson, double& generatorCents, double& periodCents);
+
 /// One Kernel-owned Just Intonation staff line: exact just cents, prime
 /// limit, and VTR-gated visibility for the state's current generator.
 struct JiLine {
