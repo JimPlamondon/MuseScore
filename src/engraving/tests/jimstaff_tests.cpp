@@ -490,3 +490,50 @@ TEST(JiMStaffTests, chordStemSpansCentsHeightAcrossTunings)
     }
     delete score;
 }
+
+// Owner correction (2026-08-14, second round): head clustering must be
+// CENTS-true. At the 12-TET collision (0 cents apart) the dyad's heads
+// sit on opposite sides of the stem (the accepted M2 look); at 720
+// cents (240 apart — no visual overlap) both heads sit on the same
+// side, in one column, attached to the stem. The diatonic-line test
+// fired the second-cluster logic at every tuning.
+TEST(JiMStaffTests, dyadHeadClusteringIsCentsTrueAcrossTunings)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+    ASSERT_TRUE(score);
+    jims::TuningController controller(score, 0);
+
+    auto dyad = [&]() -> Chord* {
+        for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
+             seg = seg->next1(SegmentType::ChordRest)) {
+            EngravingItem* el = seg->element(0);
+            if (el && el->isChord() && toChord(el)->notes().size() == 2) {
+                return toChord(el);
+            }
+        }
+        return nullptr;
+    };
+
+    // At exactly 700: a true collision — heads mirror to opposite sides.
+    ASSERT_TRUE(controller.beginPreview());
+    ASSERT_TRUE(controller.preview(700.0));
+    score->doLayout();
+    Chord* chord = dyad();
+    ASSERT_TRUE(chord);
+    EXPECT_NE(chord->notes()[0]->ldata()->mirror(), chord->notes()[1]->ldata()->mirror())
+        << "colliding heads must sit on opposite stem sides at 700";
+    controller.cancel();
+
+    // At 720 (240 cents apart): no overlap — one column, no mirroring.
+    ASSERT_TRUE(controller.beginPreview());
+    ASSERT_TRUE(controller.preview(720.0));
+    score->doLayout();
+    chord = dyad();
+    ASSERT_TRUE(chord);
+    EXPECT_FALSE(chord->notes()[0]->ldata()->mirror());
+    EXPECT_FALSE(chord->notes()[1]->ldata()->mirror());
+    EXPECT_NEAR(chord->notes()[0]->ldata()->pos().x(), chord->notes()[1]->ldata()->pos().x(), 0.01)
+        << "separated heads share one column at 720";
+    controller.cancel();
+    delete score;
+}

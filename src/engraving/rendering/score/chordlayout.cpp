@@ -2351,6 +2351,7 @@ double ChordLayout::layoutChords2(std::vector<Note*>& notes, bool up, LayoutCont
 
     int prevLine = 1000;            // line of previous notehead
                                     // hack: start high so first note won't show as conflict
+    const Note* prevNote = nullptr; // previous notehead (JiMS cents-true conflict test)
     bool prevVisible = false;       // was last note visible?
     bool mirror = false;            // should current notehead be mirrored?
                                     // value is retained and may be used on next iteration
@@ -2384,6 +2385,22 @@ double ChordLayout::layoutChords2(std::vector<Note*>& notes, bool up, LayoutCont
 
         bool conflict = (std::abs(prevLine - line) < 2) && (prevStaffIdx == staffIdx) && note->visible() && prevVisible
                         && (sameTrack || Chord::combineVoice(chord, prevChord));
+
+        // JiMStaff (owner correction 2026-08-14): heads conflict when
+        // they VISUALLY overlap on the continuous cents axis — within
+        // one head height (100 cents at the drawing density) — never by
+        // diatonic-line adjacency, which diverges from the drawn heights
+        // away from 12-TET (the enharmonic dyad is adjacent-line at
+        // every tuning but only collides where the Kernel says so).
+        if (tab && tab->isJiMS() && note->hasJimsPitch()
+            && prevNote && prevNote->hasJimsPitch()
+            && note->jimsCentsValid() && prevNote->jimsCentsValid()) {
+            const bool centsOverlap
+                = std::abs(prevNote->jimsCentsAboveDo() - note->jimsCentsAboveDo())
+                  < StaffType::JIMS_CENTS_PER_LINE_DISTANCE;
+            conflict = centsOverlap && (prevStaffIdx == staffIdx) && note->visible() && prevVisible
+                       && (sameTrack || Chord::combineVoice(chord, prevChord));
+        }
 
         // this note is on opposite side of stem as previous note
         // if there is a conflict
@@ -2438,6 +2455,7 @@ double ChordLayout::layoutChords2(std::vector<Note*>& notes, bool up, LayoutCont
         prevStaffIdx = staffIdx;
         prevTrackIdx = trackIdx;
         prevLine = line;
+        prevNote = note;
     }
 
     return maxWidth;
