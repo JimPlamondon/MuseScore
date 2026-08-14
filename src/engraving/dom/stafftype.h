@@ -241,6 +241,28 @@ public:
     // Just Intonation diatonic scaffold instead of the mid-period line.
     bool jimsJiLines() const { return m_jimsJiLines; }
     void setJimsJiLines(bool val) { m_jimsJiLines = val; }
+    // Derived frame cache (Kernel frame_for_melody result; keyed by the
+    // state + melody it was computed from; NEVER serialized). Top cents
+    // drives the seam's affine map; empty cache means the degenerate
+    // whole-period frame from the configured line count.
+    struct JimsSegment { double lowerCents = 0.0; double upperCents = 0.0; bool whole = true; };
+    const std::vector<JimsSegment>& jimsFrameSegments() const { return m_jimsFrameSegments; }
+    const muse::String& jimsFrameKey() const { return m_jimsFrameKey; }
+    void setJimsFrame(const muse::String& key, const std::vector<JimsSegment>& segments) const
+    {
+        m_jimsFrameKey = key;
+        m_jimsFrameSegments = segments;
+    }
+    double jimsFrameTopCents() const
+    {
+        return m_jimsFrameSegments.empty()
+               ? (double)(m_lines - 1) * JIMS_CENTS_PER_LINE_DISTANCE
+               : m_jimsFrameSegments.back().upperCents;
+    }
+    double jimsFrameBottomCents() const
+    {
+        return m_jimsFrameSegments.empty() ? 0.0 : m_jimsFrameSegments.front().lowerCents;
+    }
     // Drawing density for the continuous JiMS cents axis: how many cents
     // one line-distance spans on the page. Presentation only — never a
     // musical fact (owner ruling 2026-08-14: the staff has no discrete
@@ -371,6 +393,8 @@ private:
     String m_jimsStateJson;
     String m_jimsTonicExtent;
     bool m_jimsJiLines = false;
+    mutable muse::String m_jimsFrameKey;
+    mutable std::vector<JimsSegment> m_jimsFrameSegments;
 
     bool m_showBarlines = true;
     bool m_showLedgerLines = true;

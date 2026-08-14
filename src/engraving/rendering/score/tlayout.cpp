@@ -5045,25 +5045,76 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
     // JiMS preset is exactly the one-period staff height.
     const StaffType* jimsSt = s ? s->staffType(item->measure()->tick()) : nullptr;
     if (jimsSt && jimsSt->isJiMS()) {
-        // Header geometry (owner ruling 2026-08-14): each system-leading
-        // measure carries the JiMS header to its left — scale-dot column
-        // and tonic indicator on short "support line" extensions, then
-        // the per-period crescent clefs over the lines (clef body
-        // occludes them). The staff's left edge sits two tonic-indicator
-        // widths left of the clef's leftmost extent; the dot centers sit
-        // one indicator width in from that edge.
         const bool systemHead = item->measure() && item->measure()->system()
                                 && item->measure()->system()->firstMeasure() == item->measure();
-        // Frame geometry in drawing units: periods derive from the
-        // configured frame height and the Kernel's period size (fetched
-        // with the render model below) — interim until Phase 2's Kernel
-        // frame segments replace frame-from-line-count entirely.
-        const double frameCents = (double)(_lines - 1) * StaffType::JIMS_CENTS_PER_LINE_DISTANCE;
-        const int periods = std::max(1, (int)std::lround(frameCents / 1200.0));
-        const double periodH = (1200.0 / StaffType::JIMS_CENTS_PER_LINE_DISTANCE) * dist;                  // one 1200-cent stave
+
+        // Frame derivation (partial-staves ruling 2026-08-14): collect
+        // this staff's lattice identities (pure transport — no fact is
+        // computed here), pass them with the DECLARED tonic-extent token
+        // to the Kernel, and cache the returned segments on the
+        // StaffType keyed by state+melody. An empty declaration or a
+        // bridge failure falls back to the degenerate whole-period frame
+        // from the configured line count.
+        {
+            muse::String melody = u"{\"notes\":[";
+            bool first = true;
+            const Score* score = item->score();
+            const staff_idx_t staffIdx = item->staffIdx();
+            for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
+                 seg = seg->next1(SegmentType::ChordRest)) {
+                for (track_idx_t track = staffIdx * VOICES; track < (staffIdx + 1) * VOICES; ++track) {
+                    EngravingItem* el = seg->element(track);
+                    if (el && el->isChord()) {
+                        for (Note* note : toChord(el)->notes()) {
+                            if (note->hasJimsPitch()) {
+                                if (!first) {
+                                    melody += u",";
+                                }
+                                melody += muse::String(u"{\"nPer\":%1,\"nGen\":%2}")
+                                          .arg(note->jimsNPer()).arg(note->jimsNGen());
+                                first = false;
+                            }
+                        }
+                    }
+                }
+            }
+            melody += u"]}";
+            const muse::String token = jimsSt->jimsTonicExtent();
+            const muse::String key = jimsSt->jimsStateJson() + u"|" + token + u"|" + melody;
+            if (jimsSt->jimsFrameKey() != key) {
+                std::vector<StaffType::JimsSegment> cached;
+                if (!first && !token.isEmpty()) {
+                    std::vector<jims::StaveSegment> segments;
+                    if (jims::frameForMelody(jimsSt->jimsStateJson(), melody, token, segments)) {
+                        for (const jims::StaveSegment& segment : segments) {
+                            cached.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
+                        }
+                    }
+                }
+                jimsSt->setJimsFrame(key, cached);
+            }
+        }
+
+        // Effective frame: cached Kernel segments, or the degenerate
+        // whole-period frame synthesized from the configured line count.
+        std::vector<StaffType::JimsSegment> frame = jimsSt->jimsFrameSegments();
+        if (frame.empty()) {
+            const double frameCents = (double)(_lines - 1) * StaffType::JIMS_CENTS_PER_LINE_DISTANCE;
+            const int wholePeriods = std::max(1, (int)std::lround(frameCents / 1200.0));
+            for (int p = 0; p < wholePeriods; ++p) {
+                frame.push_back({ 1200.0 * p, 1200.0 * (p + 1), true });
+            }
+        }
+        const double frameTop = frame.back().upperCents;
+        const double frameBottom = frame.front().lowerCents;
+
+        // Header geometry (owner ruling 2026-08-14), unchanged: dots and
+        // per-stave clefs left of the staff, lines extending behind them.
+        const double dist100 = (1200.0 / StaffType::JIMS_CENTS_PER_LINE_DISTANCE) * dist / 12.0;
+        const double periodH = (1200.0 / StaffType::JIMS_CENTS_PER_LINE_DISTANCE) * dist;
         const double clefRy = periodH / 2.0;
-        const double clefRx = clefRy * 4.0 / 3.0;            // variant-3 oval
-        const double indicatorW = 1.3 * dist;                // 130-cent hollow square
+        const double clefRx = clefRy * 4.0 / 3.0;
+        const double indicatorW = 1.3 * dist100 * 1.0;
         const double clefRight = x1 - 0.3 * _spatium;
         const double clefLeft = clefRight - clefRx;
         const double leftEdge = clefLeft - 2.0 * indicatorW;
@@ -5074,23 +5125,7 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
             double gy = y + jimsSt->jimsYFromCents(cents) * _spatium;
             guides.push_back({ LineF(lineStartX, gy, x2, gy), dashed, rgb });
         };
-        // Solid red Do-lines at every period boundary. Between them,
-        // either the dashed yellow mid-period line (default) or — the
-        // EXPERIMENTAL Just Intonation scaffold (owner request
-        // 2026-08-14, opt-in via jimsJiLines, deliberately not locked
-        // in): every line is a tuning-independent ratio fact, so the
-        // staff stays constant while noteheads migrate as tuning
-        // changes. 3-limit ratios in violet, 5-limit in green, and the
-        // 7-limit septimal Blue Notes in blue (owner: "make the Blue
-        // Note lines blue"). Cents are the exact 1200*log2(ratio)
-        // values. If adopted, this table moves into the Kernel.
-        // The JI scaffold is Kernel-owned (owner rulings 1a/2a,
-        // 2026-08-14): the Kernel supplies every ratio line at its exact
-        // just cents with VTR-gated visibility — 7-/11-limit Blue Axis
-        // lines show only where the tuning's syntonic mappings stay
-        // order-consistent (they all hide at exactly 12-TET). The fork
-        // only maps prime limit to color: 3 violet, 5 green, 7 blue,
-        // 11 light blue (2-limit octaves are the red Do-lines).
+        // Kernel JI lines for the scaffold colors (fetched once).
         std::vector<jims::JiLine> jiLines;
         const bool haveJi = jimsSt->jimsJiLines()
                             && jims::jiLines(jimsSt->jimsStateJson(), jiLines);
@@ -5102,26 +5137,48 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
             default: return 0x40A8E0;
             }
         };
-        for (int p = 0; p <= periods; ++p) {
-            guide(p * 1200.0, false, 0xE03030);
-            if (p < periods) {
+        // Per segment: red Do-lines at every period boundary inside the
+        // segment (inclusive of segment edges when they ARE boundaries);
+        // scaffold lines only where they fall inside the segment. Lines
+        // beyond a partial cut are simply not drawn — the cut edge
+        // itself is closed by the sliced clef, not by a staff line.
+        const double epsilon = 1e-6;
+        for (const StaffType::JimsSegment& segment : frame) {
+            double firstBoundary = std::ceil((segment.lowerCents - epsilon) / 1200.0) * 1200.0;
+            for (double boundary = firstBoundary; boundary <= segment.upperCents + epsilon;
+                 boundary += 1200.0) {
+                guide(boundary, false, 0xE03030);
+            }
+            double basePeriod = std::floor(segment.lowerCents / 1200.0) * 1200.0;
+            for (double period = basePeriod; period < segment.upperCents; period += 1200.0) {
                 if (haveJi) {
                     for (const jims::JiLine& ji : jiLines) {
                         if (ji.visible) {
-                            guide(p * 1200.0 + ji.cents, true, limitColor(ji.limit));
+                            double cents = period + ji.cents;
+                            if (cents > segment.lowerCents + epsilon
+                                && cents < segment.upperCents - epsilon) {
+                                guide(cents, true, limitColor(ji.limit));
+                            }
                         }
                     }
                 } else if (!jimsSt->jimsJiLines()) {
-                    guide(p * 1200.0 + 600.0, true, 0xE0C020);
+                    double cents = period + 600.0;
+                    if (cents > segment.lowerCents + epsilon && cents < segment.upperCents - epsilon) {
+                        guide(cents, true, 0xE0C020);
+                    }
                 }
             }
         }
         item->setJimsGuideLines(guides);
         item->setLines({});
+        const double frameHeightSp = (frameTop - frameBottom)
+                                     / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * dist;
         if (systemHead) {
             const double headerWidth = x1 - leftEdge;
-            ldata->setBbox(leftEdge, -item->lw() * .5 + y,
-                           w + headerWidth, (_lines - 1) * dist + item->lw());
+            ldata->setBbox(leftEdge, -item->lw() * .5 + y, w + headerWidth,
+                           frameHeightSp + item->lw());
+        } else {
+            ldata->setBbox(x1, -item->lw() * .5 + y, w, frameHeightSp + item->lw());
         }
         return;
     }

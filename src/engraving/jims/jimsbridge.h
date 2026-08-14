@@ -52,6 +52,20 @@ struct JiLine {
 
 /// The Kernel's JI staff-line scaffold (owner rulings 1a/2a, 2026-08-14).
 bool jiLines(const muse::String& stateJson, std::vector<JiLine>& lines);
+
+/// One stave segment of the Kernel-derived frame (partial-staves ruling
+/// 2026-08-14): cents relative to the staff origin; partial segments get
+/// a sliced, closed crescent at their cut edge.
+struct StaveSegment {
+    double lowerCents = 0.0;
+    double upperCents = 0.0;
+    bool whole = true;
+};
+
+/// The Kernel frame for a melody plus the DECLARED tonic-extent token
+/// ("tonic-bounded" / "tonic-centered"), derived at authoring and saved.
+bool frameForMelody(const muse::String& stateJson, const muse::String& melodyJson,
+                    const muse::String& extentToken, std::vector<StaveSegment>& segments);
 }
 
 #endif

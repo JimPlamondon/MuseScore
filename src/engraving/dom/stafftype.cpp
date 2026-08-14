@@ -775,8 +775,7 @@ double StaffType::jimsYFromCents(double centsAboveDo) const
     // geometry derived from the configured line count. Every musical
     // cents value entering this map comes from the Kernel. y grows
     // downward, so the frame top maps to zero.
-    const double topCents = (double)(m_lines - 1) * JIMS_CENTS_PER_LINE_DISTANCE;
-    return (topCents - centsAboveDo) / JIMS_CENTS_PER_LINE_DISTANCE * m_lineDistance.val();
+    return (jimsFrameTopCents() - centsAboveDo) / JIMS_CENTS_PER_LINE_DISTANCE * m_lineDistance.val();
 }
 
 //---------------------------------------------------------

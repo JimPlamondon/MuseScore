@@ -101,6 +101,26 @@ bool jiLines(const String& stateJson, std::vector<JiLine>& lines)
     return true;
 }
 
+bool frameForMelody(const String& stateJson, const String& melodyJson,
+                    const String& extentToken, std::vector<StaveSegment>& segments)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"frame_for_melody\",\"state\":%1,\"melody\":%2,\"declared_extent\":\"%3\"}")
+                      .arg(stateJson).arg(melodyJson).arg(extentToken);
+    JsonValue result;
+    if (!okResult(callBridge(envelope), result)) {
+        return false;
+    }
+    segments.clear();
+    JsonArray array = result.toObject().value("segments").toArray();
+    for (size_t i = 0; i < array.size(); ++i) {
+        JsonObject seg = array.at(i).toObject();
+        segments.push_back({ seg.value("lower_cents").toDouble(),
+                             seg.value("upper_cents").toDouble(),
+                             seg.value("whole").toBool() });
+    }
+    return !segments.empty();
+}
+
 bool scaleDots(const String& stateJson, std::vector<ScaleDotStack>& stacks)
 {
     String envelope = String(u"{\"abi\":2,\"op\":\"scale_dots\",\"state\":%1}").arg(stateJson);

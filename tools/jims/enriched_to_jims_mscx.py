@@ -68,6 +68,32 @@ def main(enriched_path, mscx_in, mscx_out, lines):
     if n_st != 1:
         sys.exit("ERROR: expected exactly one pitched StaffType block")
 
+    # Derive-and-save the tonic-extent token (owner Q4 rider): classify
+    # via the Kernel when a runner is available; melodies wider than the
+    # classifier's window keep whatever token the caller supplies via
+    # JIMS_TONIC_TOKEN, else the tag is omitted (degenerate frame).
+    import os, subprocess, tempfile
+    token = os.environ.get("JIMS_TONIC_TOKEN", "")
+    runner = os.environ.get("JIMS_RUNNER", "")
+    if not token and runner:
+        melody = {"notes": [{"nPer": int(a), "nGen": int(b)} for a, b in identities]}
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as mf:
+            json.dump(melody, mf)
+            melody_path = mf.name
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as sf:
+            sf.write(state_text)
+            state_path = sf.name
+        try:
+            out = subprocess.run([runner, "tonic", melody_path, state_path],
+                                 capture_output=True, text=True, timeout=60)
+            if out.returncode == 0:
+                token = json.loads(out.stdout).get("extent", "")
+        except Exception:
+            token = ""
+    if token:
+        mscx = mscx.replace("<jims>1</jims>",
+                            f"<jims>1</jims>\n        <jimsTonicExtent>{token}</jimsTonicExtent>", 1)
+
     # 2. Notes: inject the lattice identity tags in document order.
     notes = list(re.finditer(r"<Note>\n(\s*)", mscx))
     if len(notes) != len(identities):

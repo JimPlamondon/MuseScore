@@ -2727,12 +2727,13 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             painter->drawLine(guide.line);
         }
 
-        // System-head header (owner ruling 2026-08-14): on every stave of
-        // every system-leading measure — scale-dot column and tonic
-        // indicator over the support-line extensions, then one crescent
-        // clef per 1200-cent stave, drawn LAST so its white body occludes
-        // the lines passing behind it. All ordinates, dot classes, and
-        // the tonic position come from the Kernel through the bridge.
+        // System-head header (owner rulings 2026-08-14): scale-dot
+        // column, tonic indicator, and one crescent clef PER STAVE
+        // SEGMENT — whole segments get the full variant-3 crescent,
+        // partial segments get the patent's sliced crescent: the glyph
+        // clipped at the cut and closed by a new horizontal line there.
+        // All ordinates come from the Kernel (frame cache + render
+        // geometry); drawing is the only thing happening here.
         const Staff* jimsStaff = item->staff();
         const StaffType* jimsSt = jimsStaff ? jimsStaff->staffType(item->measure()->tick()) : nullptr;
         const bool systemHead = item->measure()->system()
@@ -2741,11 +2742,19 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             const double _spatium = item->spatium();
             const double dist = jimsSt->lineDistance().val() * _spatium;
             const double topY = item->pos().y();
-            const int periods = std::max(1, (jimsSt->lines() - 1) / 12);
-            // Same geometry as the layout branch: left edge two indicator
-            // widths left of the clef's leftmost extent; dot centers one
-            // indicator width in from the edge.
-            const double periodH = 12.0 * dist;
+            std::vector<StaffType::JimsSegment> frame = jimsSt->jimsFrameSegments();
+            if (frame.empty()) {
+                const double frameCents = (double)(jimsSt->lines() - 1)
+                                          * StaffType::JIMS_CENTS_PER_LINE_DISTANCE;
+                const int wholePeriods = std::max(1, (int)std::lround(frameCents / 1200.0));
+                for (int p = 0; p < wholePeriods; ++p) {
+                    frame.push_back({ 1200.0 * p, 1200.0 * (p + 1), true });
+                }
+            }
+            auto yOf = [&](double cents) {
+                return topY + jimsSt->jimsYFromCents(cents) * _spatium;
+            };
+            const double periodH = (1200.0 / StaffType::JIMS_CENTS_PER_LINE_DISTANCE) * dist;
             const double clefRy = periodH / 2.0;
             const double clefRx = clefRy * 4.0 / 3.0;
             const double indicatorW = 1.3 * dist;
@@ -2753,99 +2762,112 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             const double clefLeft = clefRight - clefRx;
             const double dotCenterX = clefLeft - 2.0 * indicatorW + indicatorW;
             const IEngravingFontPtr font = item->score()->engravingFont();
+
             std::vector<jims::ScaleDotStack> stacks;
             double tonicCents = 0.0;
             const bool haveTonic = jims::tonicCentsAboveDo(jimsSt->jimsStateJson(), tonicCents);
+            const double epsilon = 1e-6;
             if (font && jims::scaleDots(jimsSt->jimsStateJson(), stacks)) {
-                for (int p = 0; p < periods; ++p) {
-                    for (const auto& stack : stacks) {
-                        double y = topY + jimsSt->jimsYFromCents(stack.cents + 1200.0 * p) * _spatium;
-                        double dx = 0.0;
-                        for (int nGen : stack.frontToBack) {
-                            muse::String token;
-                            SymId dotSym = SymId::noteheadHalf;
-                            if (jims::noteheadToken(jimsSt->jimsStateJson(), nGen, token)) {
-                                if (token == u"triangle-vertex-up") {
-                                    dotSym = SymId::noteheadTriangleUpBlack;
-                                } else if (token == u"triangle-vertex-down") {
-                                    dotSym = SymId::noteheadTriangleDownBlack;
-                                } else if (token == u"square-vertex-up") {
-                                    dotSym = SymId::noteheadDiamondBlack;
-                                } else if (token == u"square-edge-up") {
-                                    dotSym = SymId::noteheadSquareBlack;
+                for (const StaffType::JimsSegment& segment : frame) {
+                    double basePeriod = std::floor(segment.lowerCents / 1200.0) * 1200.0;
+                    for (double period = basePeriod; period < segment.upperCents;
+                         period += 1200.0) {
+                        for (const auto& stack : stacks) {
+                            double cents = period + stack.cents;
+                            if (cents < segment.lowerCents - epsilon
+                                || cents > segment.upperCents + epsilon) {
+                                continue;
+                            }
+                            double dy = yOf(cents);
+                            double dx = 0.0;
+                            for (int nGen : stack.frontToBack) {
+                                muse::String token;
+                                SymId dotSym = SymId::noteheadHalf;
+                                if (jims::noteheadToken(jimsSt->jimsStateJson(), nGen, token)) {
+                                    if (token == u"triangle-vertex-up") {
+                                        dotSym = SymId::noteheadTriangleUpBlack;
+                                    } else if (token == u"triangle-vertex-down") {
+                                        dotSym = SymId::noteheadTriangleDownBlack;
+                                    } else if (token == u"square-vertex-up") {
+                                        dotSym = SymId::noteheadDiamondBlack;
+                                    } else if (token == u"square-edge-up") {
+                                        dotSym = SymId::noteheadSquareBlack;
+                                    }
                                 }
+                                RectF gb = font->bbox(dotSym, 1.0);
+                                double centroidDy = 0.0;
+                                if (dotSym == SymId::noteheadTriangleUpBlack) {
+                                    centroidDy = -gb.height() / 6.0;
+                                } else if (dotSym == SymId::noteheadTriangleDownBlack) {
+                                    centroidDy = gb.height() / 6.0;
+                                }
+                                painter->setPen(Pen(item->curColor(opt), item->lw()));
+                                font->draw(dotSym, painter, 1.0,
+                                           PointF(dotCenterX - gb.width() / 2.0 + dx,
+                                                  dy + centroidDy));
+                                dx += 0.15 * _spatium;
                             }
-                            RectF gb = font->bbox(dotSym, 1.0);
-                            // Centroid correction (owner finding
-                            // 2026-08-14): triangles mark their pitch
-                            // with their centroid, not their box center.
-                            double centroidDy = 0.0;
-                            if (dotSym == SymId::noteheadTriangleUpBlack) {
-                                centroidDy = -gb.height() / 6.0;
-                            } else if (dotSym == SymId::noteheadTriangleDownBlack) {
-                                centroidDy = gb.height() / 6.0;
+                        }
+                        if (haveTonic) {
+                            double cents = period + tonicCents;
+                            if (cents >= segment.lowerCents - epsilon
+                                && cents <= segment.upperCents + epsilon) {
+                                RectF ib = font->bbox(SymId::noteheadDiamondWhite, 1.3);
+                                font->draw(SymId::noteheadDiamondWhite, painter, 1.3,
+                                           PointF(dotCenterX - ib.width() / 2.0, yOf(cents)));
                             }
-                            painter->setPen(Pen(item->curColor(opt), item->lw()));
-                            font->draw(dotSym, painter,  1.0,
-                                       PointF(dotCenterX - gb.width() / 2.0 + dx, y + centroidDy));
-                            dx += 0.15 * _spatium;
                         }
                     }
-                    // Tonic indicator: hollow vertex-up square, 1.3x a
-                    // dot, centered over the Kernel's mode-selected tonic
-                    // position (movable tonic — any mode).
-                    if (haveTonic) {
-                        double ty = topY
-                                    + jimsSt->jimsYFromCents(tonicCents + 1200.0 * p) * _spatium;
-                        RectF ib = font->bbox(SymId::noteheadDiamondWhite, 1.3);
-                        font->draw(SymId::noteheadDiamondWhite, painter, 1.3,
-                                   PointF(dotCenterX - ib.width() / 2.0, ty));
-                    }
-                }
-            }
-            // Tuning label (owner ruling 2026-08-14, KISS form): the
-            // generator width as "M5= <cents>¢" — M5 is the Kernel's
-            // canonical name for the fifth, per the (P8, M5) lattice —
-            // above the top stave at the staff's left edge. The value is
-            // read from the fork's own persisted state JSON for display
-            // only (no derivation); migrate to a Kernel getter with the
-            // Milestone-2 seam work.
-            {
-                std::string err;
-                muse::JsonDocument stateDoc
-                    = muse::JsonDocument::fromJson(jimsSt->jimsStateJson().toUtf8(), &err);
-                if (err.empty()) {
-                    double generatorCents
-                        = stateDoc.rootObject().value("generator_cents").toDouble();
-                    muse::String label = muse::String(u"M5= %1¢")
-                                         .arg(muse::String::number(generatorCents, 1));
-                    Font labelFont(u"Edwin", Font::Type::Text);
-                    labelFont.setPointSizeF(10.0 * item->spatium() / item->defaultSpatium());
-                    painter->setFont(labelFont);
-                    painter->setPen(Pen(item->curColor(opt)));
-                    painter->drawText(PointF(clefLeft - 2.0 * indicatorW,
-                                             topY - 1.2 * _spatium), label);
                 }
             }
 
-            // One crescent per stave, drawn last: tips on that stave's
-            // own Do boundary lines, white body occluding the support
-            // lines behind it (variant-3 construction, rx = 4/3 ry).
-            for (int p = 0; p < periods; ++p) {
-                const double staveTop = topY + jimsSt->jimsYFromCents((periods - p) * 1200.0) * _spatium;
+            // Crescents, drawn last so their white bodies occlude the
+            // support lines. A segment's crescent belongs to its period:
+            // whole -> full crescent; partial -> the full-period crescent
+            // CLIPPED to the segment band and closed by a horizontal
+            // line at each cut edge (the patent mechanism, J4.001).
+            for (const StaffType::JimsSegment& segment : frame) {
+                double periodFloor = std::floor(segment.lowerCents / 1200.0 + epsilon) * 1200.0;
+                double periodTopY = yOf(periodFloor + 1200.0);
+                double segTopY = yOf(segment.upperCents);
+                double segBottomY = yOf(segment.lowerCents);
+                painter->save();
+                painter->setClipRect(RectF(clefLeft - _spatium, segTopY - item->lw(),
+                                           clefRx + 2.0 * _spatium,
+                                           segBottomY - segTopY + 2.0 * item->lw()));
                 PainterPath crescent;
-                crescent.moveTo(clefRight, staveTop);
-                crescent.arcTo(RectF(clefRight - clefRx, staveTop, 2.0 * clefRx, 2.0 * clefRy), 90.0, 180.0);
-                crescent.arcTo(RectF(clefRight - clefRy, staveTop, 2.0 * clefRy, 2.0 * clefRy), 270.0, -180.0);
+                crescent.moveTo(clefRight, periodTopY);
+                crescent.arcTo(RectF(clefRight - clefRx, periodTopY, 2.0 * clefRx, 2.0 * clefRy),
+                               90.0, 180.0);
+                crescent.arcTo(RectF(clefRight - clefRy, periodTopY, 2.0 * clefRy, 2.0 * clefRy),
+                               270.0, -180.0);
                 crescent.closeSubpath();
                 painter->setPen(Pen(item->curColor(opt), item->lw() * 1.5, PenStyle::SolidLine));
                 painter->setBrush(Brush(Color::WHITE));
                 painter->drawPath(crescent);
                 painter->setBrush(BrushStyle::NoBrush);
+                if (!segment.whole) {
+                    // Closure lines at the cut edges that are not period
+                    // boundaries: the horizontal line that closes the
+                    // sliced glyph.
+                    auto isBoundary = [&](double cents) {
+                        double nearest = std::round(cents / 1200.0) * 1200.0;
+                        return std::abs(cents - nearest) < epsilon;
+                    };
+                    painter->setPen(Pen(item->curColor(opt), item->lw() * 1.5,
+                                        PenStyle::SolidLine, PenCapStyle::FlatCap));
+                    if (!isBoundary(segment.upperCents)) {
+                        painter->drawLine(LineF(clefLeft, segTopY, clefRight, segTopY));
+                    }
+                    if (!isBoundary(segment.lowerCents)) {
+                        painter->drawLine(LineF(clefLeft, segBottomY, clefRight, segBottomY));
+                    }
+                }
+                painter->restore();
             }
         }
 
-        painter->restore();
+                painter->restore();
         return;
     }
 
