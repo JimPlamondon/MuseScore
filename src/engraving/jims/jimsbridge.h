@@ -41,6 +41,17 @@ bool scaleDots(const muse::String& stateJson, std::vector<ScaleDotStack>& stacks
 /// The Kernel-owned tonic-indicator position: cents above Do for the
 /// state's mode-selected (movable) tonic.
 bool tonicCentsAboveDo(const muse::String& stateJson, double& cents);
+
+/// One Kernel-owned Just Intonation staff line: exact just cents, prime
+/// limit, and VTR-gated visibility for the state's current generator.
+struct JiLine {
+    double cents = 0.0;
+    int limit = 5;
+    bool visible = true;
+};
+
+/// The Kernel's JI staff-line scaffold (owner rulings 1a/2a, 2026-08-14).
+bool jiLines(const muse::String& stateJson, std::vector<JiLine>& lines);
 }
 
 #endif

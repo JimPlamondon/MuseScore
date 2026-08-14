@@ -23,6 +23,8 @@
 
 #include "tlayout.h"
 
+#include "../../jims/jimsbridge.h"
+
 #include "global/realfn.h"
 #include "global/types/number.h"
 #include "draw/fontmetrics.h"
@@ -5077,34 +5079,34 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         // 7-limit septimal Blue Notes in blue (owner: "make the Blue
         // Note lines blue"). Cents are the exact 1200*log2(ratio)
         // values. If adopted, this table moves into the Kernel.
-        // The Blue Axis carries both poles (owner, 2026-08-14): the
-        // septimal 7-limit blue notes in dark blue and their undecimal
-        // 11-limit neutral counterparts in light blue. VTR (Valid Tuning
-        // Range) gating of the 7-/11-limit lines is designed but awaits
-        // the owner's ruling on the gating criterion; today every line
-        // shows.
-        static const std::pair<double, int> JI_LINES[] = {
-            { 203.910, 0x9040C0 },   // 9/8, 3-limit violet
-            { 266.871, 0x2060D0 },   // 7/6, 7-limit BLUE (blues third)
-            { 347.408, 0x40A8E0 },   // 11/9, 11-limit LIGHT BLUE (neutral third)
-            { 386.314, 0x209040 },   // 5/4, 5-limit green
-            { 498.045, 0x9040C0 },   // 4/3, 3-limit violet
-            { 551.318, 0x40A8E0 },   // 11/8, 11-limit LIGHT BLUE (neutral fourth)
-            { 582.512, 0x2060D0 },   // 7/5, 7-limit BLUE (blues flat five)
-            { 701.955, 0x9040C0 },   // 3/2, 3-limit violet
-            { 884.359, 0x209040 },   // 5/3, 5-limit green
-            { 968.826, 0x2060D0 },   // 7/4, 7-limit BLUE (blues seventh)
-            { 1049.363, 0x40A8E0 },  // 11/6, 11-limit LIGHT BLUE (neutral seventh)
-            { 1088.269, 0x209040 },  // 15/8, 5-limit green
+        // The JI scaffold is Kernel-owned (owner rulings 1a/2a,
+        // 2026-08-14): the Kernel supplies every ratio line at its exact
+        // just cents with VTR-gated visibility — 7-/11-limit Blue Axis
+        // lines show only where the tuning's syntonic mappings stay
+        // order-consistent (they all hide at exactly 12-TET). The fork
+        // only maps prime limit to color: 3 violet, 5 green, 7 blue,
+        // 11 light blue (2-limit octaves are the red Do-lines).
+        std::vector<jims::JiLine> jiLines;
+        const bool haveJi = jimsSt->jimsJiLines()
+                            && jims::jiLines(jimsSt->jimsStateJson(), jiLines);
+        auto limitColor = [](int limit) {
+            switch (limit) {
+            case 3: return 0x9040C0;
+            case 5: return 0x209040;
+            case 7: return 0x2060D0;
+            default: return 0x40A8E0;
+            }
         };
         for (int p = 0; p <= periods; ++p) {
             guide(p * 1200.0, false, 0xE03030);
             if (p < periods) {
-                if (jimsSt->jimsJiLines()) {
-                    for (const auto& ji : JI_LINES) {
-                        guide(p * 1200.0 + ji.first, true, ji.second);
+                if (haveJi) {
+                    for (const jims::JiLine& ji : jiLines) {
+                        if (ji.visible) {
+                            guide(p * 1200.0 + ji.cents, true, limitColor(ji.limit));
+                        }
                     }
-                } else {
+                } else if (!jimsSt->jimsJiLines()) {
                     guide(p * 1200.0 + 600.0, true, 0xE0C020);
                 }
             }

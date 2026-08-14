@@ -83,6 +83,24 @@ bool tonicCentsAboveDo(const String& stateJson, double& cents)
     return true;
 }
 
+bool jiLines(const String& stateJson, std::vector<JiLine>& lines)
+{
+    String envelope = String(u"{\"abi\":1,\"op\":\"ji_lines\",\"state\":%1}").arg(stateJson);
+    JsonValue result;
+    if (!okResult(callBridge(envelope), result)) {
+        return false;
+    }
+    lines.clear();
+    JsonArray array = result.toArray();
+    for (size_t i = 0; i < array.size(); ++i) {
+        JsonObject line = array.at(i).toObject();
+        lines.push_back({ line.value("cents").toDouble(),
+                          line.value("limit").toInt(),
+                          line.value("visible").toBool() });
+    }
+    return true;
+}
+
 bool scaleDots(const String& stateJson, std::vector<ScaleDotStack>& stacks)
 {
     String envelope = String(u"{\"abi\":1,\"op\":\"scale_dots\",\"state\":%1}").arg(stateJson);

@@ -27,7 +27,7 @@
     <metaTag name="source"></metaTag>
     <metaTag name="translator"></metaTag>
     <metaTag name="workNumber"></metaTag>
-    <metaTag name="workTitle">Happy Birthday</metaTag>
+    <metaTag name="workTitle">Happy Birthday (quarter-comma meantone)</metaTag>
     <Part id="1">
       <Staff>
         <eid>236VUQzBWbP_gp24FY2vS+L</eid>
@@ -39,7 +39,7 @@
         <ledgerlines>0</ledgerlines>
         <jims>1</jims>
         <jimsJiLines>1</jimsJiLines>
-        <jimsStateJson>{"scale":["M2","m2","M2","M2","M2","m2","M2"],"collection_rotation":0,"mode_rotation":0,"generator_cents":700.0,"period_cents":1200.0,"embedding":{"large_steps":5,"small_steps":2},"extent":{"lower_do_register":4,"period_count":2},"reference":"none"}</jimsStateJson>
+        <jimsStateJson>{"scale":["M2","m2","M2","M2","M2","m2","M2"],"collection_rotation":0,"mode_rotation":0,"generator_cents":696.6,"period_cents":1200.0,"embedding":{"large_steps":5,"small_steps":2},"extent":{"lower_do_register":4,"period_count":2},"reference":"none"}</jimsStateJson>
         </StaffType>
         </Staff>
       <trackName>Piano</trackName>
@@ -101,7 +101,7 @@
         <Text>
           <eid>k60xbrBp7ZI_fMV1XBV0CzL</eid>
           <style>title</style>
-          <text>Happy Birthday</text>
+          <text>Happy Birthday (quarter-comma meantone)</text>
           </Text>
         </VBox>
       <Measure>
