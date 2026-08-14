@@ -5077,15 +5077,24 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         // 7-limit septimal Blue Notes in blue (owner: "make the Blue
         // Note lines blue"). Cents are the exact 1200*log2(ratio)
         // values. If adopted, this table moves into the Kernel.
+        // The Blue Axis carries both poles (owner, 2026-08-14): the
+        // septimal 7-limit blue notes in dark blue and their undecimal
+        // 11-limit neutral counterparts in light blue. VTR (Valid Tuning
+        // Range) gating of the 7-/11-limit lines is designed but awaits
+        // the owner's ruling on the gating criterion; today every line
+        // shows.
         static const std::pair<double, int> JI_LINES[] = {
             { 203.910, 0x9040C0 },   // 9/8, 3-limit violet
             { 266.871, 0x2060D0 },   // 7/6, 7-limit BLUE (blues third)
+            { 347.408, 0x40A8E0 },   // 11/9, 11-limit LIGHT BLUE (neutral third)
             { 386.314, 0x209040 },   // 5/4, 5-limit green
             { 498.045, 0x9040C0 },   // 4/3, 3-limit violet
+            { 551.318, 0x40A8E0 },   // 11/8, 11-limit LIGHT BLUE (neutral fourth)
             { 582.512, 0x2060D0 },   // 7/5, 7-limit BLUE (blues flat five)
             { 701.955, 0x9040C0 },   // 3/2, 3-limit violet
             { 884.359, 0x209040 },   // 5/3, 5-limit green
             { 968.826, 0x2060D0 },   // 7/4, 7-limit BLUE (blues seventh)
+            { 1049.363, 0x40A8E0 },  // 11/6, 11-limit LIGHT BLUE (neutral seventh)
             { 1088.269, 0x209040 },  // 15/8, 5-limit green
         };
         for (int p = 0; p <= periods; ++p) {
