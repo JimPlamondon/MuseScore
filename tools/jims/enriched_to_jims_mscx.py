@@ -145,6 +145,12 @@ def main(enriched_path, mscx_in, mscx_out, lines):
         at = opens[change_measure - 1].end()
         mscx = mscx[:at] + stc_block + mscx[at:]
 
+    # 1b. Part names: a JiMS staff carries no stock name text; the
+    # header (dots, indicator, crescent) is the staff's identity
+    # (owner correction 2026-08-14). Strip imported names.
+    mscx = re.sub(r"<longName>[^<]*</longName>\s*", "", mscx)
+    mscx = re.sub(r"<trackName>[^<]*</trackName>\s*", "", mscx)
+
     # 2. Notes: inject the lattice identity tags in document order.
     notes = list(re.finditer(r"<Note>\n(\s*)", mscx))
     if len(notes) != len(identities):

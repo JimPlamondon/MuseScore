@@ -151,6 +151,7 @@ NoteVal Score::noteValForPosition(Position pos, AccidentalType at, bool& error)
         {
             const StaffType* jimsSt = st->staffType(tick);
             if (jimsSt && jimsSt->isJiMS()) {
+                jimsSt->jimsEnsureFrame(st->score(), st->idx());
                 const double cents = jimsSt->jimsFrameTopCents()
                                      - double(line) * StaffType::JIMS_CENTS_PER_LINE_DISTANCE / 2.0;
                 mu::engraving::jims::PitchHit hit;

@@ -3018,6 +3018,7 @@ void Note::updateRelLine(int absLine, bool undoable)
     // above. The cents value is the Kernel's (jims::noteCentsAboveDo);
     // this branch only projects it to y.
     if (st->isJiMS() && hasJimsPitch()) {
+        st->jimsEnsureFrame(score(), staffIdx());
         if (!m_jimsCentsValid) {
             double cents = 0.0;
             if (jims::noteCentsAboveDo(st->jimsStateJson(), m_jimsNPer, m_jimsNGen, cents)) {

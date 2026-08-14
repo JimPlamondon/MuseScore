@@ -5048,52 +5048,9 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         const bool systemHead = item->measure() && item->measure()->system()
                                 && item->measure()->system()->firstMeasure() == item->measure();
 
-        // Frame derivation (partial-staves ruling 2026-08-14): collect
-        // this staff's lattice identities (pure transport — no fact is
-        // computed here), pass them with the DECLARED tonic-extent token
-        // to the Kernel, and cache the returned segments on the
-        // StaffType keyed by state+melody. An empty declaration or a
-        // bridge failure falls back to the degenerate whole-period frame
-        // from the configured line count.
-        {
-            muse::String melody = u"{\"notes\":[";
-            bool first = true;
-            const Score* score = item->score();
-            const staff_idx_t staffIdx = item->staffIdx();
-            for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
-                 seg = seg->next1(SegmentType::ChordRest)) {
-                for (track_idx_t track = staffIdx * VOICES; track < (staffIdx + 1) * VOICES; ++track) {
-                    EngravingItem* el = seg->element(track);
-                    if (el && el->isChord()) {
-                        for (Note* note : toChord(el)->notes()) {
-                            if (note->hasJimsPitch()) {
-                                if (!first) {
-                                    melody += u",";
-                                }
-                                melody += muse::String(u"{\"nPer\":%1,\"nGen\":%2}")
-                                          .arg(note->jimsNPer()).arg(note->jimsNGen());
-                                first = false;
-                            }
-                        }
-                    }
-                }
-            }
-            melody += u"]}";
-            const muse::String token = jimsSt->jimsTonicExtent();
-            const muse::String key = jimsSt->jimsStateJson() + u"|" + token + u"|" + melody;
-            if (jimsSt->jimsFrameKey() != key) {
-                std::vector<StaffType::JimsSegment> cached;
-                if (!first && !token.isEmpty()) {
-                    std::vector<jims::StaveSegment> segments;
-                    if (jims::frameForMelody(jimsSt->jimsStateJson(), melody, token, segments)) {
-                        for (const jims::StaveSegment& segment : segments) {
-                            cached.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
-                        }
-                    }
-                }
-                jimsSt->setJimsFrame(key, cached);
-            }
-        }
+        // Frame derivation is shared and lazy (StaffType::jimsEnsureFrame);
+        // note layout may already have refreshed the cache this pass.
+        jimsSt->jimsEnsureFrame(item->score(), item->staffIdx());
 
         // Effective frame: cached Kernel segments, or the degenerate
         // whole-period frame synthesized from the configured line count.
@@ -6370,6 +6327,31 @@ void TLayout::layoutTimeSig(const TimeSig* item, TimeSig::LayoutData* ldata, con
     }
 
     ldata->moveY(item->yPos());
+
+    // JiMStaff (owner correction 2026-08-14): the opening time signature
+    // centers vertically on the derived frame (a partial stave is
+    // shorter than the nominal line count), and kerns leftward into the
+    // empty mouth between the crescent's tips — only when a whole
+    // crescent exists to have a mouth. Header timesigs only (tick zero).
+    {
+        const Staff* jstaff = item->staff();
+        const StaffType* jimsSt = jstaff ? jstaff->staffTypeForElement(item) : nullptr;
+        if (jimsSt && jimsSt->isJiMS() && item->segment() && item->segment()->tick().isZero()) {
+            jimsSt->jimsEnsureFrame(item->score(), jstaff->idx());
+            const double ld = jimsSt->lineDistance().val();
+            const double frameMid = (jimsSt->jimsFrameTopCents() - jimsSt->jimsFrameBottomCents())
+                                    / 2.0 / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * ld;
+            const double nominalMid = (jimsSt->lines() - 1) / 2.0 * ld;
+            ldata->moveY((frameMid - nominalMid) * spatium);
+            bool hasWhole = false;
+            for (const StaffType::JimsSegment& segment : jimsSt->jimsFrameSegments()) {
+                hasWhole = hasWhole || segment.whole;
+            }
+            if (jimsSt->jimsFrameSegments().empty() || hasWhole) {
+                ldata->moveX(-3.2 * ld * spatium);
+            }
+        }
+    }
 }
 
 void TLayout::layoutTimeTickAnchor(TimeTickAnchor* item, LayoutContext&)

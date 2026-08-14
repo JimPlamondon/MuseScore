@@ -275,6 +275,7 @@ public:
     // upper Do boundary) sits at 0 sp and 0 cents at 12 line distances.
     // No other code may embed a cents-to-y formula.
     double jimsYFromCents(double centsAboveDo) const;
+    void jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const;
     String tabBassStringPrefix(int strg, bool* hasFret) const;   // return a string with the prefix, if any, identifying a bass string
     int     numOfTabLedgerLines(int string) const;
 

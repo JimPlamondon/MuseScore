@@ -27,6 +27,7 @@
 #include "io/file.h"
 #include "translation.h"
 
+#include "../jims/jimsbridge.h"
 #include "../jims/jimsstrings.h"
 
 #include "rw/xmlreader.h"
@@ -36,7 +37,10 @@
 #include "types/typesconv.h"
 
 #include "mscore.h"
+#include "chord.h"
 #include "navigate.h"
+#include "note.h"
+#include "segment.h"
 #include "score.h"
 #include "staff.h"
 
@@ -775,6 +779,62 @@ void StaffType::setJimsStateJson(const String& s)
         if (end != muse::nidx) {
             m_jimsTonicExtent = s.mid(from, end - from);
         }
+    }
+}
+
+//---------------------------------------------------------
+//   jimsEnsureFrame
+//    Derive (or reuse) the Kernel staff frame for this staff's melody.
+//    Pure transport: the notes' lattice identities are collected in
+//    document order and handed to the Kernel with the declared
+//    tonic-extent token; no musical fact is computed here. Keyed by
+//    state+token+melody, so repeated calls are cheap. Every consumer of
+//    jimsFrameTopCents/jimsFrameSegments (staff lines, note placement,
+//    note entry, drawing) calls this first — note layout can run before
+//    the staff lines' layout, so laziness here is what keeps the notes
+//    and the frame on the same map (M2 owner correction 2026-08-14:
+//    single-system scores rendered notes against the degenerate frame).
+//---------------------------------------------------------
+
+void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
+{
+    if (!isJiMS() || !score) {
+        return;
+    }
+    muse::String melody = u"{\"notes\":[";
+    bool first = true;
+    for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
+         seg = seg->next1(SegmentType::ChordRest)) {
+        for (track_idx_t track = staffIdx * VOICES; track < (staffIdx + 1) * VOICES; ++track) {
+            EngravingItem* el = seg->element(track);
+            if (el && el->isChord()) {
+                for (Note* note : toChord(el)->notes()) {
+                    if (note->hasJimsPitch()) {
+                        if (!first) {
+                            melody += u",";
+                        }
+                        melody += muse::String(u"{\"nPer\":%1,\"nGen\":%2}")
+                                  .arg(note->jimsNPer()).arg(note->jimsNGen());
+                        first = false;
+                    }
+                }
+            }
+        }
+    }
+    melody += u"]}";
+    const muse::String token = jimsTonicExtent();
+    const muse::String key = jimsStateJson() + u"|" + token + u"|" + melody;
+    if (jimsFrameKey() != key) {
+        std::vector<JimsSegment> cached;
+        if (!first && !token.isEmpty()) {
+            std::vector<jims::StaveSegment> segments;
+            if (jims::frameForMelody(jimsStateJson(), melody, token, segments)) {
+                for (const jims::StaveSegment& segment : segments) {
+                    cached.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
+                }
+            }
+        }
+        setJimsFrame(key, cached);
     }
 }
 

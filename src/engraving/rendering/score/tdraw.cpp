@@ -2834,9 +2834,23 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                             double cents = period + tonicCents;
                             if (cents >= segment.lowerCents - epsilon
                                 && cents <= segment.upperCents + epsilon) {
-                                RectF ib = font->bbox(SymId::noteheadDiamondWhite, 1.3);
-                                font->draw(SymId::noteheadDiamondWhite, painter, 1.3,
-                                           PointF(dotCenterX - ib.width() / 2.0, yOf(cents)));
+                                // The tonic indicator per the settled
+                                // construction (JiMStudent_Spec 3.3):
+                                // hollow vertex-up square, thin pen,
+                                // sized so clear whitespace separates
+                                // the ring from the scale dot inside it
+                                // (owner correction 2026-08-14).
+                                const double h = 1.15 * dist;
+                                const double cy = yOf(cents);
+                                PainterPath ring;
+                                ring.moveTo(dotCenterX, cy - h);
+                                ring.lineTo(dotCenterX + h, cy);
+                                ring.lineTo(dotCenterX, cy + h);
+                                ring.lineTo(dotCenterX - h, cy);
+                                ring.closeSubpath();
+                                painter->setPen(Pen(item->curColor(opt), 0.10 * dist));
+                                painter->setBrush(BrushStyle::NoBrush);
+                                painter->drawPath(ring);
                             }
                         }
                     }
@@ -2878,11 +2892,22 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     };
                     painter->setPen(Pen(item->curColor(opt), item->lw() * 1.5,
                                         PenStyle::SolidLine, PenCapStyle::FlatCap));
+                    // The closure spans the GLYPH at the cut height —
+                    // outer arc to inner arc — never the bounding box
+                    // (owner correction 2026-08-14). Both arcs share the
+                    // vertical semi-axis clefRy about the period middle.
+                    const double arcCenterY = periodTopY + clefRy;
+                    auto closeGlyph = [&](double yCut) {
+                        double t = (yCut - arcCenterY) / clefRy;
+                        double s = std::sqrt(std::max(0.0, 1.0 - t * t));
+                        painter->drawLine(LineF(clefRight - clefRx * s, yCut,
+                                                clefRight - clefRy * s, yCut));
+                    };
                     if (!isBoundary(segment.upperCents)) {
-                        painter->drawLine(LineF(clefLeft, segTopY, clefRight, segTopY));
+                        closeGlyph(segTopY);
                     }
                     if (!isBoundary(segment.lowerCents)) {
-                        painter->drawLine(LineF(clefLeft, segBottomY, clefRight, segBottomY));
+                        closeGlyph(segBottomY);
                     }
                 }
                 painter->restore();
