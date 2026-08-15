@@ -2901,12 +2901,19 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                     }
                                     side += member.label;
                                 }
-                                painter->setFont(labelFont);
+                                // Painter::drawText rescales the CURRENT
+                                // painter font by 1200/deviceDpi in place
+                                // (applyFontSizeScaling), so the font must
+                                // be re-set immediately before EVERY
+                                // drawText or the second draw on screen
+                                // comes out ~12x too large (owner finding
+                                // 2026-08-15: giant "Ti"/"Mi" at 720c).
                                 const double centroidY = yOf(cents);
                                 if (!leftText.isEmpty()) {
                                     RectF tb = fm.boundingRect(leftText);
                                     const double baseline
                                         = centroidY - (tb.top() + tb.bottom()) / 2.0;
+                                    painter->setFont(labelFont);
                                     painter->setPen(Pen(item->curColor(opt)));
                                     painter->drawText(PointF(dotColLeft - gap - tb.width(), baseline),
                                                       leftText);
@@ -2922,6 +2929,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                     painter->setBrush(Brush(Color(255, 255, 255, 191)));
                                     painter->drawRect(backing);
                                     painter->setBrush(BrushStyle::NoBrush);
+                                    painter->setFont(labelFont);
                                     painter->setPen(Pen(item->curColor(opt)));
                                     painter->drawText(PointF(x, baseline), rightText);
                                 }

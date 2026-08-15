@@ -4,7 +4,9 @@
  *
  * JiMStaff Milestone 3 — the continuous-tuning panel (owner decision
  * 1a, 2026-08-14): a slider and an editable numeric generator_cents
- * field, nothing else. Both input paths route through the shared
+ * field, nothing else. Owner correction 2026-08-15: the slider is
+ * vertical (high at top) inside a painted scale that mirrors the
+ * rank-2 temperament continuum figure (see jimstuningpanel.cpp). Both input paths route through the shared
  * jims::TuningController seam; dragging previews transiently, release
  * or numeric-entry acceptance commits exactly one undoable edit.
  */
