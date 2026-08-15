@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include <QComboBox>
+
 #include "ui_editstafftype.h"
 
 #include "modularity/ioc.h"
@@ -39,6 +41,7 @@ class EditStaffType : public QDialog, private Ui::EditStaffType, public muse::Co
     muse::ContextInject<muse::IInteractive> interactive = { this };
 
     mu::engraving::StaffType staffType;
+    QComboBox* jimsLabelModeCombo = nullptr;
 
     virtual void showEvent(QShowEvent*);
     virtual void hideEvent(QHideEvent*);
@@ -73,6 +76,10 @@ public:
     ~EditStaffType() {}
     void setStaffType(const mu::engraving::StaffType* staffType);
     mu::engraving::StaffType getStaffType() const { return staffType; }
+
+    // JiMStaff scale-dot labels (owner epiphany 2026-08-15): the one
+    // minimal mode selector, visible only for JiMS staff types.
+    void ensureJimsLabelModeControl();
 
     void setInstrument(const Instrument& instrument);
 

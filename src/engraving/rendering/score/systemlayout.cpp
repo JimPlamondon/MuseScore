@@ -2140,8 +2140,8 @@ void SystemLayout::layoutSystem(System* system, LayoutContext& ctx, double xo1, 
             const StaffType* jst = jstaff ? jstaff->staffType(Fraction(0, 1)) : nullptr;
             if (jst && jst->isJiMS()) {
                 const double sp = jstaff->spatium(Fraction(0, 1));
-                const double dist = jst->lineDistance().val() * sp;
-                jimsHeader = std::max(jimsHeader, 0.3 * sp + 10.6 * dist);
+                jimsHeader = std::max(jimsHeader,
+                                      jst->jimsHeaderGeometry(sp, jstaff->score()->style().defaultSpatium()).headerWidth);
             }
         }
         if (jimsHeader > 0.0) {

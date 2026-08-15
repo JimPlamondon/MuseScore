@@ -4022,6 +4022,12 @@ void TRead::read(StaffType* t, XmlReader& e, ReadContext& ctx)
             t->setJimsTonicExtent(e.readText());
         } else if (tag == "jimsJiLines") {
             t->setJimsJiLines(e.readInt());
+        } else if (tag == "jimsScaleDotLabels") {
+            const String mode = e.readText();
+            t->setJimsScaleDotLabelMode(mode == u"none" ? JimsScaleDotLabelMode::None
+                                        : mode == u"left" ? JimsScaleDotLabelMode::Left
+                                        : mode == u"split" ? JimsScaleDotLabelMode::Split
+                                        : JimsScaleDotLabelMode::Auto);
         } else if (tag == "durations") {
             t->setGenDurations(e.readBool());
         } else if (tag == "durationFontName") {

@@ -301,9 +301,43 @@ void EditStaffType::hideEvent(QHideEvent* ev)
 //   setValues
 //---------------------------------------------------------
 
+void EditStaffType::ensureJimsLabelModeControl()
+{
+    // Visible only for JiMS staff types; appended programmatically so
+    // the stock .ui stays untouched. Selection maps 1:1 onto
+    // JimsScaleDotLabelMode and is read back on accept.
+    if (jimsLabelModeCombo || !staffType.isJiMS()) {
+        return;
+    }
+    auto* row = new QWidget(this);
+    auto* rowLayout = new QHBoxLayout(row);
+    rowLayout->setContentsMargins(9, 0, 9, 0);
+    auto* label = new QLabel(muse::qtrc("notation", "Scale-dot labels:"), row);
+    jimsLabelModeCombo = new QComboBox(row);
+    jimsLabelModeCombo->addItem(muse::qtrc("notation", "Auto"));
+    jimsLabelModeCombo->addItem(muse::qtrc("notation", "None"));
+    jimsLabelModeCombo->addItem(muse::qtrc("notation", "Left"));
+    jimsLabelModeCombo->addItem(muse::qtrc("notation", "Split"));
+    rowLayout->addWidget(label);
+    rowLayout->addWidget(jimsLabelModeCombo, 1);
+    if (auto* box = qobject_cast<QBoxLayout*>(layout())) {
+        box->insertWidget(box->count() - 1, row);
+    } else if (layout()) {
+        layout()->addWidget(row);
+    }
+    connect(jimsLabelModeCombo, &QComboBox::currentIndexChanged, this, [this](int index) {
+        staffType.setJimsScaleDotLabelMode(static_cast<mu::engraving::JimsScaleDotLabelMode>(index));
+        updatePreview();
+    });
+}
+
 void EditStaffType::setValues()
 {
     blockSignals(true);
+    ensureJimsLabelModeControl();
+    if (jimsLabelModeCombo) {
+        jimsLabelModeCombo->setCurrentIndex(int(staffType.jimsScaleDotLabelMode()));
+    }
 
     mu::engraving::StaffGroup group = staffType.group();
     int i = int(group);

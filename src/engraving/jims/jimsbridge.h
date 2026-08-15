@@ -51,6 +51,29 @@ bool staffMetrics(const muse::String& stateJson, double& generatorCents, double&
 /// control's bounds derive from this, never a fork-side constant.
 bool generatorRange(double& minCents, double& maxCents);
 
+/// The Kernel's scale-dot label-legibility range (owner-defined,
+/// distinct from the valid tuning range): Auto label mode reads Left
+/// strictly inside, Split at or outside.
+bool labelLegibilityRange(double& minCents, double& maxCents);
+
+/// One labeled member of a scale-dot stack.
+struct LabeledDotMember {
+    int nGen = 0;
+    muse::String label;
+};
+
+/// One scale-dot stack with its members' canonical-solfa labels,
+/// ordered as the Kernel derives them (front order, ascending |nGen|).
+struct LabeledDotStack {
+    double cents = 0.0;
+    std::vector<LabeledDotMember> members;
+};
+
+/// The staff's scale-dot stacks with per-member labels — ordered stack
+/// topology preserved; the flat/sharp side split is the caller's
+/// nGen-sign check, never transported.
+bool scaleDotLabels(const muse::String& stateJson, std::vector<LabeledDotStack>& stacks);
+
 /// One Kernel-owned Just Intonation staff line: exact just cents, prime
 /// limit, and VTR-gated visibility for the state's current generator.
 struct JiLine {

@@ -187,6 +187,7 @@ bool StaffType::operator==(const StaffType& st) const
     equal &= (m_jimsStateJson == st.m_jimsStateJson);
     equal &= (m_jimsTonicExtent == st.m_jimsTonicExtent);
     equal &= (m_jimsJiLines == st.m_jimsJiLines);
+    equal &= (m_jimsScaleDotLabelMode == st.m_jimsScaleDotLabelMode);
     equal &= (m_userMag == st.m_userMag);
     equal &= (m_yoffset == st.m_yoffset);
     equal &= (m_small == st.m_small);
@@ -780,6 +781,93 @@ void StaffType::setJimsStateJson(const String& s)
             m_jimsTonicExtent = s.mid(from, end - from);
         }
     }
+}
+
+//---------------------------------------------------------
+//   jimsResolvedScaleDotLabelMode
+//    Auto resolves against the Kernel's label-legibility range with
+//    STRICT comparisons and no epsilon (owner ruling 2026-08-15):
+//    Left strictly inside, Split at or outside either exact boundary.
+//    Explicit modes pass through. A bridge failure keeps labels off.
+//---------------------------------------------------------
+
+JimsScaleDotLabelMode StaffType::jimsResolvedScaleDotLabelMode() const
+{
+    if (m_jimsScaleDotLabelMode != JimsScaleDotLabelMode::Auto) {
+        return m_jimsScaleDotLabelMode;
+    }
+    double generatorCents = 0.0;
+    double periodCents = 0.0;
+    double minCents = 0.0;
+    double maxCents = 0.0;
+    if (!jims::staffMetrics(m_jimsStateJson, generatorCents, periodCents)
+        || !jims::labelLegibilityRange(minCents, maxCents)) {
+        return JimsScaleDotLabelMode::None;
+    }
+    return (generatorCents > minCents && generatorCents < maxCents)
+           ? JimsScaleDotLabelMode::Left
+           : JimsScaleDotLabelMode::Split;
+}
+
+//---------------------------------------------------------
+//   jimsHeaderGeometry
+//    The single shared header calculation: crescent, indicator, and
+//    label-band widths for the current state and RESOLVED label mode.
+//    Label bands measure the actual Kernel-supplied label strings in
+//    the label font (Edwin, 9pt at default spatium, scaled), plus the
+//    0.25sp text-to-dot gap. Every consumer (StaffLines layout, draw,
+//    system margin) reads this — no independent formulas.
+//---------------------------------------------------------
+
+StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, double defaultSpatium) const
+{
+    JimsHeaderGeometry g;
+    const double dist = m_lineDistance.val() * spatium;
+    const double periodH = (1200.0 / JIMS_CENTS_PER_LINE_DISTANCE) * dist;
+    g.clefRx = (periodH / 2.0) * 4.0 / 3.0;
+    g.indicatorW = 1.3 * dist;
+    g.headerWidth = 0.3 * spatium + g.clefRx + 2.0 * g.indicatorW;
+
+    const JimsScaleDotLabelMode mode = jimsResolvedScaleDotLabelMode();
+    if (mode == JimsScaleDotLabelMode::None) {
+        return g;
+    }
+    std::vector<jims::LabeledDotStack> stacks;
+    if (!jims::scaleDotLabels(m_jimsStateJson, stacks)) {
+        return g;
+    }
+    Font labelFont(u"Edwin", Font::Type::Text);
+    labelFont.setPointSizeF(9.0 * spatium / defaultSpatium);
+    FontMetrics fm(labelFont);
+    const double gap = 0.25 * spatium;
+    double maxLeft = 0.0;
+    double maxRight = 0.0;
+    for (const jims::LabeledDotStack& stack : stacks) {
+        String leftText;
+        String rightText;
+        for (const jims::LabeledDotMember& member : stack.members) {
+            const bool leftSide = (mode == JimsScaleDotLabelMode::Left) || member.nGen <= 0;
+            String& side = leftSide ? leftText : rightText;
+            if (!side.isEmpty()) {
+                side += u" ";
+            }
+            side += member.label;
+        }
+        if (!leftText.isEmpty()) {
+            maxLeft = std::max(maxLeft, fm.horizontalAdvance(leftText));
+        }
+        if (!rightText.isEmpty()) {
+            maxRight = std::max(maxRight, fm.horizontalAdvance(rightText));
+        }
+    }
+    if (maxLeft > 0.0) {
+        g.leftLabelBand = maxLeft + gap;
+    }
+    if (maxRight > 0.0 && mode == JimsScaleDotLabelMode::Split) {
+        g.rightLabelBand = maxRight + gap;
+    }
+    g.headerWidth += g.leftLabelBand + g.rightLabelBand;
+    return g;
 }
 
 //---------------------------------------------------------

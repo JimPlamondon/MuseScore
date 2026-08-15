@@ -109,6 +109,47 @@ bool generatorRange(double& minCents, double& maxCents)
     return true;
 }
 
+bool labelLegibilityRange(double& minCents, double& maxCents)
+{
+    JsonValue result;
+    if (!okResult(callBridge(String(u"{\"abi\":2,\"op\":\"label_legibility_range\"}")), result)) {
+        return false;
+    }
+    JsonObject o = result.toObject();
+    minCents = o.value("min_cents").toDouble();
+    maxCents = o.value("max_cents").toDouble();
+    return true;
+}
+
+bool scaleDotLabels(const String& stateJson, std::vector<LabeledDotStack>& stacks)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"scale_dot_labels\",\"state\":%1}").arg(stateJson);
+    JsonValue result;
+    if (!okResult(callBridge(envelope), result)) {
+        return false;
+    }
+    double generatorCents = 0.0;
+    double periodCents = 0.0;
+    if (!staffMetrics(stateJson, generatorCents, periodCents)) {
+        return false;
+    }
+    stacks.clear();
+    JsonArray array = result.toArray();
+    for (size_t i = 0; i < array.size(); ++i) {
+        JsonObject stack = array.at(i).toObject();
+        LabeledDotStack out;
+        out.cents = stack.value("ordinate").toDouble() * periodCents;
+        JsonArray members = stack.value("members").toArray();
+        for (size_t j = 0; j < members.size(); ++j) {
+            JsonObject member = members.at(j).toObject();
+            out.members.push_back({ member.value("nGen").toInt(),
+                                    member.value("label").toString() });
+        }
+        stacks.push_back(out);
+    }
+    return true;
+}
+
 bool jiLines(const String& stateJson, std::vector<JiLine>& lines)
 {
     String envelope = String(u"{\"abi\":2,\"op\":\"ji_lines\",\"state\":%1}").arg(stateJson);

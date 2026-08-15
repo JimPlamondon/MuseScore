@@ -537,3 +537,295 @@ TEST(JiMStaffTests, dyadHeadClusteringIsCentsTrueAcrossTunings)
     controller.cancel();
     delete score;
 }
+
+// Scale-dot labels (owner epiphany 2026-08-15), Phase 3: the per-staff
+// display mode — fork-owned StaffType presentation state, default
+// Auto, serialized as its own tag, never entering the Kernel state.
+TEST(JiMStaffTests, scaleDotLabelModeDefaultsPersistsAndStaysOutOfKernelState)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+    ASSERT_TRUE(score);
+    StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
+    ASSERT_TRUE(st && st->isJiMS());
+
+    // Absent tag reads as Auto.
+    EXPECT_EQ(st->jimsScaleDotLabelMode(), JimsScaleDotLabelMode::Auto);
+
+    // All four values round-trip through mscx write/read.
+    for (auto mode : { JimsScaleDotLabelMode::None, JimsScaleDotLabelMode::Left,
+                       JimsScaleDotLabelMode::Split, JimsScaleDotLabelMode::Auto }) {
+        st->setJimsScaleDotLabelMode(mode);
+        EXPECT_EQ(st->jimsScaleDotLabelMode(), mode);
+        const muse::String path = u"jims_label_mode_roundtrip.mscx";
+        ASSERT_TRUE(ScoreRW::saveScore(score, path));
+        std::ifstream in(path.toStdString());
+        const std::string xml((std::istreambuf_iterator<char>(in)),
+                              std::istreambuf_iterator<char>());
+        if (mode == JimsScaleDotLabelMode::Auto) {
+            // Default mode: tag may be omitted; absent reads Auto.
+        } else {
+            EXPECT_NE(xml.find("<jimsScaleDotLabels>"), std::string::npos);
+        }
+        // The mode NEVER enters the Kernel state JSON.
+        EXPECT_EQ(st->jimsStateJson().toStdString().find("ScaleDotLabel"), std::string::npos);
+        EXPECT_EQ(st->jimsStateJson().toStdString().find("label"), std::string::npos);
+    }
+
+    // Equality participates: two staff types differing only in mode differ.
+    StaffType a(*st), b(*st);
+    a.setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Left);
+    b.setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Split);
+    EXPECT_FALSE(a == b);
+    b.setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Left);
+    EXPECT_TRUE(a == b);
+    delete score;
+}
+
+// Phase 3: the mode round-trips through a full mscx save/reload, and
+// differing StaffType spans keep independent modes.
+TEST(JiMStaffTests, scaleDotLabelModeRoundTripsAndSpansAreIndependent)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/mode-change.mscx");
+    ASSERT_TRUE(score);
+    Staff* staff = score->staff(0);
+    StaffType* base = staff->staffType(Fraction(0, 1));
+    StaffType* changed = staff->staffType(Fraction(16, 4));
+    ASSERT_TRUE(base && changed && base != changed);
+    base->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Left);
+    changed->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Split);
+    EXPECT_EQ(base->jimsScaleDotLabelMode(), JimsScaleDotLabelMode::Left);
+    EXPECT_EQ(changed->jimsScaleDotLabelMode(), JimsScaleDotLabelMode::Split);
+
+    const muse::String path = u"jims_label_mode_spans.mscx";
+    ASSERT_TRUE(ScoreRW::saveScore(score, path));
+    std::ifstream in(path.toStdString());
+    const std::string xml((std::istreambuf_iterator<char>(in)),
+                          std::istreambuf_iterator<char>());
+    EXPECT_NE(xml.find(">left<"), std::string::npos);
+    EXPECT_NE(xml.find(">split<"), std::string::npos);
+    delete score;
+}
+
+// Phase 4: Auto resolves via the Kernel's label-legibility range with
+// STRICT comparisons — Left strictly inside (690.9, 709.1), Split at
+// or outside either exact boundary. Test-only epsilon; production has
+// none.
+TEST(JiMStaffTests, scaleDotLabelAutoResolvesExactlyAtLegibilityBoundaries)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+    ASSERT_TRUE(score);
+    StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
+    ASSERT_TRUE(st && st->isJiMS());
+    st->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Auto);
+
+    jims::TuningController controller(score, 0);
+    const double eps = 0.001;
+    const struct { double g; JimsScaleDotLabelMode want; } cases[] = {
+        { 690.9 - eps, JimsScaleDotLabelMode::Split },
+        { 690.9,       JimsScaleDotLabelMode::Split },
+        { 690.9 + eps, JimsScaleDotLabelMode::Left },
+        { 700.0,       JimsScaleDotLabelMode::Left },
+        { 709.1 - eps, JimsScaleDotLabelMode::Left },
+        { 709.1,       JimsScaleDotLabelMode::Split },
+        { 709.1 + eps, JimsScaleDotLabelMode::Split },
+    };
+    for (const auto& c : cases) {
+        ASSERT_TRUE(controller.beginPreview());
+        ASSERT_TRUE(controller.preview(c.g));
+        EXPECT_EQ(st->jimsResolvedScaleDotLabelMode(), c.want) << "at " << c.g;
+        controller.cancel();
+    }
+    // Explicit modes pass through unresolved.
+    st->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::None);
+    EXPECT_EQ(st->jimsResolvedScaleDotLabelMode(), JimsScaleDotLabelMode::None);
+    st->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Split);
+    EXPECT_EQ(st->jimsResolvedScaleDotLabelMode(), JimsScaleDotLabelMode::Split);
+    delete score;
+}
+
+// Phase 4: ONE shared header-geometry calculation feeds layout, draw,
+// and margin reservation. None reserves no label bands; Left reserves
+// a left band only; Split reserves both; every band is positive when
+// labels exist on that side.
+TEST(JiMStaffTests, scaleDotLabelHeaderGeometryIsSharedAndModeAware)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
+    ASSERT_TRUE(st && st->isJiMS());
+    const double sp = score->style().spatium();
+
+    st->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::None);
+    auto none = st->jimsHeaderGeometry(sp, sp);
+    EXPECT_EQ(none.leftLabelBand, 0.0);
+    EXPECT_EQ(none.rightLabelBand, 0.0);
+    EXPECT_GT(none.headerWidth, 0.0);
+
+    st->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Left);
+    auto left = st->jimsHeaderGeometry(sp, sp);
+    EXPECT_GT(left.leftLabelBand, 0.0);
+    EXPECT_EQ(left.rightLabelBand, 0.0);
+    EXPECT_GT(left.headerWidth, none.headerWidth);
+
+    st->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Split);
+    auto split = st->jimsHeaderGeometry(sp, sp);
+    EXPECT_GT(split.leftLabelBand, 0.0);
+    EXPECT_GT(split.rightLabelBand, 0.0);
+    delete score;
+}
+
+// Phase 4: the edge-collision opposite-side invariant, checked against
+// REAL Kernel stack data (never assumed): at the 5-TET boundary every
+// multi-member stack pairs a flat-side (nGen <= 0) member with a
+// sharp-side (nGen > 0) member, so Split cannot label-collide where
+// dots collide.
+TEST(JiMStaffTests, edgeCollisionStacksAlwaysStraddleTheReSplit)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+    ASSERT_TRUE(score);
+    jims::TuningController controller(score, 0);
+    for (double g : { 720.0, 1200.0 * 4.0 / 7.0 + 0.0001 }) {
+        ASSERT_TRUE(controller.beginPreview());
+        ASSERT_TRUE(controller.preview(g));
+        const StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
+        std::vector<jims::LabeledDotStack> stacks;
+        ASSERT_TRUE(jims::scaleDotLabels(st->jimsStateJson(), stacks));
+        ASSERT_FALSE(stacks.empty());
+        for (const jims::LabeledDotStack& stack : stacks) {
+            if (stack.members.size() < 2) {
+                continue;
+            }
+            bool hasFlatSide = false, hasSharpSide = false;
+            for (const jims::LabeledDotMember& member : stack.members) {
+                (member.nGen <= 0 ? hasFlatSide : hasSharpSide) = true;
+                EXPECT_FALSE(member.label.isEmpty());
+            }
+            EXPECT_TRUE(hasFlatSide && hasSharpSide)
+                << "multi-member stack must straddle the Re split at g=" << g;
+        }
+        controller.cancel();
+    }
+    delete score;
+}
+
+// Phase 5 (labels FINAL §13): the labels-enabled controller sweep — the
+// same shared controller, all four modes, per-tick semantic assertions
+// and the latency floor. Gated by JIMS_SWEEP=1 with artifacts in
+// JIMS_SWEEP_OUT (suffix -labels).
+TEST(JiMStaffTests, labelsEnabledControllerSweepHasNoStaleLabels)
+{
+    const char* gate = std::getenv("JIMS_SWEEP");
+    if (!gate || muse::String::fromUtf8(gate) != u"1") {
+        GTEST_SKIP() << "set JIMS_SWEEP=1 to run the labels sweep";
+    }
+    const char* outDir = std::getenv("JIMS_SWEEP_OUT");
+    ASSERT_TRUE(outDir);
+
+    const std::vector<muse::String> pieces
+        = { u"collision", u"ode-to-joy", u"acc-chromatic", u"mode-change", u"grym" };
+    const JimsScaleDotLabelMode modes[]
+        = { JimsScaleDotLabelMode::Auto, JimsScaleDotLabelMode::Left,
+            JimsScaleDotLabelMode::Split, JimsScaleDotLabelMode::None };
+    const char* modeNames[] = { "auto", "left", "split", "none" };
+
+    for (const muse::String& piece : pieces) {
+        Score* score = ScoreRW::readScore(u"jimstaff_data/" + piece + u".mscx");
+        ASSERT_TRUE(score);
+        score->doLayout();
+        StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
+        ASSERT_TRUE(st && st->isJiMS());
+        jims::TuningController controller(score, 0);
+        double rMin = 0.0, rMax = 0.0;
+        ASSERT_TRUE(jims::labelLegibilityRange(rMin, rMax));
+
+        std::ofstream sem(std::string(outDir) + "/" + piece.toStdString() + "-labels-semantics.jsonl");
+        std::ofstream lat(std::string(outDir) + "/" + piece.toStdString() + "-labels-latency.txt");
+
+        for (int m = 0; m < 4; ++m) {
+            st->setJimsScaleDotLabelMode(modes[m]);
+            std::vector<double> applied;
+            ASSERT_TRUE(controller.beginPreview());
+            // Warm-up round trip, then one captured round trip plus the
+            // exact legibility boundaries and their neighbors.
+            for (int i = 0; i <= 80; ++i) {
+                ASSERT_TRUE(controller.preview(680.0 + 0.5 * i));
+            }
+            std::vector<double> samples;
+            for (int i = 0; i <= 160; ++i) {
+                samples.push_back(i <= 80 ? 680.0 + 0.5 * i : 720.0 - 0.5 * (i - 80));
+            }
+            for (double b : { rMin - 0.001, rMin, rMin + 0.001, rMax - 0.001, rMax, rMax + 0.001 }) {
+                samples.push_back(b);
+            }
+            for (double g : samples) {
+                ASSERT_TRUE(controller.preview(g));
+                applied.push_back(controller.lastApplyMs());
+                // No stale state: the metrics read back the applied g.
+                double mg = 0.0, mp = 0.0;
+                ASSERT_TRUE(jims::staffMetrics(st->jimsStateJson(), mg, mp));
+                ASSERT_NEAR(mg, g, 1e-9);
+                // Resolved mode is correct for the applied tuning.
+                const JimsScaleDotLabelMode resolved = st->jimsResolvedScaleDotLabelMode();
+                if (modes[m] == JimsScaleDotLabelMode::Auto) {
+                    ASSERT_EQ(resolved, (g > rMin && g < rMax)
+                              ? JimsScaleDotLabelMode::Left : JimsScaleDotLabelMode::Split);
+                } else {
+                    ASSERT_EQ(resolved, modes[m]);
+                }
+                // Labels re-derive from the CURRENT state every tick.
+                std::vector<jims::LabeledDotStack> stacks;
+                ASSERT_TRUE(jims::scaleDotLabels(st->jimsStateJson(), stacks));
+                ASSERT_FALSE(stacks.empty());
+                for (const jims::LabeledDotStack& stack : stacks) {
+                    for (const jims::LabeledDotMember& member : stack.members) {
+                        ASSERT_FALSE(member.label.isEmpty());
+                    }
+                }
+                // Geometry agrees with the resolved mode (shared calc).
+                const auto geom = st->jimsHeaderGeometry(score->style().spatium(),
+                                                         score->style().defaultSpatium());
+                if (resolved == JimsScaleDotLabelMode::None) {
+                    ASSERT_EQ(geom.leftLabelBand + geom.rightLabelBand, 0.0);
+                } else if (resolved == JimsScaleDotLabelMode::Left) {
+                    ASSERT_GT(geom.leftLabelBand, 0.0);
+                    ASSERT_EQ(geom.rightLabelBand, 0.0);
+                } else {
+                    ASSERT_GT(geom.leftLabelBand + geom.rightLabelBand, 0.0);
+                }
+            }
+            controller.cancel();
+            std::sort(applied.begin(), applied.end());
+            const size_t n = applied.size();
+            lat << "piece=" << piece.toStdString() << " mode=" << modeNames[m]
+                << " ticks=" << n
+                << " median_ms=" << applied[n / 2]
+                << " p95_ms=" << applied[n * 95 / 100]
+                << " max_ms=" << applied[n - 1] << " dropped=0\n";
+            EXPECT_LE(applied[n * 95 / 100], 33.3) << piece.toStdString() << " " << modeNames[m];
+            // Deterministic semantic record at the boundaries per mode.
+            for (double g : { rMin, 700.0, rMax }) {
+                ASSERT_TRUE(controller.beginPreview());
+                ASSERT_TRUE(controller.preview(g));
+                std::vector<jims::LabeledDotStack> stacks;
+                ASSERT_TRUE(jims::scaleDotLabels(st->jimsStateJson(), stacks));
+                sem << "{\"mode\":\"" << modeNames[m] << "\",\"g\":"
+                    << muse::String::number(g, 6).toStdString() << ",\"stacks\":[";
+                bool firstStack = true;
+                for (const jims::LabeledDotStack& stack : stacks) {
+                    sem << (firstStack ? "" : ",") << "["
+                        << muse::String::number(stack.cents, 4).toStdString();
+                    for (const jims::LabeledDotMember& member : stack.members) {
+                        sem << ",[" << member.nGen << ",\"" << member.label.toStdString() << "\"]";
+                    }
+                    sem << "]";
+                    firstStack = false;
+                }
+                sem << "]}\n";
+                controller.cancel();
+            }
+        }
+        st->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Auto);
+        delete score;
+    }
+}

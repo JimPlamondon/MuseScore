@@ -146,6 +146,18 @@ enum class ParenthesizeTiedFret : unsigned char {
     NEVER,
 };
 
+// JiMStaff scale-dot label display mode (owner epiphany 2026-08-15):
+// presentation-only, fork-owned — never part of the Kernel state.
+// Auto resolves to Left strictly inside the Kernel's label-legibility
+// range and Split at or outside it; the RESOLVED value is never
+// serialized.
+enum class JimsScaleDotLabelMode : unsigned char {
+    Auto = 0,
+    None,
+    Left,
+    Split,
+};
+
 //---------------------------------------------------------
 //   StaffType
 //---------------------------------------------------------
@@ -239,6 +251,20 @@ public:
     void setJimsTonicExtent(const String& s) { m_jimsTonicExtent = s; }
     // EXPERIMENTAL (owner request 2026-08-14, not locked in): draw the
     // Just Intonation diatonic scaffold instead of the mid-period line.
+    JimsScaleDotLabelMode jimsScaleDotLabelMode() const { return m_jimsScaleDotLabelMode; }
+    JimsScaleDotLabelMode jimsResolvedScaleDotLabelMode() const;
+    // The ONE shared header-geometry calculation (labels FINAL §5.4.4):
+    // layout, drawing, and every system's margin reservation all read
+    // this — never independent formulas. Widths in points.
+    struct JimsHeaderGeometry {
+        double clefRx = 0.0;
+        double indicatorW = 0.0;
+        double leftLabelBand = 0.0;    // label column left of the dots
+        double rightLabelBand = 0.0;   // Split-mode band right of the dots
+        double headerWidth = 0.0;      // total reserve left of the first measure
+    };
+    JimsHeaderGeometry jimsHeaderGeometry(double spatium, double defaultSpatium) const;
+    void setJimsScaleDotLabelMode(JimsScaleDotLabelMode mode) { m_jimsScaleDotLabelMode = mode; }
     bool jimsJiLines() const { return m_jimsJiLines; }
     void setJimsJiLines(bool val) { m_jimsJiLines = val; }
     // Derived frame cache (Kernel frame_for_melody result; keyed by the
@@ -394,6 +420,7 @@ private:
     String m_jimsStateJson;
     String m_jimsTonicExtent;
     bool m_jimsJiLines = false;
+    JimsScaleDotLabelMode m_jimsScaleDotLabelMode = JimsScaleDotLabelMode::Auto;
     mutable muse::String m_jimsFrameKey;
     mutable std::vector<JimsSegment> m_jimsFrameSegments;
 

@@ -5067,14 +5067,16 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
 
         // Header geometry (owner ruling 2026-08-14), unchanged: dots and
         // per-stave clefs left of the staff, lines extending behind them.
-        const double dist100 = (1200.0 / StaffType::JIMS_CENTS_PER_LINE_DISTANCE) * dist / 12.0;
-        const double periodH = (1200.0 / StaffType::JIMS_CENTS_PER_LINE_DISTANCE) * dist;
-        const double clefRy = periodH / 2.0;
-        const double clefRx = clefRy * 4.0 / 3.0;
-        const double indicatorW = 1.3 * dist100 * 1.0;
+        // Header widths come from the ONE shared calculation (labels
+        // FINAL §5.4.4) — label bands included when the resolved mode
+        // shows them.
+        const StaffType::JimsHeaderGeometry headerGeom
+            = jimsSt->jimsHeaderGeometry(_spatium, item->score()->style().defaultSpatium());
+        const double clefRx = headerGeom.clefRx;
+        const double indicatorW = headerGeom.indicatorW;
         const double clefRight = x1 - 0.3 * _spatium;
         const double clefLeft = clefRight - clefRx;
-        const double leftEdge = clefLeft - 2.0 * indicatorW;
+        const double leftEdge = x1 - headerGeom.headerWidth;
         const double lineStartX = systemHead ? leftEdge : x1;
 
         std::vector<StaffLines::JimsGuideLine> guides;

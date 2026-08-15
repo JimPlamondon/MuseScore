@@ -2756,11 +2756,16 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             };
             const double periodH = (1200.0 / StaffType::JIMS_CENTS_PER_LINE_DISTANCE) * dist;
             const double clefRy = periodH / 2.0;
-            const double clefRx = clefRy * 4.0 / 3.0;
-            const double indicatorW = 1.3 * dist;
+            const StaffType::JimsHeaderGeometry headerGeom
+                = jimsSt->jimsHeaderGeometry(_spatium, item->score()->style().defaultSpatium());
+            const double clefRx = headerGeom.clefRx;
+            const double indicatorW = headerGeom.indicatorW;
             const double clefRight = item->pos().x() - 0.3 * _spatium;
             const double clefLeft = clefRight - clefRx;
-            const double dotCenterX = clefLeft - 2.0 * indicatorW + indicatorW;
+            // The Split-mode right label band sits between the dot
+            // column and the clef; the dot column shifts left by it.
+            const double dotCenterX = clefLeft - headerGeom.rightLabelBand
+                                      - 2.0 * indicatorW + indicatorW;
             const IEngravingFontPtr font = item->score()->engravingFont();
 
             // Tuning label (owner ruling 2026-08-14, KISS form): the
@@ -2851,6 +2856,75 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                 painter->setPen(Pen(item->curColor(opt), 0.15 * dist));
                                 painter->setBrush(BrushStyle::NoBrush);
                                 painter->drawPath(ring);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Scale-dot labels (owner epiphany 2026-08-15): each stack
+            // member's canonical-solfa name, Kernel-supplied, centroid-
+            // aligned to its dot through the same seam. Left mode: all
+            // names left of the dot column; Split: flat side (nGen<=0)
+            // left, sharp side right with a semi-transparent white
+            // backing that dims but never erases the lines beneath.
+            {
+                const JimsScaleDotLabelMode labelMode = jimsSt->jimsResolvedScaleDotLabelMode();
+                std::vector<jims::LabeledDotStack> labelStacks;
+                if (labelMode != JimsScaleDotLabelMode::None
+                    && jims::scaleDotLabels(jimsSt->jimsStateJson(), labelStacks)) {
+                    Font labelFont(u"Edwin", Font::Type::Text);
+                    labelFont.setPointSizeF(9.0 * item->spatium() / item->defaultSpatium());
+                    FontMetrics fm(labelFont);
+                    const double gap = 0.25 * _spatium;
+                    const double inset = 0.15 * _spatium;
+                    const double dotColLeft = dotCenterX - indicatorW;
+                    const double dotColRight = dotCenterX + indicatorW;
+                    for (const StaffType::JimsSegment& segment : frame) {
+                        double basePeriod = std::floor(segment.lowerCents / 1200.0) * 1200.0;
+                        for (double period = basePeriod; period <= segment.upperCents + epsilon;
+                             period += 1200.0) {
+                            for (const jims::LabeledDotStack& stack : labelStacks) {
+                                double cents = period + stack.cents;
+                                if (cents < segment.lowerCents - epsilon
+                                    || cents > segment.upperCents + epsilon) {
+                                    continue;
+                                }
+                                muse::String leftText;
+                                muse::String rightText;
+                                for (const jims::LabeledDotMember& member : stack.members) {
+                                    const bool leftSide = (labelMode == JimsScaleDotLabelMode::Left)
+                                                          || member.nGen <= 0;
+                                    muse::String& side = leftSide ? leftText : rightText;
+                                    if (!side.isEmpty()) {
+                                        side += u" ";
+                                    }
+                                    side += member.label;
+                                }
+                                painter->setFont(labelFont);
+                                const double centroidY = yOf(cents);
+                                if (!leftText.isEmpty()) {
+                                    RectF tb = fm.boundingRect(leftText);
+                                    const double baseline
+                                        = centroidY - (tb.top() + tb.bottom()) / 2.0;
+                                    painter->setPen(Pen(item->curColor(opt)));
+                                    painter->drawText(PointF(dotColLeft - gap - tb.width(), baseline),
+                                                      leftText);
+                                }
+                                if (!rightText.isEmpty()) {
+                                    RectF tb = fm.boundingRect(rightText);
+                                    const double baseline
+                                        = centroidY - (tb.top() + tb.bottom()) / 2.0;
+                                    const double x = dotColRight + gap;
+                                    RectF backing(x + tb.left() - inset, baseline + tb.top() - inset,
+                                                  tb.width() + 2.0 * inset, tb.height() + 2.0 * inset);
+                                    painter->setNoPen();
+                                    painter->setBrush(Brush(Color(255, 255, 255, 191)));
+                                    painter->drawRect(backing);
+                                    painter->setBrush(BrushStyle::NoBrush);
+                                    painter->setPen(Pen(item->curColor(opt)));
+                                    painter->drawText(PointF(x, baseline), rightText);
+                                }
                             }
                         }
                     }

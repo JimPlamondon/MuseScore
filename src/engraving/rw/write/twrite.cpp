@@ -2963,6 +2963,12 @@ void TWrite::write(const StaffType* item, XmlWriter& xml, WriteContext& ctx)
         if (item->jimsJiLines()) {
             xml.tag("jimsJiLines", item->jimsJiLines());
         }
+        if (item->jimsScaleDotLabelMode() != JimsScaleDotLabelMode::Auto) {
+            const char* mode = item->jimsScaleDotLabelMode() == JimsScaleDotLabelMode::None ? "none"
+                               : item->jimsScaleDotLabelMode() == JimsScaleDotLabelMode::Left ? "left"
+                               : "split";
+            xml.tag("jimsScaleDotLabels", String::fromUtf8(mode));
+        }
     }
     if (item->group() == StaffGroup::STANDARD || item->group() == StaffGroup::PERCUSSION) {
         if (!item->genKeysig()) {
