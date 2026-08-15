@@ -1319,6 +1319,15 @@ void ChordLayout::updateLedgerLines(Chord* item, LayoutContext& ctx)
         staff_idx_t idx = item->staffIdx() + item->staffMove();
         track         = staff2track(idx);
         const Staff* st     = ctx.dom().staff(idx);
+        // JiMStaff Milestone 4 (owner decision 3a, 2026-08-15): a JiMS
+        // staff never has ledger lines — out-of-range notes get stacked
+        // partial staves instead — and the suppression is by NOT
+        // GENERATING the elements, never by hiding them at paint time.
+        if (const StaffType* jimsSt = st->staffType(tick); jimsSt && jimsSt->isJiMS()) {
+            muse::DeleteAll(item->ledgerLines());
+            item->ledgerLines().clear();
+            return;
+        }
         lineBelow     = (st->lines(tick) - 1) * 2;
         lineDistance  = st->lineDistance(tick);
         staffVisible  = !st->isLinesInvisible(tick);

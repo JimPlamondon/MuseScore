@@ -301,6 +301,11 @@ public:
     // upper Do boundary) sits at 0 sp and 0 cents at 12 line distances.
     // No other code may embed a cents-to-y formula.
     double jimsYFromCents(double centsAboveDo) const;
+    // The Kernel's period width for this staff's state (staff_metrics
+    // op) — the only source of "1200" in production geometry (M4,
+    // binding requirement 12). Returns 0.0 if the Kernel rejects the
+    // state; callers treat that as "no frame", never as a default.
+    double jimsPeriodCents() const;
     void jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const;
     String tabBassStringPrefix(int strg, bool* hasFret) const;   // return a string with the prefix, if any, identifying a bass string
     int     numOfTabLedgerLines(int string) const;

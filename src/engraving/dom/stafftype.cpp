@@ -823,7 +823,7 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
 {
     JimsHeaderGeometry g;
     const double dist = m_lineDistance.val() * spatium;
-    const double periodH = (1200.0 / JIMS_CENTS_PER_LINE_DISTANCE) * dist;
+    const double periodH = (jimsPeriodCents() / JIMS_CENTS_PER_LINE_DISTANCE) * dist;
     g.clefRx = (periodH / 2.0) * 4.0 / 3.0;
     g.indicatorW = 1.3 * dist;
     g.headerWidth = 0.3 * spatium + g.clefRx + 2.0 * g.indicatorW;
@@ -913,13 +913,23 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
     const muse::String token = jimsTonicExtent();
     const muse::String key = jimsStateJson() + u"|" + token + u"|" + melody;
     if (jimsFrameKey() != key) {
+        // Milestone 4: EVERY melody — including the empty one — asks the
+        // Kernel (frame_for_melody yields one whole period for no notes,
+        // owner decision 1a). A changed input never reuses a stale
+        // successful frame: on failure the cache holds an empty frame
+        // and a diagnostic is emitted; nothing is synthesized fork-side.
         std::vector<JimsSegment> cached;
-        if (!first && !token.isEmpty()) {
+        if (token.isEmpty()) {
+            LOGE() << "JiMStaff: no declared tonic-extent token; frame unavailable for staff " << staffIdx;
+        } else {
             std::vector<jims::StaveSegment> segments;
             if (jims::frameForMelody(jimsStateJson(), melody, token, segments)) {
                 for (const jims::StaveSegment& segment : segments) {
                     cached.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
                 }
+            } else {
+                LOGE() << "JiMStaff: Kernel frame derivation failed for staff " << staffIdx
+                       << " (state/melody rejected); frame cleared";
             }
         }
         setJimsFrame(key, cached);
@@ -936,6 +946,16 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
 //    guide line, dot, and indicator ordinate routes through here; no
 //    second cents-to-y formula may exist anywhere.
 //---------------------------------------------------------
+
+double StaffType::jimsPeriodCents() const
+{
+    double generatorCents = 0.0;
+    double periodCents = 0.0;
+    if (!isJiMS() || !jims::staffMetrics(jimsStateJson(), generatorCents, periodCents)) {
+        return 0.0;
+    }
+    return periodCents;
+}
 
 double StaffType::jimsYFromCents(double centsAboveDo) const
 {
@@ -1372,7 +1392,7 @@ void StaffType::initStaffTypes(const Color& defaultColor)
                               "\"generator_cents\":700.0,\"period_cents\":1200.0,"
                               "\"embedding\":{\"large_steps\":5,\"small_steps\":2},"
                               "\"extent\":{\"lower_do_register\":4,\"period_count\":1},"
-                              "\"reference\":\"none\"}"));
+                              "\"reference\":\"none\",\"tonic_extent\":\"tonic-bounded\"}"));
     m_presets.push_back(jims);
 }
 /* *INDENT-ON* */

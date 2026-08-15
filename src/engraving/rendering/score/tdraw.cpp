@@ -2742,19 +2742,18 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             const double _spatium = item->spatium();
             const double dist = jimsSt->lineDistance().val() * _spatium;
             const double topY = item->pos().y();
-            std::vector<StaffType::JimsSegment> frame = jimsSt->jimsFrameSegments();
-            if (frame.empty()) {
-                const double frameCents = (double)(jimsSt->lines() - 1)
-                                          * StaffType::JIMS_CENTS_PER_LINE_DISTANCE;
-                const int wholePeriods = std::max(1, (int)std::lround(frameCents / 1200.0));
-                for (int p = 0; p < wholePeriods; ++p) {
-                    frame.push_back({ 1200.0 * p, 1200.0 * (p + 1), true });
-                }
+            // The frame is the Kernel's, always (Milestone 4): no
+            // fork-side nominal frame; with no frame there is no header.
+            const std::vector<StaffType::JimsSegment>& frame = jimsSt->jimsFrameSegments();
+            const double periodCents = jimsSt->jimsPeriodCents();
+            if (frame.empty() || periodCents <= 0.0) {
+                painter->restore();
+                return;
             }
             auto yOf = [&](double cents) {
                 return topY + jimsSt->jimsYFromCents(cents) * _spatium;
             };
-            const double periodH = (1200.0 / StaffType::JIMS_CENTS_PER_LINE_DISTANCE) * dist;
+            const double periodH = (periodCents / StaffType::JIMS_CENTS_PER_LINE_DISTANCE) * dist;
             const double clefRy = periodH / 2.0;
             const StaffType::JimsHeaderGeometry headerGeom
                 = jimsSt->jimsHeaderGeometry(_spatium, item->score()->style().defaultSpatium());
@@ -2796,9 +2795,9 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             const double epsilon = 1e-6;
             if (font && jims::scaleDots(jimsSt->jimsStateJson(), stacks)) {
                 for (const StaffType::JimsSegment& segment : frame) {
-                    double basePeriod = std::floor(segment.lowerCents / 1200.0) * 1200.0;
+                    double basePeriod = std::floor(segment.lowerCents / periodCents) * periodCents;
                     for (double period = basePeriod; period <= segment.upperCents + epsilon;
-                         period += 1200.0) {
+                         period += periodCents) {
                         for (const auto& stack : stacks) {
                             double cents = period + stack.cents;
                             if (cents < segment.lowerCents - epsilon
@@ -2881,9 +2880,9 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     const double dotColLeft = dotCenterX - indicatorW;
                     const double dotColRight = dotCenterX + indicatorW;
                     for (const StaffType::JimsSegment& segment : frame) {
-                        double basePeriod = std::floor(segment.lowerCents / 1200.0) * 1200.0;
+                        double basePeriod = std::floor(segment.lowerCents / periodCents) * periodCents;
                         for (double period = basePeriod; period <= segment.upperCents + epsilon;
-                             period += 1200.0) {
+                             period += periodCents) {
                             for (const jims::LabeledDotStack& stack : labelStacks) {
                                 double cents = period + stack.cents;
                                 if (cents < segment.lowerCents - epsilon
@@ -2945,8 +2944,8 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             // CLIPPED to the segment band and closed by a horizontal
             // line at each cut edge (the patent mechanism, J4.001).
             for (const StaffType::JimsSegment& segment : frame) {
-                double periodFloor = std::floor(segment.lowerCents / 1200.0 + epsilon) * 1200.0;
-                double periodTopY = yOf(periodFloor + 1200.0);
+                double periodFloor = std::floor(segment.lowerCents / periodCents + epsilon) * periodCents;
+                double periodTopY = yOf(periodFloor + periodCents);
                 double segTopY = yOf(segment.upperCents);
                 double segBottomY = yOf(segment.lowerCents);
                 painter->save();
@@ -2969,7 +2968,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     // boundaries: the horizontal line that closes the
                     // sliced glyph.
                     auto isBoundary = [&](double cents) {
-                        double nearest = std::round(cents / 1200.0) * 1200.0;
+                        double nearest = std::round(cents / periodCents) * periodCents;
                         return std::abs(cents - nearest) < epsilon;
                     };
                     painter->setPen(Pen(item->curColor(opt), item->lw() * 1.5,

@@ -23,7 +23,10 @@
 #include "engraving/dom/note.h"
 #include "engraving/dom/stem.h"
 #include "engraving/dom/segment.h"
+#include "engraving/dom/shadownote.h"
+#include "engraving/dom/ledgerline.h"
 #include "engraving/dom/staff.h"
+#include "engraving/dom/system.h"
 #include "engraving/dom/stafftype.h"
 #include "engraving/jims/jimsbridge.h"
 #include "engraving/jims/jimstuningcontroller.h"
@@ -538,6 +541,295 @@ TEST(JiMStaffTests, dyadHeadClusteringIsCentsTrueAcrossTunings)
     delete score;
 }
 
+// ---------------------------------------------------------------------
+// Milestone 4 — stacked partial staves instead of ledger lines; header
+// on every system (owner decisions 2026-08-15, J4.001 closure).
+// ---------------------------------------------------------------------
+namespace {
+using Segs = std::vector<StaffType::JimsSegment>;
+
+Segs frameOf(Score* score)
+{
+    return score->staff(0)->staffType(Fraction(0, 1))->jimsFrameSegments();
+}
+
+bool sameFrame(const Segs& a, const Segs& b)
+{
+    if (a.size() != b.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < a.size(); ++i) {
+        if (std::abs(a[i].lowerCents - b[i].lowerCents) > EPS
+            || std::abs(a[i].upperCents - b[i].upperCents) > EPS
+            || a[i].whole != b[i].whole) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// The Kernel's own answer for the melody currently on staff 0 — the
+// oracle every fork frame must equal (ownership invariant).
+Segs kernelFrameFor(Score* score)
+{
+    const StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
+    muse::String melody = u"{\"notes\":[";
+    bool first = true;
+    for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
+         seg = seg->next1(SegmentType::ChordRest)) {
+        for (track_idx_t track = 0; track < VOICES; ++track) {
+            EngravingItem* el = seg->element(track);
+            if (el && el->isChord()) {
+                for (Note* note : toChord(el)->notes()) {
+                    if (note->hasJimsPitch()) {
+                        melody += (first ? u"" : u",");
+                        melody += muse::String(u"{\"nPer\":%1,\"nGen\":%2}")
+                                  .arg(note->jimsNPer()).arg(note->jimsNGen());
+                        first = false;
+                    }
+                }
+            }
+        }
+    }
+    melody += u"]}";
+    std::vector<jims::StaveSegment> segments;
+    Segs out;
+    if (jims::frameForMelody(st->jimsStateJson(), melody, st->jimsTonicExtent(), segments)) {
+        for (const jims::StaveSegment& s : segments) {
+            out.push_back({ s.lowerCents, s.upperCents, s.whole });
+        }
+    }
+    return out;
+}
+
+Note* highestJimsNote(Score* score)
+{
+    const StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
+    Note* best = nullptr;
+    double bestCents = -1e9;
+    for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
+         seg = seg->next1(SegmentType::ChordRest)) {
+        EngravingItem* el = seg->element(0);
+        if (!el || !el->isChord()) {
+            continue;
+        }
+        for (Note* n : toChord(el)->notes()) {
+            double c = 0.0;
+            if (n->hasJimsPitch()
+                && jims::noteCentsAboveDo(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(), c)
+                && c > bestCents) {
+                bestCents = c;
+                best = n;
+            }
+        }
+    }
+    return best;
+}
+
+// Move a note by whole periods through the ordinary undoable property
+// path (never touching the frame cache directly).
+void shiftNotePeriods(Score* score, Note* note, int periods)
+{
+    // A real drag/entry moves BOTH the lattice identity and the stock
+    // compatibility pitch (an octave per period), so ledger generation
+    // sees the same line movement the GUI would produce.
+    score->startCmd(TranslatableString::untranslatable("JiMS test edit"));
+    note->undoChangeProperty(Pid::JIMS_NPER, note->jimsNPer() + periods);
+    note->undoChangeProperty(Pid::PITCH, std::clamp(note->pitch() + 12 * periods, 0, 127));
+    score->endCmd();
+    score->doLayout();
+}
+
+size_t ledgerLineCountOnStaff0(Score* score)
+{
+    size_t n = 0;
+    for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
+         seg = seg->next1(SegmentType::ChordRest)) {
+        for (track_idx_t track = 0; track < VOICES; ++track) {
+            EngravingItem* el = seg->element(track);
+            if (el && el->isChord()) {
+                n += toChord(el)->ledgerLines().size();
+            }
+        }
+    }
+    return n;
+}
+}
+
+// (a) An empty JiMS staff still has a Kernel-owned frame: exactly one
+// whole period, sourced from frame_for_melody (owner decision 1a), never
+// synthesized fork-side.
+TEST(JiMStaffTests, emptyJimsStaffFrameIsKernelOwnedOneWholePeriod)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    ASSERT_FALSE(frameOf(score).empty());
+
+    // Delete every chord on staff 0 through the ordinary edit path.
+    score->startCmd(TranslatableString::untranslatable("JiMS test edit"));
+    std::vector<Chord*> chords;
+    for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
+         seg = seg->next1(SegmentType::ChordRest)) {
+        for (track_idx_t track = 0; track < VOICES; ++track) {
+            EngravingItem* el = seg->element(track);
+            if (el && el->isChord()) {
+                chords.push_back(toChord(el));
+            }
+        }
+    }
+    for (Chord* c : chords) {
+        score->deleteItem(c);
+    }
+    score->endCmd();
+    score->doLayout();
+
+    Segs f = frameOf(score);
+    ASSERT_EQ(f.size(), 1u) << "empty staff = one Kernel segment, not an empty cache";
+    EXPECT_TRUE(f[0].whole);
+    EXPECT_NEAR(f[0].lowerCents, 0.0, EPS);
+    EXPECT_NEAR(f[0].upperCents, 1200.0, EPS);
+    EXPECT_TRUE(sameFrame(f, kernelFrameFor(score))) << "fork frame != Kernel frame";
+    delete score;
+}
+
+// (b) Growth above/below on an edit re-derives the stack in the same
+// transaction; undo restores the exact prior list; redo the new one;
+// and at every step the fork frame equals the Kernel's answer.
+TEST(JiMStaffTests, liveFrameGrowsShrinksAndRoundTripsThroughUndo)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    const Segs base = frameOf(score);
+    ASSERT_FALSE(base.empty());
+    ASSERT_TRUE(sameFrame(base, kernelFrameFor(score)));
+
+    Note* top = highestJimsNote(score);
+    ASSERT_TRUE(top);
+    const double baseTop = base.back().upperCents;
+    const double baseBottom = base.front().lowerCents;
+
+    // Grow above by two periods: the stack must extend upward and gain
+    // at least one segment; the top segment is partial unless promoted.
+    shiftNotePeriods(score, top, +2);
+    Segs grown = frameOf(score);
+    EXPECT_GT(grown.back().upperCents, baseTop + 1200.0 - EPS);
+    EXPECT_GT(grown.size(), base.size());
+    EXPECT_TRUE(sameFrame(grown, kernelFrameFor(score))) << "fork frame != Kernel after growth";
+    // No note may sit outside the returned frame.
+    {
+        const StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
+        double c = 0.0;
+        ASSERT_TRUE(jims::noteCentsAboveDo(st->jimsStateJson(), top->jimsNPer(), top->jimsNGen(), c));
+        EXPECT_LE(c, grown.back().upperCents + EPS);
+        EXPECT_GE(c, grown.front().lowerCents - EPS);
+    }
+
+    // Undo: exact prior list. Redo: exact grown list.
+    score->undoRedo(true, nullptr);
+    score->doLayout();
+    EXPECT_TRUE(sameFrame(frameOf(score), base)) << "undo must restore the exact prior stack";
+    score->undoRedo(false, nullptr);
+    score->doLayout();
+    EXPECT_TRUE(sameFrame(frameOf(score), grown)) << "redo must restore the grown stack";
+    score->undoRedo(true, nullptr);
+    score->doLayout();
+
+    // Grow below by two periods with the same note.
+    shiftNotePeriods(score, top, -2);
+    Segs low = frameOf(score);
+    EXPECT_LT(low.front().lowerCents, baseBottom - 1200.0 + EPS);
+    EXPECT_TRUE(sameFrame(low, kernelFrameFor(score))) << "fork frame != Kernel after growth below";
+    score->undoRedo(true, nullptr);
+    score->doLayout();
+    EXPECT_TRUE(sameFrame(frameOf(score), base));
+
+    // Shrink: delete the outermost chord; the stack must not keep the
+    // old extent, and must equal the Kernel's answer.
+    shiftNotePeriods(score, top, +2);
+    score->startCmd(TranslatableString::untranslatable("JiMS test edit"));
+    score->deleteItem(top->chord());
+    score->endCmd();
+    score->doLayout();
+    Segs shrunk = frameOf(score);
+    EXPECT_LT(shrunk.back().upperCents, grown.back().upperCents - EPS);
+    EXPECT_TRUE(sameFrame(shrunk, kernelFrameFor(score)));
+    delete score;
+}
+
+// (c) One score-wide stack per staff, identical on every system, and
+// the header geometry is one shared calculation for all systems.
+TEST(JiMStaffTests, frameAndHeaderGeometryAreIdenticalAcrossSystems)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/grym.mscx");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    ASSERT_GE(score->systems().size(), 2u) << "grym must span multiple systems for this test";
+    const StaffType* first = nullptr;
+    StaffType::JimsHeaderGeometry g0 {};
+    for (System* sys : score->systems()) {
+        Measure* m = sys->firstMeasure();
+        if (!m) {
+            continue;
+        }
+        const StaffType* st = score->staff(0)->staffType(m->tick());
+        ASSERT_TRUE(st && st->isJiMS());
+        StaffType::JimsHeaderGeometry g
+            = st->jimsHeaderGeometry(score->style().spatium(), score->style().defaultSpatium());
+        if (!first) {
+            first = st;
+            g0 = g;
+            continue;
+        }
+        EXPECT_TRUE(sameFrame(st->jimsFrameSegments(), first->jimsFrameSegments()));
+        EXPECT_NEAR(g.headerWidth, g0.headerWidth, EPS);
+        EXPECT_NEAR(g.clefRx, g0.clefRx, EPS);
+        EXPECT_NEAR(g.leftLabelBand, g0.leftLabelBand, EPS);
+        EXPECT_NEAR(g.rightLabelBand, g0.rightLabelBand, EPS);
+    }
+    ASSERT_TRUE(first);
+    delete score;
+}
+
+// (d) No ledger line is ever GENERATED for a JiMS chord — even when a
+// note sits far outside the configured line count (owner decision 3a:
+// suppression by non-generation, not by hiding at paint time).
+TEST(JiMStaffTests, jimsChordsGenerateNoLedgerLinesEvenFarOutside)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    Note* top = highestJimsNote(score);
+    ASSERT_TRUE(top);
+    shiftNotePeriods(score, top, +3);   // three periods up: far above the staff
+    EXPECT_EQ(ledgerLineCountOnStaff0(score), 0u)
+        << "a JiMS chord must never carry LedgerLine elements";
+    shiftNotePeriods(score, top, -6);   // and far below
+    EXPECT_EQ(ledgerLineCountOnStaff0(score), 0u);
+    delete score;
+}
+
+// (e) The note-input preview (ShadowNote) exposes no ledger lines on a
+// JiMS staff, at any line index — the preview path is a distinct
+// suppression target (owner decision 3a).
+TEST(JiMStaffTests, shadowNoteShowsNoLedgerLinesOnJimsStaff)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    ShadowNote* sn = score->shadowNote();
+    ASSERT_TRUE(sn);
+    sn->setTrack(0);
+    sn->setTick(Fraction(0, 1));
+    ASSERT_TRUE(sn->staffType() && sn->staffType()->isJiMS());
+    for (int line : { -30, -6, 0, 12, 20, 40 }) {
+        sn->setLineIndex(line);
+        EXPECT_FALSE(sn->ledgerLinesVisible()) << "JiMS preview ledger at line " << line;
+    }
+    delete score;
+}
+
 // Scale-dot labels (owner epiphany 2026-08-15), Phase 3: the per-staff
 // display mode — fork-owned StaffType presentation state, default
 // Auto, serialized as its own tag, never entering the Kernel state.
@@ -826,6 +1118,182 @@ TEST(JiMStaffTests, labelsEnabledControllerSweepHasNoStaleLabels)
             }
         }
         st->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Auto);
+        delete score;
+    }
+}
+
+// Milestone 4 Phase 5: a wide melody (several stacked segments) swept
+// through the tuning controller with labels enabled. Every tick: the
+// Kernel frame derivation succeeds, every note is contained by the
+// returned frame, the fork frame equals the Kernel's answer for the
+// current state (a changed state never reuses a stale frame), no
+// ledger element exists, labels stay populated, every system reports
+// the same frame, and p95 apply latency stays within the floor.
+TEST(JiMStaffTests, wideMelodyControllerSweepKeepsFrameValidAndFast)
+{
+    const char* gate = std::getenv("JIMS_SWEEP");
+    if (!gate || muse::String::fromUtf8(gate) != u"1") {
+        GTEST_SKIP() << "set JIMS_SWEEP=1 to run the M4 wide-melody sweep";
+    }
+    const char* outDir = std::getenv("JIMS_SWEEP_OUT");
+    ASSERT_TRUE(outDir);
+
+    for (const muse::String& piece : { muse::String(u"collision"), muse::String(u"grym") }) {
+        Score* score = ScoreRW::readScore(u"jimstaff_data/" + piece + u".mscx");
+        ASSERT_TRUE(score);
+        score->doLayout();
+        StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
+        ASSERT_TRUE(st && st->isJiMS());
+        st->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Auto);
+
+        // Widen: push the highest note up two periods so the frame needs
+        // a whole middle stave plus a partial edge (patent cut rule).
+        Note* top = highestJimsNote(score);
+        ASSERT_TRUE(top);
+        shiftNotePeriods(score, top, +2);
+        ASSERT_GE(frameOf(score).size(), 3u) << piece.toStdString() << ": expected a stacked frame";
+
+        std::ofstream sem(std::string(outDir) + "/" + piece.toStdString() + "-m4-frame-semantics.jsonl");
+        std::ofstream lat(std::string(outDir) + "/" + piece.toStdString() + "-m4-frame-latency.txt");
+
+        jims::TuningController controller(score, 0);
+        std::vector<double> applied;
+        ASSERT_TRUE(controller.beginPreview());
+        for (int i = 0; i <= 80; ++i) {                    // warm-up
+            ASSERT_TRUE(controller.preview(680.0 + 0.5 * i));
+        }
+        std::vector<double> samples;
+        for (int i = 0; i <= 160; ++i) {
+            samples.push_back(i <= 80 ? 680.0 + 0.5 * i : 720.0 - 0.5 * (i - 80));
+        }
+        for (double g : samples) {
+            ASSERT_TRUE(controller.preview(g));
+            applied.push_back(controller.lastApplyMs());
+            score->doLayout();
+            const Segs frame = frameOf(score);
+            ASSERT_FALSE(frame.empty()) << piece.toStdString() << " g=" << g << ": frame derivation failed";
+            ASSERT_TRUE(sameFrame(frame, kernelFrameFor(score))) << piece.toStdString() << " g=" << g
+                                                                  << ": fork frame != Kernel (stale?)";
+            // Every note inside the returned frame.
+            for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
+                 seg = seg->next1(SegmentType::ChordRest)) {
+                EngravingItem* el = seg->element(0);
+                if (!el || !el->isChord()) {
+                    continue;
+                }
+                for (Note* n : toChord(el)->notes()) {
+                    double c = 0.0;
+                    ASSERT_TRUE(jims::noteCentsAboveDo(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(), c));
+                    ASSERT_GE(c, frame.front().lowerCents - EPS) << piece.toStdString() << " g=" << g;
+                    ASSERT_LE(c, frame.back().upperCents + EPS) << piece.toStdString() << " g=" << g;
+                }
+            }
+            ASSERT_EQ(ledgerLineCountOnStaff0(score), 0u) << piece.toStdString() << " g=" << g;
+            std::vector<jims::LabeledDotStack> stacks;
+            ASSERT_TRUE(jims::scaleDotLabels(st->jimsStateJson(), stacks));
+            ASSERT_FALSE(stacks.empty());
+            for (System* sys : score->systems()) {
+                Measure* m = sys->firstMeasure();
+                if (m) {
+                    ASSERT_TRUE(sameFrame(score->staff(0)->staffType(m->tick())->jimsFrameSegments(), frame));
+                }
+            }
+            sem << "{\"g\":" << g << ",\"segments\":[";
+            for (size_t i = 0; i < frame.size(); ++i) {
+                sem << (i ? "," : "") << "[" << frame[i].lowerCents << "," << frame[i].upperCents
+                    << "," << (frame[i].whole ? "true" : "false") << "]";
+            }
+            sem << "],\"ledgers\":0}\n";
+        }
+        controller.cancel();
+        std::sort(applied.begin(), applied.end());
+        const double p95 = applied[size_t(applied.size() * 0.95)];
+        const double median = applied[applied.size() / 2];
+        lat << "piece=" << piece.toStdString() << " ticks=" << applied.size()
+            << " median_ms=" << median << " p95_ms=" << p95 << " max_ms=" << applied.back() << "\n";
+        EXPECT_LE(p95, 33.3) << piece.toStdString() << ": p95 apply latency floor breached with live frame derivation";
+        delete score;
+    }
+}
+
+// Milestone 4 Phase 5 evidence writer (env-gated): produces the render
+// scenario scores through ordinary edits so the CLI can render each in
+// clean directories — empty staff, growth above, growth below, boundary
+// crossing (whole middle + partial edge), and shrink after growth.
+TEST(JiMStaffTests, m4WriteRenderScenarios)
+{
+    const char* gate = std::getenv("JIMS_M4_SCENARIOS");
+    if (!gate || muse::String::fromUtf8(gate) != u"1") {
+        GTEST_SKIP() << "set JIMS_M4_SCENARIOS=1 (and JIMS_SWEEP_OUT) to write the M4 render scenarios";
+    }
+    const char* outDir = std::getenv("JIMS_SWEEP_OUT");
+    ASSERT_TRUE(outDir);
+    const muse::String out = muse::String::fromUtf8(outDir);
+
+    auto fresh = []() {
+        Score* s = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+        s->doLayout();
+        return s;
+    };
+    // 1. empty staff
+    {
+        Score* score = fresh();
+        score->startCmd(TranslatableString::untranslatable("JiMS scenario"));
+        std::vector<Chord*> chords;
+        for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
+             seg = seg->next1(SegmentType::ChordRest)) {
+            for (track_idx_t track = 0; track < VOICES; ++track) {
+                EngravingItem* el = seg->element(track);
+                if (el && el->isChord()) {
+                    chords.push_back(toChord(el));
+                }
+            }
+        }
+        for (Chord* c : chords) {
+            score->deleteItem(c);
+        }
+        score->endCmd();
+        score->doLayout();
+        ASSERT_EQ(frameOf(score).size(), 1u);
+        ASSERT_TRUE(ScoreRW::saveScore(score, out + u"/m4-empty.mscx"));
+        delete score;
+    }
+    // 2. growth above (+2 periods on the highest note)
+    {
+        Score* score = fresh();
+        shiftNotePeriods(score, highestJimsNote(score), +2);
+        ASSERT_GE(frameOf(score).size(), 3u);
+        ASSERT_TRUE(ScoreRW::saveScore(score, out + u"/m4-grow-above.mscx"));
+        delete score;
+    }
+    // 3. growth below (-2 periods on the highest note)
+    {
+        Score* score = fresh();
+        shiftNotePeriods(score, highestJimsNote(score), -2);
+        ASSERT_GE(frameOf(score).size(), 2u);
+        ASSERT_TRUE(ScoreRW::saveScore(score, out + u"/m4-grow-below.mscx"));
+        delete score;
+    }
+    // 4. boundary crossing: +1 period (top note lands one octave up:
+    // whole middle stave + partial edge per the cut rule)
+    {
+        Score* score = fresh();
+        shiftNotePeriods(score, highestJimsNote(score), +1);
+        const Segs f = frameOf(score);
+        ASSERT_GE(f.size(), 2u);
+        ASSERT_TRUE(ScoreRW::saveScore(score, out + u"/m4-cross-boundary.mscx"));
+        delete score;
+    }
+    // 5. shrink: grow +2 then delete that chord
+    {
+        Score* score = fresh();
+        Note* top = highestJimsNote(score);
+        shiftNotePeriods(score, top, +2);
+        score->startCmd(TranslatableString::untranslatable("JiMS scenario"));
+        score->deleteItem(top->chord());
+        score->endCmd();
+        score->doLayout();
+        ASSERT_TRUE(ScoreRW::saveScore(score, out + u"/m4-shrink.mscx"));
         delete score;
     }
 }

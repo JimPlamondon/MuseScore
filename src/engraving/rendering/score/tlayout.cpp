@@ -5052,15 +5052,16 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         // note layout may already have refreshed the cache this pass.
         jimsSt->jimsEnsureFrame(item->score(), item->staffIdx());
 
-        // Effective frame: cached Kernel segments, or the degenerate
-        // whole-period frame synthesized from the configured line count.
-        std::vector<StaffType::JimsSegment> frame = jimsSt->jimsFrameSegments();
-        if (frame.empty()) {
-            const double frameCents = (double)(_lines - 1) * StaffType::JIMS_CENTS_PER_LINE_DISTANCE;
-            const int wholePeriods = std::max(1, (int)std::lround(frameCents / 1200.0));
-            for (int p = 0; p < wholePeriods; ++p) {
-                frame.push_back({ 1200.0 * p, 1200.0 * (p + 1), true });
-            }
+        // The frame is the Kernel's, always (Milestone 4): an empty
+        // staff gets one whole period from frame_for_melody, and a
+        // failed derivation leaves NO frame — nothing is synthesized
+        // here. With no frame there is nothing JiMS to lay out.
+        const std::vector<StaffType::JimsSegment>& frame = jimsSt->jimsFrameSegments();
+        const double periodCents = jimsSt->jimsPeriodCents();
+        if (frame.empty() || periodCents <= 0.0) {
+            item->setJimsGuideLines({});
+            item->setLines({});
+            return;
         }
         const double frameTop = frame.back().upperCents;
         const double frameBottom = frame.front().lowerCents;
@@ -5103,13 +5104,13 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         // itself is closed by the sliced clef, not by a staff line.
         const double epsilon = 1e-6;
         for (const StaffType::JimsSegment& segment : frame) {
-            double firstBoundary = std::ceil((segment.lowerCents - epsilon) / 1200.0) * 1200.0;
+            double firstBoundary = std::ceil((segment.lowerCents - epsilon) / periodCents) * periodCents;
             for (double boundary = firstBoundary; boundary <= segment.upperCents + epsilon;
-                 boundary += 1200.0) {
+                 boundary += periodCents) {
                 guide(boundary, false, 0xE03030);
             }
-            double basePeriod = std::floor(segment.lowerCents / 1200.0) * 1200.0;
-            for (double period = basePeriod; period < segment.upperCents; period += 1200.0) {
+            double basePeriod = std::floor(segment.lowerCents / periodCents) * periodCents;
+            for (double period = basePeriod; period < segment.upperCents; period += periodCents) {
                 if (haveJi) {
                     for (const jims::JiLine& ji : jiLines) {
                         if (ji.visible) {
@@ -5121,7 +5122,7 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
                         }
                     }
                 } else if (!jimsSt->jimsJiLines()) {
-                    double cents = period + 600.0;
+                    double cents = period + periodCents / 2.0;   // mid-period line
                     if (cents > segment.lowerCents + epsilon && cents < segment.upperCents - epsilon) {
                         guide(cents, true, 0xE0C020);
                     }
