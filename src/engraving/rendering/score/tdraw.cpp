@@ -2792,7 +2792,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             if (font && jims::scaleDots(jimsSt->jimsStateJson(), stacks)) {
                 for (const StaffType::JimsSegment& segment : frame) {
                     double basePeriod = std::floor(segment.lowerCents / 1200.0) * 1200.0;
-                    for (double period = basePeriod; period < segment.upperCents;
+                    for (double period = basePeriod; period <= segment.upperCents + epsilon;
                          period += 1200.0) {
                         for (const auto& stack : stacks) {
                             double cents = period + stack.cents;
@@ -2840,7 +2840,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                 // sized so clear whitespace separates
                                 // the ring from the scale dot inside it
                                 // (owner correction 2026-08-14).
-                                const double h = 1.15 * dist;
+                                const double h = 1.15 * dist + 0.025 * dist;
                                 const double cy = yOf(cents);
                                 PainterPath ring;
                                 ring.moveTo(dotCenterX, cy - h);
@@ -2848,7 +2848,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                 ring.lineTo(dotCenterX, cy + h);
                                 ring.lineTo(dotCenterX - h, cy);
                                 ring.closeSubpath();
-                                painter->setPen(Pen(item->curColor(opt), 0.10 * dist));
+                                painter->setPen(Pen(item->curColor(opt), 0.15 * dist));
                                 painter->setBrush(BrushStyle::NoBrush);
                                 painter->drawPath(ring);
                             }
