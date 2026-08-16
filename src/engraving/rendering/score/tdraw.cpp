@@ -3126,11 +3126,20 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                             const double yFrom = yOf(centsOf(a.from));
                             const double yTo = yOf(centsOf(a.to));
                             painter->setPen(Pen(arrowInk, pen, PenStyle::SolidLine, PenCapStyle::RoundCap));
-                            painter->drawLine(LineF(arrowX, yFrom, arrowX, yTo));
-                            // Open V head at the `to` end, strokes running back along the shaft.
+                            // Solid triangular head at the `to` end (owner ruling
+                            // 2026-08-16: "close the notehead"); the shaft stops at
+                            // the head's base so it never pokes through the apex.
                             const double back = a.up ? hh : -hh; // toward `from`
-                            painter->drawLine(LineF(arrowX, yTo, arrowX - hw, yTo + back));
-                            painter->drawLine(LineF(arrowX, yTo, arrowX + hw, yTo + back));
+                            painter->drawLine(LineF(arrowX, yFrom, arrowX, yTo + back));
+                            PainterPath headPath;
+                            headPath.moveTo(arrowX, yTo);
+                            headPath.lineTo(arrowX - hw, yTo + back);
+                            headPath.lineTo(arrowX + hw, yTo + back);
+                            headPath.closeSubpath();
+                            painter->setBrush(Brush(arrowInk));
+                            painter->setNoPen();
+                            painter->drawPath(headPath);
+                            painter->setBrush(BrushStyle::NoBrush);
                         }
                     }
                 }
