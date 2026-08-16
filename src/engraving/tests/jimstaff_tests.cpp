@@ -1505,7 +1505,7 @@ TEST(JiMStaffTests, changeIndicatorTransportCarriesTheKernelTerrainVerbatim)
 // (b) Mid-system only: the collision-based pieces carry their change at
 // measure 2 (same system) -> indicator + reserved terrain; the grym piece
 // changes at measure 6 (a system head) -> no indicator, no reservation.
-TEST(JiMStaffTests, changeIndicatorIsReservedMidSystemOnlyAndNeverAtASystemHead)
+TEST(JiMStaffTests, changeIndicatorIsReservedMidSystemOrCourtesyAtSystemEnd)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/m5-mode.mscx");
     ASSERT_TRUE(score);
@@ -1537,10 +1537,43 @@ TEST(JiMStaffTests, changeIndicatorIsReservedMidSystemOnlyAndNeverAtASystemHead)
     head->doLayout();
     Measure* m6 = m5Measure(head, 6);
     ASSERT_TRUE(m6 && m5ChangeAt(head, 6));
-    ASSERT_TRUE(m6->system() && m6->system()->firstMeasure() == m6) << "fixture must change at a system head";
-    jims::ChangeIndicator none;
-    EXPECT_FALSE(jims::midSystemChangeIndicator(m6, 0, none));
-    EXPECT_EQ(jims::changeTerrainWidth(m6), 0.0);
+    ASSERT_TRUE(m6->system());
+    Measure* m5 = m5Measure(head, 5);
+    ASSERT_TRUE(m5 && m5->system());
+    // Owner ruling 2026-08-16 (option 1a): a change at a system head is
+    // indicated COURTESY-style at the END of the preceding system's last
+    // measure (added stroke left, the closing barline right); a mid-system
+    // change gets the measure-start terrain. Exactly one of the two applies,
+    // whichever break the layout settles on (the courtesy reservation itself
+    // may move the break, as MuseScore's own courtesy signatures can).
+    const bool headCase = m6->system()->firstMeasure() == m6;
+    jims::ChangeIndicator mid;
+    jims::ChangeIndicator courtesy;
+    const StaffType* oldSt = nullptr;
+    const bool haveMid = jims::midSystemChangeIndicator(m6, 0, mid);
+    const bool haveCourtesy = jims::courtesyChangeIndicator(m5, 0, courtesy, &oldSt);
+    EXPECT_EQ(haveMid, !headCase) << "mid-system terrain iff the change measure is not a system head";
+    EXPECT_EQ(haveCourtesy, headCase) << "courtesy terrain iff the change measure starts a system";
+    if (headCase) {
+        EXPECT_EQ(jims::changeTerrainWidth(m6), 0.0);
+        ASSERT_TRUE(m5->system()->lastMeasure() == m5);
+        EXPECT_EQ(courtesy.kinds.size(), 1u);
+        EXPECT_EQ(courtesy.kinds[0], u"mode");
+        ASSERT_EQ(courtesy.arrows.size(), 1u);
+        EXPECT_TRUE(courtesy.arrows[0].up) << "La-mode -> Do-mode: 2 degrees up";
+        EXPECT_EQ(courtesy.arrows[0].to.periodOffset, 1) << "Do lifted to the upper Do-line";
+        const double want5 = oldSt->jimsHeaderGeometry(head->style().spatium(), head->style().defaultSpatium()).changeTerrainWidth;
+        EXPECT_NEAR(jims::courtesyTerrainWidth(m5), want5, 1e-9);
+    } else {
+        EXPECT_EQ(jims::courtesyTerrainWidth(m5), 0.0);
+        EXPECT_GT(jims::changeTerrainWidth(m6), 0.0);
+        ASSERT_EQ(mid.arrows.size(), 1u);
+        EXPECT_TRUE(mid.arrows[0].up);
+        EXPECT_EQ(mid.arrows[0].to.periodOffset, 1);
+    }
+    // No courtesy on a measure whose successor carries no change.
+    jims::ChangeIndicator noc;
+    EXPECT_FALSE(jims::courtesyChangeIndicator(m5Measure(head, 3), 0, noc));
     delete head;
 }
 

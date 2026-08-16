@@ -2999,15 +2999,17 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
         }
 
         // Change indicator (Milestone 5, owner notation rulings 2026-08-16):
-        // mid-system only, in the terrain between the measure's barline
-        // (left stroke) and one added thin closing stroke; the Kernel's
-        // ready-to-paint terrain — dot stacks, tonic indicators, note-class
-        // labels (left of the glyphs), arrows in their lane — is painted
-        // verbatim. Nothing is inferred here.
-        if (jimsSt && jimsSt->isJiMS() && !systemHead) {
-            jims::ChangeIndicator model;
-            const StaffType* changeSt = nullptr;
-            if (jims::midSystemChangeIndicator(item->measure(), item->staffIdx(), model, &changeSt) && changeSt) {
+        // the Kernel's ready-to-paint terrain — dot stacks, tonic indicators,
+        // note-class labels (left of the glyphs), arrows in their lane — is
+        // painted verbatim between a barline and one added thin stroke.
+        // Two placements: (1) mid-system, at the START of the change measure
+        // (barline left, added stroke right); (2) courtesy (owner 2026-08-16,
+        // option 1a): when the change measure starts the NEXT system, at the
+        // END of the last measure of this system (added stroke left, the
+        // closing barline right). Nothing is inferred here.
+        auto paintChangeTerrain = [&](const jims::ChangeIndicator& model, const StaffType* changeSt,
+                                      double x0, bool addedStrokeOnLeft) {
+            {
                 const double _spatium = item->spatium();
                 const double dist = changeSt->lineDistance().val() * _spatium;
                 const double topY = item->pos().y();
@@ -3021,12 +3023,11 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                         = changeSt->jimsHeaderGeometry(_spatium, item->score()->style().defaultSpatium());
                     const double indicatorW = g.indicatorW;
                     // Terrain columns, left to right, from the measure's left edge.
-                    const double x0 = item->pos().x();
                     const double labelRight = x0 + 0.3 * _spatium + g.changeLabelBand;
                     const double dotCenterX = labelRight + indicatorW;
                     const double rightLabelLeft = dotCenterX + indicatorW;                 // Grey labels start here
                     const double arrowX = rightLabelLeft + g.changeRightLabelBand + g.changeArrowLane / 2.0;
-                    const double strokeX = x0 + g.changeTerrainWidth;
+                    const double strokeX = addedStrokeOnLeft ? x0 : x0 + g.changeTerrainWidth;
                     // Period 0 of the model = the lowest period of the stave stack.
                     const double basePeriod = std::floor(frame.front().lowerCents / periodCents + 1e-6) * periodCents;
                     auto centsOf = [&](const jims::ChangePoint& p) {
@@ -3185,6 +3186,22 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                             painter->setBrush(BrushStyle::NoBrush);
                         }
                     }
+                }
+            }
+        };
+        if (jimsSt && jimsSt->isJiMS()) {
+            jims::ChangeIndicator model;
+            const StaffType* changeSt = nullptr;
+            if (!systemHead && jims::midSystemChangeIndicator(item->measure(), item->staffIdx(), model, &changeSt) && changeSt) {
+                paintChangeTerrain(model, changeSt, item->pos().x(), false);
+            }
+            jims::ChangeIndicator courtesy;
+            const StaffType* courtesySt = nullptr;
+            if (jims::courtesyChangeIndicator(item->measure(), item->staffIdx(), courtesy, &courtesySt) && courtesySt) {
+                const Segment* endBar = item->measure()->findSegmentR(SegmentType::EndBarLine, item->measure()->ticks());
+                if (endBar) {
+                    const double g = courtesySt->jimsHeaderGeometry(item->spatium(), item->score()->style().defaultSpatium()).changeTerrainWidth;
+                    paintChangeTerrain(courtesy, courtesySt, endBar->x() - g, true);
                 }
             }
         }

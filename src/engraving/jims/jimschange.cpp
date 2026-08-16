@@ -79,4 +79,50 @@ double changeTerrainWidth(const Measure* measure)
     }
     return width;
 }
+
+bool courtesyChangeIndicator(const Measure* measure, staff_idx_t staffIdx,
+                             ChangeIndicator& out, const StaffType** stateStaffType)
+{
+    if (!measure || !measure->system() || measure->system()->lastMeasure() != measure) {
+        return false;
+    }
+    const Measure* next = measure->nextMeasure();
+    if (!next || !changeCarrier(next, staffIdx)) {
+        return false;
+    }
+    const Staff* staff = measure->score()->staff(staffIdx);
+    if (!staff) {
+        return false;
+    }
+    const StaffType* oldSt = staff->staffType(measure->tick());
+    const StaffType* newSt = staff->staffType(next->tick());
+    if (!oldSt || !newSt || !oldSt->isJiMS() || !newSt->isJiMS() || oldSt == newSt) {
+        return false;
+    }
+    if (!changeIndicator(oldSt->jimsStateJson(), newSt->jimsStateJson(), out)) {
+        return false;
+    }
+    if (stateStaffType) {
+        *stateStaffType = oldSt;   // the courtesy terrain sits on the OLD staff (this system)
+    }
+    return !out.empty();
+}
+
+double courtesyTerrainWidth(const Measure* measure)
+{
+    if (!measure || !measure->score()) {
+        return 0.0;
+    }
+    double width = 0.0;
+    const Score* score = measure->score();
+    for (staff_idx_t s = 0; s < score->nstaves(); ++s) {
+        ChangeIndicator model;
+        const StaffType* st = nullptr;
+        if (courtesyChangeIndicator(measure, s, model, &st) && st) {
+            const double sp = score->style().spatium();
+            width = std::max(width, st->jimsHeaderGeometry(sp, score->style().defaultSpatium()).changeTerrainWidth);
+        }
+    }
+    return width;
+}
 }

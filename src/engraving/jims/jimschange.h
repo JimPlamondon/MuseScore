@@ -36,6 +36,19 @@ bool midSystemChangeIndicator(const Measure* measure, staff_idx_t staffIdx,
 /// The terrain width to reserve at the start of `measure` (max over
 /// staves that carry a mid-system indicator), or 0.
 double changeTerrainWidth(const Measure* measure);
+
+/// Courtesy indicator (owner ruling 2026-08-16, option 1a): when the NEXT
+/// measure carries a JiMS change and `measure` is the last of its system,
+/// the change is indicated at the END of `measure` — the closing barline
+/// serves as the right stroke, one added stroke opens the terrain on the
+/// left — because the new system's fresh header alone hides the change.
+/// Model between the state in effect through `measure` and the state the
+/// next measure introduces. Returns false when not applicable or empty.
+bool courtesyChangeIndicator(const Measure* measure, staff_idx_t staffIdx,
+                             ChangeIndicator& out, const StaffType** stateStaffType = nullptr);
+
+/// The courtesy terrain width to reserve at the end of `measure`, or 0.
+double courtesyTerrainWidth(const Measure* measure);
 }
 
 #endif

@@ -1300,7 +1300,16 @@ double HorizontalSpacing::shapeSpatium(const Shape& s)
 // is the Kernel's (empty model -> nothing reserved).
 static double jimsChangeTerrainExtra(const Segment* f, const Segment* ns)
 {
-    if (!f || !ns || !ns->measure() || f->measure() == ns->measure()) {
+    if (!f || !ns || !ns->measure()) {
+        return 0.0;
+    }
+    // Courtesy terrain at the END of a measure that is (currently) the last
+    // of its system and whose successor carries a JiMS change: reserve it
+    // before the closing barline (the pair last-content -> end barline).
+    if (f->measure() == ns->measure() && (ns->segmentType() & SegmentType::EndBarLine)) {
+        return jims::courtesyTerrainWidth(ns->measure());
+    }
+    if (f->measure() == ns->measure()) {
         return 0.0;
     }
     if (ns->tick() != ns->measure()->tick()) {
