@@ -168,6 +168,74 @@ bool jiLines(const String& stateJson, std::vector<JiLine>& lines)
     return true;
 }
 
+static ChangePoint readPoint(const JsonObject& o)
+{
+    ChangePoint p;
+    p.nGen = o.value("nGen").toInt();
+    p.label = o.value("label").toString();
+    p.ordinate = o.value("ordinate").toDouble();
+    p.periodOffset = o.value("period_offset").toInt();
+    return p;
+}
+
+bool changeIndicator(const String& oldStateJson, const String& newStateJson, ChangeIndicator& out)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"change_indicator\",\"old_state\":%1,\"new_state\":%2}")
+                      .arg(oldStateJson).arg(newStateJson);
+    JsonValue result;
+    if (!okResult(callBridge(envelope), result)) {
+        return false;
+    }
+    out = ChangeIndicator();
+    JsonObject o = result.toObject();
+    JsonArray kinds = o.value("kinds").toArray();
+    for (size_t i = 0; i < kinds.size(); ++i) {
+        out.kinds.push_back(kinds.at(i).toString());
+    }
+    JsonObject terrain = o.value("terrain").toObject();
+    JsonArray stacks = terrain.value("dot_stacks").toArray();
+    for (size_t i = 0; i < stacks.size(); ++i) {
+        JsonObject s = stacks.at(i).toObject();
+        ChangeStack stack;
+        stack.ordinate = s.value("ordinate").toDouble();
+        stack.periodOffset = s.value("period_offset").toInt();
+        JsonArray members = s.value("members").toArray();
+        for (size_t j = 0; j < members.size(); ++j) {
+            stack.members.push_back(readPoint(members.at(j).toObject()));
+        }
+        out.dotStacks.push_back(stack);
+    }
+    JsonArray tonics = terrain.value("tonic_indicators").toArray();
+    for (size_t i = 0; i < tonics.size(); ++i) {
+        out.tonicIndicators.push_back(readPoint(tonics.at(i).toObject()));
+    }
+    JsonArray arrows = terrain.value("arrows").toArray();
+    for (size_t i = 0; i < arrows.size(); ++i) {
+        JsonObject a = arrows.at(i).toObject();
+        ChangeArrow arrow;
+        arrow.kind = a.value("kind").toString();
+        arrow.from = readPoint(a.value("from").toObject());
+        arrow.to = readPoint(a.value("to").toObject());
+        arrow.up = a.value("direction").toString() == u"up";
+        arrow.trumps = a.value("trumps").toString();
+        out.arrows.push_back(arrow);
+    }
+    return true;
+}
+
+bool connectorGlyph(ConnectorGlyph& out)
+{
+    JsonValue result;
+    if (!okResult(callBridge(String(u"{\"abi\":2,\"op\":\"connector_glyph\"}")), result)) {
+        return false;
+    }
+    JsonObject o = result.toObject();
+    out.penCents = o.value("pen_cents").toDouble();
+    out.headHeightCents = o.value("head_height_cents").toDouble();
+    out.headHalfWidthCents = o.value("head_half_width_cents").toDouble();
+    return true;
+}
+
 bool frameForMelody(const String& stateJson, const String& melodyJson,
                     const String& extentToken, std::vector<StaveSegment>& segments)
 {

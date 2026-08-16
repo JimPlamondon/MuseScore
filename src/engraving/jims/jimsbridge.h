@@ -96,6 +96,43 @@ struct StaveSegment {
 
 /// The Kernel frame for a melody plus the DECLARED tonic-extent token
 /// ("tonic-bounded" / "tonic-centered"), derived at authoring and saved.
+// Milestone 5 — change indicators (owner notation rulings 2026-08-16).
+// The Kernel returns the COMPLETE ready-to-paint model; the fork parses
+// and paints, never diffs states or decides anything musical.
+struct ChangePoint {
+    int nGen = 0;
+    muse::String label;
+    double ordinate = 0.0;      // Do-relative, in periods [0,1)
+    int periodOffset = 0;       // 0 = the enclosure's period, +1 = one period up
+};
+struct ChangeStack {
+    double ordinate = 0.0;
+    int periodOffset = 0;
+    std::vector<ChangePoint> members;   // front first
+};
+struct ChangeArrow {
+    muse::String kind;          // "key" | "mode"
+    ChangePoint from;
+    ChangePoint to;
+    bool up = true;
+    muse::String trumps;        // "" or the trumped kind ("mode")
+};
+struct ChangeIndicator {
+    std::vector<muse::String> kinds;    // "key","mode","scale" in fixed order
+    std::vector<ChangeStack> dotStacks;
+    std::vector<ChangePoint> tonicIndicators;
+    std::vector<ChangeArrow> arrows;
+    bool empty() const { return kinds.empty(); }
+};
+bool changeIndicator(const muse::String& oldStateJson, const muse::String& newStateJson,
+                     ChangeIndicator& out);
+struct ConnectorGlyph {
+    double penCents = 0.0;
+    double headHeightCents = 0.0;
+    double headHalfWidthCents = 0.0;
+};
+bool connectorGlyph(ConnectorGlyph& out);
+
 bool frameForMelody(const muse::String& stateJson, const muse::String& melodyJson,
                     const muse::String& extentToken, std::vector<StaveSegment>& segments);
 

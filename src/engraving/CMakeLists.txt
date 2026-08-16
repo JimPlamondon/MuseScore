@@ -68,6 +68,8 @@ target_sources(engraving PRIVATE
     engravingerrors.h
     jims/jimsbridge.cpp
     jims/jimsbridge.h
+    jims/jimschange.cpp
+    jims/jimschange.h
     jims/jimstuningcontroller.cpp
     jims/jimstuningcontroller.h
     jims/jimsstrings.h
@@ -76,6 +78,7 @@ target_sources(engraving PRIVATE
 # Keep the JiMS sources out of unity batches: their addition would reshuffle
 # the upstream unity groups, which collide the two 'compat' namespaces.
 set_source_files_properties(jims/jimsbridge.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE)
+set_source_files_properties(jims/jimschange.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE)
 set_source_files_properties(jims/jimstuningcontroller.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE)
 
 target_sources(engraving PRIVATE

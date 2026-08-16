@@ -56,6 +56,7 @@ public:
     static double shapeSpatium(const Shape& s);
 
     static double minHorizontalDistance(const Segment* f, const Segment* ns, double squeezeFactor);
+    static double minHorizontalDistanceImpl(const Segment* f, const Segment* ns, double squeezeFactor);
     static double minLeft(const Segment* seg, const Shape& ls);
 
     static double computePadding(const EngravingItem* item1, const EngravingItem* item2);

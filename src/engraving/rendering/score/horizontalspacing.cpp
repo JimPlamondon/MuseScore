@@ -22,6 +22,8 @@
 #include <cfloat>
 
 #include "horizontalspacing.h"
+
+#include "../../jims/jimschange.h"
 #include "parenthesislayout.h"
 
 #include "dom/barline.h"
@@ -1291,7 +1293,28 @@ double HorizontalSpacing::shapeSpatium(const Shape& s)
 //    calculate the minimum layout distance to Segment ns
 //---------------------------------------------------------
 
+// JiMStaff Milestone 5: reserve the change-indicator terrain after the
+// barline of a mid-system measure that carries a JiMS staff-type change
+// (owner notation rulings 2026-08-16). Width comes from the ONE shared
+// header-geometry calculation; the decision of whether an indicator exists
+// is the Kernel's (empty model -> nothing reserved).
+static double jimsChangeTerrainExtra(const Segment* f, const Segment* ns)
+{
+    if (!f || !ns || !ns->measure() || f->measure() == ns->measure()) {
+        return 0.0;
+    }
+    if (ns->tick() != ns->measure()->tick()) {
+        return 0.0;
+    }
+    return jims::changeTerrainWidth(ns->measure());
+}
+
 double HorizontalSpacing::minHorizontalDistance(const Segment* f, const Segment* ns, double squeezeFactor)
+{
+    return minHorizontalDistanceImpl(f, ns, squeezeFactor) + jimsChangeTerrainExtra(f, ns);
+}
+
+double HorizontalSpacing::minHorizontalDistanceImpl(const Segment* f, const Segment* ns, double squeezeFactor)
 {
     if (f->segmentType() & SegmentType::BarLineType) {
         if (ns->isStartRepeatBarLineType()) {

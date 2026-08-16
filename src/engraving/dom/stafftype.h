@@ -262,6 +262,12 @@ public:
         double leftLabelBand = 0.0;    // label column left of the dots
         double rightLabelBand = 0.0;   // Split-mode band right of the dots
         double headerWidth = 0.0;      // total reserve left of the first measure
+        // Milestone 5 change-indicator terrain (mid-system, after the
+        // barline): label band (always present in the terrain, labels sit
+        // LEFT of the dots) + dot column + arrow lane + closing stroke.
+        double changeLabelBand = 0.0;
+        double changeArrowLane = 0.0;
+        double changeTerrainWidth = 0.0;
     };
     JimsHeaderGeometry jimsHeaderGeometry(double spatium, double defaultSpatium) const;
     void setJimsScaleDotLabelMode(JimsScaleDotLabelMode mode) { m_jimsScaleDotLabelMode = mode; }

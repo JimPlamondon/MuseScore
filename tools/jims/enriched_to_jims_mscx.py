@@ -49,6 +49,12 @@ def main(enriched_path, mscx_in, mscx_out, lines):
     state = staff_state_json(enriched)
     periods = max(1, (int(lines) - 1) // 12)
     state["extent"]["period_count"] = periods
+    # Milestone 5: JIMS_REFERENCE="<key_number>" binds Re0 to a MIDI-style
+    # key number (the reference-pitch interop anchor) in the BASE state, so
+    # a later key change (a reference shift) is expressible.
+    import os as _os
+    if _os.environ.get("JIMS_REFERENCE", ""):
+        state["reference"] = {"reference-pitch": {"key_number": int(_os.environ["JIMS_REFERENCE"])}}
     state_text = json.dumps(state, separators=(",", ":"))
 
     # 1. StaffType: replace the imported standard staff type block.
@@ -106,9 +112,37 @@ def main(enriched_path, mscx_in, mscx_out, lines):
     # StaffTypeChange carrying the rotated state; each state's token is
     # classified from the notes its span governs.
     mode_change = os.environ.get("JIMS_MODE_CHANGE", "")
+    # Milestone 5 (change indicators): the same StaffTypeChange carrier
+    # also expresses a KEY change (JIMS_KEY_CHANGE="<measure>:<nPer>:<nGen>",
+    # the SHIFT-Do0-XxN gesture's lattice delta; the reference pitch on Re0
+    # shifts by its negative) and a SCALE change (JIMS_SCALE_CHANGE=
+    # "<measure>:<collection_rotation>", e.g. -3 for the Grey-notes parallel
+    # minor). JIMS_REFERENCE="<key_number>" binds Re0 to a MIDI-style key
+    # number (the reference-pitch interop anchor) — required for a key
+    # change to be expressible. All changes at one measure compose into a
+    # single StaffTypeChange.
+    key_change = os.environ.get("JIMS_KEY_CHANGE", "")
+    scale_change = os.environ.get("JIMS_SCALE_CHANGE", "")
+    reference = os.environ.get("JIMS_REFERENCE", "")
     change_measure, change_rotation, split_at = 0, 0, len(identities)
+    key_delta = None
+    scale_rotation = None
+    for spec in (mode_change, key_change, scale_change):
+        if spec:
+            m = int(spec.split(":")[0])
+            if change_measure and m != change_measure:
+                sys.exit("ERROR: JIMS_*_CHANGE flags must name the same measure")
+            change_measure = m
     if mode_change:
-        change_measure, change_rotation = (int(x) for x in mode_change.split(":"))
+        change_rotation = int(mode_change.split(":")[1])
+    if key_change:
+        _, n_per, n_gen = (int(x) for x in key_change.split(":"))
+        key_delta = (n_per, n_gen)
+        if not reference:
+            sys.exit("ERROR: JIMS_KEY_CHANGE needs JIMS_REFERENCE=<key_number>")
+    if scale_change:
+        scale_rotation = int(scale_change.split(":")[1])
+    if change_measure:
         measures = re.findall(r"<measure[^>]*>(.*?)</measure>", enriched, re.S)
         split_at = sum(len(re.findall(r'<jims:pitch ', m))
                        for m in measures[:change_measure - 1])
@@ -118,11 +152,25 @@ def main(enriched_path, mscx_in, mscx_out, lines):
         mscx = mscx.replace(f"<jimsStateJson>{state_text}</jimsStateJson>",
                             f"<jimsStateJson>{with_token(state_text, token)}</jimsStateJson>", 1)
 
-    if mode_change:
-        state2 = dict(state)
-        state2["mode_rotation"] = change_rotation
+    if change_measure:
+        state2 = json.loads(json.dumps(state))
+        if mode_change:
+            state2["mode_rotation"] = change_rotation
+        if scale_rotation is not None:
+            state2["collection_rotation"] = scale_rotation
+        if key_delta is not None:
+            # Re0's key number shifts by MINUS the interval Do0->XxN, in
+            # 12-TET key-number steps: 12 per period, 7 per generator (the
+            # reference-pitch anchor is a 12-TET interop anchor).
+            n_per, n_gen = key_delta
+            state2["reference"] = {"reference-pitch": {
+                "key_number": int(reference) - (12 * n_per + 7 * n_gen)}}
         state2_text = json.dumps(state2, separators=(",", ":"))
-        token2 = derive_token(identities[split_at:], state2_text)
+        # Token for the new span: Kernel-classified when a runner is
+        # available; otherwise JIMS_TONIC_TOKEN2, else the base token
+        # (recorded as hand-set provenance for the fixture).
+        token2 = derive_token(identities[split_at:], state2_text) \
+            or os.environ.get("JIMS_TONIC_TOKEN2", "") or token
         if token2:
             state2_text = with_token(state2_text, token2)
         stc_block = (

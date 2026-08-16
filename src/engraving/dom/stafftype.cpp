@@ -828,18 +828,33 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
     g.indicatorW = 1.3 * dist;
     g.headerWidth = 0.3 * spatium + g.clefRx + 2.0 * g.indicatorW;
 
-    const JimsScaleDotLabelMode mode = jimsResolvedScaleDotLabelMode();
-    if (mode == JimsScaleDotLabelMode::None) {
-        return g;
-    }
-    std::vector<jims::LabeledDotStack> stacks;
-    if (!jims::scaleDotLabels(m_jimsStateJson, stacks)) {
-        return g;
-    }
+    // Change-indicator terrain (M5): the label band is measured over the
+    // state's Kernel labels regardless of the header's label mode (the
+    // terrain always labels its dots and indicators, left of the glyphs);
+    // arrow lane right of the dot column; closing stroke gap.
     Font labelFont(u"Edwin", Font::Type::Text);
     labelFont.setPointSizeF(9.0 * spatium / defaultSpatium);
     FontMetrics fm(labelFont);
     const double gap = 0.25 * spatium;
+    std::vector<jims::LabeledDotStack> stacks;
+    const bool haveLabels = jims::scaleDotLabels(m_jimsStateJson, stacks);
+    if (haveLabels) {
+        double widest = 0.0;
+        for (const jims::LabeledDotStack& stack : stacks) {
+            for (const jims::LabeledDotMember& member : stack.members) {
+                widest = std::max(widest, fm.horizontalAdvance(member.label));
+            }
+        }
+        g.changeLabelBand = widest + gap;
+    }
+    g.changeArrowLane = 1.2 * g.indicatorW;
+    g.changeTerrainWidth = 0.3 * spatium + g.changeLabelBand + 2.0 * g.indicatorW
+                           + g.changeArrowLane + 0.3 * spatium;
+
+    const JimsScaleDotLabelMode mode = jimsResolvedScaleDotLabelMode();
+    if (mode == JimsScaleDotLabelMode::None || !haveLabels) {
+        return g;
+    }
     double maxLeft = 0.0;
     double maxRight = 0.0;
     for (const jims::LabeledDotStack& stack : stacks) {

@@ -30,6 +30,8 @@
 #include "engraving/dom/system.h"
 #include "engraving/dom/stafftype.h"
 #include "engraving/jims/jimsbridge.h"
+#include "engraving/jims/jimschange.h"
+#include "engraving/dom/stafftypechange.h"
 #include "engraving/jims/jimstuningcontroller.h"
 
 #include "utils/scorerw.h"
@@ -1016,7 +1018,8 @@ TEST(JiMStaffTests, labelsEnabledControllerSweepHasNoStaleLabels)
     ASSERT_TRUE(outDir);
 
     const std::vector<muse::String> pieces
-        = { u"collision", u"ode-to-joy", u"acc-chromatic", u"mode-change", u"grym" };
+        = { u"collision", u"ode-to-joy", u"acc-chromatic", u"mode-change", u"grym",
+            u"m5-mode", u"m5-key-up", u"m5-key-down", u"m5-scale", u"m5-key-mode", u"m5-syshead" };
     const JimsScaleDotLabelMode modes[]
         = { JimsScaleDotLabelMode::Auto, JimsScaleDotLabelMode::Left,
             JimsScaleDotLabelMode::Split, JimsScaleDotLabelMode::None };
@@ -1433,6 +1436,156 @@ TEST(JiMStaffTests, m4WriteRenderScenarios)
         score->endCmd();
         score->doLayout();
         ASSERT_TRUE(ScoreRW::saveScore(score, out + u"/m4-shrink.mscx"));
+        delete score;
+    }
+}
+
+// ---------------------------------------------------------------------
+// Milestone 5 — change indicators (owner notation rulings 2026-08-16).
+// The fork transports and paints the Kernel's terrain; these tests pin
+// transport fidelity, mid-system-only reservation, shared geometry, and
+// per-piece semantic records.
+// ---------------------------------------------------------------------
+namespace {
+const StaffTypeChange* m5ChangeAt(Score* score, int measureNo)
+{
+    Measure* m = score->firstMeasure();
+    for (int i = 1; m && i < measureNo; ++i) {
+        m = m->nextMeasure();
+    }
+    return m ? jims::changeCarrier(m, 0) : nullptr;
+}
+Measure* m5Measure(Score* score, int measureNo)
+{
+    Measure* m = score->firstMeasure();
+    for (int i = 1; m && i < measureNo; ++i) {
+        m = m->nextMeasure();
+    }
+    return m;
+}
+}
+
+// (a) Transport: the worked example round-trips through the fork wrapper
+// with kinds, endpoints, labels, direction, and trumps intact.
+TEST(JiMStaffTests, changeIndicatorTransportCarriesTheKernelTerrainVerbatim)
+{
+    const muse::String oldS = u"{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],\"collection_rotation\":0,\"mode_rotation\":0,\"generator_cents\":700.0,\"period_cents\":1200.0,\"embedding\":{\"large_steps\":5,\"small_steps\":2},\"extent\":{\"lower_do_register\":4,\"period_count\":1},\"reference\":{\"reference-pitch\":{\"key_number\":62}}}";
+    muse::String newS = oldS;
+    newS.replace(u"\"mode_rotation\":0", u"\"mode_rotation\":5");
+    newS.replace(u"\"key_number\":62", u"\"key_number\":53");
+    jims::ChangeIndicator model;
+    ASSERT_TRUE(jims::changeIndicator(oldS, newS, model));
+    ASSERT_EQ(model.kinds.size(), 2u);
+    EXPECT_EQ(model.kinds[0], u"key");
+    EXPECT_EQ(model.kinds[1], u"mode");
+    ASSERT_EQ(model.arrows.size(), 1u);
+    EXPECT_EQ(model.arrows[0].kind, u"key");
+    EXPECT_TRUE(model.arrows[0].up);
+    EXPECT_EQ(model.arrows[0].trumps, u"mode");
+    EXPECT_EQ(model.arrows[0].from.label, u"Do");
+    EXPECT_EQ(model.arrows[0].to.label, u"La");
+    ASSERT_EQ(model.tonicIndicators.size(), 2u);
+    EXPECT_EQ(model.tonicIndicators[0].label, u"Do");
+    EXPECT_EQ(model.tonicIndicators[1].label, u"La");
+    EXPECT_EQ(model.dotStacks.size(), 2u);
+    // Same state: empty model. Malformed: failure, no partial data.
+    jims::ChangeIndicator same;
+    ASSERT_TRUE(jims::changeIndicator(oldS, oldS, same));
+    EXPECT_TRUE(same.empty());
+    jims::ChangeIndicator bad;
+    EXPECT_FALSE(jims::changeIndicator(u"{nope", newS, bad));
+    jims::ConnectorGlyph head;
+    ASSERT_TRUE(jims::connectorGlyph(head));
+    EXPECT_GT(head.penCents, 0.0);
+    EXPECT_LT(head.penCents, 10.0);
+    EXPECT_GT(head.headHeightCents, 0.0);
+}
+
+// (b) Mid-system only: the collision-based pieces carry their change at
+// measure 2 (same system) -> indicator + reserved terrain; the grym piece
+// changes at measure 6 (a system head) -> no indicator, no reservation.
+TEST(JiMStaffTests, changeIndicatorIsReservedMidSystemOnlyAndNeverAtASystemHead)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/m5-mode.mscx");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    Measure* m2 = m5Measure(score, 2);
+    ASSERT_TRUE(m2 && m5ChangeAt(score, 2));
+    ASSERT_TRUE(m2->system() && m2->system()->firstMeasure() != m2) << "fixture must be mid-system";
+    jims::ChangeIndicator model;
+    const StaffType* st = nullptr;
+    ASSERT_TRUE(jims::midSystemChangeIndicator(m2, 0, model, &st));
+    EXPECT_EQ(model.kinds.size(), 1u);
+    EXPECT_EQ(model.kinds[0], u"mode");
+    EXPECT_TRUE(model.dotStacks.empty()) << "pure mode change shows no dots";
+    EXPECT_EQ(model.tonicIndicators.size(), 2u);
+    ASSERT_EQ(model.arrows.size(), 1u);
+    EXPECT_FALSE(model.arrows[0].up) << "Do->La: fewest degrees is down";
+    const double sp = score->style().spatium();
+    const double want = st->jimsHeaderGeometry(sp, score->style().defaultSpatium()).changeTerrainWidth;
+    EXPECT_GT(want, 0.0);
+    EXPECT_NEAR(jims::changeTerrainWidth(m2), want, 1e-9) << "reservation = the ONE shared calculation";
+    // The first note of measure 2 sits at least the terrain width after the measure start.
+    Segment* firstCR = m2->first(SegmentType::ChordRest);
+    ASSERT_TRUE(firstCR);
+    EXPECT_GE(firstCR->x(), want - 1e-6) << "terrain reserved before the first segment";
+    delete score;
+
+    Score* head = ScoreRW::readScore(u"jimstaff_data/m5-syshead.mscx");
+    ASSERT_TRUE(head);
+    head->doLayout();
+    Measure* m6 = m5Measure(head, 6);
+    ASSERT_TRUE(m6 && m5ChangeAt(head, 6));
+    ASSERT_TRUE(m6->system() && m6->system()->firstMeasure() == m6) << "fixture must change at a system head";
+    jims::ChangeIndicator none;
+    EXPECT_FALSE(jims::midSystemChangeIndicator(m6, 0, none));
+    EXPECT_EQ(jims::changeTerrainWidth(m6), 0.0);
+    delete head;
+}
+
+// (c) Semantic records per piece: the Kernel model each fixture yields
+// (kinds, glyph counts, arrow direction/precedence) — the owner rules.
+TEST(JiMStaffTests, changeIndicatorSemanticsPerFixtureMatchTheOwnerRules)
+{
+    struct Case { const char16_t* piece; std::vector<muse::String> kinds; size_t dots; size_t tonics; size_t arrows; bool firstUp; muse::String trumps; };
+    const std::vector<Case> cases = {
+        { u"m5-mode",     { u"mode" },          0, 2, 1, false, u"" },
+        { u"m5-key-up",   { u"key" },           2, 0, 1, true,  u"" },
+        { u"m5-key-down", { u"key" },           2, 0, 1, false, u"" },
+        { u"m5-scale",    { u"scale" },         7, 1, 0, true,  u"" },
+        { u"m5-key-mode", { u"key", u"mode" },  2, 2, 1, true,  u"mode" },
+    };
+    for (const Case& c : cases) {
+        Score* score = ScoreRW::readScore(muse::String(u"jimstaff_data/") + c.piece + u".mscx");
+        ASSERT_TRUE(score) << muse::String(c.piece).toStdString();
+        score->doLayout();
+        Measure* m2 = m5Measure(score, 2);
+        jims::ChangeIndicator model;
+        ASSERT_TRUE(jims::midSystemChangeIndicator(m2, 0, model)) << muse::String(c.piece).toStdString();
+        EXPECT_EQ(model.kinds, c.kinds) << muse::String(c.piece).toStdString();
+        EXPECT_EQ(model.dotStacks.size(), c.dots) << muse::String(c.piece).toStdString();
+        EXPECT_EQ(model.tonicIndicators.size(), c.tonics) << muse::String(c.piece).toStdString();
+        ASSERT_EQ(model.arrows.size(), c.arrows) << muse::String(c.piece).toStdString();
+        if (c.arrows) {
+            EXPECT_EQ(model.arrows[0].up, c.firstUp) << muse::String(c.piece).toStdString();
+            EXPECT_EQ(model.arrows[0].trumps, c.trumps) << muse::String(c.piece).toStdString();
+        }
+        // Semantic record.
+        const char* outDir = std::getenv("JIMS_M5_OUT");
+        if (outDir) {
+            std::ofstream rec(std::string(outDir) + "/" + muse::String(c.piece).toStdString() + "-m5-semantics.json");
+            rec << "{\"piece\":\"" << muse::String(c.piece).toStdString() << "\",\"kinds\":[";
+            for (size_t i = 0; i < model.kinds.size(); ++i) { rec << (i ? "," : "") << "\"" << model.kinds[i].toStdString() << "\""; }
+            rec << "],\"dot_stacks\":" << model.dotStacks.size() << ",\"tonic_indicators\":" << model.tonicIndicators.size()
+                << ",\"arrows\":[";
+            for (size_t i = 0; i < model.arrows.size(); ++i) {
+                const jims::ChangeArrow& a = model.arrows[i];
+                rec << (i ? "," : "") << "{\"kind\":\"" << a.kind.toStdString() << "\",\"from\":\"" << a.from.label.toStdString()
+                    << "\",\"to\":\"" << a.to.label.toStdString() << "\",\"up\":" << (a.up ? "true" : "false")
+                    << ",\"trumps\":\"" << a.trumps.toStdString() << "\"}";
+            }
+            rec << "]}\n";
+        }
         delete score;
     }
 }
