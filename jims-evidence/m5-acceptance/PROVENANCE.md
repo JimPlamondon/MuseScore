@@ -20,3 +20,24 @@ mscore <piece>.mscx -o initial.png        # from a clean directory (no adjacent 
 ```
 
 `semantics.json` is the Kernel change-indicator model as transported by the fork (`JiMStaffTests.changeIndicatorSemanticsPerFixtureMatchTheOwnerRules`), never pixel-derived. Renders were produced twice in clean directories and are byte-identical.
+
+## MusicXML V3 change events (2026-08-16, owner decisions 1a/2a/3a/4a)
+
+The six pieces are now expressed as JiMS MusicXML V3 (`urn:jims:musicxml:3`) and re-derived from it with NO converter override flags. Each `enriched.musicxml` was produced by the Kernel (`cargo run -p jims-api --example musicxml_v3 -- enrich <source> <piece>/timeline.json` in repository `jims` at merge commit `1f21503`, PR 196) from the stock source piece and the piece's `timeline.json` (a per-measure list of the two complete `JiMStaffStateV2` states, tonic-extent tokens declared explicitly as before); `v3-manifest.json` drives the Kernel's pinned change-event vectors for the extension repository (`musicxml-jims` `tests/vectors/jims_change_events_v3.json`). Every state carries an explicit `jims:reference`; the second state is followed immediately by the Kernel-written `jims:change` summary, which the converter never reads — the `StaffTypeChange` carrier is transcribed from the full second state alone. Command shape now:
+
+```
+mscore enriched.musicxml -o stock.mscx
+python3 tools/jims/enriched_to_jims_mscx.py enriched.musicxml stock.mscx <piece>.mscx 13
+mscore <piece>.mscx -o initial.png        # from a clean directory
+```
+
+Round-trip evidence: the regenerated `.mscx` files carry state JSON identical to the previously accepted `.mscx` (only MuseScore's random `<eid>` values differ), and their clean-directory renders are byte-identical, run to run and to a re-render of the previously accepted `.mscx` on the accepted fork build (`jims/main` 8a45729b72). Finding recorded honestly: the `initial-1.png` files committed at 2373bb1c7c predated the last two owner-gate render commits (26e0791d91 labels left, 8a45729b72 courtesy indicator) and no longer matched the accepted tip; they are refreshed here from the accepted build, and both the accepted-`.mscx` and the V3-round-trip renders hash to these files. The M2 12-TET pieces (`../m2-acceptance/*-12tet`) render deterministically on this build but their committed PNGs are M2-era history and are not comparable.
+
+| Piece | V3 timeline | Kernel `jims:change` |
+| --- | --- | --- |
+| `m5-mode` | measure 2: mode-rotation 0 to 5 | `kind` mode; `mode-change` Do (nGen -2) to La (nGen 1) |
+| `m5-key-up` | measure 2: reference key-number 62 to 55 | `kind` key; `key-change` n-per 0, n-gen 1, up |
+| `m5-key-down` | measure 2: 62 to 67 | `kind` key; `key-change` n-per -1, n-gen 1, down |
+| `m5-scale` | measure 2: collection-rotation 0 to -3 | `kind` scale; `scale-change` 0 to -3 |
+| `m5-key-mode` | measure 2: mode-rotation 0 to 5 and 62 to 53 | `kind` key, mode; `key-change` n-per -1, n-gen 3, up; `mode-change` Do to La |
+| `m5-syshead` | measure 6: mode-rotation 5 to 0 | `kind` mode; `mode-change` La (nGen 1) to Do (nGen -2) |

@@ -1,0 +1,61 @@
+{
+  "schema": "jims.musicxml-enrichment.v3",
+  "states": [
+    {
+      "measure_index": 1,
+      "state": {
+        "scale": [
+          "M2",
+          "m2",
+          "M2",
+          "M2",
+          "M2",
+          "m2",
+          "M2"
+        ],
+        "collection_rotation": 0,
+        "mode_rotation": 5,
+        "generator_cents": 700.0,
+        "period_cents": 1200.0,
+        "embedding": {
+          "large_steps": 5,
+          "small_steps": 2
+        },
+        "extent": {
+          "lower_do_register": 4,
+          "period_count": 1
+        },
+        "tonic_extent": "tonic-bounded",
+        "reference": "none"
+      }
+    },
+    {
+      "measure_index": 6,
+      "state": {
+        "scale": [
+          "M2",
+          "m2",
+          "M2",
+          "M2",
+          "M2",
+          "m2",
+          "M2"
+        ],
+        "collection_rotation": 0,
+        "mode_rotation": 0,
+        "generator_cents": 700.0,
+        "period_cents": 1200.0,
+        "embedding": {
+          "large_steps": 5,
+          "small_steps": 2
+        },
+        "extent": {
+          "lower_do_register": 4,
+          "period_count": 1
+        },
+        "tonic_extent": "tonic-bounded",
+        "reference": "none"
+      }
+    }
+  ]
+}

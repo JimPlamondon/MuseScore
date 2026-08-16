@@ -1,0 +1,28 @@
+{
+  "pieces": [
+    {
+      "piece": "m5-mode",
+      "timeline": "m5-mode/timeline.json"
+    },
+    {
+      "piece": "m5-key-up",
+      "timeline": "m5-key-up/timeline.json"
+    },
+    {
+      "piece": "m5-key-down",
+      "timeline": "m5-key-down/timeline.json"
+    },
+    {
+      "piece": "m5-scale",
+      "timeline": "m5-scale/timeline.json"
+    },
+    {
+      "piece": "m5-key-mode",
+      "timeline": "m5-key-mode/timeline.json"
+    },
+    {
+      "piece": "m5-syshead",
+      "timeline": "m5-syshead/timeline.json"
+    }
+  ]
+}
