@@ -839,22 +839,19 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
     std::vector<jims::LabeledDotStack> stacks;
     const bool haveLabels = jims::scaleDotLabels(m_jimsStateJson, stacks);
     if (haveLabels) {
-        // White members label LEFT of the dots, Grey (chromatic) members
-        // RIGHT (owner ruling 2026-08-16: too many collisions otherwise);
-        // which is which comes from the Kernel's notehead classification.
-        double widestLeft = 0.0;
-        double widestRight = 0.0;
+        // ALL labels sit LEFT of the dots (owner ruling 2026-08-16, second
+        // round: the two note-stacks must look as alike as possible — the
+        // interval pattern is the same, so the label-collision pattern
+        // should be the same too; moving Grey labels right emphasised
+        // difference). The right band stays zero.
+        double widest = 0.0;
         for (const jims::LabeledDotStack& stack : stacks) {
             for (const jims::LabeledDotMember& member : stack.members) {
-                String token;
-                const bool grey = jims::noteheadToken(m_jimsStateJson, member.nGen, token)
-                                  && token != u"conventional";
-                double& widest = grey ? widestRight : widestLeft;
                 widest = std::max(widest, fm.horizontalAdvance(member.label));
             }
         }
-        g.changeLabelBand = widestLeft > 0.0 ? widestLeft + gap : 0.0;
-        g.changeRightLabelBand = widestRight > 0.0 ? widestRight + gap : 0.0;
+        g.changeLabelBand = widest > 0.0 ? widest + gap : 0.0;
+        g.changeRightLabelBand = 0.0;
     }
     g.changeArrowLane = 1.2 * g.indicatorW;
     g.changeTerrainWidth = 0.3 * spatium + g.changeLabelBand + 2.0 * g.indicatorW

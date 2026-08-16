@@ -3066,9 +3066,9 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     painter->setPen(Pen(item->curColor(opt), item->style().styleMM(Sid::barWidth), PenStyle::SolidLine, PenCapStyle::FlatCap));
                     painter->drawLine(LineF(strokeX, yOf(frame.back().upperCents), strokeX, yOf(frame.front().lowerCents)));
 
-                    // Dots (Kernel notehead classes); White members label LEFT,
-                    // Grey (chromatic) members label RIGHT (owner ruling
-                    // 2026-08-16), decided by the Kernel's notehead class.
+                    // Dots (Kernel notehead classes); ALL labels LEFT of the dots
+                    // (owner ruling 2026-08-16: the change stack must look like
+                    // the header stack — same interval pattern, same collisions).
                     for (const jims::ChangeStack& stack : model.dotStacks) {
                       for (double stackCents : instancesOf(stack.members.front())) {
                         double dx = 0.0;
@@ -3078,7 +3078,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                             String token;
                             SymId dotSym = SymId::noteheadHalf;
                             const bool haveToken = jims::noteheadToken(changeSt->jimsStateJson(), member.nGen, token);
-                            const bool grey = haveToken && token != u"conventional";
+                            const bool grey = false; // all labels left (owner ruling); right band unused
                             if (font && haveToken) {
                                 if (token == u"triangle-vertex-up") {
                                     dotSym = SymId::noteheadTriangleUpBlack;
