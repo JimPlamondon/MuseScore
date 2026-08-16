@@ -1,6 +1,7 @@
 rank2_temperaments_fifth_octave.jpg — "Rank-2 temperaments with the generator
-close to a fifth and period an octave", by Jim Plamondon (Wikimedia Commons
-user JimPlamondon), own work, licensed CC BY-SA 4.0
-(https://creativecommons.org/licenses/by-sa/4.0/). Source:
-https://commons.wikimedia.org/wiki/File:Rank-2_temperaments_with_the_generator_close_to_a_fifth_and_period_an_octave.jpg
+close to a fifth and period an octave", by Prof. Andrew Milne and Jim Plamondon,
+licensed CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/).
+Source: https://commons.wikimedia.org/wiki/File:Rank-2_temperaments_with_the_generator_close_to_a_fifth_and_period_an_octave.jpg
+(the Commons page credits Plamondon alone as "own work"; per Plamondon
+2026-08-16 the figure is by Milne and Plamondon — attribution corrected here).
 Used as the JiMS Tuning panel's continuum figure (owner request 2026-08-16).

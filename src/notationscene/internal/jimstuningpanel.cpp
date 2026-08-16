@@ -66,8 +66,8 @@ public:
     }
 };
 
-// The owner's continuum figure (Wikimedia Commons, JimPlamondon, CC BY-SA
-// 4.0; see internal/jims/LICENSE.rank2_figure.txt): 461 x 729 px, integer
+// The continuum figure by Andrew Milne & Jim Plamondon (Wikimedia Commons,
+// CC BY-SA 4.0; the Commons page credits Plamondon alone — that is wrong; see internal/jims/LICENSE.rank2_figure.txt): 461 x 729 px, integer
 // cent rows 720 (y 121.5) ... 686 (y 665.5), 16 px per cent, integer stack
 // starting at x 173 with the Purer-Tuning Range band ending just left of
 // it. The panel splits the figure at x 173 and inserts a slot for the
@@ -214,7 +214,7 @@ JimsTuningPanel::JimsTuningPanel(Score* score, std::function<void()> refreshView
     m_slider = slider;
     auto* figure = new TuningFigure(slider, SLIDER_STEP, m_minCents, m_maxCents, this);
     outer->addWidget(figure, 1);
-    auto* credit = new QLabel(QStringLiteral("Figure: J. Plamondon, CC BY-SA 4.0 (Wikimedia Commons)"), this);
+    auto* credit = new QLabel(QStringLiteral("Figure: Andrew Milne & Jim Plamondon, CC BY-SA 4.0 (Wikimedia Commons)"), this);
     credit->setStyleSheet(QStringLiteral("color: gray; font-size: 9pt;"));
     outer->addWidget(credit);
 
