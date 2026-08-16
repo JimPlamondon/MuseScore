@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include "importmusicxmljims.h"
+
 #include "global/serialization/xmlstreamreader.h"
 #include "musicxmltupletstate.h"
 #include "musicxmlpart.h"
@@ -141,6 +143,7 @@ public:
     engraving::Err parse(const muse::ByteArray& data);
     engraving::Err parse();
     muse::String errors() const { return m_errors; }
+    const JimsImportContext& jims() const { return m_jims; }
     void scorePartwise();
     void identification();
     void credit(CreditWordsList& credits);
@@ -236,6 +239,7 @@ private:
     engraving::Score* m_score = nullptr;                    // MuseScore score
     MusicXmlLogger* m_logger = nullptr;              // Error logger
     muse::String m_errors;                             // Errors to present to the user
+    JimsImportContext m_jims;                    // JiMS namespace resolution (native JiMS import)
     bool m_hasBeamingInfo = false;               // Whether the score supports or contains beaming info
     bool m_hasInferredHeaderText = false;
 

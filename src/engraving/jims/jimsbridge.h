@@ -19,6 +19,12 @@ namespace mu::engraving::jims {
 /// Bridge availability: the linked C ABI answers version 1.
 bool available();
 
+// Native MusicXML import (owner decision 1a, 2026-08-16): ask the Kernel
+// whether a transcribed state JSON is a valid JiMStaffStateV2 (bridge op
+// `validate`); on rejection `error` carries the Kernel's message. The
+// importer computes no musical fact — the Kernel is the only gate.
+bool validateState(const muse::String& stateJson, muse::String& error);
+
 /// A note's cents above the staff's lower Do boundary, composed from the
 /// Kernel's note_placement (Do-relative ordinate + register) and the state's
 /// own period/extent values — projection only, no fact derivation.

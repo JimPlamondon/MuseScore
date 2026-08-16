@@ -2017,10 +2017,15 @@ Err MusicXmlParserPass2::parse(const ByteArray& data)
 Err MusicXmlParserPass2::parse()
 {
     bool found = false;
+    m_jims = m_pass1.jims();        // resolved JiMS prefix (native JiMS import); buffers fill below
+    m_jimsError = Err::NoError;
     while (m_e.readNextStartElement()) {
         if (m_e.name() == "score-partwise") {
             found = true;
             scorePartwise();
+            if (m_jimsError != Err::NoError) {
+                return m_jimsError;
+            }
         } else {
             m_logger->logError(u"this is not a MusicXML score-partwise file", &m_e);
             m_e.skipCurrentElement();
@@ -2429,6 +2434,17 @@ void MusicXmlParserPass2::part()
     }
 
     part->setShow(showPart);
+
+    // Native JiMS import: apply the buffered jims:staff-state timeline now
+    // that every stock handler for this part has run (first state -> JiMS
+    // StaffType at tick 0, later states -> StaffTypeChange carriers).
+    if (m_jims.statesFor(id)) {
+        const MusicXmlPart& jimsPart = m_pass1.getMusicXmlPart(id);
+        auto staffIndexForNumber = [&jimsPart](int number) { return jimsPart.staffNumberToIndex(number); };
+        if (!m_jims.applyToPart(m_score, part, id, staffIndexForNumber, m_logger)) {
+            m_jimsError = Err::FileBadFormat;
+        }
+    }
 
     addError(checkAtEndElement(m_e, u"part"));
 }
@@ -3100,10 +3116,39 @@ void MusicXmlParserPass2::attributes(const String& partId, Measure* measure, con
             time(partId, measure, tick);
         } else if (m_e.name() == "transpose") {
             m_e.skipCurrentElement();        // skip but don't log
+        } else if (m_jims.isJimsElement(m_e.name(), "staff-state")) {
+            jimsStaffState(partId, measure);
+        } else if (m_jims.isJimsElement(m_e.name(), "change")) {
+            m_e.skipCurrentElement();        // Kernel-written summary: the importer never reads it
         } else {
             skipLogCurrElem();
         }
     }
+}
+
+//---------------------------------------------------------
+//   jimsStaffState
+//---------------------------------------------------------
+
+/**
+ Parse a jims:staff-state (native JiMS import) into the Kernel's state JSON
+ and buffer it for the part; StaffType / StaffTypeChange construction happens
+ after normal part parsing (end of part()) so no later stock handler can
+ overwrite the JiMS staff type. A malformed state is a fatal import error.
+ */
+
+void MusicXmlParserPass2::jimsStaffState(const String& partId, Measure* measure)
+{
+    String json;
+    String error;
+    int staffNumber = 0;
+    if (!m_jims.parseStaffState(m_e, json, staffNumber, error)) {
+        LOGE() << "JiMS MusicXML import: " << error;
+        m_logger->logError(error, &m_e);
+        m_jimsError = Err::FileBadFormat;
+        return;
+    }
+    m_jims.buffer(partId, measure ? measure->tick() : Fraction(0, 1), staffNumber, json);
 }
 
 //---------------------------------------------------------
@@ -6975,10 +7020,18 @@ Note* MusicXmlParserPass2::note(const String& partId,
 
     MusicXmlNoteDuration mnd { m_divs, m_logger, &m_pass1 };
     MusicXmlNotePitch mnp { m_logger };
+    bool hasJimsPitch = false;      // native JiMS import: jims:pitch identity
+    int jimsNPer = 0;
+    int jimsNGen = 0;
 
     while (m_e.readNextStartElement()) {
         if (mnp.readProperties(m_e, m_score)) {
             // element handled
+        } else if (m_jims.isJimsElement(m_e.name(), "pitch")) {
+            hasJimsPitch = m_e.hasAttribute("n-per") && m_e.hasAttribute("n-gen");
+            jimsNPer = m_e.intAttribute("n-per");
+            jimsNGen = m_e.intAttribute("n-gen");
+            m_e.skipCurrentElement();
         } else if (mnd.readProperties(m_e)) {
             // element handled
         } else if (m_e.name() == "accidental") {
@@ -7205,6 +7258,9 @@ Note* MusicXmlParserPass2::note(const String& partId,
             xmlSetDrumsetPitch(note, c, st, mnp.displayStep(), mnp.displayOctave(), headGroup, stemDir, instrument);
         } else {
             setPitch(note, instruments, instrumentId, mnp, octaveShift, instrument);
+        }
+        if (hasJimsPitch) {
+            note->setJimsPitch(jimsNPer, jimsNGen);       // Kernel identity, transcribed verbatim
         }
         c->add(note);
         cr = c;

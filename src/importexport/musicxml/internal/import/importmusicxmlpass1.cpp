@@ -1313,6 +1313,13 @@ Err MusicXmlParserPass1::parse()
     while (m_e.readNextStartElement()) {
         if (m_e.name() == "score-partwise") {
             found = true;
+            // Native JiMS import: resolve the JiMS namespace prefix from the
+            // root's xmlns:* bindings (pugixml is not namespace-aware); an
+            // unsupported JiMS version refuses the import.
+            if (m_jims.resolveFromRoot(m_e.attributes(), m_logger, &m_e) != Err::NoError) {
+                m_e.skipCurrentElement();
+                return Err::FileBadFormat;
+            }
             scorePartwise();
         } else {
             m_logger->logError(String(u"this is not a MusicXML score-partwise file (top-level node '%1')")

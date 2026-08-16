@@ -47,6 +47,24 @@ bool available()
     return jims_musescore_bridge_abi_version() == 2;
 }
 
+bool validateState(const String& stateJson, String& error)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"validate\",\"state\":%1}").arg(stateJson);
+    const String response = callBridge(envelope);
+    std::string err;
+    JsonDocument doc = JsonDocument::fromJson(response.toUtf8(), &err);
+    if (!err.empty()) {
+        error = String(u"bridge returned no JSON");
+        return false;
+    }
+    JsonObject root = doc.rootObject();
+    if (root.value("ok").toBool()) {
+        return true;
+    }
+    error = root.value("error").toString();
+    return false;
+}
+
 bool noteCentsAboveDo(const String& stateJson, int nPer, int nGen, double& cents)
 {
     // The staff-frame projection is Kernel-owned end to end: one op, no

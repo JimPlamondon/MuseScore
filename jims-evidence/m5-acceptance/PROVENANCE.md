@@ -41,3 +41,7 @@ Round-trip evidence: the regenerated `.mscx` files carry state JSON identical to
 | `m5-scale` | measure 2: collection-rotation 0 to -3 | `kind` scale; `scale-change` 0 to -3 |
 | `m5-key-mode` | measure 2: mode-rotation 0 to 5 and 62 to 53 | `kind` key, mode; `key-change` n-per -1, n-gen 3, up; `mode-change` Do to La |
 | `m5-syshead` | measure 6: mode-rotation 5 to 0 | `kind` mode; `mode-change` La (nGen 1) to Do (nGen -2) |
+
+## Native import (2026-08-16, owner decision 1a)
+
+The fork's own MusicXML importer now reads the JiMS profile directly (`src/importexport/musicxml/internal/import/importmusicxmljims.{h,cpp}`, wired into pass 1 for namespace resolution and pass 2 for `jims:staff-state` / `jims:pitch`): opening any of the six `enriched.musicxml` files in MuseScore builds the JiMStaff — the same StaffType / StaffTypeChange / note identities the converter produces — and renders byte-identical to `initial-1.png`. The converter `tools/jims/enriched_to_jims_mscx.py` remains as a fixture tool and cross-check (its unit tests still pass); `jims:change` is never read by either path.
