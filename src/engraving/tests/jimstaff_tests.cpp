@@ -1496,9 +1496,10 @@ TEST(JiMStaffTests, changeIndicatorTransportCarriesTheKernelTerrainVerbatim)
     EXPECT_FALSE(jims::changeIndicator(u"{nope", newS, bad));
     jims::ConnectorGlyph head;
     ASSERT_TRUE(jims::connectorGlyph(head));
-    EXPECT_GT(head.penCents, 0.0);
-    EXPECT_LT(head.penCents, 10.0);
-    EXPECT_GT(head.headHeightCents, 0.0);
+    // Owner ruling at the gate (2026-08-16): heavier than the tonic
+    // indicator's 10-cent pen, with a large head.
+    EXPECT_GT(head.penCents, 10.0);
+    EXPECT_GE(head.headHeightCents, 100.0);
 }
 
 // (b) Mid-system only: the collision-based pieces carry their change at

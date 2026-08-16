@@ -3119,10 +3119,13 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                         const double pen = head.penCents / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * dist;
                         const double hh = head.headHeightCents / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * dist;
                         const double hw = head.headHalfWidthCents / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * dist;
+                        // Owner ruling (M5 gate, 2026-08-16): arrows in black ink,
+                        // heavier than the tonic indicator, large head.
+                        const Color arrowInk = item->selected() ? item->curColor(opt) : Color(0, 0, 0);
                         for (const jims::ChangeArrow& a : model.arrows) {
                             const double yFrom = yOf(centsOf(a.from));
                             const double yTo = yOf(centsOf(a.to));
-                            painter->setPen(Pen(item->curColor(opt), pen, PenStyle::SolidLine, PenCapStyle::FlatCap));
+                            painter->setPen(Pen(arrowInk, pen, PenStyle::SolidLine, PenCapStyle::RoundCap));
                             painter->drawLine(LineF(arrowX, yFrom, arrowX, yTo));
                             // Open V head at the `to` end, strokes running back along the shaft.
                             const double back = a.up ? hh : -hh; // toward `from`
