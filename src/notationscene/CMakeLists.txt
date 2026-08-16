@@ -20,6 +20,9 @@
 
 muse_create_module(notationscene)
 
+# JiMS Tuning panel continuum figure (owner's own CC BY-SA 4.0 figure).
+muse_module_add_qrc(notationscene jims_tuning.qrc)
+
 target_sources(notationscene PRIVATE
     notationscenemodule.cpp
     notationscenemodule.h

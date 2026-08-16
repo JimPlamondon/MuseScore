@@ -1657,6 +1657,13 @@ public:
     int string = 0;
     EditMode mode = EditMode_Undefined;
     PointF delta;
+    // JiMStaff: the note's cents at drag START — the anchor every drag
+    // event measures from (M4 gate finding, 2026-08-16). Applying the
+    // total offset to the CURRENT cents compounded on every event.
+    double jimsStartCents = 0.0;
+    int jimsStartNPer = 0;
+    int jimsStartNGen = 0;
+    bool jimsStartValid = false;
 
     virtual EditDataType type() override { return EditDataType::NoteEditData; }
 
@@ -2744,6 +2751,22 @@ void Note::startDrag(EditData& ed)
     ned->pushProperty(Pid::FRET);
     ned->pushProperty(Pid::STRING);
 
+    // JiMStaff M4 (gate findings 1 and 4): record the lattice identity in
+    // the drag's undo data (Cmd-Z must restore what the JiMStaff draws,
+    // not only the stock pitch), anchor the drag at the start cents, and
+    // freeze the stave stack for the drag.
+    if (const StaffType* jimsSt = staffType(); jimsSt && jimsSt->isJiMS()) {
+        ned->pushProperty(Pid::JIMS_NPER);
+        ned->pushProperty(Pid::JIMS_NGEN);
+        if (hasJimsPitch() && m_jimsCentsValid) {
+            ned->jimsStartCents = m_jimsCentsAboveDo;
+            ned->jimsStartNPer = m_jimsNPer;
+            ned->jimsStartNGen = m_jimsNGen;
+            ned->jimsStartValid = true;
+        }
+        jimsSt->jimsSetFrameFrozen(true);
+    }
+
     ed.addData(ned);
 }
 
@@ -2796,6 +2819,13 @@ void Note::endDrag(EditData& ed)
             score()->undoPropertyChanged(nn, id, data);
         }
     }
+
+    // JiMStaff M4 (gate finding 1): unfreeze and let the drop's layout
+    // re-derive the stave stack exactly once.
+    if (const StaffType* jimsSt = staffType(); jimsSt && jimsSt->isJiMS()) {
+        jimsSt->jimsSetFrameFrozen(false);
+        triggerLayout();
+    }
 }
 
 //---------------------------------------------------------
@@ -2844,13 +2874,15 @@ void Note::verticalDrag(EditData& ed)
     // exact-midpoint ties) and supplies the compatibility spelling.
     {
         const StaffType* jimsSt = staffType();
-        if (jimsSt && jimsSt->isJiMS() && hasJimsPitch() && m_jimsCentsValid) {
+        if (jimsSt && jimsSt->isJiMS() && hasJimsPitch() && ned && ned->jimsStartValid) {
             const double centsPerSp = StaffType::JIMS_CENTS_PER_LINE_DISTANCE
                                       / (spatium() * jimsSt->lineDistance().val());
-            const double targetCents = m_jimsCentsAboveDo - ed.moveDelta.y() * centsPerSp;
+            // Anchor at the drag-START cents: the total pointer offset
+            // maps to one target, however many events arrive.
+            const double targetCents = ned->jimsStartCents - ed.moveDelta.y() * centsPerSp;
             jims::PitchHit hit;
             if (jims::nearestPitch(jimsSt->jimsStateJson(), targetCents,
-                                   true, m_jimsNPer, m_jimsNGen, hit)) {
+                                   true, ned->jimsStartNPer, ned->jimsStartNGen, hit)) {
                 if (hit.nPer != m_jimsNPer || hit.nGen != m_jimsNGen) {
                     const int newPitch = std::clamp(
                         (hit.octave + 1) * 12 + step2pitch(int(muse::String(u"CDEFGAB").indexOf(muse::Char(hit.step)))) + hit.alter,

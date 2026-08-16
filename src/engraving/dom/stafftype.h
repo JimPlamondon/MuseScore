@@ -306,6 +306,13 @@ public:
     // binding requirement 12). Returns 0.0 if the Kernel rejects the
     // state; callers treat that as "no frame", never as a default.
     double jimsPeriodCents() const;
+    // Drag freeze (M4 gate finding 1, 2026-08-16): while a note is being
+    // dragged the frame must NOT re-derive — growing the stack under the
+    // pointer shifts the note and the view, feeding the drag delta back
+    // into itself. Frozen from Note::startDrag to Note::endDrag; the
+    // drop re-derives once. Presentation state, mutable like the cache.
+    void jimsSetFrameFrozen(bool frozen) const { m_jimsFrameFrozen = frozen; }
+    bool jimsFrameFrozen() const { return m_jimsFrameFrozen; }
     void jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const;
     String tabBassStringPrefix(int strg, bool* hasFret) const;   // return a string with the prefix, if any, identifying a bass string
     int     numOfTabLedgerLines(int string) const;
@@ -427,6 +434,7 @@ private:
     bool m_jimsJiLines = false;
     JimsScaleDotLabelMode m_jimsScaleDotLabelMode = JimsScaleDotLabelMode::Auto;
     mutable muse::String m_jimsFrameKey;
+    mutable bool m_jimsFrameFrozen = false;
     mutable std::vector<JimsSegment> m_jimsFrameSegments;
 
     bool m_showBarlines = true;

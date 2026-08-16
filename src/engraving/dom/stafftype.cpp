@@ -889,6 +889,12 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
     if (!isJiMS() || !score) {
         return;
     }
+    // Mid-drag: keep the frame the drag started with (see
+    // jimsSetFrameFrozen); the dragged note may draw past the frozen
+    // edge as transient feedback, and the drop re-derives once.
+    if (m_jimsFrameFrozen && !m_jimsFrameSegments.empty()) {
+        return;
+    }
     muse::String melody = u"{\"notes\":[";
     bool first = true;
     for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;

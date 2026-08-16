@@ -18,6 +18,7 @@
 
 #include "engraving/dom/masterscore.h"
 #include "engraving/editing/undo.h"
+#include "engraving/editing/editdata.h"
 #include "engraving/dom/measure.h"
 #include "engraving/dom/chord.h"
 #include "engraving/dom/note.h"
@@ -1120,6 +1121,144 @@ TEST(JiMStaffTests, labelsEnabledControllerSweepHasNoStaleLabels)
         st->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Auto);
         delete score;
     }
+}
+
+// M4 gate finding 1 (Jim, 2026-08-16): dragging a note above the stave
+// grew the stack on every pointer move; the layout shifted the note
+// under the pointer and the view auto-scrolled, so each move enlarged
+// the next delta — a runaway until release. The frame is FROZEN for the
+// duration of a drag (the dragged note may draw beyond the frozen stave
+// as transient feedback) and re-derives exactly once on drop.
+TEST(JiMStaffTests, frameStaysFrozenDuringNoteDragAndRederivesOnDrop)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    const Segs base = frameOf(score);
+    Note* top = highestJimsNote(score);
+    ASSERT_TRUE(top);
+    const double sp = score->style().spatium();
+
+    EditData ed(nullptr);
+    EngravingItem* dragged = top;
+    dragged->startDrag(ed);
+    // Simulate a vertical drag of ~three periods (36 staff spaces at
+    // 100 cents per line distance), in steps, laying out after each as
+    // the interaction does.
+    for (int step = 1; step <= 6; ++step) {
+        ed.evtDelta = PointF(0.0, -6.0 * sp);
+        ed.moveDelta = PointF(0.0, -6.0 * sp * step);
+        dragged->drag(ed);
+        score->doLayout();
+        EXPECT_TRUE(sameFrame(frameOf(score), base))
+            << "frame must not change mid-drag (step " << step << ")";
+    }
+    dragged->endDrag(ed);
+    score->doLayout();
+    const Segs dropped = frameOf(score);
+    EXPECT_FALSE(sameFrame(dropped, base)) << "frame must re-derive on drop";
+    EXPECT_GT(dropped.size(), base.size());
+    EXPECT_TRUE(sameFrame(dropped, kernelFrameFor(score))) << "fork frame != Kernel after drop";
+    delete score;
+}
+
+// M4 gate finding 1, second round (Jim, 2026-08-16): the runaway was the
+// NOTE, not the frame — the JiMS drag applied the total pointer offset
+// to the note's CURRENT cents, so every drag event (even with the
+// pointer still) compounded the move. The drag must anchor at the cents
+// captured at drag start, like stock MuseScore anchors at the start line.
+TEST(JiMStaffTests, noteDragAnchorsAtStartCentsAndNeverCompounds)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    Note* top = highestJimsNote(score);
+    ASSERT_TRUE(top);
+    const StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
+    const double sp = score->style().spatium();
+    const int nPer0 = top->jimsNPer();
+    const int nGen0 = top->jimsNGen();
+    double c0 = 0.0;
+    ASSERT_TRUE(jims::noteCentsAboveDo(st->jimsStateJson(), nPer0, nGen0, c0));
+
+    EditData ed(nullptr);
+    EngravingItem* dragged = top;
+    dragged->startDrag(ed);
+    // One period up = 12 line distances = 12 sp at 100 cents per line.
+    ed.evtDelta = PointF(0.0, -12.0 * sp);
+    ed.moveDelta = PointF(0.0, -12.0 * sp);
+    dragged->drag(ed);
+    score->doLayout();
+    const int nPer1 = top->jimsNPer();
+    const int nGen1 = top->jimsNGen();
+    double c1 = 0.0;
+    ASSERT_TRUE(jims::noteCentsAboveDo(st->jimsStateJson(), nPer1, nGen1, c1));
+    EXPECT_NEAR(c1 - c0, 1200.0, 60.0) << "first event moves the note about one period";
+
+    // Five more events with the SAME total offset and no pointer motion:
+    // the note must stay put.
+    for (int i = 0; i < 5; ++i) {
+        ed.evtDelta = PointF(0.0, 0.0);
+        ed.moveDelta = PointF(0.0, -12.0 * sp);
+        dragged->drag(ed);
+        score->doLayout();
+        EXPECT_EQ(top->jimsNPer(), nPer1) << "event " << i << " compounded the drag (nPer)";
+        EXPECT_EQ(top->jimsNGen(), nGen1) << "event " << i << " compounded the drag (nGen)";
+    }
+    // Dragging back to zero offset returns to the start identity.
+    ed.moveDelta = PointF(0.0, 0.0);
+    dragged->drag(ed);
+    score->doLayout();
+    EXPECT_EQ(top->jimsNPer(), nPer0);
+    EXPECT_EQ(top->jimsNGen(), nGen0);
+    dragged->endDrag(ed);
+    delete score;
+}
+
+// M4 gate finding 4 (Jim, 2026-08-16): Cmd-Z after a drag did nothing.
+// The drag's undo record covered PITCH/TPC but not the JiMS lattice
+// identity the JiMStaff actually draws. Undo must restore identity AND
+// the stave stack; redo must re-apply both.
+TEST(JiMStaffTests, dragIsUndoableIncludingLatticeIdentityAndFrame)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    const Segs base = frameOf(score);
+    Note* top = highestJimsNote(score);
+    ASSERT_TRUE(top);
+    const int nPer0 = top->jimsNPer(), nGen0 = top->jimsNGen();
+    const int pitch0 = top->pitch();
+    const double sp = score->style().spatium();
+
+    EditData ed(nullptr);
+    EngravingItem* dragged = top;
+    score->startCmd(TranslatableString::untranslatable("JiMS test drag"));
+    dragged->startDrag(ed);
+    ed.evtDelta = PointF(0.0, -24.0 * sp);
+    ed.moveDelta = PointF(0.0, -24.0 * sp);      // two periods up
+    dragged->drag(ed);
+    dragged->endDrag(ed);
+    score->endCmd();
+    score->doLayout();
+    ASSERT_NE(top->jimsNPer(), nPer0) << "the drag must have moved the note";
+    const int nPer1 = top->jimsNPer(), nGen1 = top->jimsNGen();
+    const Segs grown = frameOf(score);
+    ASSERT_FALSE(sameFrame(grown, base));
+
+    score->undoRedo(true, nullptr);
+    score->doLayout();
+    EXPECT_EQ(top->jimsNPer(), nPer0) << "undo must restore the lattice identity";
+    EXPECT_EQ(top->jimsNGen(), nGen0);
+    EXPECT_EQ(top->pitch(), pitch0);
+    EXPECT_TRUE(sameFrame(frameOf(score), base)) << "undo must restore the stave stack";
+
+    score->undoRedo(false, nullptr);
+    score->doLayout();
+    EXPECT_EQ(top->jimsNPer(), nPer1) << "redo must re-apply the drag";
+    EXPECT_EQ(top->jimsNGen(), nGen1);
+    EXPECT_TRUE(sameFrame(frameOf(score), grown));
+    delete score;
 }
 
 // Milestone 4 Phase 5: a wide melody (several stacked segments) swept

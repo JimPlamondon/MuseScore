@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/jims">
+        <file>internal/jims/rank2_temperaments_fifth_octave.jpg</file>
+    </qresource>
+</RCC>

@@ -21,6 +21,8 @@
  */
 #include "notationscenemodule.h"
 
+#include <QtGlobal>
+
 #include "modularity/ioc.h"
 #include "ui/iinteractiveuriregister.h"
 #include "ui/iuiactionsregister.h"
@@ -54,6 +56,18 @@ using namespace muse::uicomponents;
 std::string NotationSceneModule::moduleName() const
 {
     return "notationscene";
+}
+
+static void notationscene_init_qrc()
+{
+    // JiMS Tuning panel continuum figure (owner's CC BY-SA 4.0 figure);
+    // static-lib modules must initialise their qrc explicitly.
+    Q_INIT_RESOURCE(jims_tuning);
+}
+
+void NotationSceneModule::registerResources()
+{
+    notationscene_init_qrc();
 }
 
 void NotationSceneModule::registerExports()
