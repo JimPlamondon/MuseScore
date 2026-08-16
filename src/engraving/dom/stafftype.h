@@ -265,7 +265,8 @@ public:
         // Milestone 5 change-indicator terrain (mid-system, after the
         // barline): label band (always present in the terrain, labels sit
         // LEFT of the dots) + dot column + arrow lane + closing stroke.
-        double changeLabelBand = 0.0;
+        double changeLabelBand = 0.0;        // White-member labels, LEFT of the dots
+        double changeRightLabelBand = 0.0;   // Grey (chromatic) labels, RIGHT of the dots (owner 2026-08-16)
         double changeArrowLane = 0.0;
         double changeTerrainWidth = 0.0;
     };

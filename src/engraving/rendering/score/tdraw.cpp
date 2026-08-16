@@ -21,6 +21,8 @@
  */
 #include "tdraw.h"
 
+#include <algorithm>
+
 #include "../../jims/jimsbridge.h"
 #include "../../jims/jimschange.h"
 
@@ -3022,12 +3024,37 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     const double x0 = item->pos().x();
                     const double labelRight = x0 + 0.3 * _spatium + g.changeLabelBand;
                     const double dotCenterX = labelRight + indicatorW;
-                    const double arrowX = dotCenterX + indicatorW + g.changeArrowLane / 2.0;
+                    const double rightLabelLeft = dotCenterX + indicatorW;                 // Grey labels start here
+                    const double arrowX = rightLabelLeft + g.changeRightLabelBand + g.changeArrowLane / 2.0;
                     const double strokeX = x0 + g.changeTerrainWidth;
                     // Period 0 of the model = the lowest period of the stave stack.
                     const double basePeriod = std::floor(frame.front().lowerCents / periodCents + 1e-6) * periodCents;
                     auto centsOf = [&](const jims::ChangePoint& p) {
                         return basePeriod + (p.periodOffset + p.ordinate) * periodCents;
+                    };
+                    // A scale-change stack is a HEADER stack: like the system
+                    // header it is instantiated in every period of the stave
+                    // stack, boundary-inclusive (M3 ruling: the top Do-line
+                    // always carries its dot and indicator). Arrow endpoints
+                    // (key/mode) are single glyphs at their model position.
+                    const bool scaleKind = std::find(model.kinds.begin(), model.kinds.end(), u"scale") != model.kinds.end();
+                    const double eps = 1e-6;
+                    auto instancesOf = [&](const jims::ChangePoint& p) {
+                        std::vector<double> out;
+                        if (!scaleKind) {
+                            out.push_back(centsOf(p));
+                            return out;
+                        }
+                        for (const StaffType::JimsSegment& segment : frame) {
+                            const double segBase = std::floor(segment.lowerCents / periodCents + eps) * periodCents;
+                            for (double period = segBase; period <= segment.upperCents + eps; period += periodCents) {
+                                const double c = period + p.ordinate * periodCents;
+                                if (c >= segment.lowerCents - eps && c <= segment.upperCents + eps) {
+                                    out.push_back(c);
+                                }
+                            }
+                        }
+                        return out;
                     };
                     const IEngravingFontPtr font = item->score()->engravingFont();
                     Font labelFont(u"Edwin", Font::Type::Text);
@@ -3039,14 +3066,20 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     painter->setPen(Pen(item->curColor(opt), item->style().styleMM(Sid::barWidth), PenStyle::SolidLine, PenCapStyle::FlatCap));
                     painter->drawLine(LineF(strokeX, yOf(frame.back().upperCents), strokeX, yOf(frame.front().lowerCents)));
 
-                    // Dots (Kernel notehead classes) with labels left.
+                    // Dots (Kernel notehead classes); White members label LEFT,
+                    // Grey (chromatic) members label RIGHT (owner ruling
+                    // 2026-08-16), decided by the Kernel's notehead class.
                     for (const jims::ChangeStack& stack : model.dotStacks) {
+                      for (double stackCents : instancesOf(stack.members.front())) {
                         double dx = 0.0;
                         String text;
+                        String rightText;
                         for (const jims::ChangePoint& member : stack.members) {
                             String token;
                             SymId dotSym = SymId::noteheadHalf;
-                            if (font && jims::noteheadToken(changeSt->jimsStateJson(), member.nGen, token)) {
+                            const bool haveToken = jims::noteheadToken(changeSt->jimsStateJson(), member.nGen, token);
+                            const bool grey = haveToken && token != u"conventional";
+                            if (font && haveToken) {
                                 if (token == u"triangle-vertex-up") {
                                     dotSym = SymId::noteheadTriangleUpBlack;
                                 } else if (token == u"triangle-vertex-down") {
@@ -3067,27 +3100,36 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                 }
                                 painter->setPen(Pen(item->curColor(opt), item->lw()));
                                 font->draw(dotSym, painter, 1.0,
-                                           PointF(dotCenterX - gb.width() / 2.0 + dx, yOf(centsOf(member)) + centroidDy));
+                                           PointF(dotCenterX - gb.width() / 2.0 + dx, yOf(stackCents) + centroidDy));
                                 dx += 0.15 * _spatium;
                             }
-                            if (!text.isEmpty()) {
-                                text += u" ";
+                            String& side = grey ? rightText : text;
+                            if (!side.isEmpty()) {
+                                side += u" ";
                             }
-                            text += member.label;
+                            side += member.label;
                         }
+                        const double cy = yOf(stackCents);
                         if (!text.isEmpty()) {
                             RectF tb = fm.boundingRect(text);
-                            const double cy = yOf(centsOf(stack.members.front()));
                             painter->setFont(labelFont);
                             painter->setPen(Pen(item->curColor(opt)));
                             painter->drawText(PointF(labelRight - gap - tb.width(), cy - (tb.top() + tb.bottom()) / 2.0), text);
                         }
+                        if (!rightText.isEmpty()) {
+                            RectF tb = fm.boundingRect(rightText);
+                            painter->setFont(labelFont);
+                            painter->setPen(Pen(item->curColor(opt)));
+                            painter->drawText(PointF(rightLabelLeft + gap, cy - (tb.top() + tb.bottom()) / 2.0), rightText);
+                        }
+                      }
                     }
                     // Tonic indicators (settled §3.3 construction) with labels
                     // left when no dot already labels that row.
                     for (const jims::ChangePoint& tp : model.tonicIndicators) {
+                      for (double tpCents : instancesOf(tp)) {
                         const double h = 1.15 * dist + 0.025 * dist;
-                        const double cy = yOf(centsOf(tp));
+                        const double cy = yOf(tpCents);
                         PainterPath ring;
                         ring.moveTo(dotCenterX, cy - h);
                         ring.lineTo(dotCenterX + h, cy);
@@ -3111,6 +3153,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                             painter->setPen(Pen(item->curColor(opt)));
                             painter->drawText(PointF(labelRight - gap - tb.width(), cy - (tb.top() + tb.bottom()) / 2.0), tp.label);
                         }
+                      }
                     }
                     // Arrows in the arrow lane: shaft between endpoint centroids,
                     // Kernel connector head at the `to` end.

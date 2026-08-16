@@ -839,17 +839,26 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
     std::vector<jims::LabeledDotStack> stacks;
     const bool haveLabels = jims::scaleDotLabels(m_jimsStateJson, stacks);
     if (haveLabels) {
-        double widest = 0.0;
+        // White members label LEFT of the dots, Grey (chromatic) members
+        // RIGHT (owner ruling 2026-08-16: too many collisions otherwise);
+        // which is which comes from the Kernel's notehead classification.
+        double widestLeft = 0.0;
+        double widestRight = 0.0;
         for (const jims::LabeledDotStack& stack : stacks) {
             for (const jims::LabeledDotMember& member : stack.members) {
+                String token;
+                const bool grey = jims::noteheadToken(m_jimsStateJson, member.nGen, token)
+                                  && token != u"conventional";
+                double& widest = grey ? widestRight : widestLeft;
                 widest = std::max(widest, fm.horizontalAdvance(member.label));
             }
         }
-        g.changeLabelBand = widest + gap;
+        g.changeLabelBand = widestLeft > 0.0 ? widestLeft + gap : 0.0;
+        g.changeRightLabelBand = widestRight > 0.0 ? widestRight + gap : 0.0;
     }
     g.changeArrowLane = 1.2 * g.indicatorW;
     g.changeTerrainWidth = 0.3 * spatium + g.changeLabelBand + 2.0 * g.indicatorW
-                           + g.changeArrowLane + 0.3 * spatium;
+                           + g.changeRightLabelBand + g.changeArrowLane + 0.3 * spatium;
 
     const JimsScaleDotLabelMode mode = jimsResolvedScaleDotLabelMode();
     if (mode == JimsScaleDotLabelMode::None || !haveLabels) {
