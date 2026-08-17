@@ -438,7 +438,7 @@ void JimsTuningPanel::syncChangeSection()
         m_keyClassNGens.push_back(k.nGen);
     }
     for (int i = 0; i < int(m_keyClassNGens.size()); ++i) {
-        if (m_keyClassNGens[i] == 1) {           // La — the owner's worked example
+        if (m_keyClassNGens[i] == 3) {           // La (Do-relative: Do+3 generators) — the owner's worked example
             m_keyClassCombo->setCurrentIndex(i);
         }
     }
