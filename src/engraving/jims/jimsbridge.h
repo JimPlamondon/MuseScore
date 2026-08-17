@@ -130,7 +130,11 @@ struct ChangeIndicator {
     std::vector<ChangeArrow> arrows;
     bool empty() const { return kinds.empty(); }
 };
-bool changeIndicator(const muse::String& oldStateJson, const muse::String& newStateJson, ChangeIndicator& out);
+/// `error` (optional) receives the Kernel's reason when no indicator can be
+/// derived (e.g. an unrecoverable reference pair) — the panel shows it so a
+/// change that draws nothing is never silent.
+bool changeIndicator(const muse::String& oldStateJson, const muse::String& newStateJson, ChangeIndicator& out,
+                     muse::String* error = nullptr);
 struct ConnectorGlyph {
     double penCents = 0.0;
     double headHeightCents = 0.0;

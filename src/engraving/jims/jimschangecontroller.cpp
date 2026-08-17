@@ -138,6 +138,60 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Str
     Staff* staff = score->staff(staffIdx);
     const bool origin = measure->tick().isZero();
     const bool hasCarrier = changeCarrier(measure, staffIdx) != nullptr;
+    if (choiceId.startsWith(u"bind:")) {
+        // Binding Re0 names what the staff's reference IS — a staff-wide
+        // fact, not a per-bar change (M6 gate finding, 2026-08-17: binding
+        // at a change bar left the base unbound, so later key changes had
+        // no anchor and drew no indicator). Apply the same Kernel choice to
+        // the base staff type and to every carrier on this staff whose
+        // state the Kernel reports as unbound; bound carriers (key changes)
+        // keep their own reference. One undo step; no carrier is created.
+        std::vector<std::pair<Fraction, String> > edits;
+        auto consider = [&](const StaffType* st, const Fraction& tick) {
+            if (!st || !st->isJiMS()) {
+                return true;
+            }
+            StateChangeOptions opts;
+            if (!stateChangeOptions(st->jimsStateJson(), opts)) {
+                return true;
+            }
+            if (opts.referenceBound) {
+                return true;
+            }
+            String bound;
+            String err;
+            if (!applyStateChange(st->jimsStateJson(), choiceId, bound, err)) {
+                error = err;
+                return false;
+            }
+            if (bound != st->jimsStateJson()) {
+                edits.emplace_back(tick, bound);
+            }
+            return true;
+        };
+        if (!consider(staff->staffType(Fraction(0, 1)), Fraction(0, 1))) {
+            return false;
+        }
+        for (const Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
+            if (m->tick().isZero()) {
+                continue;
+            }
+            if (const StaffTypeChange* c = changeCarrier(m, staffIdx)) {
+                if (!consider(c->staffType(), m->tick())) {
+                    return false;
+                }
+            }
+        }
+        if (edits.empty()) {
+            return true;
+        }
+        score->startCmd(TranslatableString("undoableAction", "Bind JiMS reference"));
+        for (const auto& e : edits) {
+            score->undo(new JimsChangeStateAt(staff, e.first, e.second));
+        }
+        score->endCmd();
+        return true;
+    }
     score->startCmd(TranslatableString("undoableAction", "Insert JiMS change"));
     if (origin || hasCarrier) {
         // The base type (origin) or the carrier's copy in the staff list is

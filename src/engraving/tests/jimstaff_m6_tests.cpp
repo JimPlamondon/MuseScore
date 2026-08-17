@@ -284,16 +284,25 @@ TEST(JiMStaffTests, m6ChangeControllerAuthorsCarriersFromKernelStates)
     ASSERT_TRUE(stc);
     EXPECT_TRUE(stc->staffType()->jimsStateJson().contains(u"\"key_number\":53"));
     EXPECT_TRUE(stc->staffType()->jimsStateJson().contains(u"\"mode_rotation\":5"));
-    // The base staff type is untouched: the change is carried at the measure only.
+    // The base staff type keeps its mode: the mode/key change is carried at
+    // the measure only — but the BIND is staff-wide (a reference names what
+    // the staff's Re0 is), so the base is now bound to 62 as well.
     EXPECT_TRUE(jimsStaffType(score)->jimsStateJson().contains(u"\"mode_rotation\":0"));
+    EXPECT_TRUE(jimsStaffType(score)->jimsStateJson().contains(u"\"key_number\":62"));
     // Compounded from the carrier: options now report La as current.
     ASSERT_TRUE(jims::changeOptions(score, 0, m2, options));
     EXPECT_TRUE(options.tonics[5].current);
     EXPECT_TRUE(options.referenceBound);
-    // The indicator is the owner's worked example only if the base state
-    // also binds 62 — here the base is reference-none, so the Kernel reports
-    // the reference forms as unrecoverable; the controller must still have
-    // produced exactly the states it was given (no fork-side arithmetic).
+    // With the base bound, the indicator at m2 is the owner's worked
+    // example (kinds key, mode) — binding at the change bar no longer
+    // leaves it silently undrawable.
+    {
+        jims::ChangeIndicator model;
+        ASSERT_TRUE(jims::midSystemChangeIndicator(m2, 0, model));
+        ASSERT_EQ(model.kinds.size(), 2u);
+        EXPECT_EQ(model.kinds[0], muse::String(u"key"));
+        EXPECT_EQ(model.kinds[1], muse::String(u"mode"));
+    }
     // Remove: carrier gone; undo brings it back with the last state.
     ASSERT_TRUE(jims::removeChange(score, 0, m2, error)) << error.toStdString();
     score->doLayout();

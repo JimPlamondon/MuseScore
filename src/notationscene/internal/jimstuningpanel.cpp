@@ -33,6 +33,8 @@
 #include "engraving/dom/measure.h"
 #include "engraving/dom/score.h"
 #include "engraving/dom/segment.h"
+#include "engraving/dom/staff.h"
+#include "engraving/dom/stafftype.h"
 #include "engraving/dom/select.h"
 #include "engraving/jims/jimsbridge.h"
 #include "engraving/jims/jimschange.h"
@@ -382,9 +384,33 @@ void JimsTuningPanel::syncChangeSection()
         return;
     }
     const bool hasCarrier = jims::changeCarrier(measure, staffIdx) != nullptr;
+    QString carrierNote;
+    if (hasCarrier && !measure->tick().isZero()) {
+        // Say what the Kernel derives from (state before, state here): the
+        // indicator kinds, or its reason when nothing can be drawn — a
+        // change that renders nothing must never be silent.
+        const Staff* staff = m_score->staff(staffIdx);
+        const StaffType* before = staff->staffType(Fraction::fromTicks(measure->tick().ticks() - 1));
+        const StaffType* here = staff->staffType(measure->tick());
+        jims::ChangeIndicator ind;
+        muse::String why;
+        if (before && here && before->isJiMS() && here->isJiMS()
+            && jims::changeIndicator(before->jimsStateJson(), here->jimsStateJson(), ind, &why)) {
+            QStringList kinds;
+            for (const muse::String& k : ind.kinds) {
+                kinds << k.toQString();
+            }
+            carrierNote = kinds.isEmpty()
+                          ? QStringLiteral(" — carries a change (no indicator: states differ only in metadata)")
+                          : QStringLiteral(" — carries a change (%1)").arg(kinds.join(QStringLiteral(", ")));
+        } else {
+            carrierNote = QStringLiteral(" — carries a change (no indicator: %1)").arg(why.toQString());
+        }
+    } else if (hasCarrier) {
+        carrierNote = QStringLiteral(" — carries a change");
+    }
     m_targetLabel->setText(QStringLiteral("Bar %1, staff %2%3")
-                           .arg(measure->no() + 1).arg(int(staffIdx) + 1)
-                           .arg(hasCarrier ? QStringLiteral(" — carries a change") : QString()));
+                           .arg(measure->no() + 1).arg(int(staffIdx) + 1).arg(carrierNote));
 
     QSignalBlocker b1(m_tonicCombo);
     m_tonicCombo->clear();

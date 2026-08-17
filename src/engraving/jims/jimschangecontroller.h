@@ -45,7 +45,9 @@ bool canInsertChange(const Score* score, staff_idx_t staffIdx, const Measure* me
 /// StaffTypeChange carrier (a copy of the effective staff type carrying the
 /// new state) or updates the existing carrier's state — one undo step.
 /// A choice yielding a state identical to the effective one is a no-op
-/// (returns true, edits nothing). False with `error` on refusal.
+/// (returns true, edits nothing). A `bind:` choice is staff-wide: it edits
+/// the base staff type and every unbound carrier on the staff (never creates
+/// a carrier). False with `error` on refusal.
 bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const muse::String& choiceId, muse::String& error);
 
 /// Remove the JiMS change carrier at `measure` (one undo step). False with

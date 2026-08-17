@@ -196,12 +196,18 @@ static ChangePoint readPoint(const JsonObject& o)
     return p;
 }
 
-bool changeIndicator(const String& oldStateJson, const String& newStateJson, ChangeIndicator& out)
+bool changeIndicator(const String& oldStateJson, const String& newStateJson, ChangeIndicator& out, String* error)
 {
     String envelope = String(u"{\"abi\":2,\"op\":\"change_indicator\",\"old_state\":%1,\"new_state\":%2}")
                       .arg(oldStateJson).arg(newStateJson);
+    const String response = callBridge(envelope);
     JsonValue result;
-    if (!okResult(callBridge(envelope), result)) {
+    if (!okResult(response, result)) {
+        if (error) {
+            std::string err;
+            JsonDocument doc = JsonDocument::fromJson(response.toUtf8(), &err);
+            *error = err.empty() ? doc.rootObject().value("error").toString() : String(u"bridge returned no JSON");
+        }
         return false;
     }
     out = ChangeIndicator();
