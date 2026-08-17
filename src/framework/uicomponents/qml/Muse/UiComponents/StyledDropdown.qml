@@ -53,7 +53,14 @@ Item {
     property alias dropIcon: mainItem.dropIcon
     property alias label: mainItem.label
 
-    property alias navigation: mainItem.navigation
+    // musescore-jims (Qt 6.11.1, Homebrew): an alias of an alias
+    // (mainItem.navigation -> navCtrl) resolves to null when a consumer
+    // applies grouped `navigation.*` assignments (NewScore's
+    // TimeSignatureFraction, FamilyView, the Inspector's
+    // DropdownPropertyView), aborting createObject with "Cannot set
+    // properties on navigation as it is null". Alias the concrete
+    // NavigationControl directly; the public property is unchanged.
+    property alias navigation: navCtrl
 
     property alias isOpened: dropdownLoader.isOpened
     property alias dropdown: dropdownLoader.dropdown

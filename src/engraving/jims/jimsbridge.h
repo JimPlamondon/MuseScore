@@ -159,6 +159,43 @@ struct PitchHit {
 bool nearestPitch(const muse::String& stateJson, double targetCents,
                   bool hasCurrent, int currentNPer, int currentNGen, PitchHit& hit);
 
+/// Milestone 6 (editing workflow): one keyboard step from a JiMS note —
+/// `domain` is "lattice" (nearest realizable pitch strictly up/down),
+/// "collection" (adjacent member of the placed collection), or "period"
+/// (one whole period, same class). Kernel op `step_pitch`.
+bool stepPitch(const muse::String& stateJson, int currentNPer, int currentNGen,
+               bool up, const char* domain, PitchHit& hit);
+
+/// Milestone 6: one Kernel-issued change-panel choice (opaque id, labels
+/// from the canonical-solfa seam, `current` for the state's own value).
+struct StateChangeOption {
+    muse::String id;
+    muse::String label;      // canonical solfa (tonics/key targets) or a catalogue name
+    int nGen = 0;
+    int nPer = 0;
+    bool hasNGen = false;
+    bool current = false;
+    std::vector<muse::String> memberLabels;   // rotations/cycles: resulting members
+};
+
+/// Milestone 6: everything the change panel may offer for a state.
+struct StateChangeOptions {
+    std::vector<StateChangeOption> tonics;      // "mode:<nGen>"
+    std::vector<StateChangeOption> keyTargets;  // "key:<nPer>:<nGen>" (need a bound reference)
+    bool referenceBound = false;
+    std::vector<muse::String> bindForms;        // "bind:<form>:<value>"
+    std::vector<StateChangeOption> rotations;   // "scale:rotation:<r>"
+    std::vector<StateChangeOption> cycles;      // "scale:cycle:<name>"
+};
+
+/// Kernel op `state_change_options`.
+bool stateChangeOptions(const muse::String& stateJson, StateChangeOptions& options);
+
+/// Kernel op `apply_state_change`: the complete new state JSON after one
+/// choice, or false with `error` (unusable reference, foreign id, ...).
+bool applyStateChange(const muse::String& stateJson, const muse::String& choiceId,
+                      muse::String& newStateJson, muse::String& error);
+
 /// Kernel entry conversion: step/alter/octave to a validated identity.
 bool entryFromStandardPitch(char step, int alter, int octave, int& nPer, int& nGen);
 }

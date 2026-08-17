@@ -298,6 +298,111 @@ bool nearestPitch(const String& stateJson, double targetCents,
     return true;
 }
 
+static void readPitchHit(const JsonObject& o, PitchHit& hit)
+{
+    hit.nPer = o.value("nPer").toInt();
+    hit.nGen = o.value("nGen").toInt();
+    hit.centsAboveLowerDo = o.value("cents_above_lower_do").toDouble();
+    JsonObject cp = o.value("compatibility_pitch").toObject();
+    muse::String step = cp.value("step").toString();
+    hit.step = step.isEmpty() ? 'C' : step.at(0).toAscii();
+    hit.alter = cp.value("alter").toInt();
+    hit.octave = cp.value("octave").toInt();
+}
+
+bool stepPitch(const String& stateJson, int currentNPer, int currentNGen,
+               bool up, const char* domain, PitchHit& hit)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"step_pitch\",\"state\":%1,\"current\":{\"nPer\":%2,\"nGen\":%3},\"up\":%4,\"domain\":\"%5\"}")
+                      .arg(stateJson).arg(currentNPer).arg(currentNGen)
+                      .arg(String(up ? u"true" : u"false")).arg(String::fromAscii(domain));
+    JsonValue result;
+    if (!okResult(callBridge(envelope), result)) {
+        return false;
+    }
+    readPitchHit(result.toObject(), hit);
+    return true;
+}
+
+static StateChangeOption readOption(const JsonObject& o)
+{
+    StateChangeOption opt;
+    opt.id = o.value("id").toString();
+    opt.label = o.value("label").toString();
+    opt.hasNGen = o.contains("nGen");
+    opt.nGen = o.value("nGen").toInt();
+    opt.nPer = o.value("nPer").toInt();
+    opt.current = o.value("current").toBool();
+    if (o.contains("members") && o.value("members").isArray()) {
+        JsonArray members = o.value("members").toArray();
+        for (size_t i = 0; i < members.size(); ++i) {
+            opt.memberLabels.push_back(members.at(i).toObject().value("label").toString());
+        }
+    }
+    return opt;
+}
+
+bool stateChangeOptions(const String& stateJson, StateChangeOptions& options)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"state_change_options\",\"state\":%1}").arg(stateJson);
+    JsonValue result;
+    if (!okResult(callBridge(envelope), result)) {
+        return false;
+    }
+    JsonObject o = result.toObject();
+    options = StateChangeOptions();
+    auto readList = [&](const char* key, std::vector<StateChangeOption>& out) {
+        if (!o.contains(key) || !o.value(key).isArray()) {
+            return;
+        }
+        JsonArray arr = o.value(key).toArray();
+        for (size_t i = 0; i < arr.size(); ++i) {
+            out.push_back(readOption(arr.at(i).toObject()));
+        }
+    };
+    readList("tonics", options.tonics);
+    readList("key_targets", options.keyTargets);
+    readList("rotations", options.rotations);
+    readList("cycles", options.cycles);
+    options.referenceBound = o.value("reference_bound").toBool();
+    if (o.contains("bind_forms") && o.value("bind_forms").isArray()) {
+        JsonArray forms = o.value("bind_forms").toArray();
+        for (size_t i = 0; i < forms.size(); ++i) {
+            options.bindForms.push_back(forms.at(i).toString());
+        }
+    }
+    return true;
+}
+
+bool applyStateChange(const String& stateJson, const String& choiceId, String& newStateJson, String& error)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"apply_state_change\",\"state\":%1,\"choice\":\"%2\"}")
+                      .arg(stateJson).arg(choiceId);
+    const String response = callBridge(envelope);
+    std::string err;
+    JsonDocument doc = JsonDocument::fromJson(response.toUtf8(), &err);
+    if (!err.empty()) {
+        error = u"bridge returned no JSON";
+        return false;
+    }
+    JsonObject root = doc.rootObject();
+    if (!root.value("ok").toBool()) {
+        error = root.value("error").toString();
+        return false;
+    }
+    // The Kernel's own JSON text IS the state: slice it out of the envelope
+    // verbatim ({"ok":true,"result":{...}}) rather than re-serializing
+    // through a JSON library that would reorder keys.
+    static const String marker(u"\"result\":");
+    const size_t at = response.indexOf(marker);
+    if (at == muse::nidx || !response.endsWith(u"}")) {
+        error = u"bridge envelope has no result";
+        return false;
+    }
+    newStateJson = response.mid(at + marker.size(), response.size() - (at + marker.size()) - 1);
+    return true;
+}
+
 bool entryFromStandardPitch(char step, int alter, int octave, int& nPer, int& nGen)
 {
     String envelope = String(u"{\"abi\":2,\"op\":\"entry_from_standard_pitch\",\"step\":\"%1\",\"alter\":%2,\"octave\":%3}")

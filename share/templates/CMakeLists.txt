@@ -37,6 +37,7 @@ install(DIRECTORY
       01-General/01-Treble_Clef
       01-General/02-Bass_Clef
       01-General/03-Grand_Staff
+      01-General/04-JiMStaff
       DESTINATION ${Mscore_SHARE_NAME}${Mscore_INSTALL_NAME}templates/01-General
       )
 

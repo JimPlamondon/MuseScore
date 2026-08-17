@@ -610,6 +610,15 @@ Note::Note(const Note& n, bool link)
     m_centOffset        = n.m_centOffset;
     m_tpc[0]            = n.m_tpc[0];
     m_tpc[1]            = n.m_tpc[1];
+    // JiMStaff Milestone 6 (owner decision 1a, 2026-08-16): the lattice
+    // identity is durable and travels with every clone/copy/paste; the
+    // cached cents are a derived value for the SOURCE state and are
+    // deliberately not carried — the destination re-derives them from the
+    // identity through the Kernel.
+    m_jimsNPer          = n.m_jimsNPer;
+    m_jimsNGen          = n.m_jimsNGen;
+    m_jimsCentsAboveDo  = 0.0;
+    m_jimsCentsValid    = false;
     m_dotsHidden        = n.m_dotsHidden;
     m_hidden            = n.m_hidden;
     m_play              = n.m_play;

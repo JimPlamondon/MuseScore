@@ -2,6 +2,7 @@
 { "in": "01-General/01-Treble_Clef.mscx",                      "out": "01-General/01-Treble_Clef.mscz"},
 { "in": "01-General/02-Bass_Clef.mscx",                        "out": "01-General/02-Bass_Clef.mscz"},
 { "in": "01-General/03-Grand_Staff.mscx",                      "out": "01-General/03-Grand_Staff.mscz"},
+{ "in": "01-General/04-JiMStaff.mscx",                         "out": "01-General/04-JiMStaff.mscz"},
 { "in": "02-Choral/01-SATB.mscx",                              "out": "02-Choral/01-SATB.mscz"},
 { "in": "02-Choral/02-SATB_+_Organ.mscx",                      "out": "02-Choral/02-SATB_+_Organ.mscz"},
 { "in": "02-Choral/03-SATB_+_Piano.mscx",                      "out": "02-Choral/03-SATB_+_Piano.mscz"},

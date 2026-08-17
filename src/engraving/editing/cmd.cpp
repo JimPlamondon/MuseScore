@@ -33,6 +33,8 @@
 #include "infrastructure/messagebox.h"
 #include "style/style.h"
 
+#include "../jims/jimsbridge.h"
+
 #include "rw/xmlreader.h"
 
 #include "../dom/accidental.h"
@@ -2019,6 +2021,41 @@ void Score::upDown(bool up, UpDownMode mode)
         }
         break;
         case StaffGroup::STANDARD:
+            // JiMStaff Milestone 6 (owner decision 1a, 2026-08-16): on a
+            // JiMS staff a keyboard step moves ON THE LATTICE through the
+            // Kernel (`step_pitch`): Up/Down = nearest realizable pitch
+            // (lattice), Alt+Shift = adjacent collection member, Ctrl = one
+            // period. Identity and compatibility pitch/tpc change together
+            // as one undoable edit; the stock MIDI/tpc arithmetic below never
+            // touches a JiMS note.
+            {
+                const StaffType* jimsSt = staff->staffType(tick);
+                if (jimsSt && jimsSt->isJiMS() && oNote->hasJimsPitch()) {
+                    const char* domain = mode == UpDownMode::CHROMATIC ? "lattice"
+                                         : mode == UpDownMode::DIATONIC ? "collection" : "period";
+                    jims::PitchHit hit;
+                    if (jims::stepPitch(jimsSt->jimsStateJson(), oNote->jimsNPer(), oNote->jimsNGen(),
+                                        up, domain, hit)) {
+                        static const String letters(u"CDEFGAB");
+                        const int stepIndex = int(letters.indexOf(Char(hit.step)));
+                        const int jimsPitch = std::clamp((hit.octave + 1) * 12 + step2pitch(stepIndex) + hit.alter, 0, 127);
+                        const int jimsTpc = step2tpc(stepIndex, AccidentalVal(hit.alter));
+                        for (Note* nn : oNote->tiedNotes()) {
+                            for (EngravingObject* e : nn->linkList()) {
+                                Note* ln = toNote(e);
+                                if (ln->accidental()) {
+                                    doUndoRemoveElement(ln->accidental());
+                                }
+                            }
+                            nn->undoChangeProperty(Pid::JIMS_NPER, hit.nPer);
+                            nn->undoChangeProperty(Pid::JIMS_NGEN, hit.nGen);
+                            undoChangePitch(nn, jimsPitch, jimsTpc, jimsTpc);
+                        }
+                        setPlayNote(true);
+                    }
+                    continue;
+                }
+            }
             switch (mode) {
             case UpDownMode::OCTAVE:
                 if (up) {
@@ -5180,6 +5217,53 @@ void Score::cmdAddPitch(int step, bool addFlag, bool insert)
 {
     insert = insert || inputState().usingNoteEntryMethod(NoteEntryMethod::TIMEWISE);
     Position pos;
+
+    // JiMStaff Milestone 6 (owner decision 1a, 2026-08-16): a JiMStaff has
+    // no clef and its lines are 50 cents apart, so a typed letter must not
+    // be routed through a stock-clef LINE (that entered whatever pitch sat
+    // at that height). The letter (+ the input state's accidental, at the
+    // resolved octave) IS the note: build its standard spelling and add it
+    // — to the selected chord (Shift+letter) or at the input position;
+    // Note::setNval then establishes the lattice identity through the
+    // Kernel entry seam exactly as mouse entry does. Repitch and insert
+    // modes keep the stock flow.
+    if (!inputState().usingNoteEntryMethod(NoteEntryMethod::REPITCH) && !insert) {
+        Chord* targetChord = nullptr;
+        staff_idx_t jimsStaffIdx = muse::nidx;
+        Fraction jimsTick;
+        if (addFlag) {
+            EngravingItem* el = selection().element();
+            if (el && el->isNote()) {
+                targetChord = toNote(el)->chord();
+                jimsStaffIdx = targetChord->vStaffIdx();
+                jimsTick = targetChord->segment()->tick();
+            }
+        } else if (inputState().segment()) {
+            jimsStaffIdx = inputState().track() / VOICES;
+            jimsTick = inputState().segment()->tick();
+        }
+        if (jimsStaffIdx != muse::nidx) {
+            const StaffType* jimsSt = staff(jimsStaffIdx)->staffType(jimsTick);
+            if (jimsSt && jimsSt->isJiMS()) {
+                const int letter = ((step % 7) + 7) % 7;
+                const int octave = (step - letter) / 7;
+                const AccidentalVal acci = Accidental::subtype2value(m_is.accidentalType());
+                NoteVal nval;
+                nval.pitch = std::clamp(step2pitch(letter) + octave * 12 + int(acci), 0, 127);
+                nval.tpc1 = step2tpc(letter, acci);
+                nval.tpc2 = nval.tpc1;
+                const bool forceAccidental = m_is.accidentalType() != AccidentalType::NONE;
+                if (targetChord) {
+                    addNote(targetChord, nval, forceAccidental, m_is.articulationIds());
+                } else {
+                    addPitch(nval, false);
+                }
+                m_is.setAccidentalType(AccidentalType::NONE);
+                return;
+            }
+        }
+    }
+
     if (addFlag) {
         EngravingItem* el = selection().element();
         if (el && el->isNote()) {

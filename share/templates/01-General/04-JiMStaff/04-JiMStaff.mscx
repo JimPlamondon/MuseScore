@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<museScore version="4.70">
+  <programVersion>4.7.4</programVersion>
+  <programRevision>abc123456</programRevision>
+  <Score>
+    <eid>890XIiPdbcH_H7u5qfChsgM</eid>
+    <Division>480</Division>
+    <showInvisible>1</showInvisible>
+    <showUnprintable>1</showUnprintable>
+    <showFrames>1</showFrames>
+    <showMargins>0</showMargins>
+    <open>1</open>
+    <metaTag name="arranger"></metaTag>
+    <metaTag name="audioComUrl"></metaTag>
+    <metaTag name="composer"></metaTag>
+    <metaTag name="copyright"></metaTag>
+    <metaTag name="creationDate">2026-08-17</metaTag>
+    <metaTag name="lyricist"></metaTag>
+    <metaTag name="movementNumber"></metaTag>
+    <metaTag name="movementTitle"></metaTag>
+    <metaTag name="originalFormat">musicxml</metaTag>
+    <metaTag name="platform">Apple Macintosh</metaTag>
+    <metaTag name="source"></metaTag>
+    <metaTag name="sourceRevisionId"></metaTag>
+    <metaTag name="translator"></metaTag>
+    <metaTag name="workNumber"></metaTag>
+    <metaTag name="workTitle"></metaTag>
+    <Part id="1">
+      <Staff>
+        <eid>anL0JGRMceK_mZAK8Q5XCaG</eid>
+        <StaffType group="pitched">
+          <name>jims12tet</name>
+          <lines>13</lines>
+          <clef>0</clef>
+          <jims>1</jims>
+          <jimsStateJson>{&quot;scale&quot;:[&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;],&quot;collection_rotation&quot;:0,&quot;mode_rotation&quot;:0,&quot;generator_cents&quot;:700.0,&quot;period_cents&quot;:1200.0,&quot;embedding&quot;:{&quot;large_steps&quot;:5,&quot;small_steps&quot;:2},&quot;extent&quot;:{&quot;lower_do_register&quot;:4,&quot;period_count&quot;:1},&quot;reference&quot;:&quot;none&quot;,&quot;tonic_extent&quot;:&quot;tonic-bounded&quot;}</jimsStateJson>
+          <jimsJiLines>1</jimsJiLines>
+          <keysig>0</keysig>
+          <ledgerlines>0</ledgerlines>
+          </StaffType>
+        </Staff>
+      <trackName>Jimmy</trackName>
+      <Instrument id="grand-piano">
+        <longName>Jimmy</longName>
+        <trackName></trackName>
+        <instrumentId>keyboard.piano.grand</instrumentId>
+        <Articulation>
+          <velocity>100</velocity>
+          <gateTime>100</gateTime>
+          </Articulation>
+        <Articulation name="staccatissimo">
+          <velocity>100</velocity>
+          <gateTime>33</gateTime>
+          </Articulation>
+        <Articulation name="staccato">
+          <velocity>100</velocity>
+          <gateTime>50</gateTime>
+          </Articulation>
+        <Articulation name="portato">
+          <velocity>100</velocity>
+          <gateTime>67</gateTime>
+          </Articulation>
+        <Articulation name="tenuto">
+          <velocity>100</velocity>
+          <gateTime>100</gateTime>
+          </Articulation>
+        <Articulation name="marcato">
+          <velocity>120</velocity>
+          <gateTime>67</gateTime>
+          </Articulation>
+        <Articulation name="sforzato">
+          <velocity>150</velocity>
+          <gateTime>100</gateTime>
+          </Articulation>
+        <Articulation name="sforzatoStaccato">
+          <velocity>150</velocity>
+          <gateTime>50</gateTime>
+          </Articulation>
+        <Articulation name="marcatoStaccato">
+          <velocity>120</velocity>
+          <gateTime>50</gateTime>
+          </Articulation>
+        <Articulation name="marcatoTenuto">
+          <velocity>120</velocity>
+          <gateTime>100</gateTime>
+          </Articulation>
+        <Channel>
+          <program value="0"/>
+          <controller ctrl="10" value="63"/>
+          <synti>Fluid</synti>
+          </Channel>
+        </Instrument>
+      </Part>
+    <Staff id="1">
+      <VBox>
+        <height>10</height>
+        <eid>drM+jTyKZUG_+wmXZzOGcZH</eid>
+        <Text>
+          <eid>F6UhN3RVvTO_H/Fw1FUYjvJ</eid>
+          <style>title</style>
+          <text>Empty JiMStaff (one whole period, no notes)</text>
+          </Text>
+        </VBox>
+      <Measure>
+        <eid>T8+ENqwVhVE_FSQ4QYOh3mM</eid>
+        <voice>
+          <TimeSig>
+            <eid>0P1AhEXcjyP_pSB03nN3FRJ</eid>
+            <sigN>4</sigN>
+            <sigD>4</sigD>
+            </TimeSig>
+          <Rest>
+            <eid>1P1AhEXcjyP_1P1AhEXcjyP</eid>
+            <durationType>quarter</durationType>
+            </Rest>
+          <Rest>
+            <eid>2P1AhEXcjyP_2P1AhEXcjyP</eid>
+            <durationType>quarter</durationType>
+            </Rest>
+          <Rest>
+            <eid>3P1AhEXcjyP_3P1AhEXcjyP</eid>
+            <durationType>quarter</durationType>
+            </Rest>
+          <Rest>
+            <eid>4P1AhEXcjyP_4P1AhEXcjyP</eid>
+            <durationType>quarter</durationType>
+            </Rest>
+          </voice>
+        </Measure>
+      <Measure>
+        <eid>RJdj/iFoawN_R2gVrPP/IO</eid>
+        <voice>
+          <Rest>
+            <eid>5P1AhEXcjyP_5P1AhEXcjyP</eid>
+            <durationType>half</durationType>
+            </Rest>
+          <Rest>
+            <eid>6P1AhEXcjyP_6P1AhEXcjyP</eid>
+            <durationType>half</durationType>
+            </Rest>
+          </voice>
+        </Measure>
+      <Measure>
+        <eid>ibqudiXrEML_nXZjOhSbsSI</eid>
+        <voice>
+          <Rest>
+            <eid>7P1AhEXcjyP_7P1AhEXcjyP</eid>
+            <durationType>half</durationType>
+            </Rest>
+          <Rest>
+            <eid>8P1AhEXcjyP_8P1AhEXcjyP</eid>
+            <durationType>half</durationType>
+            </Rest>
+          <BarLine>
+            <eid>1tnGBEoW4HO_lrryZvS/JpF</eid>
+            </BarLine>
+          </voice>
+        </Measure>
+      </Staff>
+    </Score>
+  </museScore>

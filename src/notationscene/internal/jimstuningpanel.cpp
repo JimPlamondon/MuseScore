@@ -14,10 +14,15 @@
  */
 #include "jimstuningpanel.h"
 
+#include <QComboBox>
 #include <QDoubleSpinBox>
+#include <QEvent>
 #include <QFontMetrics>
+#include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QPushButton>
+#include <QSpinBox>
 #include <QPainter>
 #include <QPixmap>
 #include <QSlider>
@@ -25,8 +30,13 @@
 #include <QStyleOptionSlider>
 #include <QVBoxLayout>
 
+#include "engraving/dom/measure.h"
 #include "engraving/dom/score.h"
+#include "engraving/dom/segment.h"
+#include "engraving/dom/select.h"
 #include "engraving/jims/jimsbridge.h"
+#include "engraving/jims/jimschange.h"
+#include "engraving/jims/jimschangecontroller.h"
 #include "engraving/jims/jimstuningcontroller.h"
 
 using namespace mu::notationscene;
@@ -187,9 +197,9 @@ private:
 
 JimsTuningPanel::JimsTuningPanel(Score* score, std::function<void()> refreshView,
                                  muse::async::Notification scoreChanged, QWidget* parent)
-    : QWidget(parent, Qt::Tool), m_refreshView(std::move(refreshView))
+    : QWidget(parent, Qt::Tool), m_refreshView(std::move(refreshView)), m_score(score)
 {
-    setWindowTitle(QStringLiteral("JiMS Tuning"));
+    setWindowTitle(QStringLiteral("JiMS Staff"));
     m_controller = std::make_unique<jims::TuningController>(score, 0);
 
     // Bounds are the Kernel's diatonic Valid Tuning Range (owner
@@ -218,6 +228,9 @@ JimsTuningPanel::JimsTuningPanel(Score* score, std::function<void()> refreshView
     credit->setStyleSheet(QStringLiteral("color: gray; font-size: 9pt;"));
     outer->addWidget(credit);
 
+    // Milestone 6: mode / key / scale changes at the selected measure.
+    buildChangeSection(this, outer);
+
     syncFromScore();
 
     connect(m_slider, &QSlider::sliderPressed, this, &JimsTuningPanel::onSliderPressed);
@@ -236,6 +249,257 @@ JimsTuningPanel::JimsTuningPanel(Score* score, std::function<void()> refreshView
     });
 }
 
+// ---------------------------------------------------------------------------
+// Milestone 6 — change section (owner decision 1a, 2026-08-16). Every list
+// is populated from the Kernel's state_change_options for the effective
+// state at the target measure; every button applies one Kernel-issued
+// choice id through jims::applyChange (one undo step); the fork holds no
+// musical table and computes no new state.
+// ---------------------------------------------------------------------------
+
+void JimsTuningPanel::buildChangeSection(QWidget* parent, QVBoxLayout* outer)
+{
+    m_changeBox = new QGroupBox(QStringLiteral("Change at the selected bar"), parent);
+    auto* grid = new QVBoxLayout(m_changeBox);
+
+    m_targetLabel = new QLabel(QStringLiteral("Select a note or bar on the JiMStaff"), m_changeBox);
+    grid->addWidget(m_targetLabel);
+
+    // Mode: new tonic (Kernel tonic candidates, canonical solfa labels).
+    auto* modeRow = new QHBoxLayout();
+    modeRow->addWidget(new QLabel(QStringLiteral("Mode: tonic"), m_changeBox));
+    m_tonicCombo = new QComboBox(m_changeBox);
+    modeRow->addWidget(m_tonicCombo, 1);
+    auto* modeApply = new QPushButton(QStringLiteral("Apply"), m_changeBox);
+    modeRow->addWidget(modeApply);
+    grid->addLayout(modeRow);
+
+    // Key: Do0 moves to Xx N (the SHIFT–Do0–XxN gesture); needs a bound reference.
+    auto* keyRow = new QHBoxLayout();
+    keyRow->addWidget(new QLabel(QStringLiteral("Key: Do0 →"), m_changeBox));
+    m_keyClassCombo = new QComboBox(m_changeBox);
+    keyRow->addWidget(m_keyClassCombo, 1);
+    m_keyOctaveSpin = new QSpinBox(m_changeBox);
+    m_keyOctaveSpin->setRange(-1, 1);
+    m_keyOctaveSpin->setValue(0);
+    m_keyOctaveSpin->setToolTip(QStringLiteral("Octave N of XxN relative to Do0"));
+    keyRow->addWidget(m_keyOctaveSpin);
+    m_keyApply = new QPushButton(QStringLiteral("Apply"), m_changeBox);
+    keyRow->addWidget(m_keyApply);
+    grid->addLayout(keyRow);
+
+    auto* bindRow = new QHBoxLayout();
+    bindRow->addWidget(new QLabel(QStringLiteral("Bind Re0 to key number"), m_changeBox));
+    m_bindSpin = new QSpinBox(m_changeBox);
+    m_bindSpin->setRange(0, 127);
+    m_bindSpin->setValue(62);
+    bindRow->addWidget(m_bindSpin);
+    m_bindApply = new QPushButton(QStringLiteral("Bind"), m_changeBox);
+    bindRow->addWidget(m_bindApply);
+    grid->addLayout(bindRow);
+
+    // Scale: collection rotations and catalogue cycles.
+    auto* scaleRow = new QHBoxLayout();
+    scaleRow->addWidget(new QLabel(QStringLiteral("Scale"), m_changeBox));
+    m_scaleCombo = new QComboBox(m_changeBox);
+    scaleRow->addWidget(m_scaleCombo, 1);
+    auto* scaleApply = new QPushButton(QStringLiteral("Apply"), m_changeBox);
+    scaleRow->addWidget(scaleApply);
+    grid->addLayout(scaleRow);
+
+    auto* bottomRow = new QHBoxLayout();
+    m_removeButton = new QPushButton(QStringLiteral("Remove change at this bar"), m_changeBox);
+    bottomRow->addWidget(m_removeButton);
+    auto* refresh = new QPushButton(QStringLiteral("Refresh"), m_changeBox);
+    bottomRow->addWidget(refresh);
+    grid->addLayout(bottomRow);
+
+    m_statusLabel = new QLabel(QString(), m_changeBox);
+    m_statusLabel->setWordWrap(true);
+    m_statusLabel->setStyleSheet(QStringLiteral("color: gray; font-size: 9pt;"));
+    grid->addWidget(m_statusLabel);
+
+    outer->addWidget(m_changeBox);
+
+    connect(modeApply, &QPushButton::clicked, this, [this]() {
+        const int i = m_tonicCombo->currentIndex();
+        if (i >= 0 && i < int(m_tonicIds.size())) {
+            applyChoice(m_tonicIds[i]);
+        }
+    });
+    connect(m_keyApply, &QPushButton::clicked, this, [this]() {
+        const int i = m_keyClassCombo->currentIndex();
+        if (i >= 0 && i < int(m_keyClassNGens.size())) {
+            applyChoice(muse::String(u"key:%1:%2").arg(m_keyOctaveSpin->value()).arg(m_keyClassNGens[i]));
+        }
+    });
+    connect(m_bindApply, &QPushButton::clicked, this, [this]() {
+        applyChoice(muse::String(u"bind:reference-pitch:%1").arg(m_bindSpin->value()));
+    });
+    connect(scaleApply, &QPushButton::clicked, this, [this]() {
+        const int i = m_scaleCombo->currentIndex();
+        if (i >= 0 && i < int(m_scaleIds.size())) {
+            applyChoice(m_scaleIds[i]);
+        }
+    });
+    connect(m_removeButton, &QPushButton::clicked, this, &JimsTuningPanel::onRemoveChange);
+    connect(refresh, &QPushButton::clicked, this, &JimsTuningPanel::syncChangeSection);
+}
+
+bool JimsTuningPanel::changeTarget(Measure*& measure, staff_idx_t& staffIdx) const
+{
+    measure = nullptr;
+    staffIdx = 0;
+    if (!m_score) {
+        return false;
+    }
+    const Selection& sel = m_score->selection();
+    if (sel.isRange() && sel.startSegment()) {
+        measure = sel.startSegment()->measure();
+        staffIdx = sel.staffStart();
+    } else if (EngravingItem* e = sel.element()) {
+        measure = e->findMeasure();
+        staffIdx = e->staffIdx();
+    }
+    return measure != nullptr;
+}
+
+void JimsTuningPanel::syncChangeSection()
+{
+    if (!m_changeBox) {
+        return;
+    }
+    Measure* measure = nullptr;
+    staff_idx_t staffIdx = 0;
+    const bool haveTarget = changeTarget(measure, staffIdx);
+    jims::StateChangeOptions options;
+    const bool ok = haveTarget && jims::changeOptions(m_score, staffIdx, measure, options);
+    m_changeBox->setEnabled(ok);
+    if (!ok) {
+        m_targetLabel->setText(haveTarget
+                               ? QStringLiteral("The selected staff is not a JiMStaff")
+                               : QStringLiteral("Select a note or bar on the JiMStaff"));
+        return;
+    }
+    const bool hasCarrier = jims::changeCarrier(measure, staffIdx) != nullptr;
+    m_targetLabel->setText(QStringLiteral("Bar %1, staff %2%3")
+                           .arg(measure->no() + 1).arg(int(staffIdx) + 1)
+                           .arg(hasCarrier ? QStringLiteral(" — carries a change") : QString()));
+
+    QSignalBlocker b1(m_tonicCombo);
+    m_tonicCombo->clear();
+    m_tonicIds.clear();
+    int currentTonic = 0;
+    for (size_t i = 0; i < options.tonics.size(); ++i) {
+        m_tonicCombo->addItem(options.tonics[i].label.toQString());
+        m_tonicIds.push_back(options.tonics[i].id);
+        if (options.tonics[i].current) {
+            currentTonic = int(i);
+        }
+    }
+    m_tonicCombo->setCurrentIndex(currentTonic);
+
+    QSignalBlocker b2(m_keyClassCombo);
+    m_keyClassCombo->clear();
+    m_keyClassNGens.clear();
+    // One entry per note class (the Kernel lists every class for each
+    // octave; the octave spin picks N).
+    for (const jims::StateChangeOption& k : options.keyTargets) {
+        if (k.nPer != 0) {
+            continue;
+        }
+        m_keyClassCombo->addItem(k.label.toQString());
+        m_keyClassNGens.push_back(k.nGen);
+    }
+    for (int i = 0; i < int(m_keyClassNGens.size()); ++i) {
+        if (m_keyClassNGens[i] == 1) {           // La — the owner's worked example
+            m_keyClassCombo->setCurrentIndex(i);
+        }
+    }
+    m_keyApply->setEnabled(options.referenceBound);
+    m_keyApply->setToolTip(options.referenceBound ? QString()
+                           : QStringLiteral("Bind Re0 to a reference pitch first"));
+    m_bindApply->setEnabled(!options.referenceBound);
+    m_bindSpin->setEnabled(!options.referenceBound);
+
+    QSignalBlocker b3(m_scaleCombo);
+    m_scaleCombo->clear();
+    m_scaleIds.clear();
+    int currentScale = 0;
+    for (const jims::StateChangeOption& r : options.rotations) {
+        QStringList members;
+        for (const muse::String& m : r.memberLabels) {
+            members << m.toQString();
+        }
+        m_scaleCombo->addItem(QStringLiteral("rotation %1: %2").arg(r.id.mid(15).toQString(), members.join(' ')));
+        if (r.current) {
+            currentScale = int(m_scaleIds.size());
+        }
+        m_scaleIds.push_back(r.id);
+    }
+    for (const jims::StateChangeOption& c : options.cycles) {
+        QStringList members;
+        for (const muse::String& m : c.memberLabels) {
+            members << m.toQString();
+        }
+        m_scaleCombo->addItem(QStringLiteral("cycle %1: %2").arg(c.label.toQString(), members.join(' ')));
+        m_scaleIds.push_back(c.id);
+    }
+    m_scaleCombo->setCurrentIndex(currentScale);
+    m_removeButton->setEnabled(hasCarrier);
+    muse::String why;
+    if (!jims::canInsertChange(m_score, staffIdx, measure, why)) {
+        m_statusLabel->setText(why.toQString());
+    }
+}
+
+void JimsTuningPanel::applyChoice(const muse::String& choiceId)
+{
+    Measure* measure = nullptr;
+    staff_idx_t staffIdx = 0;
+    if (!changeTarget(measure, staffIdx)) {
+        return;
+    }
+    muse::String error;
+    if (!jims::applyChange(m_score, staffIdx, measure, choiceId, error)) {
+        m_statusLabel->setText(error.toQString());
+        return;
+    }
+    m_statusLabel->setText(QStringLiteral("Applied %1").arg(choiceId.toQString()));
+    if (m_refreshView) {
+        m_refreshView();
+    }
+    syncChangeSection();
+}
+
+void JimsTuningPanel::onRemoveChange()
+{
+    Measure* measure = nullptr;
+    staff_idx_t staffIdx = 0;
+    if (!changeTarget(measure, staffIdx)) {
+        return;
+    }
+    muse::String error;
+    if (!jims::removeChange(m_score, staffIdx, measure, error)) {
+        m_statusLabel->setText(error.toQString());
+        return;
+    }
+    m_statusLabel->setText(QStringLiteral("Change removed"));
+    if (m_refreshView) {
+        m_refreshView();
+    }
+    syncChangeSection();
+}
+
+bool JimsTuningPanel::event(QEvent* e)
+{
+    // Re-read the selection whenever the panel comes to the front.
+    if (e->type() == QEvent::WindowActivate || e->type() == QEvent::Show) {
+        syncChangeSection();
+    }
+    return QWidget::event(e);
+}
+
 JimsTuningPanel::~JimsTuningPanel() = default;
 
 void JimsTuningPanel::syncFromScore()
@@ -247,6 +511,7 @@ void JimsTuningPanel::syncFromScore()
         m_slider->setValue(int(cents / SLIDER_STEP + 0.5));
         m_spin->setValue(cents);
     }
+    syncChangeSection();
 }
 
 void JimsTuningPanel::onSliderPressed()

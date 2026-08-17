@@ -399,7 +399,7 @@ const UiActionList NotationUiActions::s_actions = {
     UiAction("jims-tuning",
              mu::context::UiCtxProjectOpened,
              mu::context::CTX_NOTATION_OPENED,
-             TranslatableString("action", "&JiMS Tuning…"),
+             TranslatableString("action", "&JiMS Staff (tuning & changes)…"),
              TranslatableString("action", "Adjust the JiMS generator width (M5) live")
              ),
     UiAction("edit-style",

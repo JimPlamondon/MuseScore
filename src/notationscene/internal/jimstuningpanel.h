@@ -17,15 +17,26 @@
 #include <memory>
 
 #include <QWidget>
+#include <vector>
+
+#include "engraving/types/types.h"
+#include "types/string.h"
 
 #include "async/asyncable.h"
 #include "async/notification.h"
 
 class QSlider;
 class QDoubleSpinBox;
+class QComboBox;
+class QSpinBox;
+class QLabel;
+class QPushButton;
+class QGroupBox;
+class QVBoxLayout;
 
 namespace mu::engraving {
 class Score;
+class Measure;
 namespace jims {
 class TuningController;
 }
@@ -48,6 +59,16 @@ private:
     void onSpinAccepted();
     void syncFromScore();
 
+    // JiMStaff Milestone 6 (owner decision 1a, 2026-08-16): the change
+    // section — mode / key / scale changes at the selected measure, every
+    // choice a Kernel-issued option applied through jims::applyChange.
+    void buildChangeSection(QWidget* parent, QVBoxLayout* outer);
+    void syncChangeSection();
+    bool changeTarget(mu::engraving::Measure*& measure, mu::engraving::staff_idx_t& staffIdx) const;
+    void applyChoice(const muse::String& choiceId);
+    void onRemoveChange();
+    bool event(QEvent* e) override;
+
     static constexpr double SLIDER_STEP = 0.1;
     double m_minCents = 686.0;   // overwritten by the Kernel's range
     double m_maxCents = 720.0;
@@ -57,6 +78,23 @@ private:
     QSlider* m_slider = nullptr;
     QDoubleSpinBox* m_spin = nullptr;
     bool m_dragging = false;
+
+    mu::engraving::Score* m_score = nullptr;
+    QGroupBox* m_changeBox = nullptr;
+    QLabel* m_targetLabel = nullptr;
+    QComboBox* m_tonicCombo = nullptr;
+    QComboBox* m_keyClassCombo = nullptr;
+    QSpinBox* m_keyOctaveSpin = nullptr;
+    QPushButton* m_keyApply = nullptr;
+    QSpinBox* m_bindSpin = nullptr;
+    QPushButton* m_bindApply = nullptr;
+    QComboBox* m_scaleCombo = nullptr;
+    QPushButton* m_removeButton = nullptr;
+    QLabel* m_statusLabel = nullptr;
+    std::vector<muse::String> m_tonicIds;
+    std::vector<muse::String> m_keyClassIds;   // "key:<nPer>:<nGen>" for the chosen octave is built at apply time
+    std::vector<int> m_keyClassNGens;
+    std::vector<muse::String> m_scaleIds;
 };
 }
 
