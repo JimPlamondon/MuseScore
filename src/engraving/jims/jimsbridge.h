@@ -110,8 +110,7 @@ struct SoundingPitch {
     double referenceFrequencyHz = 0.0;
     muse::String anchor;         // "explicit-reference" | "inferred-re0-d4"
 };
-bool noteSoundingPitch(const muse::String& stateJson, int nPer, int nGen, SoundingPitch& out,
-                       muse::String* error = nullptr);
+bool noteSoundingPitch(const muse::String& stateJson, int nPer, int nGen, SoundingPitch& out, muse::String* error = nullptr);
 
 /// The Kernel's JI staff-line scaffold (owner rulings 1a/2a, 2026-08-14).
 bool jiLines(const muse::String& stateJson, std::vector<JiLine>& lines);
