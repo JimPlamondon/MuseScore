@@ -2910,10 +2910,12 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                         side += member.label;
                                     }
                                 }
+                                const double lowestPeriod
+                                    = std::floor(frame.front().lowerCents / periodCents + epsilon) * periodCents;
                                 if (haveKeyLabel && std::abs(stack.cents - tonicCents) < epsilon
                                     && period + tonicCents >= segment.lowerCents - epsilon
                                     && period + tonicCents <= segment.upperCents + epsilon
-                                    && std::abs(period - std::floor(frame.front().lowerCents / periodCents + epsilon) * periodCents) < epsilon) {
+                                    && std::abs(period - lowestPeriod) < epsilon) {
                                     // Only the tonic indicator's own row (the
                                     // lowest Do register carries the indicator).
                                     leftText = leftText.isEmpty()
