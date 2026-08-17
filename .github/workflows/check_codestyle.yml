@@ -1,6 +1,12 @@
 name: 'Check: Codestyle'
 
 on:
+  # musescore-jims: run on pushes to the integration and task branches too.
+  push:
+    branches:
+      - jims/main
+      - 'claude/**'
+      - 'codex/**'
   pull_request:
   workflow_dispatch:
 
