@@ -12,6 +12,7 @@ build
 build.release
 build.debug
 build.install
+build.qt610
 build.tooldata
 build.qtc
 build-*
