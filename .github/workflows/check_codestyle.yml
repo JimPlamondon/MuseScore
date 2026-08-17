@@ -12,15 +12,29 @@ on:
 
 jobs:
   codestyle:
-    runs-on: ubuntu-24.04
+    # musescore-jims: self-contained — the upstream fetch of checkcodestyle
+    # scripts from musescore/framework_tmp no longer resolves (that repo moved
+    # into the muse submodule). Run this repository's own tools/codestyle
+    # (uncrustify_musescore.cfg targets uncrustify 0.72, which is what
+    # ubuntu-22.04's apt package provides) and fail on any resulting diff.
+    runs-on: ubuntu-22.04
     steps:
     - name: Clone repository
       uses: actions/checkout@v6
 
-    - name: Fetch Muse CI scripts
+    - name: Install uncrustify
       run: |
-        cmake -P ./buildscripts/ci/checkcodestyle/ci_fetch.cmake
+        sudo apt-get update
+        sudo apt-get install -y uncrustify
+        uncrustify --version
 
     - name: Test coding style
       run: |
-        cmake -P ./buildscripts/ci/checkcodestyle/_deps/checkcodestyle.cmake ./src/
+        bash ./tools/codestyle/uncrustify_run_dir.sh ./src
+        if ! git diff --quiet; then
+          echo "::error::Code style is incorrect in these files:"
+          git diff --name-only
+          echo "Run tools/codestyle/uncrustify_run_file.sh on them and amend."
+          git diff
+          exit 1
+        fi
