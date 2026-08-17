@@ -68,8 +68,8 @@ public:
     /// NoError when no JiMS namespace is declared or exactly one supported
     /// version is bound; FileBadFormat (after logging) for an unsupported
     /// version, a default-namespace binding, or two distinct JiMS profiles.
-    engraving::Err resolveFromRoot(const std::vector<muse::XmlStreamReader::Attribute>& attributes,
-                                   MusicXmlLogger* logger, const muse::XmlStreamReader* e);
+    engraving::Err resolveFromRoot(const std::vector<muse::XmlStreamReader::Attribute>& attributes, MusicXmlLogger* logger,
+                                   const muse::XmlStreamReader* e);
 
     bool hasJims() const { return !m_prefix.empty(); }
     int version() const { return m_version; }

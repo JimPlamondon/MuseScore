@@ -3064,97 +3064,98 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     const double gap = 0.25 * _spatium;
 
                     // Closing stroke: thin, spanning the full stack.
-                    painter->setPen(Pen(item->curColor(opt), item->style().styleMM(Sid::barWidth), PenStyle::SolidLine, PenCapStyle::FlatCap));
+                    painter->setPen(Pen(item->curColor(opt), item->style().styleMM(
+                                            Sid::barWidth), PenStyle::SolidLine, PenCapStyle::FlatCap));
                     painter->drawLine(LineF(strokeX, yOf(frame.back().upperCents), strokeX, yOf(frame.front().lowerCents)));
 
                     // Dots (Kernel notehead classes); ALL labels LEFT of the dots
                     // (owner ruling 2026-08-16: the change stack must look like
                     // the header stack — same interval pattern, same collisions).
                     for (const jims::ChangeStack& stack : model.dotStacks) {
-                      for (double stackCents : instancesOf(stack.members.front())) {
-                        double dx = 0.0;
-                        String text;
-                        String rightText;
-                        for (const jims::ChangePoint& member : stack.members) {
-                            String token;
-                            SymId dotSym = SymId::noteheadHalf;
-                            const bool haveToken = jims::noteheadToken(changeSt->jimsStateJson(), member.nGen, token);
-                            const bool grey = false; // all labels left (owner ruling); right band unused
-                            if (font && haveToken) {
-                                if (token == u"triangle-vertex-up") {
-                                    dotSym = SymId::noteheadTriangleUpBlack;
-                                } else if (token == u"triangle-vertex-down") {
-                                    dotSym = SymId::noteheadTriangleDownBlack;
-                                } else if (token == u"square-vertex-up") {
-                                    dotSym = SymId::noteheadDiamondBlack;
-                                } else if (token == u"square-edge-up") {
-                                    dotSym = SymId::noteheadSquareBlack;
+                        for (double stackCents : instancesOf(stack.members.front())) {
+                            double dx = 0.0;
+                            String text;
+                            String rightText;
+                            for (const jims::ChangePoint& member : stack.members) {
+                                String token;
+                                SymId dotSym = SymId::noteheadHalf;
+                                const bool haveToken = jims::noteheadToken(changeSt->jimsStateJson(), member.nGen, token);
+                                const bool grey = false; // all labels left (owner ruling); right band unused
+                                if (font && haveToken) {
+                                    if (token == u"triangle-vertex-up") {
+                                        dotSym = SymId::noteheadTriangleUpBlack;
+                                    } else if (token == u"triangle-vertex-down") {
+                                        dotSym = SymId::noteheadTriangleDownBlack;
+                                    } else if (token == u"square-vertex-up") {
+                                        dotSym = SymId::noteheadDiamondBlack;
+                                    } else if (token == u"square-edge-up") {
+                                        dotSym = SymId::noteheadSquareBlack;
+                                    }
                                 }
-                            }
-                            if (font) {
-                                RectF gb = font->bbox(dotSym, 1.0);
-                                double centroidDy = 0.0;
-                                if (dotSym == SymId::noteheadTriangleUpBlack) {
-                                    centroidDy = -gb.height() / 6.0;
-                                } else if (dotSym == SymId::noteheadTriangleDownBlack) {
-                                    centroidDy = gb.height() / 6.0;
+                                if (font) {
+                                    RectF gb = font->bbox(dotSym, 1.0);
+                                    double centroidDy = 0.0;
+                                    if (dotSym == SymId::noteheadTriangleUpBlack) {
+                                        centroidDy = -gb.height() / 6.0;
+                                    } else if (dotSym == SymId::noteheadTriangleDownBlack) {
+                                        centroidDy = gb.height() / 6.0;
+                                    }
+                                    painter->setPen(Pen(item->curColor(opt), item->lw()));
+                                    font->draw(dotSym, painter, 1.0,
+                                               PointF(dotCenterX - gb.width() / 2.0 + dx, yOf(stackCents) + centroidDy));
+                                    dx += 0.15 * _spatium;
                                 }
-                                painter->setPen(Pen(item->curColor(opt), item->lw()));
-                                font->draw(dotSym, painter, 1.0,
-                                           PointF(dotCenterX - gb.width() / 2.0 + dx, yOf(stackCents) + centroidDy));
-                                dx += 0.15 * _spatium;
+                                String& side = grey ? rightText : text;
+                                if (!side.isEmpty()) {
+                                    side += u" ";
+                                }
+                                side += member.label;
                             }
-                            String& side = grey ? rightText : text;
-                            if (!side.isEmpty()) {
-                                side += u" ";
+                            const double cy = yOf(stackCents);
+                            if (!text.isEmpty()) {
+                                RectF tb = fm.boundingRect(text);
+                                painter->setFont(labelFont);
+                                painter->setPen(Pen(item->curColor(opt)));
+                                painter->drawText(PointF(labelRight - gap - tb.width(), cy - (tb.top() + tb.bottom()) / 2.0), text);
                             }
-                            side += member.label;
+                            if (!rightText.isEmpty()) {
+                                RectF tb = fm.boundingRect(rightText);
+                                painter->setFont(labelFont);
+                                painter->setPen(Pen(item->curColor(opt)));
+                                painter->drawText(PointF(rightLabelLeft + gap, cy - (tb.top() + tb.bottom()) / 2.0), rightText);
+                            }
                         }
-                        const double cy = yOf(stackCents);
-                        if (!text.isEmpty()) {
-                            RectF tb = fm.boundingRect(text);
-                            painter->setFont(labelFont);
-                            painter->setPen(Pen(item->curColor(opt)));
-                            painter->drawText(PointF(labelRight - gap - tb.width(), cy - (tb.top() + tb.bottom()) / 2.0), text);
-                        }
-                        if (!rightText.isEmpty()) {
-                            RectF tb = fm.boundingRect(rightText);
-                            painter->setFont(labelFont);
-                            painter->setPen(Pen(item->curColor(opt)));
-                            painter->drawText(PointF(rightLabelLeft + gap, cy - (tb.top() + tb.bottom()) / 2.0), rightText);
-                        }
-                      }
                     }
                     // Tonic indicators (settled §3.3 construction) with labels
                     // left when no dot already labels that row.
                     for (const jims::ChangePoint& tp : model.tonicIndicators) {
-                      for (double tpCents : instancesOf(tp)) {
-                        const double h = 1.15 * dist + 0.025 * dist;
-                        const double cy = yOf(tpCents);
-                        PainterPath ring;
-                        ring.moveTo(dotCenterX, cy - h);
-                        ring.lineTo(dotCenterX + h, cy);
-                        ring.lineTo(dotCenterX, cy + h);
-                        ring.lineTo(dotCenterX - h, cy);
-                        ring.closeSubpath();
-                        painter->setPen(Pen(item->curColor(opt), 0.15 * dist));
-                        painter->setBrush(BrushStyle::NoBrush);
-                        painter->drawPath(ring);
-                        bool labelled = false;
-                        for (const jims::ChangeStack& stack : model.dotStacks) {
-                            for (const jims::ChangePoint& m : stack.members) {
-                                if (m.nGen == tp.nGen && m.periodOffset == tp.periodOffset) {
-                                    labelled = true;
+                        for (double tpCents : instancesOf(tp)) {
+                            const double h = 1.15 * dist + 0.025 * dist;
+                            const double cy = yOf(tpCents);
+                            PainterPath ring;
+                            ring.moveTo(dotCenterX, cy - h);
+                            ring.lineTo(dotCenterX + h, cy);
+                            ring.lineTo(dotCenterX, cy + h);
+                            ring.lineTo(dotCenterX - h, cy);
+                            ring.closeSubpath();
+                            painter->setPen(Pen(item->curColor(opt), 0.15 * dist));
+                            painter->setBrush(BrushStyle::NoBrush);
+                            painter->drawPath(ring);
+                            bool labelled = false;
+                            for (const jims::ChangeStack& stack : model.dotStacks) {
+                                for (const jims::ChangePoint& m : stack.members) {
+                                    if (m.nGen == tp.nGen && m.periodOffset == tp.periodOffset) {
+                                        labelled = true;
+                                    }
                                 }
                             }
+                            if (!labelled) {
+                                RectF tb = fm.boundingRect(tp.label);
+                                painter->setFont(labelFont);
+                                painter->setPen(Pen(item->curColor(opt)));
+                                painter->drawText(PointF(labelRight - gap - tb.width(), cy - (tb.top() + tb.bottom()) / 2.0), tp.label);
+                            }
                         }
-                        if (!labelled) {
-                            RectF tb = fm.boundingRect(tp.label);
-                            painter->setFont(labelFont);
-                            painter->setPen(Pen(item->curColor(opt)));
-                            painter->drawText(PointF(labelRight - gap - tb.width(), cy - (tb.top() + tb.bottom()) / 2.0), tp.label);
-                        }
-                      }
                     }
                     // Arrows in the arrow lane: shaft between endpoint centroids,
                     // Kernel connector head at the `to` end.
@@ -3200,13 +3201,14 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             if (jims::courtesyChangeIndicator(item->measure(), item->staffIdx(), courtesy, &courtesySt) && courtesySt) {
                 const Segment* endBar = item->measure()->findSegmentR(SegmentType::EndBarLine, item->measure()->ticks());
                 if (endBar) {
-                    const double g = courtesySt->jimsHeaderGeometry(item->spatium(), item->score()->style().defaultSpatium()).changeTerrainWidth;
+                    const double g
+                        = courtesySt->jimsHeaderGeometry(item->spatium(), item->score()->style().defaultSpatium()).changeTerrainWidth;
                     paintChangeTerrain(courtesy, courtesySt, endBar->x() - g, true);
                 }
             }
         }
 
-                painter->restore();
+        painter->restore();
         return;
     }
 

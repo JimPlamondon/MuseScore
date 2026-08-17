@@ -147,7 +147,10 @@ TEST_F(MusicXml_JiMS_Tests, v3ImportBuildsTheJiMStaffLikeTheConverter)
 
 TEST_F(MusicXml_JiMS_Tests, everyReferenceFormTranscribesVerbatimAndOlderProfilesReadAsNone)
 {
-    struct Case { const char* file; const char* reference; };
+    struct Case {
+        const char* file;
+        const char* reference;
+    };
     const Case cases[] = {
         { "jims-reference-none.musicxml", "\"reference\":\"none\"" },
         { "jims-reference-none-explicit.musicxml", "\"reference\":\"none\"" },
@@ -230,7 +233,11 @@ TEST_F(MusicXml_JiMS_Tests, numberedStatesLandOnTheirStavesAndMidScoreStatesRide
 
 TEST_F(MusicXml_JiMS_Tests, allSixAcceptedPiecesImportWithTheirChangeCarrier)
 {
-    struct Case { const char* file; int changeMeasure; const char* marker; };
+    struct Case {
+        const char* file;
+        int changeMeasure;
+        const char* marker;
+    };
     const Case cases[] = {
         { "jims-v3-m5-mode.musicxml", 2, "\"mode_rotation\":5" },
         { "jims-v3-m5-key-up.musicxml", 2, "\"key_number\":55" },

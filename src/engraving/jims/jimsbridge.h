@@ -130,8 +130,7 @@ struct ChangeIndicator {
     std::vector<ChangeArrow> arrows;
     bool empty() const { return kinds.empty(); }
 };
-bool changeIndicator(const muse::String& oldStateJson, const muse::String& newStateJson,
-                     ChangeIndicator& out);
+bool changeIndicator(const muse::String& oldStateJson, const muse::String& newStateJson, ChangeIndicator& out);
 struct ConnectorGlyph {
     double penCents = 0.0;
     double headHeightCents = 0.0;
@@ -139,8 +138,8 @@ struct ConnectorGlyph {
 };
 bool connectorGlyph(ConnectorGlyph& out);
 
-bool frameForMelody(const muse::String& stateJson, const muse::String& melodyJson,
-                    const muse::String& extentToken, std::vector<StaveSegment>& segments);
+bool frameForMelody(const muse::String& stateJson, const muse::String& melodyJson, const muse::String& extentToken,
+                    std::vector<StaveSegment>& segments);
 
 /// A quantization hit: the nearest realizable lattice pitch to a target
 /// cents height, with the Kernel compatibility pitch (step/alter/octave)
@@ -156,15 +155,13 @@ struct PitchHit {
 
 /// Quantize a drag target (owner rulings 2026-08-14): nearest realizable
 /// pitch; current identity retained at exact-midpoint ties when eligible.
-bool nearestPitch(const muse::String& stateJson, double targetCents,
-                  bool hasCurrent, int currentNPer, int currentNGen, PitchHit& hit);
+bool nearestPitch(const muse::String& stateJson, double targetCents, bool hasCurrent, int currentNPer, int currentNGen, PitchHit& hit);
 
 /// Milestone 6 (editing workflow): one keyboard step from a JiMS note —
 /// `domain` is "lattice" (nearest realizable pitch strictly up/down),
 /// "collection" (adjacent member of the placed collection), or "period"
 /// (one whole period, same class). Kernel op `step_pitch`.
-bool stepPitch(const muse::String& stateJson, int currentNPer, int currentNGen,
-               bool up, const char* domain, PitchHit& hit);
+bool stepPitch(const muse::String& stateJson, int currentNPer, int currentNGen, bool up, const char* domain, PitchHit& hit);
 
 /// Milestone 6: one Kernel-issued change-panel choice (opaque id, labels
 /// from the canonical-solfa seam, `current` for the state's own value).
@@ -193,8 +190,7 @@ bool stateChangeOptions(const muse::String& stateJson, StateChangeOptions& optio
 
 /// Kernel op `apply_state_change`: the complete new state JSON after one
 /// choice, or false with `error` (unusable reference, foreign id, ...).
-bool applyStateChange(const muse::String& stateJson, const muse::String& choiceId,
-                      muse::String& newStateJson, muse::String& error);
+bool applyStateChange(const muse::String& stateJson, const muse::String& choiceId, muse::String& newStateJson, muse::String& error);
 
 /// Kernel entry conversion: step/alter/octave to a validated identity.
 bool entryFromStandardPitch(char step, int alter, int octave, int& nPer, int& nGen);

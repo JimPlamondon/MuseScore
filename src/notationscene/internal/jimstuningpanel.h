@@ -48,8 +48,8 @@ class JimsTuningPanel : public QWidget, public muse::async::Asyncable
     Q_OBJECT
 
 public:
-    JimsTuningPanel(mu::engraving::Score* score, std::function<void()> refreshView,
-                    muse::async::Notification scoreChanged, QWidget* parent = nullptr);
+    JimsTuningPanel(mu::engraving::Score* score,
+                    std::function<void()> refreshView, muse::async::Notification scoreChanged, QWidget* parent = nullptr);
     ~JimsTuningPanel() override;
 
 private:

@@ -71,12 +71,15 @@ Err JimsImportContext::resolveFromRoot(const std::vector<XmlStreamReader::Attrib
         bool ok = false;
         const int version = versionText.toInt(&ok);
         if (!ok || version < MIN_VERSION || version > MAX_VERSION) {
-            jimsFatal(logger, String(u"unsupported JiMS MusicXML namespace '%1' (this MuseScore understands urn:jims:musicxml:%2..%3); import refused so the document is not silently shown as a plain staff")
-                             .arg(a.value).arg(MIN_VERSION).arg(MAX_VERSION), e);
+            jimsFatal(logger,
+                      String(
+                          u"unsupported JiMS MusicXML namespace '%1' (this MuseScore understands urn:jims:musicxml:%2..%3); import refused so the document is not silently shown as a plain staff")
+                      .arg(a.value).arg(MIN_VERSION).arg(MAX_VERSION), e);
             return Err::FileBadFormat;
         }
         if (name == u"xmlns") {
-            jimsFatal(logger, String(u"the JiMS namespace '%1' must be bound to a prefix, not used as the default namespace").arg(a.value), e);
+            jimsFatal(logger, String(u"the JiMS namespace '%1' must be bound to a prefix, not used as the default namespace").arg(
+                          a.value), e);
             return Err::FileBadFormat;
         }
         if (!name.startsWith(u"xmlns:")) {
@@ -89,7 +92,7 @@ Err JimsImportContext::resolveFromRoot(const std::vector<XmlStreamReader::Attrib
         if (hasJims()) {
             if (version != m_version) {
                 jimsFatal(logger, String(u"two distinct JiMS profiles declared in one document (urn:jims:musicxml:%1 and %2)")
-                                 .arg(m_version).arg(version), e);
+                          .arg(m_version).arg(version), e);
                 return Err::FileBadFormat;
             }
             logger->logDebugInfo(String(u"JiMS namespace bound twice; keeping prefix '%1'").arg(m_prefix), e);
@@ -255,7 +258,8 @@ bool JimsImportContext::parseStaffState(XmlStreamReader& e, String& json, int& s
     }
 
     if (!(haveScale && haveColl && haveMode && haveGen && havePer && haveEmb && haveExt)) {
-        fail(u"jims:staff-state is missing a required child (scale, collection-rotation, mode-rotation, generator-cents, period-cents, embedding, extent)");
+        fail(
+            u"jims:staff-state is missing a required child (scale, collection-rotation, mode-rotation, generator-cents, period-cents, embedding, extent)");
     }
     if (steps.empty()) {
         fail(u"jims:staff-state scale carries no steps");

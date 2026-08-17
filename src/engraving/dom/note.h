@@ -227,6 +227,7 @@ public:
         m_jimsNGen = nGen;
         m_jimsCentsValid = false;
     }
+
     bool jimsCentsValid() const { return m_jimsCentsValid; }
     double jimsPosY(const StaffType* st) const;
     double jimsCentsAboveDo() const { return m_jimsCentsAboveDo; }

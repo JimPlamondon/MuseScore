@@ -115,7 +115,11 @@ TEST(JiMStaffTests, m6KeyboardStepsMoveOnTheLatticeThroughTheKernel)
     Note* n = notes.front();
     ASSERT_TRUE(n->hasJimsPitch());
 
-    struct Case { UpDownMode mode; bool up; const char* domain; };
+    struct Case {
+        UpDownMode mode;
+        bool up;
+        const char* domain;
+    };
     const Case cases[] = {
         { UpDownMode::CHROMATIC, true, "lattice" },
         { UpDownMode::CHROMATIC, false, "lattice" },
@@ -351,7 +355,13 @@ TEST(JiMStaffTests, m6LetterEntryEstablishesTheKernelIdentityOfTheNamedNote)
     is.setDuration(DurationType::V_QUARTER);
     is.setNoteEntryMode(true);
 
-    struct Entry { int letter; AccidentalType acc; int pitch; int nPer; int nGen; };
+    struct Entry {
+        int letter;
+        AccidentalType acc;
+        int pitch;
+        int nPer;
+        int nGen;
+    };
     // step = octave*7 + letter, as Score::resolveNoteInputParams produces
     // (MuseScore's octave index is pitch/12, so C4 = 60 is octave 5: step 35).
     const Entry entries[] = {

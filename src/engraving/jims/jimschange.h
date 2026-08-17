@@ -30,8 +30,7 @@ const StaffTypeChange* changeCarrier(const Measure* measure, staff_idx_t staffId
 /// carries no JiMS change, when the change sits at a system head (the
 /// full header is the indication there — no enclosure), or when the
 /// Kernel model is empty (tuning/extent/presentation-only differences).
-bool midSystemChangeIndicator(const Measure* measure, staff_idx_t staffIdx,
-                              ChangeIndicator& out, const StaffType** newStaffType = nullptr);
+bool midSystemChangeIndicator(const Measure* measure, staff_idx_t staffIdx, ChangeIndicator& out, const StaffType** newStaffType = nullptr);
 
 /// The terrain width to reserve at the start of `measure` (max over
 /// staves that carry a mid-system indicator), or 0.
@@ -44,8 +43,8 @@ double changeTerrainWidth(const Measure* measure);
 /// left — because the new system's fresh header alone hides the change.
 /// Model between the state in effect through `measure` and the state the
 /// next measure introduces. Returns false when not applicable or empty.
-bool courtesyChangeIndicator(const Measure* measure, staff_idx_t staffIdx,
-                             ChangeIndicator& out, const StaffType** stateStaffType = nullptr);
+bool courtesyChangeIndicator(const Measure* measure, staff_idx_t staffIdx, ChangeIndicator& out,
+                             const StaffType** stateStaffType = nullptr);
 
 /// The courtesy terrain width to reserve at the end of `measure`, or 0.
 double courtesyTerrainWidth(const Measure* measure);

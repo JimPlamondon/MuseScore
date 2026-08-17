@@ -2028,34 +2028,34 @@ void Score::upDown(bool up, UpDownMode mode)
             // period. Identity and compatibility pitch/tpc change together
             // as one undoable edit; the stock MIDI/tpc arithmetic below never
             // touches a JiMS note.
-            {
-                const StaffType* jimsSt = staff->staffType(tick);
-                if (jimsSt && jimsSt->isJiMS() && oNote->hasJimsPitch()) {
-                    const char* domain = mode == UpDownMode::CHROMATIC ? "lattice"
-                                         : mode == UpDownMode::DIATONIC ? "collection" : "period";
-                    jims::PitchHit hit;
-                    if (jims::stepPitch(jimsSt->jimsStateJson(), oNote->jimsNPer(), oNote->jimsNGen(),
-                                        up, domain, hit)) {
-                        static const String letters(u"CDEFGAB");
-                        const int stepIndex = int(letters.indexOf(Char(hit.step)));
-                        const int jimsPitch = std::clamp((hit.octave + 1) * 12 + step2pitch(stepIndex) + hit.alter, 0, 127);
-                        const int jimsTpc = step2tpc(stepIndex, AccidentalVal(hit.alter));
-                        for (Note* nn : oNote->tiedNotes()) {
-                            for (EngravingObject* e : nn->linkList()) {
-                                Note* ln = toNote(e);
-                                if (ln->accidental()) {
-                                    doUndoRemoveElement(ln->accidental());
-                                }
+        {
+            const StaffType* jimsSt = staff->staffType(tick);
+            if (jimsSt && jimsSt->isJiMS() && oNote->hasJimsPitch()) {
+                const char* domain = mode == UpDownMode::CHROMATIC ? "lattice"
+                                     : mode == UpDownMode::DIATONIC ? "collection" : "period";
+                jims::PitchHit hit;
+                if (jims::stepPitch(jimsSt->jimsStateJson(), oNote->jimsNPer(), oNote->jimsNGen(),
+                                    up, domain, hit)) {
+                    static const String letters(u"CDEFGAB");
+                    const int stepIndex = int(letters.indexOf(Char(hit.step)));
+                    const int jimsPitch = std::clamp((hit.octave + 1) * 12 + step2pitch(stepIndex) + hit.alter, 0, 127);
+                    const int jimsTpc = step2tpc(stepIndex, AccidentalVal(hit.alter));
+                    for (Note* nn : oNote->tiedNotes()) {
+                        for (EngravingObject* e : nn->linkList()) {
+                            Note* ln = toNote(e);
+                            if (ln->accidental()) {
+                                doUndoRemoveElement(ln->accidental());
                             }
-                            nn->undoChangeProperty(Pid::JIMS_NPER, hit.nPer);
-                            nn->undoChangeProperty(Pid::JIMS_NGEN, hit.nGen);
-                            undoChangePitch(nn, jimsPitch, jimsTpc, jimsTpc);
                         }
-                        setPlayNote(true);
+                        nn->undoChangeProperty(Pid::JIMS_NPER, hit.nPer);
+                        nn->undoChangeProperty(Pid::JIMS_NGEN, hit.nGen);
+                        undoChangePitch(nn, jimsPitch, jimsTpc, jimsTpc);
                     }
-                    continue;
+                    setPlayNote(true);
                 }
+                continue;
             }
+        }
             switch (mode) {
             case UpDownMode::OCTAVE:
                 if (up) {

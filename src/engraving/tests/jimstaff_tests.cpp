@@ -139,9 +139,9 @@ TEST(JiMStaffTests, dragTargetsAreTuningTrueNeverTwelveTetArithmetic)
 TEST(JiMStaffTests, tonicBoundedLaModeFrameGetsPartialStaves)
 {
     muse::String state = jimsState(G12, 5); // mode_rotation 5 selects La
-    muse::String melody =
-        u"{\"notes\":[{\"nPer\":0,\"nGen\":1},{\"nPer\":-1,\"nGen\":3},"
-        u"{\"nPer\":2,\"nGen\":-2},{\"nPer\":1,\"nGen\":0},{\"nPer\":1,\"nGen\":1}]}";
+    muse::String melody
+        =u"{\"notes\":[{\"nPer\":0,\"nGen\":1},{\"nPer\":-1,\"nGen\":3},"
+         u"{\"nPer\":2,\"nGen\":-2},{\"nPer\":1,\"nGen\":0},{\"nPer\":1,\"nGen\":1}]}";
     std::vector<jims::StaveSegment> segments;
     ASSERT_TRUE(jims::frameForMelody(state, melody, u"tonic-bounded", segments));
     ASSERT_EQ(segments.size(), 2u);
@@ -168,12 +168,12 @@ TEST(JiMStaffTests, staffMetricsReportTheStateWidths)
 // below breaks the MOS embedding contract.
 TEST(JiMStaffTests, invalidStateFailsVisiblyNotSilently)
 {
-    muse::String bad =
-        u"{\"scale\":[\"M2\",\"M2\"],\"collection_rotation\":0,\"mode_rotation\":0,"
-        u"\"generator_cents\":700.0,\"period_cents\":1200.0,"
-        u"\"embedding\":{\"large_steps\":5,\"small_steps\":2},"
-        u"\"extent\":{\"lower_do_register\":4,\"period_count\":2},"
-        u"\"reference\":\"none\"}";
+    muse::String bad
+        =u"{\"scale\":[\"M2\",\"M2\"],\"collection_rotation\":0,\"mode_rotation\":0,"
+         u"\"generator_cents\":700.0,\"period_cents\":1200.0,"
+         u"\"embedding\":{\"large_steps\":5,\"small_steps\":2},"
+         u"\"extent\":{\"lower_do_register\":4,\"period_count\":2},"
+         u"\"reference\":\"none\"}";
     double cents = 0.0;
     EXPECT_FALSE(jims::noteCentsAboveDo(bad, 1, -2, cents));
     double generatorCents = 0.0, periodCents = 0.0;
@@ -915,7 +915,10 @@ TEST(JiMStaffTests, scaleDotLabelAutoResolvesExactlyAtLegibilityBoundaries)
 
     jims::TuningController controller(score, 0);
     const double eps = 0.001;
-    const struct { double g; JimsScaleDotLabelMode want; } cases[] = {
+    const struct {
+        double g;
+        JimsScaleDotLabelMode want;
+    } cases[] = {
         { 690.9 - eps, JimsScaleDotLabelMode::Split },
         { 690.9,       JimsScaleDotLabelMode::Split },
         { 690.9 + eps, JimsScaleDotLabelMode::Left },
@@ -1315,7 +1318,7 @@ TEST(JiMStaffTests, wideMelodyControllerSweepKeepsFrameValidAndFast)
             const Segs frame = frameOf(score);
             ASSERT_FALSE(frame.empty()) << piece.toStdString() << " g=" << g << ": frame derivation failed";
             ASSERT_TRUE(sameFrame(frame, kernelFrameFor(score))) << piece.toStdString() << " g=" << g
-                                                                  << ": fork frame != Kernel (stale?)";
+                                                                 << ": fork frame != Kernel (stale?)";
             // Every note inside the returned frame.
             for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
                  seg = seg->next1(SegmentType::ChordRest)) {
@@ -1455,6 +1458,7 @@ const StaffTypeChange* m5ChangeAt(Score* score, int measureNo)
     }
     return m ? jims::changeCarrier(m, 0) : nullptr;
 }
+
 Measure* m5Measure(Score* score, int measureNo)
 {
     Measure* m = score->firstMeasure();
@@ -1469,7 +1473,9 @@ Measure* m5Measure(Score* score, int measureNo)
 // with kinds, endpoints, labels, direction, and trumps intact.
 TEST(JiMStaffTests, changeIndicatorTransportCarriesTheKernelTerrainVerbatim)
 {
-    const muse::String oldS = u"{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],\"collection_rotation\":0,\"mode_rotation\":0,\"generator_cents\":700.0,\"period_cents\":1200.0,\"embedding\":{\"large_steps\":5,\"small_steps\":2},\"extent\":{\"lower_do_register\":4,\"period_count\":1},\"reference\":{\"reference-pitch\":{\"key_number\":62}}}";
+    const muse::String oldS
+        =
+            u"{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],\"collection_rotation\":0,\"mode_rotation\":0,\"generator_cents\":700.0,\"period_cents\":1200.0,\"embedding\":{\"large_steps\":5,\"small_steps\":2},\"extent\":{\"lower_do_register\":4,\"period_count\":1},\"reference\":{\"reference-pitch\":{\"key_number\":62}}}";
     muse::String newS = oldS;
     newS.replace(u"\"mode_rotation\":0", u"\"mode_rotation\":5");
     newS.replace(u"\"key_number\":62", u"\"key_number\":53");
@@ -1581,7 +1587,15 @@ TEST(JiMStaffTests, changeIndicatorIsReservedMidSystemOrCourtesyAtSystemEnd)
 // (kinds, glyph counts, arrow direction/precedence) — the owner rules.
 TEST(JiMStaffTests, changeIndicatorSemanticsPerFixtureMatchTheOwnerRules)
 {
-    struct Case { const char16_t* piece; std::vector<muse::String> kinds; size_t dots; size_t tonics; size_t arrows; bool firstUp; muse::String trumps; };
+    struct Case {
+        const char16_t* piece;
+        std::vector<muse::String> kinds;
+        size_t dots;
+        size_t tonics;
+        size_t arrows;
+        bool firstUp;
+        muse::String trumps;
+    };
     const std::vector<Case> cases = {
         { u"m5-mode",     { u"mode" },          0, 2, 1, false, u"" },
         { u"m5-key-up",   { u"key" },           2, 0, 1, true,  u"" },
@@ -1609,7 +1623,9 @@ TEST(JiMStaffTests, changeIndicatorSemanticsPerFixtureMatchTheOwnerRules)
         if (outDir) {
             std::ofstream rec(std::string(outDir) + "/" + muse::String(c.piece).toStdString() + "-m5-semantics.json");
             rec << "{\"piece\":\"" << muse::String(c.piece).toStdString() << "\",\"kinds\":[";
-            for (size_t i = 0; i < model.kinds.size(); ++i) { rec << (i ? "," : "") << "\"" << model.kinds[i].toStdString() << "\""; }
+            for (size_t i = 0; i < model.kinds.size(); ++i) {
+                rec << (i ? "," : "") << "\"" << model.kinds[i].toStdString() << "\"";
+            }
             rec << "],\"dot_stacks\":" << model.dotStacks.size() << ",\"tonic_indicators\":" << model.tonicIndicators.size()
                 << ",\"arrows\":[";
             for (size_t i = 0; i < model.arrows.size(); ++i) {

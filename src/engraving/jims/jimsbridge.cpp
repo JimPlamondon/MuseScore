@@ -313,7 +313,8 @@ static void readPitchHit(const JsonObject& o, PitchHit& hit)
 bool stepPitch(const String& stateJson, int currentNPer, int currentNGen,
                bool up, const char* domain, PitchHit& hit)
 {
-    String envelope = String(u"{\"abi\":2,\"op\":\"step_pitch\",\"state\":%1,\"current\":{\"nPer\":%2,\"nGen\":%3},\"up\":%4,\"domain\":\"%5\"}")
+    String envelope = String(
+        u"{\"abi\":2,\"op\":\"step_pitch\",\"state\":%1,\"current\":{\"nPer\":%2,\"nGen\":%3},\"up\":%4,\"domain\":\"%5\"}")
                       .arg(stateJson).arg(currentNPer).arg(currentNGen)
                       .arg(String(up ? u"true" : u"false")).arg(String::fromAscii(domain));
     JsonValue result;
