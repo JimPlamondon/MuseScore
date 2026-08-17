@@ -8924,7 +8924,8 @@ bool ExportMusicXml::buildJimsExportPlan()
                 JimsFragment f;
                 String err;
                 if (!jims::musicxmlStaffStateV3Xml(base->jimsStateJson(), staffNumber, f.stateXml, &err)) {
-                    m_jimsPlan.error = String(u"JiMS export: Kernel refused the base state of staff %1: %2").arg(int(staffIdx) + 1).arg(err);
+                    m_jimsPlan.error
+                        = String(u"JiMS export: Kernel refused the base state of staff %1: %2").arg(int(staffIdx) + 1).arg(err);
                     return false;
                 }
                 m_jimsPlan.byPartTick[{ int(partIndex), 0 }].push_back(f);
@@ -8935,7 +8936,8 @@ bool ExportMusicXml::buildJimsExportPlan()
                     continue;
                 }
                 if (!baseJims) {
-                    m_jimsPlan.error = String(u"JiMS export: staff %1 carries a JiMS section at measure %2 without a JiMS base state at tick 0")
+                    m_jimsPlan.error = String(
+                        u"JiMS export: staff %1 carries a JiMS section at measure %2 without a JiMS base state at tick 0")
                                        .arg(int(staffIdx) + 1).arg(m->no() + 1);
                     return false;
                 }
@@ -8944,11 +8946,13 @@ bool ExportMusicXml::buildJimsExportPlan()
                 JimsFragment f;
                 String err;
                 if (!jims::musicxmlStaffStateV3Xml(state, staffNumber, f.stateXml, &err)) {
-                    m_jimsPlan.error = String(u"JiMS export: Kernel refused the state at measure %1, staff %2: %3").arg(m->no() + 1).arg(int(staffIdx) + 1).arg(err);
+                    m_jimsPlan.error = String(u"JiMS export: Kernel refused the state at measure %1, staff %2: %3").arg(m->no() + 1).arg(
+                        int(staffIdx) + 1).arg(err);
                     return false;
                 }
                 if (!jims::musicxmlChangeEventV3Xml(previousState, state, f.changeXml, &err)) {
-                    m_jimsPlan.error = String(u"JiMS export: Kernel could not classify the change at measure %1, staff %2: %3").arg(m->no() + 1).arg(int(staffIdx) + 1).arg(err);
+                    m_jimsPlan.error = String(u"JiMS export: Kernel could not classify the change at measure %1, staff %2: %3").arg(
+                        m->no() + 1).arg(int(staffIdx) + 1).arg(err);
                     return false;
                 }
                 previousState = state;
@@ -8969,7 +8973,9 @@ bool ExportMusicXml::buildJimsExportPlan()
             auto check = [&](const Note* n) {
                 const StaffType* st = n->staff() ? n->staff()->staffTypeForElement(n) : nullptr;
                 if (st && st->isJiMS() && !n->hasJimsPitch()) {
-                    m_jimsPlan.error = String(u"JiMS export: a note on JiMStaff %1 at tick %2 has no lattice identity").arg(int(n->staffIdx()) + 1).arg(n->tick().ticks());
+                    m_jimsPlan.error
+                        = String(u"JiMS export: a note on JiMStaff %1 at tick %2 has no lattice identity").arg(int(n->staffIdx()) + 1).arg(
+                              n->tick().ticks());
                     return false;
                 }
                 return true;
