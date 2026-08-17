@@ -112,6 +112,14 @@ struct SoundingPitch {
 };
 bool noteSoundingPitch(const muse::String& stateJson, int nPer, int nGen, SoundingPitch& out, muse::String* error = nullptr);
 
+/// Native MusicXML export (2026-08-17): the Kernel's COMPLETE self-tagged
+/// jims:staff-state element (numbered with the extension's `number`
+/// attribute when staffNumber > 0) and jims:change element (empty string
+/// when nothing changed). The fork inserts them verbatim, never edits them.
+bool musicxmlStaffStateV3Xml(const muse::String& stateJson, int staffNumber, muse::String& out, muse::String* error = nullptr);
+bool musicxmlChangeEventV3Xml(const muse::String& oldStateJson, const muse::String& newStateJson, muse::String& out,
+                              muse::String* error = nullptr);
+
 /// The Kernel's JI staff-line scaffold (owner rulings 1a/2a, 2026-08-14).
 bool jiLines(const muse::String& stateJson, std::vector<JiLine>& lines);
 

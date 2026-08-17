@@ -198,6 +198,49 @@ static ChangePoint readPoint(const JsonObject& o)
     return p;
 }
 
+static bool stringResult(const String& response, String& out, String* error)
+{
+    std::string err;
+    JsonDocument doc = JsonDocument::fromJson(response.toUtf8(), &err);
+    if (!err.empty()) {
+        if (error) {
+            *error = u"bridge returned no JSON";
+        }
+        return false;
+    }
+    JsonObject root = doc.rootObject();
+    if (!root.value("ok").toBool()) {
+        if (error) {
+            *error = root.value("error").toString();
+        }
+        return false;
+    }
+    if (!root.value("result").isString()) {
+        if (error) {
+            *error = u"bridge result is not a string";
+        }
+        return false;
+    }
+    out = root.value("result").toString();
+    return true;
+}
+
+bool musicxmlStaffStateV3Xml(const String& stateJson, int staffNumber, String& out, String* error)
+{
+    String envelope = staffNumber > 0
+                      ? String(u"{\"abi\":2,\"op\":\"musicxml_staff_state_v3_xml\",\"state\":%1,\"staff_number\":%2}")
+                      .arg(stateJson).arg(staffNumber)
+                      : String(u"{\"abi\":2,\"op\":\"musicxml_staff_state_v3_xml\",\"state\":%1}").arg(stateJson);
+    return stringResult(callBridge(envelope), out, error);
+}
+
+bool musicxmlChangeEventV3Xml(const String& oldStateJson, const String& newStateJson, String& out, String* error)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"musicxml_change_event_v3_xml\",\"old_state\":%1,\"new_state\":%2}")
+                      .arg(oldStateJson).arg(newStateJson);
+    return stringResult(callBridge(envelope), out, error);
+}
+
 bool noteSoundingPitch(const String& stateJson, int nPer, int nGen, SoundingPitch& out, String* error)
 {
     String envelope = String(u"{\"abi\":2,\"op\":\"note_sounding_pitch\",\"state\":%1,\"nPer\":%2,\"nGen\":%3}")

@@ -69,6 +69,11 @@ protected:
     void startElementRaw(const String& name);
     void elementRaw(const String& nameWithAttributes, const Value& body);
     void elementStringRaw(const String& nameWithAttributes, const String& body);
+    /// Emit an already-complete, trusted XML fragment verbatim at the current
+    /// level (no wrapper, no escaping, no parsing) — for elements a trusted
+    /// authority has serialized in full. Balances nothing: the fragment must
+    /// itself be balanced.
+    void writeRawFragment(const String& fragment);
 
 private:
 

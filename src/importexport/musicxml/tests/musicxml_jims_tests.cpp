@@ -29,6 +29,8 @@
 
 #include <gtest/gtest.h>
 
+#include <climits>
+
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/measure.h"
 #include "engraving/dom/note.h"
@@ -41,6 +43,13 @@
 #include "engraving/style/style.h"
 
 #include "importexport/musicxml/internal/import/importmusicxml.h"
+#include "importexport/musicxml/internal/export/exportmusicxml.h"
+#include "engraving/jims/jimsbridge.h"
+#include "engraving/rw/xmlwriter.h"
+#include "io/buffer.h"
+#include "io/file.h"
+#include "io/fileinfo.h"
+#include "io/dir.h"
 #include "engraving/tests/utils/scorerw.h"
 
 using namespace mu;
@@ -258,4 +267,243 @@ TEST_F(MusicXml_JiMS_Tests, allSixAcceptedPiecesImportWithTheirChangeCarrier)
         }
         delete score;
     }
+}
+
+// ---------------------------------------------------------------------------
+// Interchange hardening — native JiMS MusicXML EXPORT (converged FINAL 96%,
+// 2026-08-17). The Kernel writes every jims:staff-state / jims:change element
+// in full (bridge ops from jims PR 214); the fork places them verbatim, adds
+// jims:pitch from each JiMS note's two stored integers, declares the V3
+// namespace only when a JiMStaff is present, and fails closed.
+// ---------------------------------------------------------------------------
+namespace {
+struct JimsSnapshot {
+    std::vector<String> baseStates;                             // Kernel-canonical XML per staff
+    std::vector<std::pair<int, String> > carriers;              // (tick, Kernel-canonical XML) per staff, in order
+    std::vector<std::pair<int, int> > identities;               // JiMS notes in document order (all tracks)
+};
+
+/// The Kernel's own canonical serialization of a state — semantic equality
+/// through the Kernel, never a byte comparison of two JSON spellings.
+String canonicalState(const String& stateJson)
+{
+    String xml;
+    String err;
+    EXPECT_TRUE(jims::musicxmlStaffStateV3Xml(stateJson, 0, xml, &err)) << err.toStdString();
+    return xml;
+}
+
+JimsSnapshot snapshotOf(Score* score)
+{
+    JimsSnapshot snap;
+    for (staff_idx_t s = 0; s < score->nstaves(); ++s) {
+        const Staff* staff = score->staff(s);
+        const StaffType* base = staff->staffType(Fraction(0, 1));
+        snap.baseStates.push_back(base && base->isJiMS() ? canonicalState(base->jimsStateJson()) : String());
+        for (const Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
+            const StaffTypeChange* c = jims::changeCarrier(m, s);
+            if (c && c->staffType() && c->staffType()->isJiMS()) {
+                snap.carriers.emplace_back(m->tick().ticks(), canonicalState(staff->staffType(m->tick())->jimsStateJson()));
+            }
+        }
+    }
+    for (const Segment* seg = score->firstSegment(SegmentType::ChordRest); seg; seg = seg->next1(SegmentType::ChordRest)) {
+        for (track_idx_t t = 0; t < score->ntracks(); ++t) {
+            const EngravingItem* el = seg->element(t);
+            if (el && el->isChord()) {
+                for (const Chord* g : toChord(el)->graceNotes()) {
+                    for (const Note* n : g->notes()) {
+                        if (n->hasJimsPitch()) {
+                            snap.identities.emplace_back(n->jimsNPer(), n->jimsNGen());
+                        }
+                    }
+                }
+                for (const Note* n : toChord(el)->notes()) {
+                    if (n->hasJimsPitch()) {
+                        snap.identities.emplace_back(n->jimsNPer(), n->jimsNGen());
+                    }
+                }
+            }
+        }
+    }
+    return snap;
+}
+
+String exportToScratch(MasterScore* score, const char* name)
+{
+    // The stock export tests do the same before saving (musicxml_tests.cpp).
+    score->connectTies();
+    score->masterScore()->rebuildMidiMapping();
+    score->doLayout();
+    const String dir = ScoreRW::rootPath() + u"/../../../../build.release/jims-export-scratch";
+    muse::io::Dir::mkpath(dir);
+    const String path = dir + u"/" + String::fromUtf8(name);
+    muse::io::File::remove(path);
+    EXPECT_TRUE(saveXml(score, path)) << name;
+    return path;
+}
+
+String readAll(const String& path)
+{
+    muse::io::File f(path);
+    EXPECT_TRUE(f.open(muse::io::IODevice::ReadOnly)) << path.toStdString();
+    return String::fromUtf8(f.readAll());
+}
+}
+
+TEST_F(MusicXml_JiMS_Tests, exportWritesV3AndRoundTripsThroughTheNativeImporter)
+{
+    const char* corpus[] = {
+        "jims-v3-m5-mode.musicxml", "jims-v3-m5-key-up.musicxml", "jims-v3-m5-key-down.musicxml",
+        "jims-v3-m5-scale.musicxml", "jims-v3-m5-key-mode.musicxml", "jims-v3-m5-syshead.musicxml",
+        "jims-reference-none.musicxml", "jims-reference-none-explicit.musicxml", "jims-reference-pitch.musicxml",
+        "jims-reference-pitch-class.musicxml", "jims-reference-hertz.musicxml", "jims-mid-score-state-change.musicxml",
+        "jims-multi-staff.musicxml", "jims-12tet-diatonic.musicxml", "jims-v2-mode-change.musicxml",
+    };
+    for (const char* file : corpus) {
+        MasterScore* original = readJims(file);
+        ASSERT_TRUE(original) << file;
+        original->doLayout();
+        const JimsSnapshot before = snapshotOf(original);
+        ASSERT_FALSE(before.identities.empty()) << file;
+        const String out = exportToScratch(original, (String(u"export-") + String::fromUtf8(file)).toStdString().c_str());
+        const String xml = readAll(out);
+        EXPECT_TRUE(xml.contains(u"xmlns:jims=\"urn:jims:musicxml:3\"")) << file;
+        EXPECT_TRUE(xml.contains(u"<jims:staff-state")) << file;
+        EXPECT_TRUE(xml.contains(u"<jims:pitch ")) << file;
+        // Round trip through the accepted native importer.
+        auto importXml = [](MasterScore* score, const muse::io::path_t& path) -> engraving::Err {
+            return importMusicXml(score, path.toQString(), false);
+        };
+        MasterScore* again = ScoreRW::readScore(out, true, importXml);
+        ASSERT_TRUE(again) << file;
+        again->doLayout();
+        const JimsSnapshot after = snapshotOf(again);
+        EXPECT_EQ(after.baseStates, before.baseStates) << file;
+        EXPECT_EQ(after.carriers, before.carriers) << file;
+        EXPECT_EQ(after.identities, before.identities) << file;
+        // Re-export is again valid-looking and semantically identical.
+        const String out2 = exportToScratch(again, (String(u"reexport-") + String::fromUtf8(file)).toStdString().c_str());
+        MasterScore* third = ScoreRW::readScore(out2, true, importXml);
+        ASSERT_TRUE(third) << file;
+        third->doLayout();
+        const JimsSnapshot after2 = snapshotOf(third);
+        EXPECT_EQ(after2.baseStates, before.baseStates) << file;
+        EXPECT_EQ(after2.carriers, before.carriers) << file;
+        EXPECT_EQ(after2.identities, before.identities) << file;
+        delete original;
+        delete again;
+        delete third;
+    }
+}
+
+TEST_F(MusicXml_JiMS_Tests, exportOfANativeJiMSScoreCarriesStatesChangesAndIdentities)
+{
+    // The M6/M7 gate file: base reference 62, bar-2 carrier (reference 53,
+    // mode La), bar 3 pasted identities.
+    MasterScore* score = ScoreRW::readScore(JIMS_DATA_DIR + u"m7-gate.mscz");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    const JimsSnapshot before = snapshotOf(score);
+    ASSERT_EQ(before.identities.size(), 12u);
+    ASSERT_EQ(before.carriers.size(), 1u);
+    const String out = exportToScratch(score, "export-m7-gate.musicxml");
+    const String xml = readAll(out);
+    EXPECT_TRUE(xml.contains(u"xmlns:jims=\"urn:jims:musicxml:3\""));
+    // Two states (base + bar 2) and one Kernel change (key, mode) right after the later state.
+    EXPECT_EQ(int(xml.count(u"<jims:staff-state>")), 2);
+    EXPECT_EQ(int(xml.count(u"<jims:change>")), 1);
+    const size_t later = xml.indexOf(u"<jims:staff-state>", xml.indexOf(u"<jims:staff-state>") + 1);
+    const size_t change = xml.indexOf(u"<jims:change>");
+    EXPECT_LT(later, change);
+    EXPECT_TRUE(xml.contains(u"<jims:kind>key</jims:kind>"));
+    EXPECT_TRUE(xml.contains(u"<jims:kind>mode</jims:kind>"));
+    EXPECT_EQ(int(xml.count(u"<jims:pitch ")), 12);
+    // No jims:staff-state shares an <attributes> block with staff-lines (Schematron rule).
+    size_t pos = 0;
+    while ((pos = xml.indexOf(u"<attributes>", pos)) != muse::nidx) {
+        const size_t end = xml.indexOf(u"</attributes>", pos);
+        const String block = xml.mid(pos, end - pos);
+        EXPECT_FALSE(block.contains(u"<jims:staff-state") && block.contains(u"<staff-lines>")) << block.toStdString();
+        pos = end;
+    }
+    auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
+        return importMusicXml(s, path.toQString(), false);
+    };
+    MasterScore* again = ScoreRW::readScore(out, true, importXml);
+    ASSERT_TRUE(again);
+    again->doLayout();
+    const JimsSnapshot after = snapshotOf(again);
+    EXPECT_EQ(after.baseStates, before.baseStates);
+    EXPECT_EQ(after.carriers, before.carriers);
+    EXPECT_EQ(after.identities, before.identities);
+    delete score;
+    delete again;
+}
+
+TEST_F(MusicXml_JiMS_Tests, multiStaffExportNumbersStatesThroughTheKernel)
+{
+    MasterScore* score = readJims("jims-multi-staff.musicxml");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    const String out = exportToScratch(score, "export-multi-staff.musicxml");
+    const String xml = readAll(out);
+    EXPECT_TRUE(xml.contains(u"<jims:staff-state number=\"1\">")) << xml.toStdString().substr(0, 2000);
+    EXPECT_TRUE(xml.contains(u"<jims:staff-state number=\"2\">"));
+    delete score;
+}
+
+TEST_F(MusicXml_JiMS_Tests, stockScoreExportDeclaresNoJimsNamespace)
+{
+    auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
+        return importMusicXml(s, path.toQString(), false);
+    };
+    MasterScore* score = ScoreRW::readScore(u"data/testHello.xml", false, importXml);
+    ASSERT_TRUE(score);
+    score->doLayout();
+    const String out = exportToScratch(score, "export-stock-hello.musicxml");
+    const String xml = readAll(out);
+    EXPECT_FALSE(xml.contains(u"jims"));
+    EXPECT_TRUE(xml.contains(u"<score-partwise version=\"4.0\">"));
+    delete score;
+}
+
+TEST_F(MusicXml_JiMS_Tests, exportFailsClosedWhenAJimsNoteLacksItsIdentity)
+{
+    MasterScore* score = ScoreRW::readScore(JIMS_DATA_DIR + u"m7-gate.mscz");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    // Strip one identity (a defective document): export must refuse and
+    // write nothing.
+    for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg; seg = seg->next1(SegmentType::ChordRest)) {
+        EngravingItem* el = seg->element(0);
+        if (el && el->isChord()) {
+            toChord(el)->notes().front()->setJimsPitch(INT_MIN, INT_MIN);   // Note::JIMS_UNSET (private)
+            break;
+        }
+    }
+    muse::io::Buffer buf;
+    buf.open(muse::io::IODevice::WriteOnly);
+    EXPECT_FALSE(saveXml(score, &buf));
+    EXPECT_TRUE(buf.data().empty());
+    delete score;
+}
+
+TEST_F(MusicXml_JiMS_Tests, trustedRawFragmentWriterInsertsVerbatimAndKeepsBalance)
+{
+    muse::io::Buffer buf;
+    buf.open(muse::io::IODevice::WriteOnly);
+    XmlWriter xml(&buf);
+    xml.startDocument();
+    xml.startElement("attributes");
+    xml.tag("divisions", 1);
+    xml.writeTrustedRawFragment(u"<jims:staff-state number=\"2\"><jims:x a=\"&amp;\"/></jims:staff-state>");
+    xml.tag("after", 2);
+    xml.endElement();
+    xml.flush();
+    const String out = String::fromUtf8(buf.data());
+    EXPECT_TRUE(out.contains(u"<jims:staff-state number=\"2\"><jims:x a=\"&amp;\"/></jims:staff-state>\n")) << out.toStdString();
+    EXPECT_LT(out.indexOf(u"<divisions>"), out.indexOf(u"<jims:staff-state"));
+    EXPECT_LT(out.indexOf(u"</jims:staff-state>"), out.indexOf(u"<after>"));
+    EXPECT_TRUE(out.contains(u"</attributes>"));
 }

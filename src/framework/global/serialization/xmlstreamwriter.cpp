@@ -258,6 +258,18 @@ void XmlStreamWriter::elementStringRaw(const String& nameWithAttributes, const S
     }
 }
 
+void XmlStreamWriter::writeRawFragment(const String& fragment)
+{
+    if (fragment.isEmpty()) {
+        return;
+    }
+    m_impl->putLevel();
+    m_impl->stream << fragment;
+    if (!fragment.endsWith(u'\n')) {
+        m_impl->stream << '\n';
+    }
+}
+
 void XmlStreamWriter::comment(const String& text)
 {
     m_impl->putLevel();

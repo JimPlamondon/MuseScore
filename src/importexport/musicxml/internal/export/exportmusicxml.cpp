@@ -110,6 +110,10 @@
 #include "engraving/dom/slur.h"
 #include "engraving/dom/spanner.h"
 #include "engraving/dom/staff.h"
+#include "engraving/dom/stafftype.h"
+#include "engraving/jims/jimsbridge.h"
+#include "engraving/jims/jimschange.h"
+#include "engraving/dom/stafftypechange.h"
 #include "engraving/dom/stem.h"
 #include "engraving/dom/stringdata.h"
 #include "engraving/dom/system.h"
@@ -342,7 +346,10 @@ public:
         m_millimeters = m_score->style().spatium() * m_tenths / (10 * DPMM);
     }
 
-    void write(muse::io::IODevice* dev);
+    /// Returns false (nothing written to `dev`) when the score's JiMS data
+    /// cannot be exported completely — the fail-closed plan (native JiMS
+    /// MusicXML export, 2026-08-17).
+    bool write(muse::io::IODevice* dev);
     void credits(XmlWriter& xml);
     void moveToTick(const Fraction& t, const Fraction& stretch = { 1, 1 });
     void moveToTickIfNeed(const Fraction& t, track_idx_t track, const Fraction& measureTick);
@@ -417,6 +424,25 @@ private:
     static String elementPosition(const ExportMusicXml* const expMxml, const EngravingItem* const elm);
     static String positioningAttributesForTboxText(const PointF position, float spatium);
     void identification(XmlWriter& xml, Score const* const score);
+
+    // Native JiMS MusicXML export (2026-08-17): the immutable, fail-closed
+    // plan built before any output — Kernel-produced complete jims:staff-state
+    // / jims:change fragments per (part, measure tick), staff-numbered by the
+    // Kernel for multi-staff parts; every JiMS note's identity is checked
+    // present. The fork composes no JiMS element text.
+    struct JimsFragment {
+        String stateXml;
+        String changeXml;   // empty when the section carries no classified change
+    };
+    struct JimsExportPlan {
+        bool present = false;
+        std::map<std::pair<int, int>, std::vector<JimsFragment> > byPartTick;   // (partIndex, tick)
+        String error;
+    };
+    JimsExportPlan m_jimsPlan;
+    bool buildJimsExportPlan();
+    void writeJimsAttributes(const Measure* const m, const int partIndex);
+    void writeJimsPitch(const Note* const note);
 
     Score* m_score = nullptr;
     XmlWriter m_xml;
@@ -4408,6 +4434,7 @@ void ExportMusicXml::chord(Chord* chord, staff_idx_t staff, const std::vector<Ly
         }
 
         writePitch(m_xml, note, useDrumset);
+        writeJimsPitch(note);
 
         // duration
         if (!grace) {
@@ -8690,6 +8717,10 @@ void ExportMusicXml::writeMeasure(const Measure* const m,
         repeatAtMeasureStart(m_attr, m, strack, etrack, strack);
     }
 
+    // JiMS states (base at tick 0, later sections at their carriers) with
+    // their Kernel-written change events — a separate attributes block.
+    writeJimsAttributes(m, partIndex);
+
     // write data in the staves
     writeMeasureStaves(m, partIndex, track2staff(strack), staves, part->instrument()->useDrumset(), fbMap, spannersStopped);
 
@@ -8874,8 +8905,135 @@ static std::vector<const Jump*> findJumpElements(const Score* score)
  Write the score to \a dev in MusicXML format.
  */
 
-void ExportMusicXml::write(muse::io::IODevice* dev)
+bool ExportMusicXml::buildJimsExportPlan()
 {
+    m_jimsPlan = JimsExportPlan();
+    const std::vector<Part*>& parts = m_score->parts();
+    for (size_t partIndex = 0; partIndex < parts.size(); ++partIndex) {
+        const Part* part = parts.at(partIndex);
+        const size_t nstaves = part->nstaves();
+        for (size_t partStaff = 0; partStaff < nstaves; ++partStaff) {
+            const Staff* staff = part->staff(partStaff);
+            const staff_idx_t staffIdx = staff->idx();
+            const int staffNumber = nstaves > 1 ? int(partStaff) + 1 : 0;   // extension `number`, Kernel-written
+            const StaffType* base = staff->staffType(Fraction(0, 1));
+            const bool baseJims = base && base->isJiMS();
+            String previousState = baseJims ? base->jimsStateJson() : String();
+            if (baseJims) {
+                m_jimsPlan.present = true;
+                JimsFragment f;
+                String err;
+                if (!jims::musicxmlStaffStateV3Xml(base->jimsStateJson(), staffNumber, f.stateXml, &err)) {
+                    m_jimsPlan.error = String(u"JiMS export: Kernel refused the base state of staff %1: %2").arg(int(staffIdx) + 1).arg(err);
+                    return false;
+                }
+                m_jimsPlan.byPartTick[{ int(partIndex), 0 }].push_back(f);
+            }
+            for (const Measure* m = m_score->firstMeasure(); m; m = m->nextMeasure()) {
+                const StaffTypeChange* carrier = jims::changeCarrier(m, staffIdx);
+                if (!carrier || !carrier->staffType() || !carrier->staffType()->isJiMS()) {
+                    continue;
+                }
+                if (!baseJims) {
+                    m_jimsPlan.error = String(u"JiMS export: staff %1 carries a JiMS section at measure %2 without a JiMS base state at tick 0")
+                                       .arg(int(staffIdx) + 1).arg(m->no() + 1);
+                    return false;
+                }
+                m_jimsPlan.present = true;
+                const String state = staff->staffType(m->tick())->jimsStateJson();
+                JimsFragment f;
+                String err;
+                if (!jims::musicxmlStaffStateV3Xml(state, staffNumber, f.stateXml, &err)) {
+                    m_jimsPlan.error = String(u"JiMS export: Kernel refused the state at measure %1, staff %2: %3").arg(m->no() + 1).arg(int(staffIdx) + 1).arg(err);
+                    return false;
+                }
+                if (!jims::musicxmlChangeEventV3Xml(previousState, state, f.changeXml, &err)) {
+                    m_jimsPlan.error = String(u"JiMS export: Kernel could not classify the change at measure %1, staff %2: %3").arg(m->no() + 1).arg(int(staffIdx) + 1).arg(err);
+                    return false;
+                }
+                previousState = state;
+                m_jimsPlan.byPartTick[{ int(partIndex), m->tick().ticks() }].push_back(f);
+            }
+        }
+    }
+    if (!m_jimsPlan.present) {
+        return true;
+    }
+    // Every note on a JiMS staff must carry its lattice identity.
+    for (const Segment* seg = m_score->firstSegment(SegmentType::ChordRest); seg; seg = seg->next1(SegmentType::ChordRest)) {
+        for (track_idx_t t = 0; t < m_score->ntracks(); ++t) {
+            const EngravingItem* el = seg->element(t);
+            if (!el || !el->isChord()) {
+                continue;
+            }
+            auto check = [&](const Note* n) {
+                const StaffType* st = n->staff() ? n->staff()->staffTypeForElement(n) : nullptr;
+                if (st && st->isJiMS() && !n->hasJimsPitch()) {
+                    m_jimsPlan.error = String(u"JiMS export: a note on JiMStaff %1 at tick %2 has no lattice identity").arg(int(n->staffIdx()) + 1).arg(n->tick().ticks());
+                    return false;
+                }
+                return true;
+            };
+            for (const Note* n : toChord(el)->notes()) {
+                if (!check(n)) {
+                    return false;
+                }
+            }
+            for (const Chord* g : toChord(el)->graceNotes()) {
+                for (const Note* n : g->notes()) {
+                    if (!check(n)) {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+    return true;
+}
+
+void ExportMusicXml::writeJimsAttributes(const Measure* const m, const int partIndex)
+{
+    if (!m_jimsPlan.present) {
+        return;
+    }
+    const auto it = m_jimsPlan.byPartTick.find({ partIndex, m->tick().ticks() });
+    if (it == m_jimsPlan.byPartTick.end() || it->second.empty()) {
+        return;
+    }
+    // A separate <attributes> block: the extension's Schematron forbids
+    // standard fixed staff-lines beside jims:staff-state, and the sequence
+    // must end (staff-state, change?)*. The Kernel's complete elements go in
+    // verbatim through the trusted-fragment seam.
+    m_attr.doAttr(m_xml, false);
+    m_xml.startElement("attributes");
+    for (const JimsFragment& f : it->second) {
+        m_xml.writeTrustedRawFragment(f.stateXml);
+        if (!f.changeXml.isEmpty()) {
+            m_xml.writeTrustedRawFragment(f.changeXml);
+        }
+    }
+    m_xml.endElement();
+}
+
+void ExportMusicXml::writeJimsPitch(const Note* const note)
+{
+    if (!m_jimsPlan.present || !note->staff()) {
+        return;
+    }
+    const StaffType* st = note->staff()->staffTypeForElement(note);
+    if (!st || !st->isJiMS() || !note->hasJimsPitch()) {
+        return;
+    }
+    // Two stored integers (owner-settled 6.2): structured, escaped write.
+    m_xml.tag("jims:pitch", { { "n-per", note->jimsNPer() }, { "n-gen", note->jimsNGen() } });
+}
+
+bool ExportMusicXml::write(muse::io::IODevice* dev)
+{
+    if (!buildJimsExportPlan()) {
+        LOGE() << m_jimsPlan.error;
+        return false;
+    }
     calcDivisions();
 
     for (int i = 0; i < MAX_NUMBER_LEVEL; ++i) {
@@ -8893,7 +9051,13 @@ void ExportMusicXml::write(muse::io::IODevice* dev)
     m_xml.writeDoctype(
         u"score-partwise PUBLIC \"-//Recordare//DTD MusicXML 4.0 Partwise//EN\" \"http://www.musicxml.org/dtds/partwise.dtd\"");
 
-    m_xml.startElement("score-partwise", { { "version", "4.0" } });
+    if (m_jimsPlan.present) {
+        // urn:jims:musicxml:3 is declared only when a JiMStaff is present;
+        // stock scores export byte-identically.
+        m_xml.startElement("score-partwise", { { "version", "4.0" }, { "xmlns:jims", "urn:jims:musicxml:3" } });
+    } else {
+        m_xml.startElement("score-partwise", { { "version", "4.0" } });
+    }
 
     work(m_score->measures()->first());
     identification(m_xml, m_score);
@@ -8912,6 +9076,7 @@ void ExportMusicXml::write(muse::io::IODevice* dev)
 
     m_xml.endElement();
     m_xml.flush();
+    return true;
 }
 
 //---------------------------------------------------------
@@ -8930,7 +9095,9 @@ bool saveXml(Score* score, IODevice* device)
     muse::io::Buffer buf;
     buf.open(muse::io::IODevice::WriteOnly);
     ExportMusicXml em(score);
-    em.write(&buf);
+    if (!em.write(&buf)) {
+        return false;   // fail closed: nothing reaches the destination
+    }
     device->write(buf.data());
     return true;
 }
@@ -8966,7 +9133,7 @@ bool saveXml(Score* score, const String& name)
 //     </rootfiles>
 // </container>
 
-static void writeMxlArchive(Score* score, muse::ZipWriter& zip, const String& filename)
+static bool writeMxlArchive(Score* score, muse::ZipWriter& zip, const String& filename)
 {
     muse::io::Buffer cbuf;
     cbuf.open(muse::io::IODevice::ReadWrite);
@@ -8988,7 +9155,9 @@ static void writeMxlArchive(Score* score, muse::ZipWriter& zip, const String& fi
     dbuf.open(muse::io::IODevice::ReadWrite);
     ExportMusicXml em(score);
     em.setMxl(true);
-    em.write(&dbuf);
+    if (!em.write(&dbuf)) {
+        return false;   // fail closed
+    }
     dbuf.seek(0);
     zip.addFile(filename.toStdString(), dbuf.data());
 
@@ -9000,6 +9169,7 @@ static void writeMxlArchive(Score* score, muse::ZipWriter& zip, const String& fi
             zip.addFile(source.toStdString(), isi->buffer());
         }
     }
+    return true;
 }
 
 bool saveMxl(Score* score, IODevice* device)
@@ -9008,10 +9178,10 @@ bool saveMxl(Score* score, IODevice* device)
 
     //anonymized filename since we don't know the actual one here
     String fn = u"score.xml";
-    writeMxlArchive(score, zip, fn);
+    const bool ok = writeMxlArchive(score, zip, fn);
     zip.close();
 
-    return true;
+    return ok;
 }
 
 bool saveMxl(Score* score, const String& name)
@@ -9020,10 +9190,10 @@ bool saveMxl(Score* score, const String& name)
 
     FileInfo fi(name);
     String fn = fi.completeBaseName() + u".xml";
-    writeMxlArchive(score, zip, fn);
+    const bool ok = writeMxlArchive(score, zip, fn);
     zip.close();
 
-    return true;
+    return ok;
 }
 
 double ExportMusicXml::getTenthsFromInches(double inches) const
