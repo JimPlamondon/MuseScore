@@ -1,5 +1,6 @@
 name: 'Translate: lupdate source TS in repo'
 
+# musescore-jims: upstream schedule removed — this fork has no upstream deploy/translation secrets.
 on:
   workflow_dispatch:
     inputs:
@@ -8,8 +9,6 @@ on:
         required: true
         type: boolean
         default: false
-  schedule:
-    - cron: "0 12 * * Sun"
 
 
 jobs:

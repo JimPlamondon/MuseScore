@@ -1,7 +1,15 @@
 name: 'Check: Unit Tests (utest)'
 
 on:
+  # musescore-jims: we integrate by fast-forwarding jims/main (no PRs), so
+  # run on pushes to the integration branch and the agents' task branches.
+  push:
+    branches:
+      - jims/main
+      - 'claude/**'
+      - 'codex/**'
   pull_request:
+  # musescore-jims: the upstream Thursday coverage schedule is removed (needs upstream S3 secrets).
   workflow_dispatch:
     inputs:
       code_coverage:
@@ -9,8 +17,6 @@ on:
         required: false
         type: boolean
         default: false
-  schedule:
-    - cron: "0 3 * * 4" # Every Thursday night at 03:00 for master branch
 
 jobs:
   run_tests:
@@ -60,6 +66,25 @@ jobs:
     - name: Setup environment
       run: |
         bash ./buildscripts/ci/linux/setup.sh
+
+    # musescore-jims: the engraving module links the JiMS Kernel's
+    # jims-musescore-bridge staticlib (built by cargo during CMake configure,
+    # see src/engraving/jims/SetupJiMSBridge.cmake). The Kernel repository is
+    # private: JIMS_KERNEL_TOKEN is a fine-grained PAT with read-only
+    # Contents access to JimPlamondon/jims, stored as a repository secret.
+    - name: Clone JiMS Kernel (jims)
+      uses: actions/checkout@v6
+      with:
+        repository: JimPlamondon/jims
+        ref: main
+        token: ${{ secrets.JIMS_KERNEL_TOKEN }}
+        path: jims-kernel
+    - name: Setup Rust (JiMS bridge)
+      uses: dtolnay/rust-toolchain@stable
+    - name: Point the build at the Kernel
+      run: |
+        echo "JIMS_ROOT=${{ github.workspace }}/jims-kernel" | tee -a $GITHUB_ENV
+        cargo --version
 
     - name: Build
       env:

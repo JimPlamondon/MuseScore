@@ -1,12 +1,7 @@
 name: "Translate: tx pull translations to S3"
 
+# musescore-jims: upstream schedule removed — this fork has no upstream deploy/translation secrets.
 on:
-  schedule:
-    # Every 15 minutes, but only on Sunday at 12:00 a PR is created
-    - cron: "*/15 * * * 1-6" # Every 15 minutes, except on Sunday
-    - cron: "*/15 0-11,13-23 * * 0" # Every 15 minutes on Sunday, except between 12:00 and 12:59
-    - cron: "15,30,45 12 * * 0" # At 12:15, 12:30, 12:45 on Sunday
-    - cron: "0 12 * * Sun" # At 12:00 on Sunday
   workflow_dispatch:
     inputs:
       create_pull_request:

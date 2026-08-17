@@ -1,10 +1,8 @@
 name: "Build: Nightly"
 run-name: "${{ format('Build: Nightly - {0}', github.ref_name) }}"
 
+# musescore-jims: upstream schedule removed — this fork has no upstream deploy/translation secrets.
 on:
-  schedule:
-    - cron: "0 3 * * *" # Every night at 03:00 for master branch
-    # - cron: "0 4 * * *" # Every night at 04:00 for current release branch
   workflow_dispatch:
 
 permissions:
