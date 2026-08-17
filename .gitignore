@@ -92,3 +92,5 @@ compile_commands.json
 
 # QML language server
 **/.qmlls.ini
+build.install610
+build.install610.prev
