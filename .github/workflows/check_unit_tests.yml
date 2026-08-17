@@ -9,6 +9,7 @@ on:
       - 'claude/**'
       - 'codex/**'
   pull_request:
+  # musescore-jims: the upstream Thursday coverage schedule is removed (needs upstream S3 secrets).
   workflow_dispatch:
     inputs:
       code_coverage:
@@ -16,8 +17,6 @@ on:
         required: false
         type: boolean
         default: false
-  schedule:
-    - cron: "0 3 * * 4" # Every Thursday night at 03:00 for master branch
 
 jobs:
   run_tests:
