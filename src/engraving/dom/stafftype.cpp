@@ -838,6 +838,12 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
     const double gap = 0.25 * spatium;
     std::vector<jims::LabeledDotStack> stacks;
     const bool haveLabels = jims::scaleDotLabels(m_jimsStateJson, stacks);
+    // Current-key label "[PitchN]:" left of the tonic indicator (owner spec
+    // 2026-08-17): reserve its advance (plus one space) in the left bands.
+    jims::TonicPitchLabel key;
+    const double keyAdvance = jims::tonicPitchLabel(m_jimsStateJson, key)
+                              ? fm.horizontalAdvance(key.label + u": ") : 0.0;
+    g.keyLabelAdvance = keyAdvance;
     if (haveLabels) {
         // ALL labels sit LEFT of the dots (owner ruling 2026-08-16, second
         // round: the two note-stacks must look as alike as possible — the
@@ -850,7 +856,7 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
                 widest = std::max(widest, fm.horizontalAdvance(member.label));
             }
         }
-        g.changeLabelBand = widest > 0.0 ? widest + gap : 0.0;
+        g.changeLabelBand = widest > 0.0 ? widest + keyAdvance + gap : 0.0;
         g.changeRightLabelBand = 0.0;
     }
     g.changeArrowLane = 1.2 * g.indicatorW;
@@ -859,6 +865,10 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
 
     const JimsScaleDotLabelMode mode = jimsResolvedScaleDotLabelMode();
     if (mode == JimsScaleDotLabelMode::None || !haveLabels) {
+        if (keyAdvance > 0.0) {
+            g.leftLabelBand = keyAdvance + gap;
+            g.headerWidth += g.leftLabelBand;
+        }
         return g;
     }
     double maxLeft = 0.0;
@@ -881,8 +891,8 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
             maxRight = std::max(maxRight, fm.horizontalAdvance(rightText));
         }
     }
-    if (maxLeft > 0.0) {
-        g.leftLabelBand = maxLeft + gap;
+    if (maxLeft > 0.0 || keyAdvance > 0.0) {
+        g.leftLabelBand = maxLeft + keyAdvance + gap;
     }
     if (maxRight > 0.0 && mode == JimsScaleDotLabelMode::Split) {
         g.rightLabelBand = maxRight + gap;

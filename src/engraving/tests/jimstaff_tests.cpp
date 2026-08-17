@@ -956,7 +956,10 @@ TEST(JiMStaffTests, scaleDotLabelHeaderGeometryIsSharedAndModeAware)
 
     st->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::None);
     auto none = st->jimsHeaderGeometry(sp, sp);
-    EXPECT_EQ(none.leftLabelBand, 0.0);
+    // Label mode None still reserves the current-key label "[PitchN]: "
+    // left of the tonic row (owner spec 2026-08-17) — and nothing else.
+    EXPECT_GT(none.keyLabelAdvance, 0.0);
+    EXPECT_NEAR(none.leftLabelBand, none.keyLabelAdvance + 0.25 * sp, 1e-6);
     EXPECT_EQ(none.rightLabelBand, 0.0);
     EXPECT_GT(none.headerWidth, 0.0);
 

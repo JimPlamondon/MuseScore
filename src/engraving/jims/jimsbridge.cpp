@@ -196,6 +196,21 @@ static ChangePoint readPoint(const JsonObject& o)
     return p;
 }
 
+bool tonicPitchLabel(const String& stateJson, TonicPitchLabel& out)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"tonic_pitch_label\",\"state\":%1}").arg(stateJson);
+    JsonValue result;
+    if (!okResult(callBridge(envelope), result)) {
+        return false;
+    }
+    JsonObject o = result.toObject();
+    out.label = o.value("label").toString();
+    out.keyNumber = o.value("key_number").toInt();
+    out.nPer = o.value("nPer").toInt();
+    out.nGen = o.value("nGen").toInt();
+    return !out.label.isEmpty();
+}
+
 bool changeIndicator(const String& oldStateJson, const String& newStateJson, ChangeIndicator& out, String* error)
 {
     String envelope = String(u"{\"abi\":2,\"op\":\"change_indicator\",\"old_state\":%1,\"new_state\":%2}")

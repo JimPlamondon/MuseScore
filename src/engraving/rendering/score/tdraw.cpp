@@ -2873,7 +2873,12 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             {
                 const JimsScaleDotLabelMode labelMode = jimsSt->jimsResolvedScaleDotLabelMode();
                 std::vector<jims::LabeledDotStack> labelStacks;
-                if (labelMode != JimsScaleDotLabelMode::None
+                // Current-key label "[PitchN]:" left of the tonic indicator's
+                // row (owner spec 2026-08-17) — Kernel-derived; drawn even
+                // when class labels are off.
+                jims::TonicPitchLabel keyLabel;
+                const bool haveKeyLabel = haveTonic && jims::tonicPitchLabel(jimsSt->jimsStateJson(), keyLabel);
+                if ((labelMode != JimsScaleDotLabelMode::None || haveKeyLabel)
                     && jims::scaleDotLabels(jimsSt->jimsStateJson(), labelStacks)) {
                     Font labelFont(u"Edwin", Font::Type::Text);
                     labelFont.setPointSizeF(9.0 * item->spatium() / item->defaultSpatium());
@@ -2894,14 +2899,26 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                 }
                                 muse::String leftText;
                                 muse::String rightText;
-                                for (const jims::LabeledDotMember& member : stack.members) {
-                                    const bool leftSide = (labelMode == JimsScaleDotLabelMode::Left)
-                                                          || member.nGen <= 0;
-                                    muse::String& side = leftSide ? leftText : rightText;
-                                    if (!side.isEmpty()) {
-                                        side += u" ";
+                                if (labelMode != JimsScaleDotLabelMode::None) {
+                                    for (const jims::LabeledDotMember& member : stack.members) {
+                                        const bool leftSide = (labelMode == JimsScaleDotLabelMode::Left)
+                                                              || member.nGen <= 0;
+                                        muse::String& side = leftSide ? leftText : rightText;
+                                        if (!side.isEmpty()) {
+                                            side += u" ";
+                                        }
+                                        side += member.label;
                                     }
-                                    side += member.label;
+                                }
+                                if (haveKeyLabel && std::abs(stack.cents - tonicCents) < epsilon
+                                    && period + tonicCents >= segment.lowerCents - epsilon
+                                    && period + tonicCents <= segment.upperCents + epsilon
+                                    && std::abs(period - std::floor(frame.front().lowerCents / periodCents + epsilon) * periodCents) < epsilon) {
+                                    // Only the tonic indicator's own row (the
+                                    // lowest Do register carries the indicator).
+                                    leftText = leftText.isEmpty()
+                                               ? keyLabel.label + u":"
+                                               : keyLabel.label + u": " + leftText;
                                 }
                                 // Painter::drawText rescales the CURRENT
                                 // painter font by 1200/deviceDpi in place
@@ -3062,6 +3079,26 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     labelFont.setPointSizeF(9.0 * item->spatium() / item->defaultSpatium());
                     FontMetrics fm(labelFont);
                     const double gap = 0.25 * _spatium;
+                    // The new state's current-key label and which terrain
+                    // point is the NEW tonic: an arrow's `to` end when the
+                    // change moves the tonic, else the indicator whose class
+                    // the Kernel names.
+                    jims::TonicPitchLabel keyLabel;
+                    const bool haveKeyLabel = jims::tonicPitchLabel(changeSt->jimsStateJson(), keyLabel);
+                    auto isNewTonic = [&](const jims::ChangePoint& tp) {
+                        if (!haveKeyLabel) {
+                            return false;
+                        }
+                        for (const jims::ChangeArrow& a : model.arrows) {
+                            if (a.to.nGen == tp.nGen && a.to.periodOffset == tp.periodOffset) {
+                                return true;
+                            }
+                        }
+                        if (!model.arrows.empty()) {
+                            return false;
+                        }
+                        return tp.nGen == keyLabel.nGen;
+                    };
 
                     // Closing stroke: thin, spanning the full stack.
                     painter->setPen(Pen(item->curColor(opt), item->style().styleMM(
@@ -3112,6 +3149,13 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                 side += member.label;
                             }
                             const double cy = yOf(stackCents);
+                            // The new tonic's row carries "[PitchN]:" first.
+                            for (const jims::ChangePoint& member : stack.members) {
+                                if (isNewTonic(member) && !text.isEmpty()) {
+                                    text = keyLabel.label + u": " + text;
+                                    break;
+                                }
+                            }
                             if (!text.isEmpty()) {
                                 RectF tb = fm.boundingRect(text);
                                 painter->setFont(labelFont);
@@ -3127,7 +3171,9 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                         }
                     }
                     // Tonic indicators (settled §3.3 construction) with labels
-                    // left when no dot already labels that row.
+                    // left when no dot already labels that row; the NEW
+                    // tonic's row carries the current-key label "[PitchN]:"
+                    // (owner spec 2026-08-17).
                     for (const jims::ChangePoint& tp : model.tonicIndicators) {
                         for (double tpCents : instancesOf(tp)) {
                             const double h = 1.15 * dist + 0.025 * dist;
@@ -3150,10 +3196,14 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                 }
                             }
                             if (!labelled) {
-                                RectF tb = fm.boundingRect(tp.label);
+                                muse::String text = tp.label;
+                                if (isNewTonic(tp)) {
+                                    text = keyLabel.label + u": " + text;
+                                }
+                                RectF tb = fm.boundingRect(text);
                                 painter->setFont(labelFont);
                                 painter->setPen(Pen(item->curColor(opt)));
-                                painter->drawText(PointF(labelRight - gap - tb.width(), cy - (tb.top() + tb.bottom()) / 2.0), tp.label);
+                                painter->drawText(PointF(labelRight - gap - tb.width(), cy - (tb.top() + tb.bottom()) / 2.0), text);
                             }
                         }
                     }

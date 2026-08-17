@@ -456,7 +456,8 @@ void JimsTuningPanel::syncChangeSection()
     m_scaleSteps.clear();
     int currentScale = 0;
     // The panel offers exactly the JiMS scales (owner ruling 2026-08-17:
-    // Diatonic, Parallel Minor — the Grey notes — and Harmonic Minor), each
+    // Diatonic, Parallel Minor — the Grey notes — and Double Harmonic Minor:
+    // the two-A2 scale centred on Re, Re Me Fi So La Te Di), each
     // as the Kernel-issued choice(s) that reach it; the Kernel's full
     // option list is not a menu. Members beside each are Kernel labels.
     const jims::StateChangeOption* rotation0 = nullptr;
@@ -473,7 +474,7 @@ void JimsTuningPanel::syncChangeSection()
     for (const jims::StateChangeOption& c : options.cycles) {
         if (c.id == u"scale:cycle:diatonic") {
             diatonicCycle = &c;
-        } else if (c.id == u"scale:cycle:harmonic-minor") {
+        } else if (c.id == u"scale:cycle:double-harmonic-minor") {
             harmonicMinorCycle = &c;
         }
     }
@@ -517,7 +518,7 @@ void JimsTuningPanel::syncChangeSection()
         }
     }
     if (harmonicMinorCycle) {
-        m_scaleCombo->addItem(QStringLiteral("Harmonic Minor: %1").arg(membersOf(harmonicMinorCycle)));
+        m_scaleCombo->addItem(QStringLiteral("Double Harmonic Minor: %1").arg(membersOf(harmonicMinorCycle)));
         m_scaleIds.push_back(harmonicMinorCycle->id);
         m_scaleSteps.push_back({ harmonicMinorCycle->id });
         if (harmonicMinorCycle->current) {

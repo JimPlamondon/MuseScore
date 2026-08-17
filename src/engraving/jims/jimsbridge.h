@@ -88,6 +88,17 @@ struct JiLine {
     bool visible = true;
 };
 
+/// The staff's current-key label (owner spec 2026-08-17): the tonic's
+/// sounding pitch name + MIDI octave, e.g. "C4", drawn as "[PitchN]:" left
+/// of the tonic indicator. Kernel-derived (pinned or default reference).
+struct TonicPitchLabel {
+    muse::String label;     // "C4", "Eb3", "F#4"
+    int keyNumber = 0;
+    int nPer = 0;           // the tonic instance the label names
+    int nGen = 0;
+};
+bool tonicPitchLabel(const muse::String& stateJson, TonicPitchLabel& out);
+
 /// The Kernel's JI staff-line scaffold (owner rulings 1a/2a, 2026-08-14).
 bool jiLines(const muse::String& stateJson, std::vector<JiLine>& lines);
 

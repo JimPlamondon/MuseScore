@@ -269,6 +269,7 @@ public:
         double changeRightLabelBand = 0.0;   // Grey (chromatic) labels, RIGHT of the dots (owner 2026-08-16)
         double changeArrowLane = 0.0;
         double changeTerrainWidth = 0.0;
+        double keyLabelAdvance = 0.0;        // "[PitchN]: " current-key label, left of the tonic row (owner spec 2026-08-17)
     };
     JimsHeaderGeometry jimsHeaderGeometry(double spatium, double defaultSpatium) const;
     void setJimsScaleDotLabelMode(JimsScaleDotLabelMode mode) { m_jimsScaleDotLabelMode = mode; }
