@@ -7,6 +7,8 @@
  */
 #include "jimsbridge.h"
 
+#include <cmath>
+
 #include "serialization/json.h"
 
 #include "jims_musescore_bridge.h"
@@ -194,6 +196,48 @@ static ChangePoint readPoint(const JsonObject& o)
     p.ordinate = o.value("ordinate").toDouble();
     p.periodOffset = o.value("period_offset").toInt();
     return p;
+}
+
+bool noteSoundingPitch(const String& stateJson, int nPer, int nGen, SoundingPitch& out, String* error)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"note_sounding_pitch\",\"state\":%1,\"nPer\":%2,\"nGen\":%3}")
+                      .arg(stateJson).arg(nPer).arg(nGen);
+    const String response = callBridge(envelope);
+    JsonValue result;
+    if (!okResult(response, result)) {
+        if (error) {
+            std::string err;
+            JsonDocument doc = JsonDocument::fromJson(response.toUtf8(), &err);
+            *error = err.empty() ? doc.rootObject().value("error").toString() : String(u"bridge returned no JSON");
+        }
+        return false;
+    }
+    JsonObject o = result.toObject();
+    // Every field the transport relies on must be present and well-typed;
+    // a malformed answer is a failure, never a default pitch.
+    for (const char* key : { "frequency_hz", "midi_key", "cents_offset", "reference_key_number",
+                             "reference_frequency_hz", "anchor" }) {
+        if (!o.contains(key)) {
+            if (error) {
+                *error = String(u"note_sounding_pitch answer lacks %1").arg(String::fromAscii(key));
+            }
+            return false;
+        }
+    }
+    out.frequencyHz = o.value("frequency_hz").toDouble();
+    out.midiKey = o.value("midi_key").toInt();
+    out.centsOffset = o.value("cents_offset").toDouble();
+    out.referenceKeyNumber = o.value("reference_key_number").toInt();
+    out.referenceFrequencyHz = o.value("reference_frequency_hz").toDouble();
+    out.anchor = o.value("anchor").toString();
+    if (out.midiKey < 0 || out.midiKey > 127 || !(out.frequencyHz > 0.0)
+        || std::abs(out.centsOffset) > 50.0 + 1e-9) {
+        if (error) {
+            *error = u"note_sounding_pitch answer out of range";
+        }
+        return false;
+    }
+    return true;
 }
 
 bool tonicPitchLabel(const String& stateJson, TonicPitchLabel& out)

@@ -25,11 +25,16 @@
 
 #include "../dom/chord.h"
 #include "../dom/note.h"
+#include "../dom/staff.h"
+#include "../dom/stafftype.h"
+#include "../jims/jimsbridge.h"
 #include "../dom/sig.h"
 
 #include "utils/arrangementutils.h"
 #include "utils/pitchutils.h"
 #include "playbackcontext.h"
+
+#include "log.h"
 
 namespace mu::engraving {
 struct RenderingContext {
@@ -117,12 +122,35 @@ struct NominalNoteCtx {
         tempo(ctx.beatsPerSecond),
         dynamicLevel(ctx.nominalDynamicLevel),
         userVelocityFraction(note->userVelocityFraction()),
-        pitchLevel(notePitchLevel(note->playingTpc(),
-                                  note->playingOctave(),
-                                  note->playingTuning())),
+        pitchLevel(nominalPitchLevelOf(note)),
         chordCtx(ctx),
         articulations(ctx.commonArticulations)
     {
+    }
+
+    /// The nominal pitch level of a note. JiMStaff Milestone 7 (owner
+    /// rulings 2026-08-17): a JiMS note SOUNDS what its lattice identity
+    /// and its section's state (tuning + reference) say — the Kernel's
+    /// note_sounding_pitch answer, resolved per note against the staff
+    /// type in force at that element, uncached, on every rebuild. Every
+    /// other note keeps the stock construction byte-identical.
+    static muse::mpe::pitch_level_t nominalPitchLevelOf(const Note* note)
+    {
+        if (note->hasJimsPitch() && note->staff()) {
+            const StaffType* st = note->staff()->staffTypeForElement(note);
+            if (st && st->isJiMS()) {
+                jims::SoundingPitch sp;
+                muse::String error;
+                if (jims::noteSoundingPitch(st->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), sp, &error)) {
+                    return jimsPitchLevelFromMidi(sp.midiKey, sp.centsOffset);
+                }
+                // Explicit degraded path (never a silent wrong pitch): the
+                // stock event plays, and the reason is logged.
+                LOGE() << "JiMS note_sounding_pitch failed for identity (" << note->jimsNPer() << ", " << note->jimsNGen()
+                       << "): " << error << " - playing the compatibility pitch";
+            }
+        }
+        return notePitchLevel(note->playingTpc(), note->playingOctave(), note->playingTuning());
     }
 };
 

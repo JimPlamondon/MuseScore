@@ -187,6 +187,23 @@ void TuningController::invalidateAndLayout()
     }
     m_score->setLayoutAll();
     m_score->doLayout();
+    // Milestone 7 (playback): a live preview (and its cancel) edits the
+    // staff states outside an undoable command, so nothing tells the
+    // playback model that this staff's notes now sound differently. Send
+    // the score's EXISTING change signal for this staff's whole tick range
+    // — the same channel endCmd uses — so the next rebuild re-derives every
+    // JiMS note's sounding pitch from the current state. Commit already
+    // announces itself through endCmd.
+    if (m_previewing) {
+        ScoreChanges changes;
+        changes.tickFrom = 0;
+        const Measure* last = m_score->lastMeasure();
+        changes.tickTo = last ? last->endTick().ticks() : 0;
+        changes.staffIdxFrom = m_staffIdx;
+        changes.staffIdxTo = m_staffIdx;
+        changes.changedTypes.insert(ElementType::STAFFTYPE_CHANGE);
+        m_score->changesChannel().send(changes);
+    }
 }
 
 bool TuningController::preview(double generatorCents)

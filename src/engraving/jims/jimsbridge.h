@@ -99,6 +99,20 @@ struct TonicPitchLabel {
 };
 bool tonicPitchLabel(const muse::String& stateJson, TonicPitchLabel& out);
 
+/// Milestone 7 (playback): a note's SOUNDING pitch — the Kernel's answer
+/// (identity + the section's tuning and reference) that playback feeds
+/// through as MIDI key + cents; the fork computes none of it.
+struct SoundingPitch {
+    double frequencyHz = 0.0;
+    int midiKey = 0;             // nearest 12-TET key, 0..127
+    double centsOffset = 0.0;    // residual cents in [-50, 50)
+    int referenceKeyNumber = 0;  // Re0 after resolution (62 when unpinned)
+    double referenceFrequencyHz = 0.0;
+    muse::String anchor;         // "explicit-reference" | "inferred-re0-d4"
+};
+bool noteSoundingPitch(const muse::String& stateJson, int nPer, int nGen, SoundingPitch& out,
+                       muse::String* error = nullptr);
+
 /// The Kernel's JI staff-line scaffold (owner rulings 1a/2a, 2026-08-14).
 bool jiLines(const muse::String& stateJson, std::vector<JiLine>& lines);
 

@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include <cmath>
+
 #include "mpe/mpetypes.h"
 
 #include "engraving/dom/pitchspelling.h"
@@ -127,6 +129,21 @@ inline muse::mpe::octave_t actualOctave(const int nominalOctave, const muse::mpe
     }
 
     return static_cast<muse::mpe::octave_t>(nominalOctave);
+}
+
+/// JiMStaff Milestone 7 (owner decision 1a, 2026-08-17): the Kernel's
+/// sounding pitch arrives as a MIDI key + residual cents; it maps straight
+/// onto the pitch-level scale (MIDI 12 = C0 = pitch level 0), with no
+/// invented enharmonic spelling in between.
+inline muse::mpe::pitch_level_t jimsPitchLevelFromMidi(const int midiKey, const double centsOffset)
+{
+    const int semitonesAboveC0 = midiKey - muse::mpe::ZERO_PITCH_LEVEL_MIDI_EQUIVALENT;
+    const int octave = static_cast<int>(std::floor(semitonesAboveC0 / 12.0));
+    const int pitchClass = semitonesAboveC0 - 12 * octave;
+    muse::mpe::pitch_level_t result = muse::mpe::pitchLevel(static_cast<muse::mpe::PitchClass>(pitchClass),
+                                                            static_cast<muse::mpe::octave_t>(octave));
+    result += static_cast<muse::mpe::pitch_level_t>(std::lround((centsOffset / 100.0) * muse::mpe::PITCH_LEVEL_STEP));
+    return result;
 }
 
 inline muse::mpe::pitch_level_t notePitchLevel(const int noteTpc, const int noteOctave, const double tuningCents = 0.0)

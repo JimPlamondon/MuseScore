@@ -1,0 +1,313 @@
+{
+ "tolerance_cents": 5.0,
+ "calibrated": true,
+ "renders": [
+  {
+   "score": "m6-gate.mscz",
+   "wav": "m6-gate.wav",
+   "notes": [
+    {
+     "label": "bar1(-1,2)",
+     "bar": 1,
+     "nPer": -1,
+     "nGen": 2,
+     "start_s": 0.0,
+     "end_s": 0.5,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 329.62755691287,
+     "midi_key": 64,
+     "cents_offset": 0.0,
+     "generator_cents": 700,
+     "period_cents": 1200.0,
+     "measured_hz": 329.602,
+     "error_cents": -0.134,
+     "synth_offset_cents": -1.24,
+     "calibrated_error_cents": 1.106,
+     "ok": true
+    },
+    {
+     "label": "bar1(0,0)",
+     "bar": 1,
+     "nPer": 0,
+     "nGen": 0,
+     "start_s": 0.5,
+     "end_s": 1.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 293.6647679174076,
+     "midi_key": 62,
+     "cents_offset": 0.0,
+     "generator_cents": 700,
+     "period_cents": 1200.0,
+     "measured_hz": 293.603,
+     "error_cents": -0.364,
+     "synth_offset_cents": -2.334,
+     "calibrated_error_cents": 1.97,
+     "ok": true
+    },
+    {
+     "label": "bar1(2,-3)",
+     "bar": 1,
+     "nPer": 2,
+     "nGen": -3,
+     "start_s": 1.0,
+     "end_s": 1.5,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 349.2282314330039,
+     "midi_key": 65,
+     "cents_offset": 0.0,
+     "generator_cents": 700,
+     "period_cents": 1200.0,
+     "measured_hz": 349.4969,
+     "error_cents": 1.331,
+     "synth_offset_cents": -1.069,
+     "calibrated_error_cents": 2.4,
+     "ok": true
+    },
+    {
+     "label": "bar1(1,-1)",
+     "bar": 1,
+     "nPer": 1,
+     "nGen": -1,
+     "start_s": 1.5,
+     "end_s": 2.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 391.9954359817493,
+     "midi_key": 67,
+     "cents_offset": 0.0,
+     "generator_cents": 700,
+     "period_cents": 1200.0,
+     "measured_hz": 391.2253,
+     "error_cents": -3.405,
+     "synth_offset_cents": -3.152,
+     "calibrated_error_cents": -0.253,
+     "ok": true
+    },
+    {
+     "label": "bar2(2,-2)",
+     "bar": 2,
+     "nPer": 2,
+     "nGen": -2,
+     "start_s": 2.0,
+     "end_s": 2.5,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 53
+      }
+     },
+     "reference_key_number": 53,
+     "anchor": "explicit-reference",
+     "predicted_hz": 311.1269837220809,
+     "midi_key": 63,
+     "cents_offset": 0.0,
+     "generator_cents": 700.0,
+     "period_cents": 1200.0,
+     "measured_hz": 522.8579,
+     "error_cents": 898.698,
+     "synth_offset_cents": -1.697,
+     "calibrated_error_cents": 900.395,
+     "ok": false
+    },
+    {
+     "label": "bar2(1,0)",
+     "bar": 2,
+     "nPer": 1,
+     "nGen": 0,
+     "start_s": 2.5,
+     "end_s": 3.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 53
+      }
+     },
+     "reference_key_number": 53,
+     "anchor": "explicit-reference",
+     "predicted_hz": 349.2282314330039,
+     "midi_key": 65,
+     "cents_offset": 0.0,
+     "generator_cents": 700.0,
+     "period_cents": 1200.0,
+     "measured_hz": 587.0952,
+     "error_cents": 899.309,
+     "synth_offset_cents": -1.069,
+     "calibrated_error_cents": 900.378,
+     "ok": false
+    },
+    {
+     "label": "bar2(0,2)",
+     "bar": 2,
+     "nPer": 0,
+     "nGen": 2,
+     "start_s": 3.0,
+     "end_s": 3.5,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 53
+      }
+     },
+     "reference_key_number": 53,
+     "anchor": "explicit-reference",
+     "predicted_hz": 391.9954359817493,
+     "midi_key": 67,
+     "cents_offset": 0.0,
+     "generator_cents": 700.0,
+     "period_cents": 1200.0,
+     "measured_hz": 128.6203,
+     "error_cents": -1929.262,
+     "synth_offset_cents": -3.152,
+     "calibrated_error_cents": -1926.11,
+     "ok": false
+    },
+    {
+     "label": "bar2(3,-3)",
+     "bar": 2,
+     "nPer": 3,
+     "nGen": -3,
+     "start_s": 3.5,
+     "end_s": 4.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 53
+      }
+     },
+     "reference_key_number": 53,
+     "anchor": "explicit-reference",
+     "predicted_hz": 415.3046975799451,
+     "midi_key": 68,
+     "cents_offset": 0.0,
+     "generator_cents": 700.0,
+     "period_cents": 1200.0,
+     "measured_hz": 698.5612,
+     "error_cents": 900.26,
+     "synth_offset_cents": -1.822,
+     "calibrated_error_cents": 902.082,
+     "ok": false
+    },
+    {
+     "label": "bar3(-1,2)",
+     "bar": 3,
+     "nPer": -1,
+     "nGen": 2,
+     "start_s": 4.0,
+     "end_s": 4.5,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 53
+      }
+     },
+     "reference_key_number": 53,
+     "anchor": "explicit-reference",
+     "predicted_hz": 195.99771799087463,
+     "midi_key": 55,
+     "cents_offset": 0.0,
+     "generator_cents": 700.0,
+     "period_cents": 1200.0,
+     "measured_hz": 329.443,
+     "error_cents": 899.031,
+     "synth_offset_cents": -2.563,
+     "calibrated_error_cents": 901.594,
+     "ok": false
+    },
+    {
+     "label": "bar3(0,0)",
+     "bar": 3,
+     "nPer": 0,
+     "nGen": 0,
+     "start_s": 4.5,
+     "end_s": 5.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 53
+      }
+     },
+     "reference_key_number": 53,
+     "anchor": "explicit-reference",
+     "predicted_hz": 174.61411571650194,
+     "midi_key": 53,
+     "cents_offset": 0.0,
+     "generator_cents": 700.0,
+     "period_cents": 1200.0,
+     "measured_hz": 293.9656,
+     "error_cents": 901.773,
+     "synth_offset_cents": -5.04,
+     "calibrated_error_cents": 906.813,
+     "ok": false
+    },
+    {
+     "label": "bar3(2,-3)",
+     "bar": 3,
+     "nPer": 2,
+     "nGen": -3,
+     "start_s": 5.0,
+     "end_s": 5.5,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 53
+      }
+     },
+     "reference_key_number": 53,
+     "anchor": "explicit-reference",
+     "predicted_hz": 207.65234878997256,
+     "midi_key": 56,
+     "cents_offset": 0.0,
+     "generator_cents": 700.0,
+     "period_cents": 1200.0,
+     "measured_hz": 349.3684,
+     "error_cents": 900.695,
+     "synth_offset_cents": -3.212,
+     "calibrated_error_cents": 903.907,
+     "ok": false
+    },
+    {
+     "label": "bar3(1,-1)",
+     "bar": 3,
+     "nPer": 1,
+     "nGen": -1,
+     "start_s": 5.5,
+     "end_s": 6.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 53
+      }
+     },
+     "reference_key_number": 53,
+     "anchor": "explicit-reference",
+     "predicted_hz": 233.08188075904496,
+     "midi_key": 58,
+     "cents_offset": 0.0,
+     "generator_cents": 700.0,
+     "period_cents": 1200.0,
+     "measured_hz": 391.2078,
+     "error_cents": 896.518,
+     "synth_offset_cents": -3.623,
+     "calibrated_error_cents": 900.141,
+     "ok": false
+    }
+   ]
+  }
+ ],
+ "all_pass": false
+}

@@ -1,0 +1,588 @@
+{
+ "schema": "jims.m7-playback-predictions.v1",
+ "source": "Kernel bridge op note_sounding_pitch via jims-musescore-bridge example `request`",
+ "kernel_root": "/Users/jim/Developer/JiMS/Temp/jims-claude-jimstaff-m7-playback-kernel",
+ "renders": [
+  {
+   "score": "default-12tet-scale.mscx",
+   "score_sha256": "a3578a27387a3ab4d3cc3bf67b7c7400bd5d31246ab75e5fc1877243aabf7e1d",
+   "wav": "default-12tet-scale.wav",
+   "notes": [
+    {
+     "label": "bar1(1,-2)",
+     "bar": 1,
+     "nPer": 1,
+     "nGen": -2,
+     "start_s": 0.0,
+     "end_s": 2.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 261.6255653005986,
+     "midi_key": 60,
+     "cents_offset": 0.0,
+     "generator_cents": 700,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar2(0,0)",
+     "bar": 2,
+     "nPer": 0,
+     "nGen": 0,
+     "start_s": 2.0,
+     "end_s": 4.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 293.6647679174076,
+     "midi_key": 62,
+     "cents_offset": 0.0,
+     "generator_cents": 700,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar3(-1,2)",
+     "bar": 3,
+     "nPer": -1,
+     "nGen": 2,
+     "start_s": 4.0,
+     "end_s": 6.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 329.62755691287,
+     "midi_key": 64,
+     "cents_offset": 0.0,
+     "generator_cents": 700,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar4(2,-3)",
+     "bar": 4,
+     "nPer": 2,
+     "nGen": -3,
+     "start_s": 6.0,
+     "end_s": 8.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 349.2282314330039,
+     "midi_key": 65,
+     "cents_offset": 0.0,
+     "generator_cents": 700,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar5(1,-1)",
+     "bar": 5,
+     "nPer": 1,
+     "nGen": -1,
+     "start_s": 8.0,
+     "end_s": 10.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 391.9954359817493,
+     "midi_key": 67,
+     "cents_offset": 0.0,
+     "generator_cents": 700,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar6(0,1)",
+     "bar": 6,
+     "nPer": 0,
+     "nGen": 1,
+     "start_s": 10.0,
+     "end_s": 12.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 440.0,
+     "midi_key": 69,
+     "cents_offset": 0.0,
+     "generator_cents": 700,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar7(-1,3)",
+     "bar": 7,
+     "nPer": -1,
+     "nGen": 3,
+     "start_s": 12.0,
+     "end_s": 14.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 493.8833012561241,
+     "midi_key": 71,
+     "cents_offset": 0.0,
+     "generator_cents": 700,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar8(2,-2)",
+     "bar": 8,
+     "nPer": 2,
+     "nGen": -2,
+     "start_s": 14.0,
+     "end_s": 16.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 523.2511306011972,
+     "midi_key": 72,
+     "cents_offset": 0.0,
+     "generator_cents": 700,
+     "period_cents": 1200.0
+    }
+   ]
+  },
+  {
+   "score": "m6-gate.mscz",
+   "score_sha256": "87fa038b34b045fb23ebb1b8c18f2af0039d32191dcc7d92049e2bf11b33007b",
+   "wav": "m6-gate.wav",
+   "notes": [
+    {
+     "label": "bar1(-1,2)",
+     "bar": 1,
+     "nPer": -1,
+     "nGen": 2,
+     "start_s": 0.0,
+     "end_s": 0.5,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 329.62755691287,
+     "midi_key": 64,
+     "cents_offset": 0.0,
+     "generator_cents": 700,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar1(0,0)",
+     "bar": 1,
+     "nPer": 0,
+     "nGen": 0,
+     "start_s": 0.5,
+     "end_s": 1.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 293.6647679174076,
+     "midi_key": 62,
+     "cents_offset": 0.0,
+     "generator_cents": 700,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar1(2,-3)",
+     "bar": 1,
+     "nPer": 2,
+     "nGen": -3,
+     "start_s": 1.0,
+     "end_s": 1.5,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 349.2282314330039,
+     "midi_key": 65,
+     "cents_offset": 0.0,
+     "generator_cents": 700,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar1(1,-1)",
+     "bar": 1,
+     "nPer": 1,
+     "nGen": -1,
+     "start_s": 1.5,
+     "end_s": 2.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 391.9954359817493,
+     "midi_key": 67,
+     "cents_offset": 0.0,
+     "generator_cents": 700,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar2(2,-2)",
+     "bar": 2,
+     "nPer": 2,
+     "nGen": -2,
+     "start_s": 2.0,
+     "end_s": 2.5,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 53
+      }
+     },
+     "reference_key_number": 53,
+     "anchor": "explicit-reference",
+     "predicted_hz": 311.1269837220809,
+     "midi_key": 63,
+     "cents_offset": 0.0,
+     "generator_cents": 700.0,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar2(1,0)",
+     "bar": 2,
+     "nPer": 1,
+     "nGen": 0,
+     "start_s": 2.5,
+     "end_s": 3.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 53
+      }
+     },
+     "reference_key_number": 53,
+     "anchor": "explicit-reference",
+     "predicted_hz": 349.2282314330039,
+     "midi_key": 65,
+     "cents_offset": 0.0,
+     "generator_cents": 700.0,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar2(0,2)",
+     "bar": 2,
+     "nPer": 0,
+     "nGen": 2,
+     "start_s": 3.0,
+     "end_s": 3.5,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 53
+      }
+     },
+     "reference_key_number": 53,
+     "anchor": "explicit-reference",
+     "predicted_hz": 391.9954359817493,
+     "midi_key": 67,
+     "cents_offset": 0.0,
+     "generator_cents": 700.0,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar2(3,-3)",
+     "bar": 2,
+     "nPer": 3,
+     "nGen": -3,
+     "start_s": 3.5,
+     "end_s": 4.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 53
+      }
+     },
+     "reference_key_number": 53,
+     "anchor": "explicit-reference",
+     "predicted_hz": 415.3046975799451,
+     "midi_key": 68,
+     "cents_offset": 0.0,
+     "generator_cents": 700.0,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar3(-1,2)",
+     "bar": 3,
+     "nPer": -1,
+     "nGen": 2,
+     "start_s": 4.0,
+     "end_s": 4.5,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 53
+      }
+     },
+     "reference_key_number": 53,
+     "anchor": "explicit-reference",
+     "predicted_hz": 195.99771799087463,
+     "midi_key": 55,
+     "cents_offset": 0.0,
+     "generator_cents": 700.0,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar3(0,0)",
+     "bar": 3,
+     "nPer": 0,
+     "nGen": 0,
+     "start_s": 4.5,
+     "end_s": 5.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 53
+      }
+     },
+     "reference_key_number": 53,
+     "anchor": "explicit-reference",
+     "predicted_hz": 174.61411571650194,
+     "midi_key": 53,
+     "cents_offset": 0.0,
+     "generator_cents": 700.0,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar3(2,-3)",
+     "bar": 3,
+     "nPer": 2,
+     "nGen": -3,
+     "start_s": 5.0,
+     "end_s": 5.5,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 53
+      }
+     },
+     "reference_key_number": 53,
+     "anchor": "explicit-reference",
+     "predicted_hz": 207.65234878997256,
+     "midi_key": 56,
+     "cents_offset": 0.0,
+     "generator_cents": 700.0,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar3(1,-1)",
+     "bar": 3,
+     "nPer": 1,
+     "nGen": -1,
+     "start_s": 5.5,
+     "end_s": 6.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 53
+      }
+     },
+     "reference_key_number": 53,
+     "anchor": "explicit-reference",
+     "predicted_hz": 233.08188075904496,
+     "midi_key": 58,
+     "cents_offset": 0.0,
+     "generator_cents": 700.0,
+     "period_cents": 1200.0
+    }
+   ]
+  },
+  {
+   "score": "non12tet-17tet-scale.mscx",
+   "score_sha256": "c4d7f36ab0a96a69fa00da24d5734ee752de3c5fa87cf17c62f7f12e2a36f840",
+   "wav": "non12tet-17tet-scale.wav",
+   "notes": [
+    {
+     "label": "bar1(1,-2)",
+     "bar": 1,
+     "nPer": 1,
+     "nGen": -2,
+     "start_s": 0.0,
+     "end_s": 2.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 259.85370014591206,
+     "midi_key": 60,
+     "cents_offset": -11.7647058823529,
+     "generator_cents": 705.8823529411765,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar2(0,0)",
+     "bar": 2,
+     "nPer": 0,
+     "nGen": 0,
+     "start_s": 2.0,
+     "end_s": 4.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 293.6647679174076,
+     "midi_key": 62,
+     "cents_offset": 0.0,
+     "generator_cents": 705.8823529411765,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar3(-1,2)",
+     "bar": 3,
+     "nPer": -1,
+     "nGen": 2,
+     "start_s": 4.0,
+     "end_s": 6.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 331.8751892605734,
+     "midi_key": 64,
+     "cents_offset": 11.76470588235361,
+     "generator_cents": 705.8823529411765,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar4(2,-3)",
+     "bar": 4,
+     "nPer": 2,
+     "nGen": -3,
+     "start_s": 6.0,
+     "end_s": 8.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 345.6865106715059,
+     "midi_key": 65,
+     "cents_offset": -17.647058823528994,
+     "generator_cents": 705.8823529411765,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar5(1,-1)",
+     "bar": 5,
+     "nPer": 1,
+     "nGen": -1,
+     "start_s": 8.0,
+     "end_s": 10.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 390.6657818284803,
+     "midi_key": 67,
+     "cents_offset": -5.882352941176805,
+     "generator_cents": 705.8823529411765,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar6(0,1)",
+     "bar": 6,
+     "nPer": 0,
+     "nGen": 1,
+     "start_s": 10.0,
+     "end_s": 12.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 441.4975660901247,
+     "midi_key": 69,
+     "cents_offset": 5.882352941176805,
+     "generator_cents": 705.8823529411765,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar7(-1,3)",
+     "bar": 7,
+     "nPer": -1,
+     "nGen": 3,
+     "start_s": 12.0,
+     "end_s": 14.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 498.9433677840835,
+     "midi_key": 71,
+     "cents_offset": 17.647058823528994,
+     "generator_cents": 705.8823529411765,
+     "period_cents": 1200.0
+    },
+    {
+     "label": "bar8(2,-2)",
+     "bar": 8,
+     "nPer": 2,
+     "nGen": -2,
+     "start_s": 14.0,
+     "end_s": 16.0,
+     "reference": {
+      "reference-pitch": {
+       "key_number": 62
+      }
+     },
+     "reference_key_number": 62,
+     "anchor": "explicit-reference",
+     "predicted_hz": 519.7074002918241,
+     "midi_key": 72,
+     "cents_offset": -11.764705882352189,
+     "generator_cents": 705.8823529411765,
+     "period_cents": 1200.0
+    }
+   ]
+  }
+ ]
+}
