@@ -340,8 +340,10 @@ void JimsTuningPanel::buildChangeSection(QWidget* parent, QVBoxLayout* outer)
     });
     connect(scaleApply, &QPushButton::clicked, this, [this]() {
         const int i = m_scaleCombo->currentIndex();
-        if (i >= 0 && i < int(m_scaleIds.size())) {
-            applyChoice(m_scaleIds[i]);
+        if (i >= 0 && i < int(m_scaleSteps.size())) {
+            for (const muse::String& id : m_scaleSteps[i]) {
+                applyChoice(id);
+            }
         }
     });
     connect(m_removeButton, &QPushButton::clicked, this, &JimsTuningPanel::onRemoveChange);
@@ -451,25 +453,76 @@ void JimsTuningPanel::syncChangeSection()
     QSignalBlocker b3(m_scaleCombo);
     m_scaleCombo->clear();
     m_scaleIds.clear();
+    m_scaleSteps.clear();
     int currentScale = 0;
+    // The panel offers exactly the JiMS scales (owner ruling 2026-08-17:
+    // Diatonic, Parallel Minor — the Grey notes — and Harmonic Minor), each
+    // as the Kernel-issued choice(s) that reach it; the Kernel's full
+    // option list is not a menu. Members beside each are Kernel labels.
+    const jims::StateChangeOption* rotation0 = nullptr;
+    const jims::StateChangeOption* rotationMinus3 = nullptr;
     for (const jims::StateChangeOption& r : options.rotations) {
-        QStringList members;
-        for (const muse::String& m : r.memberLabels) {
-            members << m.toQString();
+        if (r.id == u"scale:rotation:0") {
+            rotation0 = &r;
+        } else if (r.id == u"scale:rotation:-3") {
+            rotationMinus3 = &r;
         }
-        m_scaleCombo->addItem(QStringLiteral("rotation %1: %2").arg(r.id.mid(15).toQString(), members.join(' ')));
-        if (r.current) {
-            currentScale = int(m_scaleIds.size());
-        }
-        m_scaleIds.push_back(r.id);
     }
+    const jims::StateChangeOption* diatonicCycle = nullptr;
+    const jims::StateChangeOption* harmonicMinorCycle = nullptr;
     for (const jims::StateChangeOption& c : options.cycles) {
-        QStringList members;
-        for (const muse::String& m : c.memberLabels) {
-            members << m.toQString();
+        if (c.id == u"scale:cycle:diatonic") {
+            diatonicCycle = &c;
+        } else if (c.id == u"scale:cycle:harmonic-minor") {
+            harmonicMinorCycle = &c;
         }
-        m_scaleCombo->addItem(QStringLiteral("cycle %1: %2").arg(c.label.toQString(), members.join(' ')));
-        m_scaleIds.push_back(c.id);
+    }
+    const bool onDiatonic = diatonicCycle && diatonicCycle->current;
+    auto membersOf = [](const jims::StateChangeOption* o) {
+        QStringList members;
+        if (o) {
+            for (const muse::String& m : o->memberLabels) {
+                members << m.toQString();
+            }
+        }
+        return members.join(' ');
+    };
+    if (diatonicCycle && rotation0) {
+        // Diatonic (White notes): the diatonic cycle at rotation 0.
+        m_scaleCombo->addItem(QStringLiteral("Diatonic (White notes): %1").arg(membersOf(rotation0)));
+        std::vector<muse::String> steps;
+        if (!onDiatonic) {
+            steps.push_back(diatonicCycle->id);
+        }
+        steps.push_back(rotation0->id);
+        m_scaleIds.push_back(rotation0->id);
+        m_scaleSteps.push_back(steps);
+        if (onDiatonic && rotation0->current) {
+            currentScale = int(m_scaleIds.size()) - 1;
+        }
+    }
+    if (diatonicCycle && rotationMinus3) {
+        // Parallel Minor (Grey notes): the diatonic collection rotated -3,
+        // tonic staying on Do.
+        m_scaleCombo->addItem(QStringLiteral("Parallel Minor (Grey notes): %1").arg(membersOf(rotationMinus3)));
+        std::vector<muse::String> steps;
+        if (!onDiatonic) {
+            steps.push_back(diatonicCycle->id);
+        }
+        steps.push_back(rotationMinus3->id);
+        m_scaleIds.push_back(rotationMinus3->id);
+        m_scaleSteps.push_back(steps);
+        if (onDiatonic && rotationMinus3->current) {
+            currentScale = int(m_scaleIds.size()) - 1;
+        }
+    }
+    if (harmonicMinorCycle) {
+        m_scaleCombo->addItem(QStringLiteral("Harmonic Minor: %1").arg(membersOf(harmonicMinorCycle)));
+        m_scaleIds.push_back(harmonicMinorCycle->id);
+        m_scaleSteps.push_back({ harmonicMinorCycle->id });
+        if (harmonicMinorCycle->current) {
+            currentScale = int(m_scaleIds.size()) - 1;
+        }
     }
     m_scaleCombo->setCurrentIndex(currentScale);
     m_removeButton->setEnabled(hasCarrier);

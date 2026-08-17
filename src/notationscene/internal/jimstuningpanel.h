@@ -95,6 +95,7 @@ private:
     std::vector<muse::String> m_keyClassIds;   // "key:<nPer>:<nGen>" for the chosen octave is built at apply time
     std::vector<int> m_keyClassNGens;
     std::vector<muse::String> m_scaleIds;
+    std::vector<std::vector<muse::String> > m_scaleSteps;   // Kernel choice ids applied in order for each entry
 };
 }
 
