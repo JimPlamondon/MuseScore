@@ -14,23 +14,30 @@ jobs:
   codestyle:
     # musescore-jims: self-contained — the upstream fetch of checkcodestyle
     # scripts from musescore/framework_tmp no longer resolves (that repo moved
-    # into the muse submodule). Run this repository's own tools/codestyle
-    # (uncrustify_musescore.cfg targets uncrustify 0.72, which is what
-    # ubuntu-22.04's apt package provides) and fail on any resulting diff.
+    # into the muse submodule). Build the uncrustify version upstream pins in
+    # muse_deps (recipes/uncrustify: 0.74.0, sha256 pinned) and run this
+    # repository's own tools/codestyle over src/, failing on any diff.
     runs-on: ubuntu-22.04
     steps:
     - name: Clone repository
       uses: actions/checkout@v6
 
-    - name: Install uncrustify
+    - name: Build uncrustify 0.74.0 (upstream muse_deps pin)
       run: |
-        sudo apt-get update
-        sudo apt-get install -y uncrustify
+        set -euo pipefail
+        curl -sSL -o uncrustify.tar.gz https://github.com/uncrustify/uncrustify/archive/refs/tags/uncrustify-0.74.0.tar.gz
+        echo "b7d24e256e7f919aa96289ac8167ac98340df7faa2d34b60d2242dc54700caaa  uncrustify.tar.gz" | sha256sum -c -
+        tar xzf uncrustify.tar.gz
+        cmake -S uncrustify-uncrustify-0.74.0 -B uncrustify-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 >/dev/null
+        cmake --build uncrustify-build -j"$(nproc)" >/dev/null
+        sudo cp uncrustify-build/uncrustify /usr/local/bin/uncrustify
+        rm -rf uncrustify.tar.gz uncrustify-uncrustify-0.74.0 uncrustify-build
         uncrustify --version
 
     - name: Test coding style
       run: |
-        bash ./tools/codestyle/uncrustify_run_dir.sh ./src
+        bash ./tools/codestyle/uncrustify_run_dir.sh ./src >/dev/null
+        git status --porcelain
         if ! git diff --quiet; then
           echo "::error::Code style is incorrect in these files:"
           git diff --name-only
