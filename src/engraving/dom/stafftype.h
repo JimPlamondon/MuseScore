@@ -160,6 +160,17 @@ enum class JimsScaleDotLabelMode : unsigned char {
     Split,
 };
 
+// JiMStaff Milestone 8: per-staff-type octave-band elision override
+// (MuseScore's per-staff hideWhenEmpty shape). Presentation-only,
+// fork-owned, never part of the Kernel state. Auto follows the score
+// style; On/Off beat the style in both directions. Persisted in .mscx
+// beside jimsScaleDotLabels; absent reads as Auto.
+enum class JimsElideOctaves : unsigned char {
+    Auto = 0,
+    On,
+    Off,
+};
+
 //---------------------------------------------------------
 //   StaffType
 //---------------------------------------------------------
@@ -255,6 +266,7 @@ public:
     // Just Intonation diatonic scaffold instead of the mid-period line.
     JimsScaleDotLabelMode jimsScaleDotLabelMode() const { return m_jimsScaleDotLabelMode; }
     JimsScaleDotLabelMode jimsResolvedScaleDotLabelMode() const;
+    struct JimsFrameView;   // Milestone 8 (defined below)
     // The ONE shared header-geometry calculation (labels FINAL §5.4.4):
     // layout, drawing, and every system's margin reservation all read
     // this — never independent formulas. Widths in points.
@@ -273,8 +285,13 @@ public:
         double changeTerrainWidth = 0.0;
         double keyLabelAdvance = 0.0;        // "[PitchN]: " current-key label, left of the tonic row (owner spec 2026-08-17)
     };
-    JimsHeaderGeometry jimsHeaderGeometry(double spatium, double defaultSpatium) const;
+    // `view` (Milestone 8, optional): for a banded view the current-key
+    // label advance is the WIDEST band label, so every band's "[PitchN]:"
+    // fits the reserved header; null or a one-band view is today's.
+    JimsHeaderGeometry jimsHeaderGeometry(double spatium, double defaultSpatium, const JimsFrameView* view = nullptr) const;
     void setJimsScaleDotLabelMode(JimsScaleDotLabelMode mode) { m_jimsScaleDotLabelMode = mode; }
+    JimsElideOctaves jimsElideOctaves() const { return m_jimsElideOctaves; }
+    void setJimsElideOctaves(JimsElideOctaves mode) { m_jimsElideOctaves = mode; }
     bool jimsJiLines() const { return m_jimsJiLines; }
     void setJimsJiLines(bool val) { m_jimsJiLines = val; }
     // Derived frame cache (Kernel frame_for_melody result; keyed by the
@@ -389,7 +406,7 @@ public:
     // The EFFECTIVE elision policy for one system (style + first-system
     // rule + this staff type's Auto/On/Off override, MuseScore's
     // hide-empty-staves shape). Presentation only.
-    bool jimsElisionActive(const Score* score, const System* system) const;
+    bool jimsElisionActive(const Score* score, staff_idx_t staffIdx, const System* system) const;
     // Milestone 8: cents -> chord-relative y in spatium units for `view`
     // (the seam jimsYFromCents generalizes to; identical for one band).
     double jimsYFromCents(double centsAboveDo, const JimsFrameView& view) const;
@@ -512,6 +529,7 @@ private:
     String m_jimsTonicExtent;
     bool m_jimsJiLines = false;
     JimsScaleDotLabelMode m_jimsScaleDotLabelMode = JimsScaleDotLabelMode::Auto;
+    JimsElideOctaves m_jimsElideOctaves = JimsElideOctaves::Auto;
     mutable muse::String m_jimsFrameKey;
     mutable bool m_jimsFrameFrozen = false;
     mutable std::vector<JimsSegment> m_jimsFrameSegments;

@@ -2785,7 +2785,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             const double periodH = (periodCents / StaffType::JIMS_CENTS_PER_LINE_DISTANCE) * dist;
             const double clefRy = periodH / 2.0;
             const StaffType::JimsHeaderGeometry headerGeom
-                = jimsSt->jimsHeaderGeometry(_spatium, item->score()->style().defaultSpatium());
+                = jimsSt->jimsHeaderGeometry(_spatium, item->score()->style().defaultSpatium(), &view);
             const double clefRx = headerGeom.clefRx;
             const double indicatorW = headerGeom.indicatorW;
             const double clefRight = item->pos().x() - 0.3 * _spatium;

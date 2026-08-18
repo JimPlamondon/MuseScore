@@ -2229,7 +2229,8 @@ void SystemLayout::layoutSystem(System* system, LayoutContext& ctx, double xo1, 
             if (jst && jst->isJiMS()) {
                 const double sp = jstaff->spatium(Fraction(0, 1));
                 jimsHeader = std::max(jimsHeader,
-                                      jst->jimsHeaderGeometry(sp, jstaff->score()->style().defaultSpatium()).headerWidth);
+                                      jst->jimsHeaderGeometry(sp, jstaff->score()->style().defaultSpatium(),
+                                                              &jst->jimsFrameView(jstaff->score(), jstaff->idx(), system)).headerWidth);
             }
         }
         if (jimsHeader > 0.0) {

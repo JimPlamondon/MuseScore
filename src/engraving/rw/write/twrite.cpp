@@ -2969,6 +2969,11 @@ void TWrite::write(const StaffType* item, XmlWriter& xml, WriteContext& ctx)
                                : "split";
             xml.tag("jimsScaleDotLabels", String::fromUtf8(mode));
         }
+        // Milestone 8: the per-staff-type octave-band elision override
+        // (presentation only; Auto is the absent default).
+        if (item->jimsElideOctaves() != JimsElideOctaves::Auto) {
+            xml.tag("jimsElideOctaves", String::fromAscii(item->jimsElideOctaves() == JimsElideOctaves::On ? "on" : "off"));
+        }
     }
     if (item->group() == StaffGroup::STANDARD || item->group() == StaffGroup::PERCUSSION) {
         if (!item->genKeysig()) {

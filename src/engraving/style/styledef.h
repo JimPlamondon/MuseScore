@@ -546,6 +546,11 @@ enum class Sid : short {
     mmRestOldStyleSpacing,
     hideEmptyStaves,
     dontHideStavesInFirstSystem,
+    // JiMStaff Milestone 8 (octave-band elision, presentation only —
+    // MuseScore's hide-empty-staves shape): score-wide opt-in, default
+    // off; the first system shows the whole stack by default.
+    jimsElideEmptyOctaves,
+    jimsShowAllOctavesInFirstSystem,
     enableIndentationOnFirstSystem,
     firstSystemIndentationValue,
     alwaysShowBracketsWhenEmptyStavesAreHidden,

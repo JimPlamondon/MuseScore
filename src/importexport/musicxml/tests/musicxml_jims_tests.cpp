@@ -38,6 +38,7 @@
 #include "engraving/dom/segment.h"
 #include "engraving/dom/staff.h"
 #include "engraving/dom/stafftype.h"
+#include "engraving/dom/system.h"
 #include "engraving/dom/stafftypechange.h"
 #include "engraving/jims/jimschange.h"
 #include "engraving/style/style.h"
@@ -506,4 +507,40 @@ TEST_F(MusicXml_JiMS_Tests, trustedRawFragmentWriterInsertsVerbatimAndKeepsBalan
     EXPECT_LT(out.indexOf(u"<divisions>"), out.indexOf(u"<jims:staff-state"));
     EXPECT_LT(out.indexOf(u"</jims:staff-state>"), out.indexOf(u"<after>"));
     EXPECT_TRUE(out.contains(u"</attributes>"));
+}
+
+// JiMStaff Milestone 8 (octave-band elision): the three presentation switches
+// (score style jimsElideEmptyOctaves / jimsShowAllOctavesInFirstSystem, staff
+// type Auto/On/Off) never reach MusicXML — export is byte-identical with
+// elision off and on, and no jims:staff-state carries them.
+TEST_F(MusicXml_JiMS_Tests, m8ElisionSwitchesNeverChangeMusicXmlExport)
+{
+    MasterScore* score = ScoreRW::readScore(JIMS_DATA_DIR + u"m8-two-hand.mscx");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    const String off = readAll(exportToScratch(score, "export-m8-two-hand-off.musicxml"));
+    ASSERT_TRUE(off.contains(u"<jims:staff-state>"));
+    EXPECT_FALSE(off.contains(u"elide"));
+    EXPECT_FALSE(off.contains(u"Elide"));
+
+    score->style().set(Sid::jimsElideEmptyOctaves, true);
+    score->style().set(Sid::jimsShowAllOctavesInFirstSystem, false);
+    score->staff(0)->staffType(Fraction(0, 1))->setJimsElideOctaves(JimsElideOctaves::On);
+    score->setLayoutAll();
+    score->doLayout();
+    // The banded layout is in effect (system 2 has two bands) ...
+    System* system2 = nullptr;
+    int measureSystems = 0;
+    for (System* s : score->systems()) {
+        if (s->firstMeasure() && ++measureSystems == 2) {
+            system2 = s;
+        }
+    }
+    ASSERT_TRUE(system2);
+    EXPECT_EQ(staffTypeAtStart(score)->jimsFrameView(score, 0, system2).bands.size(), 2u);
+    // ... and the export is byte for byte the same.
+    const String on = readAll(exportToScratch(score, "export-m8-two-hand-on.musicxml"));
+    EXPECT_EQ(on, off);
+    EXPECT_FALSE(on.contains(u"elide"));
+    delete score;
 }

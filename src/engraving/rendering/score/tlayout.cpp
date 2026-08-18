@@ -5073,7 +5073,7 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         // FINAL §5.4.4) — label bands included when the resolved mode
         // shows them.
         const StaffType::JimsHeaderGeometry headerGeom
-            = jimsSt->jimsHeaderGeometry(_spatium, item->score()->style().defaultSpatium());
+            = jimsSt->jimsHeaderGeometry(_spatium, item->score()->style().defaultSpatium(), &view);
         const double clefRx = headerGeom.clefRx;
         const double indicatorW = headerGeom.indicatorW;
         const double clefRight = x1 - 0.3 * _spatium;

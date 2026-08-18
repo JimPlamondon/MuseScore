@@ -14,6 +14,7 @@
  */
 #include "jimstuningpanel.h"
 
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QEvent>
@@ -40,6 +41,8 @@
 #include "engraving/jims/jimschange.h"
 #include "engraving/jims/jimschangecontroller.h"
 #include "engraving/jims/jimstuningcontroller.h"
+#include "engraving/editing/editstaff.h"
+#include "engraving/style/style.h"
 
 using namespace mu::notationscene;
 using namespace mu::engraving;
@@ -232,6 +235,9 @@ JimsTuningPanel::JimsTuningPanel(Score* score, std::function<void()> refreshView
 
     // Milestone 6: mode / key / scale changes at the selected measure.
     buildChangeSection(this, outer);
+
+    // Milestone 8: octave-band elision switches.
+    buildElisionSection(this, outer);
 
     syncFromScore();
 
@@ -592,6 +598,120 @@ void JimsTuningPanel::syncFromScore()
         m_spin->setValue(cents);
     }
     syncChangeSection();
+    syncElisionSection();
+}
+
+// ---------------------------------------------------------------------------
+// Milestone 8 — octave-band elision ("hollow stacks"). Mirrors MuseScore's
+// Format > Style > Score "Hide empty staves" wording: a score-wide opt-in
+// (default off), "Don't hide … in first system" (default on), and the
+// selected staff's Auto/On/Off. Every control is an undoable style or
+// staff-type edit followed by a relayout; nothing musical changes.
+// ---------------------------------------------------------------------------
+
+void JimsTuningPanel::buildElisionSection(QWidget* parent, QVBoxLayout* outer)
+{
+    m_elisionBox = new QGroupBox(QStringLiteral("Octave-band elision (hollow stacks)"), parent);
+    auto* grid = new QVBoxLayout(m_elisionBox);
+    m_elideCheck = new QCheckBox(QStringLiteral("Elide empty octaves (per system)"), m_elisionBox);
+    m_elideCheck->setToolTip(QStringLiteral("Draw a JiMStaff's empty interior octaves as a plain gap on each system "
+                                            "(score style, default off - like \"Hide empty staves\")"));
+    grid->addWidget(m_elideCheck);
+    m_firstSystemCheck = new QCheckBox(QStringLiteral("Show all octaves in the first system"), m_elisionBox);
+    m_firstSystemCheck->setToolTip(QStringLiteral("Always draw the whole stack on the first system (default on - "
+                                                  "like \"Don't hide empty staves in first system\")"));
+    grid->addWidget(m_firstSystemCheck);
+    auto* row = new QHBoxLayout();
+    m_elisionTargetLabel = new QLabel(QStringLiteral("Selected staff:"), m_elisionBox);
+    row->addWidget(m_elisionTargetLabel);
+    m_staffOverrideCombo = new QComboBox(m_elisionBox);
+    m_staffOverrideCombo->addItem(QStringLiteral("Auto (follow score)"));
+    m_staffOverrideCombo->addItem(QStringLiteral("On"));
+    m_staffOverrideCombo->addItem(QStringLiteral("Off"));
+    m_staffOverrideCombo->setToolTip(QStringLiteral("This staff's override beats the score switch in both directions"));
+    row->addWidget(m_staffOverrideCombo, 1);
+    grid->addLayout(row);
+    outer->addWidget(m_elisionBox);
+
+    connect(m_elideCheck, &QCheckBox::toggled, this, &JimsTuningPanel::onElideToggled);
+    connect(m_firstSystemCheck, &QCheckBox::toggled, this, &JimsTuningPanel::onFirstSystemToggled);
+    connect(m_staffOverrideCombo, &QComboBox::currentIndexChanged, this, &JimsTuningPanel::onStaffOverrideChanged);
+}
+
+void JimsTuningPanel::syncElisionSection()
+{
+    if (!m_elisionBox || !m_score) {
+        return;
+    }
+    QSignalBlocker b1(m_elideCheck);
+    QSignalBlocker b2(m_firstSystemCheck);
+    QSignalBlocker b3(m_staffOverrideCombo);
+    m_elideCheck->setChecked(m_score->style().styleB(Sid::jimsElideEmptyOctaves));
+    m_firstSystemCheck->setChecked(m_score->style().styleB(Sid::jimsShowAllOctavesInFirstSystem));
+    Measure* measure = nullptr;
+    staff_idx_t staffIdx = 0;
+    const bool haveTarget = changeTarget(measure, staffIdx);
+    const StaffType* base = haveTarget ? m_score->staff(staffIdx)->staffType(Fraction(0, 1)) : nullptr;
+    const bool jims = base && base->isJiMS();
+    m_staffOverrideCombo->setEnabled(jims);
+    m_elisionTargetLabel->setText(jims
+                                  ? QStringLiteral("Staff %1:").arg(int(staffIdx) + 1)
+                                  : QStringLiteral("Selected staff: (select a JiMStaff)"));
+    m_staffOverrideCombo->setCurrentIndex(jims ? int(base->jimsElideOctaves()) : 0);
+}
+
+void JimsTuningPanel::onElideToggled(bool on)
+{
+    if (!m_score) {
+        return;
+    }
+    m_score->startCmd(TranslatableString("undoableAction", "Elide empty octaves"));
+    m_score->undoChangeStyleVal(Sid::jimsElideEmptyOctaves, on);
+    m_score->endCmd();
+    if (m_refreshView) {
+        m_refreshView();
+    }
+    syncElisionSection();
+}
+
+void JimsTuningPanel::onFirstSystemToggled(bool on)
+{
+    if (!m_score) {
+        return;
+    }
+    m_score->startCmd(TranslatableString("undoableAction", "Show all octaves in first system"));
+    m_score->undoChangeStyleVal(Sid::jimsShowAllOctavesInFirstSystem, on);
+    m_score->endCmd();
+    if (m_refreshView) {
+        m_refreshView();
+    }
+    syncElisionSection();
+}
+
+void JimsTuningPanel::onStaffOverrideChanged(int index)
+{
+    Measure* measure = nullptr;
+    staff_idx_t staffIdx = 0;
+    if (!m_score || !changeTarget(measure, staffIdx)) {
+        return;
+    }
+    Staff* staff = m_score->staff(staffIdx);
+    const StaffType* base = staff ? staff->staffType(Fraction(0, 1)) : nullptr;
+    if (!base || !base->isJiMS()) {
+        return;
+    }
+    // Same seam as the Edit Staff Type dialog's jimsScaleDotLabels control:
+    // a copy of the base staff type with the one presentation field changed,
+    // applied through ChangeStaffType (undoable, relayouts the staff).
+    StaffType edited = *base;
+    edited.setJimsElideOctaves(index == 1 ? JimsElideOctaves::On : index == 2 ? JimsElideOctaves::Off : JimsElideOctaves::Auto);
+    m_score->startCmd(TranslatableString("undoableAction", "Octave-band elision override"));
+    m_score->undo(new ChangeStaffType(staff, edited));
+    m_score->endCmd();
+    if (m_refreshView) {
+        m_refreshView();
+    }
+    syncElisionSection();
 }
 
 void JimsTuningPanel::onSliderPressed()

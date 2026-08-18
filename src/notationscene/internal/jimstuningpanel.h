@@ -33,6 +33,7 @@ class QLabel;
 class QPushButton;
 class QGroupBox;
 class QVBoxLayout;
+class QCheckBox;
 
 namespace mu::engraving {
 class Score;
@@ -69,6 +70,17 @@ private:
     void onRemoveChange();
     bool event(QEvent* e) override;
 
+    // JiMStaff Milestone 8 (octave-band elision, owner-approved plan
+    // 2026-08-18): two score-wide switches (MuseScore's hide-empty-staves
+    // shape) and the selected staff's Auto/On/Off override. Presentation
+    // only: undoable style/staff-type edits that trigger a relayout, never
+    // touching the Kernel state.
+    void buildElisionSection(QWidget* parent, QVBoxLayout* outer);
+    void syncElisionSection();
+    void onElideToggled(bool on);
+    void onFirstSystemToggled(bool on);
+    void onStaffOverrideChanged(int index);
+
     static constexpr double SLIDER_STEP = 0.1;
     double m_minCents = 686.0;   // overwritten by the Kernel's range
     double m_maxCents = 720.0;
@@ -96,6 +108,12 @@ private:
     std::vector<int> m_keyClassNGens;
     std::vector<muse::String> m_scaleIds;
     std::vector<std::vector<muse::String> > m_scaleSteps;   // Kernel choice ids applied in order for each entry
+
+    QGroupBox* m_elisionBox = nullptr;
+    QCheckBox* m_elideCheck = nullptr;
+    QCheckBox* m_firstSystemCheck = nullptr;
+    QComboBox* m_staffOverrideCombo = nullptr;
+    QLabel* m_elisionTargetLabel = nullptr;
 };
 }
 

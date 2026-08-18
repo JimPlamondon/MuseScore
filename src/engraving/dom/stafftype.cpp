@@ -190,6 +190,7 @@ bool StaffType::operator==(const StaffType& st) const
     equal &= (m_jimsTonicExtent == st.m_jimsTonicExtent);
     equal &= (m_jimsJiLines == st.m_jimsJiLines);
     equal &= (m_jimsScaleDotLabelMode == st.m_jimsScaleDotLabelMode);
+    equal &= (m_jimsElideOctaves == st.m_jimsElideOctaves);
     equal &= (m_userMag == st.m_userMag);
     equal &= (m_yoffset == st.m_yoffset);
     equal &= (m_small == st.m_small);
@@ -821,7 +822,8 @@ JimsScaleDotLabelMode StaffType::jimsResolvedScaleDotLabelMode() const
 //    system margin) reads this — no independent formulas.
 //---------------------------------------------------------
 
-StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, double defaultSpatium) const
+StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, double defaultSpatium,
+                                                            const JimsFrameView* view) const
 {
     JimsHeaderGeometry g;
     const double dist = m_lineDistance.val() * spatium;
@@ -843,8 +845,16 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
     // Current-key label "[PitchN]:" left of the tonic indicator (owner spec
     // 2026-08-17): reserve its advance (plus one space) in the left bands.
     jims::TonicPitchLabel key;
-    const double keyAdvance = jims::tonicPitchLabel(m_jimsStateJson, key)
-                              ? fm.horizontalAdvance(key.label + u": ") : 0.0;
+    double keyAdvance = jims::tonicPitchLabel(m_jimsStateJson, key)
+                        ? fm.horizontalAdvance(key.label + u": ") : 0.0;
+    if (view && view->banded && keyAdvance > 0.0) {
+        // Milestone 8: reserve for the widest band label of this system.
+        for (const JimsFrameBand& band : view->bands) {
+            if (!band.tonicLabel.isEmpty()) {
+                keyAdvance = std::max(keyAdvance, fm.horizontalAdvance(band.tonicLabel + u": "));
+            }
+        }
+    }
     g.keyLabelAdvance = keyAdvance;
     if (haveLabels) {
         // ALL labels sit LEFT of the dots (owner ruling 2026-08-16, second
@@ -1208,11 +1218,45 @@ const StaffType::JimsFrameView& StaffType::jimsWholeFrameView(const Score* score
 //    whole-piece legacy view and nothing on the page can change.
 //---------------------------------------------------------
 
-bool StaffType::jimsElisionActive(const Score* score, const System* system) const
+bool StaffType::jimsElisionActive(const Score* score, staff_idx_t staffIdx, const System* system) const
 {
-    UNUSED(score);
-    UNUSED(system);
-    return false;
+    if (!isJiMS() || !score || !system) {
+        return false;
+    }
+    // The override is a PER-STAFF fact (MuseScore's per-staff hideWhenEmpty
+    // shape): read from the staff's base staff type (tick 0), which is where
+    // the JiMS Staff panel sets it; section copies made by a StaffTypeChange
+    // do not carry their own policy.
+    const Staff* staff = staffIdx < score->nstaves() ? score->staff(staffIdx) : nullptr;
+    const StaffType* base = staff ? staff->staffType(Fraction(0, 1)) : this;
+    bool on = false;
+    switch ((base ? base : this)->m_jimsElideOctaves) {
+    case JimsElideOctaves::On: on = true;
+        break;
+    case JimsElideOctaves::Off: on = false;
+        break;
+    case JimsElideOctaves::Auto: on = score->style().styleB(Sid::jimsElideEmptyOctaves);
+        break;
+    }
+    if (!on) {
+        return false;
+    }
+    if (score->style().styleB(Sid::jimsShowAllOctavesInFirstSystem)) {
+        // The first system of the score (or of a section — MuseScore's
+        // dontHideStavesInFirstSystem treats a section's first system the
+        // same way) always shows the whole stack.
+        const Measure* fm = system->firstMeasure();
+        if (fm) {
+            const MeasureBase* prev = fm->prev();
+            while (prev && !prev->isMeasure() && !prev->sectionBreak()) {
+                prev = prev->prev();
+            }
+            if (!prev || prev->sectionBreak()) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, staff_idx_t staffIdx,
@@ -1222,7 +1266,7 @@ const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, sta
     if (!isJiMS() || !score) {
         return noView;
     }
-    if (!system || !jimsElisionActive(score, system)) {
+    if (!system || !jimsElisionActive(score, staffIdx, system)) {
         return jimsWholeFrameView(score, staffIdx);
     }
     // Per-system view: keyed by the system's tick range; the entry

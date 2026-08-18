@@ -536,6 +536,8 @@ const std::array<StyleDef::StyleValue, size_t(Sid::STYLES)> StyleDef::styleValue
     styleDef(mmRestOldStyleSpacing,                      0.85_sp),
     styleDef(hideEmptyStaves,                            false),
     styleDef(dontHideStavesInFirstSystem,                true),
+    styleDef(jimsElideEmptyOctaves,                      false),
+    styleDef(jimsShowAllOctavesInFirstSystem,            true),
     styleDef(enableIndentationOnFirstSystem,             true),
     styleDef(firstSystemIndentationValue,                5.0_sp),
     styleDef(alwaysShowBracketsWhenEmptyStavesAreHidden, false),

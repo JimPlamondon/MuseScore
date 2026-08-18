@@ -4028,6 +4028,12 @@ void TRead::read(StaffType* t, XmlReader& e, ReadContext& ctx)
                                         : mode == u"left" ? JimsScaleDotLabelMode::Left
                                         : mode == u"split" ? JimsScaleDotLabelMode::Split
                                         : JimsScaleDotLabelMode::Auto);
+        } else if (tag == "jimsElideOctaves") {
+            // Milestone 8: on/off; anything else (or absent) is Auto.
+            const String mode = e.readText();
+            t->setJimsElideOctaves(mode == u"on" ? JimsElideOctaves::On
+                                   : mode == u"off" ? JimsElideOctaves::Off
+                                   : JimsElideOctaves::Auto);
         } else if (tag == "durations") {
             t->setGenDurations(e.readBool());
         } else if (tag == "durationFontName") {
