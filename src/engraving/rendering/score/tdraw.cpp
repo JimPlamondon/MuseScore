@@ -3052,6 +3052,32 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     painter->restore();
                 }
             }
+
+            // Milestone 8, Phase 4 (optional, owner plan §3.5): a small
+            // SCREEN-ONLY "n octaves elided" text in the topmost gap of a
+            // banded system head — the StaffVisibilityIndicator precedent
+            // (TDraw::draw(const IndicatorIcon*)): never when printing, never
+            // when the score hides unprintables, formatting colour. The count
+            // is the Kernel's omitted-period count for this system; the
+            // printed page keeps the plain gap (owner ruling 2a).
+            if (view.banded && view.bands.size() > 1 && view.omittedPeriodCount > 0
+                && !opt.isPrinting && item->score()->showUnprintable()) {
+                const StaffType::JimsFrameBand& upper = view.bands.back();          // topmost band
+                const StaffType::JimsFrameBand& lower = view.bands[view.bands.size() - 2];
+                const double gapTopY = topY + (upper.yTopLd + upper.heightLd()) * dist;
+                const double gapBottomY = topY + lower.yTopLd * dist;
+                const muse::String text = view.omittedPeriodCount == 1
+                                          ? muse::String(u"1 octave elided")
+                                          : muse::String(u"%1 octaves elided").arg(view.omittedPeriodCount);
+                Font indicatorFont(u"Edwin", Font::Type::Text);
+                indicatorFont.setPointSizeF(8.0 * item->spatium() / item->defaultSpatium());
+                FontMetrics ifm(indicatorFont);
+                const RectF tb = ifm.boundingRect(text);
+                const double baseline = (gapTopY + gapBottomY) / 2.0 - (tb.top() + tb.bottom()) / 2.0;
+                painter->setFont(indicatorFont);
+                painter->setPen(Pen(item->configuration()->formattingColor()));
+                painter->drawText(PointF(item->pos().x() + 0.5 * _spatium, baseline), text);
+            }
         }
 
         // Change indicator (Milestone 5, owner notation rulings 2026-08-16):

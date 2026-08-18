@@ -43,15 +43,20 @@
 #include "engraving/dom/system.h"
 #include "engraving/infrastructure/mscwriter.h"
 #include "engraving/jims/jimsbridge.h"
+#include "engraving/rendering/iscorerenderer.h"
 #include "engraving/rw/mscsaver.h"
 #include "engraving/style/style.h"
+#include "draw/bufferedpaintprovider.h"
+#include "draw/painter.h"
 #include "io/file.h"
 #include "io/dir.h"
 
 #include "utils/scorerw.h"
 
 using namespace mu::engraving;
+using namespace mu::engraving::rendering;
 using namespace muse;
+using namespace muse::draw;
 
 namespace {
 const String TWO_HAND(u"jimstaff_data/m8-two-hand.mscx");
@@ -712,6 +717,77 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8SettingsNeverEnterKernelStateAndP
         EXPECT_EQ(after[i].midi, before[i].midi);
         EXPECT_NEAR(after[i].cents, before[i].cents, EPS);
     }
+    delete score;
+}
+// Phase 4 (optional, screen-only): the "n octaves elided" gap indicator
+// reuses the StaffVisibilityIndicator paint precedent (TDraw::draw(const
+// IndicatorIcon*): drawn only when !isPrinting && showUnprintable) — it is
+// present on screen for a banded system head, absent from every printing
+// paint path (PNG/PDF/print/SVG all paint with isPrinting), absent when the
+// score hides unprintables, and absent when elision is off. Its text comes
+// from the Kernel's omitted-period count.
+TEST_F(Engraving_JiMStaffM8BandElisionTests, m8GapIndicatorIsScreenOnlyAndNeverPrints)
+{
+    MasterScore* score = ScoreRW::readScore(TWO_HAND);
+    ASSERT_TRUE(score);
+    score->doLayout();
+    auto textsOf = [](const StaffLines* lines, bool printing) {
+        std::shared_ptr<BufferedPaintProvider> prv = std::make_shared<BufferedPaintProvider>();
+        Painter p(prv, "m8");
+        p.setViewport(RectF(0, 0, 4000, 4000));
+        PaintOptions opt;
+        opt.isPrinting = printing;
+        lines->renderer()->drawItem(lines, &p, opt);
+        p.endDraw();
+        std::vector<String> out;
+        std::function<void(const DrawData::Item&)> walk = [&](const DrawData::Item& item) {
+            for (const DrawData::Data& d : item.datas) {
+                for (const DrawText& t : d.texts) {
+                    out.push_back(t.text);
+                }
+            }
+            for (const DrawData::Item& c : item.chilren) {
+                walk(c);
+            }
+        };
+        walk(prv->drawData()->item);
+        return out;
+    };
+    auto hasIndicator = [](const std::vector<String>& texts) {
+        for (const String& t : texts) {
+            if (t.contains(u"elided")) {
+                return true;
+            }
+        }
+        return false;
+    };
+    // Elision off: nothing to indicate.
+    const StaffLines* offLines = measureSystems(score)[1]->firstMeasure()->staffLines(0);
+    EXPECT_FALSE(hasIndicator(textsOf(offLines, false)));
+    setElision(score, true);
+    System* system2 = measureSystems(score)[1];
+    ASSERT_EQ(viewOn(score, system2).bands.size(), 2u);
+    const StaffLines* lines = system2->firstMeasure()->staffLines(0);
+    const std::vector<String> screen = textsOf(lines, false);
+    ASSERT_TRUE(hasIndicator(screen));
+    bool sawCount = false;
+    for (const String& t : screen) {
+        if (t.contains(u"elided")) {
+            EXPECT_EQ(t, u"3 octaves elided");
+            sawCount = true;
+        }
+    }
+    EXPECT_TRUE(sawCount);
+    // Printing paths never see it ...
+    EXPECT_FALSE(hasIndicator(textsOf(lines, true)));
+    // ... nor does the screen when unprintables are hidden ...
+    score->setShowUnprintable(false);
+    EXPECT_FALSE(hasIndicator(textsOf(lines, false)));
+    score->setShowUnprintable(true);
+    // ... nor a non-head measure of the system.
+    EXPECT_FALSE(hasIndicator(textsOf(system2->lastMeasure()->staffLines(0), false)));
+    // System 1 (whole stack under the first-system rule): nothing elided, no text.
+    EXPECT_FALSE(hasIndicator(textsOf(measureSystems(score)[0]->firstMeasure()->staffLines(0), false)));
     delete score;
 }
 } // namespace
