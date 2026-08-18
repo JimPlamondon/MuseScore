@@ -661,13 +661,16 @@ void TDraw::draw(const BagpipeEmbellishment* item, Painter* painter, const Paint
     }
 }
 
-static void drawDots(const BarLine* item, Painter* painter, double x)
+static void drawDots(const BarLine* item, Painter* painter, double x, const double* dotRows = nullptr)
 {
     double spatium = item->spatium();
 
     double y1l;
     double y2l;
-    if (item->explicitParent() == 0) {      // for use in palette (always Bravura)
+    if (dotRows) {                          // Milestone 8: a JiMStaff band's own dot rows
+        y1l = dotRows[0];
+        y2l = dotRows[1];
+    } else if (item->explicitParent() == 0) {      // for use in palette (always Bravura)
         //Bravura shifted repeatDot symbol 0.5sp upper in the font itself (1.272)
         y1l = 1.5 * spatium;
         y2l = 2.5 * spatium;
@@ -689,22 +692,179 @@ static void drawDots(const BarLine* item, Painter* painter, double x)
     item->drawSymbol(SymId::repeatDot, painter, PointF(x, y2l));
 }
 
-static void drawTips(const BarLine* item, const BarLine::LayoutData* data, Painter* painter, bool reversed, double x)
+static void drawTips(const BarLine* item, double y1, double y2, Painter* painter, bool reversed, double x)
 {
     if (reversed) {
         if (item->isTop()) {
-            item->drawSymbol(SymId::reversedBracketTop, painter, PointF(x - item->symWidth(SymId::reversedBracketTop), data->y1));
+            item->drawSymbol(SymId::reversedBracketTop, painter, PointF(x - item->symWidth(SymId::reversedBracketTop), y1));
         }
         if (item->isBottom()) {
-            item->drawSymbol(SymId::reversedBracketBottom, painter, PointF(x - item->symWidth(SymId::reversedBracketBottom), data->y2));
+            item->drawSymbol(SymId::reversedBracketBottom, painter, PointF(x - item->symWidth(SymId::reversedBracketBottom), y2));
         }
     } else {
         if (item->isTop()) {
-            item->drawSymbol(SymId::bracketTop, painter, PointF(x, data->y1));
+            item->drawSymbol(SymId::bracketTop, painter, PointF(x, y1));
         }
         if (item->isBottom()) {
-            item->drawSymbol(SymId::bracketBottom, painter, PointF(x, data->y2));
+            item->drawSymbol(SymId::bracketBottom, painter, PointF(x, y2));
         }
+    }
+}
+
+// One barline FORM between y1 and y2 (Milestone 8: a JiMStaff barline
+// draws every form once per band, never across the gap between bands;
+// dotRows, when given, are the repeat-dot rows of that band).
+static void drawBarLineForm(const BarLine* item, double y1, double y2, const double* dotRows, Painter* painter,
+                            const mu::engraving::rendering::PaintOptions& opt)
+{
+    switch (item->barLineType()) {
+    case BarLineType::NORMAL: {
+        double lw = item->style().styleMM(Sid::barWidth) * item->mag();
+        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::SolidLine, PenCapStyle::FlatCap));
+        painter->drawLine(LineF(lw * .5, y1, lw * .5, y2));
+    }
+    break;
+
+    case BarLineType::BROKEN: {
+        double lw = item->style().styleMM(Sid::barWidth) * item->mag();
+        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::DashLine, PenCapStyle::FlatCap));
+        painter->drawLine(LineF(lw * .5, y1, lw * .5, y2));
+    }
+    break;
+
+    case BarLineType::DOTTED: {
+        double lw = item->style().styleMM(Sid::barWidth) * item->mag();
+        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::DotLine, PenCapStyle::FlatCap));
+        painter->drawLine(LineF(lw * .5, y1, lw * .5, y2));
+    }
+    break;
+
+    case BarLineType::END: {
+        double lw = item->style().styleMM(Sid::barWidth) * item->mag();
+        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::SolidLine, PenCapStyle::FlatCap));
+        double x  = lw * .5;
+        painter->drawLine(LineF(x, y1, x, y2));
+
+        double lw2 = item->style().styleMM(Sid::endBarWidth) * item->mag();
+        painter->setPen(Pen(item->curColor(opt), lw2, PenStyle::SolidLine, PenCapStyle::FlatCap));
+        x += ((lw * .5) + item->style().styleMM(Sid::endBarDistance) + (lw2 * .5)) * item->mag();
+        painter->drawLine(LineF(x, y1, x, y2));
+    }
+    break;
+
+    case BarLineType::DOUBLE: {
+        double lw = item->style().styleMM(Sid::doubleBarWidth) * item->mag();
+        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::SolidLine, PenCapStyle::FlatCap));
+        double x = lw * .5;
+        painter->drawLine(LineF(x, y1, x, y2));
+        x += ((lw * .5) + item->style().styleMM(Sid::doubleBarDistance) + (lw * .5)) * item->mag();
+        painter->drawLine(LineF(x, y1, x, y2));
+    }
+    break;
+
+    case BarLineType::REVERSE_END: {
+        double lw = item->style().styleMM(Sid::endBarWidth) * item->mag();
+        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::SolidLine, PenCapStyle::FlatCap));
+        double x = lw * .5;
+        painter->drawLine(LineF(x, y1, x, y2));
+
+        double lw2 = item->style().styleMM(Sid::barWidth) * item->mag();
+        painter->setPen(Pen(item->curColor(opt), lw2, PenStyle::SolidLine, PenCapStyle::FlatCap));
+        x += ((lw * .5) + item->style().styleMM(Sid::endBarDistance) + (lw2 * .5)) * item->mag();
+        painter->drawLine(LineF(x, y1, x, y2));
+    }
+    break;
+
+    case BarLineType::HEAVY: {
+        double lw = item->style().styleMM(Sid::endBarWidth) * item->mag();
+        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::SolidLine, PenCapStyle::FlatCap));
+        painter->drawLine(LineF(lw * .5, y1, lw * .5, y2));
+    }
+    break;
+
+    case BarLineType::DOUBLE_HEAVY: {
+        double lw2 = item->style().styleMM(Sid::endBarWidth) * item->mag();
+        painter->setPen(Pen(item->curColor(opt), lw2, PenStyle::SolidLine, PenCapStyle::FlatCap));
+        double x = lw2 * .5;
+        painter->drawLine(LineF(x, y1, x, y2));
+        x += ((lw2 * .5) + item->style().styleMM(Sid::endBarDistance) + (lw2 * .5)) * item->mag();
+        painter->drawLine(LineF(x, y1, x, y2));
+    }
+    break;
+
+    case BarLineType::START_REPEAT: {
+        double lw2 = item->style().styleMM(Sid::endBarWidth) * item->mag();
+        painter->setPen(Pen(item->curColor(opt), lw2, PenStyle::SolidLine, PenCapStyle::FlatCap));
+        double x = lw2 * .5;
+        painter->drawLine(LineF(x, y1, x, y2));
+
+        double lw = item->style().styleMM(Sid::barWidth) * item->mag();
+        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::SolidLine, PenCapStyle::FlatCap));
+        x += ((lw2 * .5) + item->style().styleMM(Sid::endBarDistance) + (lw * .5)) * item->mag();
+        painter->drawLine(LineF(x, y1, x, y2));
+
+        x += ((lw * .5) + item->style().styleMM(Sid::repeatBarlineDotSeparation)) * item->mag();
+        drawDots(item, painter, x, dotRows);
+
+        if (item->style().styleB(Sid::repeatBarTips)) {
+            drawTips(item, y1, y2, painter, false, 0.0);
+        }
+    }
+    break;
+
+    case BarLineType::END_REPEAT: {
+        double lw = item->style().styleMM(Sid::barWidth) * item->mag();
+        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::SolidLine, PenCapStyle::FlatCap));
+
+        double x = 0.0;
+        drawDots(item, painter, x, dotRows);
+
+        x += item->symBbox(SymId::repeatDot).width();
+        x += (item->style().styleMM(Sid::repeatBarlineDotSeparation) + (lw * .5)) * item->mag();
+        painter->drawLine(LineF(x, y1, x, y2));
+
+        double lw2 = item->style().styleMM(Sid::endBarWidth) * item->mag();
+        x += ((lw * .5) + item->style().styleMM(Sid::endBarDistance) + (lw2 * .5)) * item->mag();
+        painter->setPen(Pen(item->curColor(opt), lw2, PenStyle::SolidLine, PenCapStyle::FlatCap));
+        painter->drawLine(LineF(x, y1, x, y2));
+
+        if (item->style().styleB(Sid::repeatBarTips)) {
+            drawTips(item, y1, y2, painter, true, x + lw2 * .5);
+        }
+    }
+    break;
+    case BarLineType::END_START_REPEAT: {
+        double lw = item->style().styleMM(Sid::barWidth) * item->mag();
+        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::SolidLine, PenCapStyle::FlatCap));
+
+        double x = 0.0;
+        drawDots(item, painter, x, dotRows);
+
+        x += item->symBbox(SymId::repeatDot).width();
+        x += (item->style().styleMM(Sid::repeatBarlineDotSeparation) + (lw * .5)) * item->mag();
+        painter->drawLine(LineF(x, y1, x, y2));
+
+        double lw2 = item->style().styleMM(Sid::endBarWidth) * item->mag();
+        x += ((lw * .5) + item->style().styleMM(Sid::endBarDistance) + (lw2 * .5)) * item->mag();
+        painter->setPen(Pen(item->curColor(opt), lw2, PenStyle::SolidLine, PenCapStyle::FlatCap));
+        painter->drawLine(LineF(x, y1, x, y2));
+
+        if (item->style().styleB(Sid::repeatBarTips)) {
+            drawTips(item, y1, y2, painter, true, x + lw2 * .5);
+        }
+
+        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::SolidLine, PenCapStyle::FlatCap));
+        x  += ((lw2 * .5) + item->style().styleMM(Sid::endBarDistance) + (lw * .5)) * item->mag();
+        painter->drawLine(LineF(x, y1, x, y2));
+
+        x += ((lw * .5) + item->style().styleMM(Sid::repeatBarlineDotSeparation)) * item->mag();
+        drawDots(item, painter, x, dotRows);
+
+        if (item->style().styleB(Sid::repeatBarTips)) {
+            drawTips(item, y1, y2, painter, false, 0.0);
+        }
+    }
+    break;
     }
 }
 
@@ -724,154 +884,16 @@ void TDraw::draw(const BarLine* item, Painter* painter, const PaintOptions& opt)
 
     setMask(item, painter);
 
-    switch (item->barLineType()) {
-    case BarLineType::NORMAL: {
-        double lw = item->style().styleMM(Sid::barWidth) * item->mag();
-        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::SolidLine, PenCapStyle::FlatCap));
-        painter->drawLine(LineF(lw * .5, data->y1, lw * .5, data->y2));
-    }
-    break;
-
-    case BarLineType::BROKEN: {
-        double lw = item->style().styleMM(Sid::barWidth) * item->mag();
-        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::DashLine, PenCapStyle::FlatCap));
-        painter->drawLine(LineF(lw * .5, data->y1, lw * .5, data->y2));
-    }
-    break;
-
-    case BarLineType::DOTTED: {
-        double lw = item->style().styleMM(Sid::barWidth) * item->mag();
-        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::DotLine, PenCapStyle::FlatCap));
-        painter->drawLine(LineF(lw * .5, data->y1, lw * .5, data->y2));
-    }
-    break;
-
-    case BarLineType::END: {
-        double lw = item->style().styleMM(Sid::barWidth) * item->mag();
-        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::SolidLine, PenCapStyle::FlatCap));
-        double x  = lw * .5;
-        painter->drawLine(LineF(x, data->y1, x, data->y2));
-
-        double lw2 = item->style().styleMM(Sid::endBarWidth) * item->mag();
-        painter->setPen(Pen(item->curColor(opt), lw2, PenStyle::SolidLine, PenCapStyle::FlatCap));
-        x += ((lw * .5) + item->style().styleMM(Sid::endBarDistance) + (lw2 * .5)) * item->mag();
-        painter->drawLine(LineF(x, data->y1, x, data->y2));
-    }
-    break;
-
-    case BarLineType::DOUBLE: {
-        double lw = item->style().styleMM(Sid::doubleBarWidth) * item->mag();
-        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::SolidLine, PenCapStyle::FlatCap));
-        double x = lw * .5;
-        painter->drawLine(LineF(x, data->y1, x, data->y2));
-        x += ((lw * .5) + item->style().styleMM(Sid::doubleBarDistance) + (lw * .5)) * item->mag();
-        painter->drawLine(LineF(x, data->y1, x, data->y2));
-    }
-    break;
-
-    case BarLineType::REVERSE_END: {
-        double lw = item->style().styleMM(Sid::endBarWidth) * item->mag();
-        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::SolidLine, PenCapStyle::FlatCap));
-        double x = lw * .5;
-        painter->drawLine(LineF(x, data->y1, x, data->y2));
-
-        double lw2 = item->style().styleMM(Sid::barWidth) * item->mag();
-        painter->setPen(Pen(item->curColor(opt), lw2, PenStyle::SolidLine, PenCapStyle::FlatCap));
-        x += ((lw * .5) + item->style().styleMM(Sid::endBarDistance) + (lw2 * .5)) * item->mag();
-        painter->drawLine(LineF(x, data->y1, x, data->y2));
-    }
-    break;
-
-    case BarLineType::HEAVY: {
-        double lw = item->style().styleMM(Sid::endBarWidth) * item->mag();
-        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::SolidLine, PenCapStyle::FlatCap));
-        painter->drawLine(LineF(lw * .5, data->y1, lw * .5, data->y2));
-    }
-    break;
-
-    case BarLineType::DOUBLE_HEAVY: {
-        double lw2 = item->style().styleMM(Sid::endBarWidth) * item->mag();
-        painter->setPen(Pen(item->curColor(opt), lw2, PenStyle::SolidLine, PenCapStyle::FlatCap));
-        double x = lw2 * .5;
-        painter->drawLine(LineF(x, data->y1, x, data->y2));
-        x += ((lw2 * .5) + item->style().styleMM(Sid::endBarDistance) + (lw2 * .5)) * item->mag();
-        painter->drawLine(LineF(x, data->y1, x, data->y2));
-    }
-    break;
-
-    case BarLineType::START_REPEAT: {
-        double lw2 = item->style().styleMM(Sid::endBarWidth) * item->mag();
-        painter->setPen(Pen(item->curColor(opt), lw2, PenStyle::SolidLine, PenCapStyle::FlatCap));
-        double x = lw2 * .5;
-        painter->drawLine(LineF(x, data->y1, x, data->y2));
-
-        double lw = item->style().styleMM(Sid::barWidth) * item->mag();
-        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::SolidLine, PenCapStyle::FlatCap));
-        x += ((lw2 * .5) + item->style().styleMM(Sid::endBarDistance) + (lw * .5)) * item->mag();
-        painter->drawLine(LineF(x, data->y1, x, data->y2));
-
-        x += ((lw * .5) + item->style().styleMM(Sid::repeatBarlineDotSeparation)) * item->mag();
-        drawDots(item, painter, x);
-
-        if (item->style().styleB(Sid::repeatBarTips)) {
-            drawTips(item, data, painter, false, 0.0);
+    // Milestone 8: a JiMStaff barline with band spans draws each form once
+    // per band (dots at each band's middle rows); one span (or a stock
+    // staff) draws exactly as before.
+    if (data->jimsBandSpans.size() > 1) {
+        for (const BarLine::LayoutData::JimsBandSpan& span : data->jimsBandSpans) {
+            const double dotRows[2] = { span.dotY1, span.dotY2 };
+            drawBarLineForm(item, span.y1, span.y2, dotRows, painter, opt);
         }
-    }
-    break;
-
-    case BarLineType::END_REPEAT: {
-        double lw = item->style().styleMM(Sid::barWidth) * item->mag();
-        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::SolidLine, PenCapStyle::FlatCap));
-
-        double x = 0.0;
-        drawDots(item, painter, x);
-
-        x += item->symBbox(SymId::repeatDot).width();
-        x += (item->style().styleMM(Sid::repeatBarlineDotSeparation) + (lw * .5)) * item->mag();
-        painter->drawLine(LineF(x, data->y1, x, data->y2));
-
-        double lw2 = item->style().styleMM(Sid::endBarWidth) * item->mag();
-        x += ((lw * .5) + item->style().styleMM(Sid::endBarDistance) + (lw2 * .5)) * item->mag();
-        painter->setPen(Pen(item->curColor(opt), lw2, PenStyle::SolidLine, PenCapStyle::FlatCap));
-        painter->drawLine(LineF(x, data->y1, x, data->y2));
-
-        if (item->style().styleB(Sid::repeatBarTips)) {
-            drawTips(item, data, painter, true, x + lw2 * .5);
-        }
-    }
-    break;
-    case BarLineType::END_START_REPEAT: {
-        double lw = item->style().styleMM(Sid::barWidth) * item->mag();
-        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::SolidLine, PenCapStyle::FlatCap));
-
-        double x = 0.0;
-        drawDots(item, painter, x);
-
-        x += item->symBbox(SymId::repeatDot).width();
-        x += (item->style().styleMM(Sid::repeatBarlineDotSeparation) + (lw * .5)) * item->mag();
-        painter->drawLine(LineF(x, data->y1, x, data->y2));
-
-        double lw2 = item->style().styleMM(Sid::endBarWidth) * item->mag();
-        x += ((lw * .5) + item->style().styleMM(Sid::endBarDistance) + (lw2 * .5)) * item->mag();
-        painter->setPen(Pen(item->curColor(opt), lw2, PenStyle::SolidLine, PenCapStyle::FlatCap));
-        painter->drawLine(LineF(x, data->y1, x, data->y2));
-
-        if (item->style().styleB(Sid::repeatBarTips)) {
-            drawTips(item, data, painter, true, x + lw2 * .5);
-        }
-
-        painter->setPen(Pen(item->curColor(opt), lw, PenStyle::SolidLine, PenCapStyle::FlatCap));
-        x  += ((lw2 * .5) + item->style().styleMM(Sid::endBarDistance) + (lw * .5)) * item->mag();
-        painter->drawLine(LineF(x, data->y1, x, data->y2));
-
-        x += ((lw * .5) + item->style().styleMM(Sid::repeatBarlineDotSeparation)) * item->mag();
-        drawDots(item, painter, x);
-
-        if (item->style().styleB(Sid::repeatBarTips)) {
-            drawTips(item, data, painter, false, 0.0);
-        }
-    }
-    break;
+    } else {
+        drawBarLineForm(item, data->y1, data->y2, nullptr, painter, opt);
     }
 
     // draw irregular measure mark
@@ -2747,14 +2769,18 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             const double topY = item->pos().y();
             // The frame is the Kernel's, always (Milestone 4): no
             // fork-side nominal frame; with no frame there is no header.
-            const std::vector<StaffType::JimsSegment>& frame = jimsSt->jimsFrameSegments();
+            // Milestone 8: the explicit view for THIS system — every band
+            // draws its own header (crescents, dots, tonic indicators,
+            // labels); the whole-piece legacy view is one band.
+            const StaffType::JimsFrameView& view
+                = jimsSt->jimsFrameView(item->score(), item->staffIdx(), item->measure()->system());
             const double periodCents = jimsSt->jimsPeriodCents();
-            if (frame.empty() || periodCents <= 0.0) {
+            if (view.empty() || periodCents <= 0.0) {
                 painter->restore();
                 return;
             }
             auto yOf = [&](double cents) {
-                return topY + jimsSt->jimsYFromCents(cents) * _spatium;
+                return topY + jimsSt->jimsYFromCents(cents, view) * _spatium;
             };
             const double periodH = (periodCents / StaffType::JIMS_CENTS_PER_LINE_DISTANCE) * dist;
             const double clefRy = periodH / 2.0;
@@ -2787,7 +2813,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     painter->setFont(labelFont);
                     painter->setPen(Pen(item->curColor(opt)));
                     painter->drawText(PointF(clefLeft - 2.0 * indicatorW,
-                                             yOf(frame.back().upperCents) - 1.2 * _spatium),
+                                             yOf(view.topCents()) - 1.2 * _spatium),
                                       label);
                 }
             }
@@ -2797,67 +2823,69 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             const bool haveTonic = jims::tonicCentsAboveDo(jimsSt->jimsStateJson(), tonicCents);
             const double epsilon = 1e-6;
             if (font && jims::scaleDots(jimsSt->jimsStateJson(), stacks)) {
-                for (const StaffType::JimsSegment& segment : frame) {
-                    double basePeriod = std::floor(segment.lowerCents / periodCents) * periodCents;
-                    for (double period = basePeriod; period <= segment.upperCents + epsilon;
-                         period += periodCents) {
-                        for (const auto& stack : stacks) {
-                            double cents = period + stack.cents;
-                            if (cents < segment.lowerCents - epsilon
-                                || cents > segment.upperCents + epsilon) {
-                                continue;
-                            }
-                            double dy = yOf(cents);
-                            double dx = 0.0;
-                            for (int nGen : stack.frontToBack) {
-                                muse::String token;
-                                SymId dotSym = SymId::noteheadHalf;
-                                if (jims::noteheadToken(jimsSt->jimsStateJson(), nGen, token)) {
-                                    if (token == u"triangle-vertex-up") {
-                                        dotSym = SymId::noteheadTriangleUpBlack;
-                                    } else if (token == u"triangle-vertex-down") {
-                                        dotSym = SymId::noteheadTriangleDownBlack;
-                                    } else if (token == u"square-vertex-up") {
-                                        dotSym = SymId::noteheadDiamondBlack;
-                                    } else if (token == u"square-edge-up") {
-                                        dotSym = SymId::noteheadSquareBlack;
+                for (const StaffType::JimsFrameBand& band : view.bands) {
+                    for (const StaffType::JimsSegment& segment : band.segments) {
+                        double basePeriod = std::floor(segment.lowerCents / periodCents) * periodCents;
+                        for (double period = basePeriod; period <= segment.upperCents + epsilon;
+                             period += periodCents) {
+                            for (const auto& stack : stacks) {
+                                double cents = period + stack.cents;
+                                if (cents < segment.lowerCents - epsilon
+                                    || cents > segment.upperCents + epsilon) {
+                                    continue;
+                                }
+                                double dy = yOf(cents);
+                                double dx = 0.0;
+                                for (int nGen : stack.frontToBack) {
+                                    muse::String token;
+                                    SymId dotSym = SymId::noteheadHalf;
+                                    if (jims::noteheadToken(jimsSt->jimsStateJson(), nGen, token)) {
+                                        if (token == u"triangle-vertex-up") {
+                                            dotSym = SymId::noteheadTriangleUpBlack;
+                                        } else if (token == u"triangle-vertex-down") {
+                                            dotSym = SymId::noteheadTriangleDownBlack;
+                                        } else if (token == u"square-vertex-up") {
+                                            dotSym = SymId::noteheadDiamondBlack;
+                                        } else if (token == u"square-edge-up") {
+                                            dotSym = SymId::noteheadSquareBlack;
+                                        }
                                     }
+                                    RectF gb = font->bbox(dotSym, 1.0);
+                                    double centroidDy = 0.0;
+                                    if (dotSym == SymId::noteheadTriangleUpBlack) {
+                                        centroidDy = -gb.height() / 6.0;
+                                    } else if (dotSym == SymId::noteheadTriangleDownBlack) {
+                                        centroidDy = gb.height() / 6.0;
+                                    }
+                                    painter->setPen(Pen(item->curColor(opt), item->lw()));
+                                    font->draw(dotSym, painter, 1.0,
+                                               PointF(dotCenterX - gb.width() / 2.0 + dx,
+                                                      dy + centroidDy));
+                                    dx += 0.15 * _spatium;
                                 }
-                                RectF gb = font->bbox(dotSym, 1.0);
-                                double centroidDy = 0.0;
-                                if (dotSym == SymId::noteheadTriangleUpBlack) {
-                                    centroidDy = -gb.height() / 6.0;
-                                } else if (dotSym == SymId::noteheadTriangleDownBlack) {
-                                    centroidDy = gb.height() / 6.0;
-                                }
-                                painter->setPen(Pen(item->curColor(opt), item->lw()));
-                                font->draw(dotSym, painter, 1.0,
-                                           PointF(dotCenterX - gb.width() / 2.0 + dx,
-                                                  dy + centroidDy));
-                                dx += 0.15 * _spatium;
                             }
-                        }
-                        if (haveTonic) {
-                            double cents = period + tonicCents;
-                            if (cents >= segment.lowerCents - epsilon
-                                && cents <= segment.upperCents + epsilon) {
-                                // The tonic indicator per the settled
-                                // construction (JiMStudent_Spec 3.3):
-                                // hollow vertex-up square, thin pen,
-                                // sized so clear whitespace separates
-                                // the ring from the scale dot inside it
-                                // (owner correction 2026-08-14).
-                                const double h = 1.15 * dist + 0.025 * dist;
-                                const double cy = yOf(cents);
-                                PainterPath ring;
-                                ring.moveTo(dotCenterX, cy - h);
-                                ring.lineTo(dotCenterX + h, cy);
-                                ring.lineTo(dotCenterX, cy + h);
-                                ring.lineTo(dotCenterX - h, cy);
-                                ring.closeSubpath();
-                                painter->setPen(Pen(item->curColor(opt), 0.15 * dist));
-                                painter->setBrush(BrushStyle::NoBrush);
-                                painter->drawPath(ring);
+                            if (haveTonic) {
+                                double cents = period + tonicCents;
+                                if (cents >= segment.lowerCents - epsilon
+                                    && cents <= segment.upperCents + epsilon) {
+                                    // The tonic indicator per the settled
+                                    // construction (JiMStudent_Spec 3.3):
+                                    // hollow vertex-up square, thin pen,
+                                    // sized so clear whitespace separates
+                                    // the ring from the scale dot inside it
+                                    // (owner correction 2026-08-14).
+                                    const double h = 1.15 * dist + 0.025 * dist;
+                                    const double cy = yOf(cents);
+                                    PainterPath ring;
+                                    ring.moveTo(dotCenterX, cy - h);
+                                    ring.lineTo(dotCenterX + h, cy);
+                                    ring.lineTo(dotCenterX, cy + h);
+                                    ring.lineTo(dotCenterX - h, cy);
+                                    ring.closeSubpath();
+                                    painter->setPen(Pen(item->curColor(opt), 0.15 * dist));
+                                    painter->setBrush(BrushStyle::NoBrush);
+                                    painter->drawPath(ring);
+                                }
                             }
                         }
                     }
@@ -2887,72 +2915,79 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     const double inset = 0.15 * _spatium;
                     const double dotColLeft = dotCenterX - indicatorW;
                     const double dotColRight = dotCenterX + indicatorW;
-                    for (const StaffType::JimsSegment& segment : frame) {
-                        double basePeriod = std::floor(segment.lowerCents / periodCents) * periodCents;
-                        for (double period = basePeriod; period <= segment.upperCents + epsilon;
-                             period += periodCents) {
-                            for (const jims::LabeledDotStack& stack : labelStacks) {
-                                double cents = period + stack.cents;
-                                if (cents < segment.lowerCents - epsilon
-                                    || cents > segment.upperCents + epsilon) {
-                                    continue;
-                                }
-                                muse::String leftText;
-                                muse::String rightText;
-                                if (labelMode != JimsScaleDotLabelMode::None) {
-                                    for (const jims::LabeledDotMember& member : stack.members) {
-                                        const bool leftSide = (labelMode == JimsScaleDotLabelMode::Left)
-                                                              || member.nGen <= 0;
-                                        muse::String& side = leftSide ? leftText : rightText;
-                                        if (!side.isEmpty()) {
-                                            side += u" ";
-                                        }
-                                        side += member.label;
+                    for (const StaffType::JimsFrameBand& band : view.bands) {
+                        // The current-key label's row: the band's lowest tonic
+                        // row (Kernel label_period_index) for a banded view;
+                        // today's lowest-period rule for the whole-piece view.
+                        const double lowestPeriod = view.banded
+                                                    ? double(band.labelPeriodIndex) * periodCents
+                                                    : std::floor(view.bottomCents() / periodCents + epsilon) * periodCents;
+                        const muse::String keyText = view.banded ? band.tonicLabel : keyLabel.label;
+                        for (const StaffType::JimsSegment& segment : band.segments) {
+                            double basePeriod = std::floor(segment.lowerCents / periodCents) * periodCents;
+                            for (double period = basePeriod; period <= segment.upperCents + epsilon;
+                                 period += periodCents) {
+                                for (const jims::LabeledDotStack& stack : labelStacks) {
+                                    double cents = period + stack.cents;
+                                    if (cents < segment.lowerCents - epsilon
+                                        || cents > segment.upperCents + epsilon) {
+                                        continue;
                                     }
-                                }
-                                const double lowestPeriod
-                                    = std::floor(frame.front().lowerCents / periodCents + epsilon) * periodCents;
-                                if (haveKeyLabel && std::abs(stack.cents - tonicCents) < epsilon
-                                    && period + tonicCents >= segment.lowerCents - epsilon
-                                    && period + tonicCents <= segment.upperCents + epsilon
-                                    && std::abs(period - lowestPeriod) < epsilon) {
-                                    // Only the tonic indicator's own row (the
-                                    // lowest Do register carries the indicator).
-                                    leftText = leftText.isEmpty()
-                                               ? keyLabel.label + u":"
-                                               : keyLabel.label + u": " + leftText;
-                                }
-                                // Painter::drawText rescales the CURRENT
-                                // painter font by 1200/deviceDpi in place
-                                // (applyFontSizeScaling), so the font must
-                                // be re-set immediately before EVERY
-                                // drawText or the second draw on screen
-                                // comes out ~12x too large (owner finding
-                                // 2026-08-15: giant "Ti"/"Mi" at 720c).
-                                const double centroidY = yOf(cents);
-                                if (!leftText.isEmpty()) {
-                                    RectF tb = fm.boundingRect(leftText);
-                                    const double baseline
-                                        = centroidY - (tb.top() + tb.bottom()) / 2.0;
-                                    painter->setFont(labelFont);
-                                    painter->setPen(Pen(item->curColor(opt)));
-                                    painter->drawText(PointF(dotColLeft - gap - tb.width(), baseline),
-                                                      leftText);
-                                }
-                                if (!rightText.isEmpty()) {
-                                    RectF tb = fm.boundingRect(rightText);
-                                    const double baseline
-                                        = centroidY - (tb.top() + tb.bottom()) / 2.0;
-                                    const double x = dotColRight + gap;
-                                    RectF backing(x + tb.left() - inset, baseline + tb.top() - inset,
-                                                  tb.width() + 2.0 * inset, tb.height() + 2.0 * inset);
-                                    painter->setNoPen();
-                                    painter->setBrush(Brush(Color(255, 255, 255, 191)));
-                                    painter->drawRect(backing);
-                                    painter->setBrush(BrushStyle::NoBrush);
-                                    painter->setFont(labelFont);
-                                    painter->setPen(Pen(item->curColor(opt)));
-                                    painter->drawText(PointF(x, baseline), rightText);
+                                    muse::String leftText;
+                                    muse::String rightText;
+                                    if (labelMode != JimsScaleDotLabelMode::None) {
+                                        for (const jims::LabeledDotMember& member : stack.members) {
+                                            const bool leftSide = (labelMode == JimsScaleDotLabelMode::Left)
+                                                                  || member.nGen <= 0;
+                                            muse::String& side = leftSide ? leftText : rightText;
+                                            if (!side.isEmpty()) {
+                                                side += u" ";
+                                            }
+                                            side += member.label;
+                                        }
+                                    }
+                                    if (haveKeyLabel && std::abs(stack.cents - tonicCents) < epsilon
+                                        && period + tonicCents >= segment.lowerCents - epsilon
+                                        && period + tonicCents <= segment.upperCents + epsilon
+                                        && std::abs(period - lowestPeriod) < epsilon) {
+                                        // Only the tonic indicator's own row (the
+                                        // lowest Do register carries the indicator).
+                                        leftText = leftText.isEmpty()
+                                                   ? keyText + u":"
+                                                   : keyText + u": " + leftText;
+                                    }
+                                    // Painter::drawText rescales the CURRENT
+                                    // painter font by 1200/deviceDpi in place
+                                    // (applyFontSizeScaling), so the font must
+                                    // be re-set immediately before EVERY
+                                    // drawText or the second draw on screen
+                                    // comes out ~12x too large (owner finding
+                                    // 2026-08-15: giant "Ti"/"Mi" at 720c).
+                                    const double centroidY = yOf(cents);
+                                    if (!leftText.isEmpty()) {
+                                        RectF tb = fm.boundingRect(leftText);
+                                        const double baseline
+                                            = centroidY - (tb.top() + tb.bottom()) / 2.0;
+                                        painter->setFont(labelFont);
+                                        painter->setPen(Pen(item->curColor(opt)));
+                                        painter->drawText(PointF(dotColLeft - gap - tb.width(), baseline),
+                                                          leftText);
+                                    }
+                                    if (!rightText.isEmpty()) {
+                                        RectF tb = fm.boundingRect(rightText);
+                                        const double baseline
+                                            = centroidY - (tb.top() + tb.bottom()) / 2.0;
+                                        const double x = dotColRight + gap;
+                                        RectF backing(x + tb.left() - inset, baseline + tb.top() - inset,
+                                                      tb.width() + 2.0 * inset, tb.height() + 2.0 * inset);
+                                        painter->setNoPen();
+                                        painter->setBrush(Brush(Color(255, 255, 255, 191)));
+                                        painter->drawRect(backing);
+                                        painter->setBrush(BrushStyle::NoBrush);
+                                        painter->setFont(labelFont);
+                                        painter->setPen(Pen(item->curColor(opt)));
+                                        painter->drawText(PointF(x, baseline), rightText);
+                                    }
                                 }
                             }
                         }
@@ -2965,55 +3000,57 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             // whole -> full crescent; partial -> the full-period crescent
             // CLIPPED to the segment band and closed by a horizontal
             // line at each cut edge (the patent mechanism, J4.001).
-            for (const StaffType::JimsSegment& segment : frame) {
-                double periodFloor = std::floor(segment.lowerCents / periodCents + epsilon) * periodCents;
-                double periodTopY = yOf(periodFloor + periodCents);
-                double segTopY = yOf(segment.upperCents);
-                double segBottomY = yOf(segment.lowerCents);
-                painter->save();
-                painter->setClipRect(RectF(clefLeft - _spatium, segTopY - item->lw(),
-                                           clefRx + 2.0 * _spatium,
-                                           segBottomY - segTopY + 2.0 * item->lw()));
-                PainterPath crescent;
-                crescent.moveTo(clefRight, periodTopY);
-                crescent.arcTo(RectF(clefRight - clefRx, periodTopY, 2.0 * clefRx, 2.0 * clefRy),
-                               90.0, 180.0);
-                crescent.arcTo(RectF(clefRight - clefRy, periodTopY, 2.0 * clefRy, 2.0 * clefRy),
-                               270.0, -180.0);
-                crescent.closeSubpath();
-                painter->setPen(Pen(item->curColor(opt), item->lw() * 1.5, PenStyle::SolidLine));
-                painter->setBrush(Brush(Color::WHITE));
-                painter->drawPath(crescent);
-                painter->setBrush(BrushStyle::NoBrush);
-                if (!segment.whole) {
-                    // Closure lines at the cut edges that are not period
-                    // boundaries: the horizontal line that closes the
-                    // sliced glyph.
-                    auto isBoundary = [&](double cents) {
-                        double nearest = std::round(cents / periodCents) * periodCents;
-                        return std::abs(cents - nearest) < epsilon;
-                    };
-                    painter->setPen(Pen(item->curColor(opt), item->lw() * 1.5,
-                                        PenStyle::SolidLine, PenCapStyle::FlatCap));
-                    // The closure spans the GLYPH at the cut height —
-                    // outer arc to inner arc — never the bounding box
-                    // (owner correction 2026-08-14). Both arcs share the
-                    // vertical semi-axis clefRy about the period middle.
-                    const double arcCenterY = periodTopY + clefRy;
-                    auto closeGlyph = [&](double yCut) {
-                        double t = (yCut - arcCenterY) / clefRy;
-                        double s = std::sqrt(std::max(0.0, 1.0 - t * t));
-                        painter->drawLine(LineF(clefRight - clefRx * s, yCut,
-                                                clefRight - clefRy * s, yCut));
-                    };
-                    if (!isBoundary(segment.upperCents)) {
-                        closeGlyph(segTopY);
+            for (const StaffType::JimsFrameBand& band : view.bands) {
+                for (const StaffType::JimsSegment& segment : band.segments) {
+                    double periodFloor = std::floor(segment.lowerCents / periodCents + epsilon) * periodCents;
+                    double periodTopY = yOf(periodFloor + periodCents);
+                    double segTopY = yOf(segment.upperCents);
+                    double segBottomY = yOf(segment.lowerCents);
+                    painter->save();
+                    painter->setClipRect(RectF(clefLeft - _spatium, segTopY - item->lw(),
+                                               clefRx + 2.0 * _spatium,
+                                               segBottomY - segTopY + 2.0 * item->lw()));
+                    PainterPath crescent;
+                    crescent.moveTo(clefRight, periodTopY);
+                    crescent.arcTo(RectF(clefRight - clefRx, periodTopY, 2.0 * clefRx, 2.0 * clefRy),
+                                   90.0, 180.0);
+                    crescent.arcTo(RectF(clefRight - clefRy, periodTopY, 2.0 * clefRy, 2.0 * clefRy),
+                                   270.0, -180.0);
+                    crescent.closeSubpath();
+                    painter->setPen(Pen(item->curColor(opt), item->lw() * 1.5, PenStyle::SolidLine));
+                    painter->setBrush(Brush(Color::WHITE));
+                    painter->drawPath(crescent);
+                    painter->setBrush(BrushStyle::NoBrush);
+                    if (!segment.whole) {
+                        // Closure lines at the cut edges that are not period
+                        // boundaries: the horizontal line that closes the
+                        // sliced glyph.
+                        auto isBoundary = [&](double cents) {
+                            double nearest = std::round(cents / periodCents) * periodCents;
+                            return std::abs(cents - nearest) < epsilon;
+                        };
+                        painter->setPen(Pen(item->curColor(opt), item->lw() * 1.5,
+                                            PenStyle::SolidLine, PenCapStyle::FlatCap));
+                        // The closure spans the GLYPH at the cut height —
+                        // outer arc to inner arc — never the bounding box
+                        // (owner correction 2026-08-14). Both arcs share the
+                        // vertical semi-axis clefRy about the period middle.
+                        const double arcCenterY = periodTopY + clefRy;
+                        auto closeGlyph = [&](double yCut) {
+                            double t = (yCut - arcCenterY) / clefRy;
+                            double s = std::sqrt(std::max(0.0, 1.0 - t * t));
+                            painter->drawLine(LineF(clefRight - clefRx * s, yCut,
+                                                    clefRight - clefRy * s, yCut));
+                        };
+                        if (!isBoundary(segment.upperCents)) {
+                            closeGlyph(segTopY);
+                        }
+                        if (!isBoundary(segment.lowerCents)) {
+                            closeGlyph(segBottomY);
+                        }
                     }
-                    if (!isBoundary(segment.lowerCents)) {
-                        closeGlyph(segBottomY);
-                    }
+                    painter->restore();
                 }
-                painter->restore();
             }
         }
 
@@ -3032,11 +3069,15 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                 const double _spatium = item->spatium();
                 const double dist = changeSt->lineDistance().val() * _spatium;
                 const double topY = item->pos().y();
-                const std::vector<StaffType::JimsSegment>& frame = changeSt->jimsFrameSegments();
+                // Milestone 8: the change state's view for THIS system;
+                // terrain instances land only in retained bands' segments,
+                // and the closing stroke spans each band separately.
+                const StaffType::JimsFrameView& view
+                    = changeSt->jimsFrameView(item->score(), item->staffIdx(), item->measure()->system());
                 const double periodCents = changeSt->jimsPeriodCents();
-                if (!frame.empty() && periodCents > 0.0) {
+                if (!view.empty() && periodCents > 0.0) {
                     auto yOf = [&](double cents) {
-                        return topY + changeSt->jimsYFromCents(cents) * _spatium;
+                        return topY + changeSt->jimsYFromCents(cents, view) * _spatium;
                     };
                     const StaffType::JimsHeaderGeometry g
                         = changeSt->jimsHeaderGeometry(_spatium, item->score()->style().defaultSpatium());
@@ -3048,7 +3089,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     const double arrowX = rightLabelLeft + g.changeRightLabelBand + g.changeArrowLane / 2.0;
                     const double strokeX = addedStrokeOnLeft ? x0 : x0 + g.changeTerrainWidth;
                     // Period 0 of the model = the lowest period of the stave stack.
-                    const double basePeriod = std::floor(frame.front().lowerCents / periodCents + 1e-6) * periodCents;
+                    const double basePeriod = std::floor(view.bottomCents() / periodCents + 1e-6) * periodCents;
                     auto centsOf = [&](const jims::ChangePoint& p) {
                         return basePeriod + (p.periodOffset + p.ordinate) * periodCents;
                     };
@@ -3065,12 +3106,14 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                             out.push_back(centsOf(p));
                             return out;
                         }
-                        for (const StaffType::JimsSegment& segment : frame) {
-                            const double segBase = std::floor(segment.lowerCents / periodCents + eps) * periodCents;
-                            for (double period = segBase; period <= segment.upperCents + eps; period += periodCents) {
-                                const double c = period + p.ordinate * periodCents;
-                                if (c >= segment.lowerCents - eps && c <= segment.upperCents + eps) {
-                                    out.push_back(c);
+                        for (const StaffType::JimsFrameBand& band : view.bands) {
+                            for (const StaffType::JimsSegment& segment : band.segments) {
+                                const double segBase = std::floor(segment.lowerCents / periodCents + eps) * periodCents;
+                                for (double period = segBase; period <= segment.upperCents + eps; period += periodCents) {
+                                    const double c = period + p.ordinate * periodCents;
+                                    if (c >= segment.lowerCents - eps && c <= segment.upperCents + eps) {
+                                        out.push_back(c);
+                                    }
                                 }
                             }
                         }
@@ -3102,10 +3145,13 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                         return tp.nGen == keyLabel.nGen;
                     };
 
-                    // Closing stroke: thin, spanning the full stack.
+                    // Closing stroke: thin, spanning each band of the stack
+                    // (never the gap between bands).
                     painter->setPen(Pen(item->curColor(opt), item->style().styleMM(
                                             Sid::barWidth), PenStyle::SolidLine, PenCapStyle::FlatCap));
-                    painter->drawLine(LineF(strokeX, yOf(frame.back().upperCents), strokeX, yOf(frame.front().lowerCents)));
+                    for (const StaffType::JimsFrameBand& band : view.bands) {
+                        painter->drawLine(LineF(strokeX, yOf(band.upperCents), strokeX, yOf(band.lowerCents)));
+                    }
 
                     // Dots (Kernel notehead classes); ALL labels LEFT of the dots
                     // (owner ruling 2026-08-16: the change stack must look like

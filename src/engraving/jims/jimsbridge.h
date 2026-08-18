@@ -177,6 +177,28 @@ bool connectorGlyph(ConnectorGlyph& out);
 bool frameForMelody(const muse::String& stateJson, const muse::String& melodyJson, const muse::String& extentToken,
                     std::vector<StaveSegment>& segments);
 
+/// Milestone 8 (octave-band elision): the Kernel's BANDED frame for a
+/// melody through the same frame_for_melody op with the additive
+/// `options` object (`elide_empty_periods`, `min_band_periods`). Bands
+/// come bottom to top; each carries its segments, bounds, period indices,
+/// and its own current-key label; `omittedPeriodCount` is the Kernel's
+/// count. The fork never derives surviving periods, labels, or counts.
+struct FrameBand {
+    std::vector<StaveSegment> segments;
+    double lowerCents = 0.0;
+    double upperCents = 0.0;
+    int lowestPeriodIndex = 0;
+    int highestPeriodIndex = 0;
+    int labelPeriodIndex = 0;
+    TonicPitchLabel tonicLabel;
+};
+struct FrameBands {
+    std::vector<FrameBand> bands;
+    int omittedPeriodCount = 0;
+};
+bool frameBandsForMelody(const muse::String& stateJson, const muse::String& melodyJson, const muse::String& extentToken,
+                         bool elideEmptyPeriods, int minBandPeriods, FrameBands& out);
+
 /// A quantization hit: the nearest realizable lattice pitch to a target
 /// cents height, with the Kernel compatibility pitch (step/alter/octave)
 /// so the fork never derives spelling itself.

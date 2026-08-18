@@ -45,9 +45,11 @@
 #include "part.h"
 #include "range.h"
 #include "score.h"
+#include "segment.h"
 #include "slur.h"
 #include "staff.h"
 #include "stringdata.h"
+#include "system.h"
 #include "tie.h"
 #include "tremolotwochord.h"
 #include "tuplet.h"
@@ -151,9 +153,18 @@ NoteVal Score::noteValForPosition(Position pos, AccidentalType at, bool& error)
         {
             const StaffType* jimsSt = st->staffType(tick);
             if (jimsSt && jimsSt->isJiMS()) {
-                jimsSt->jimsEnsureFrame(st->score(), st->idx());
-                const double cents = jimsSt->jimsFrameTopCents()
-                                     - double(line) * StaffType::JIMS_CENTS_PER_LINE_DISTANCE / 2.0;
+                // Milestone 8: the inverse map is the frame VIEW of the
+                // system clicked in — piecewise over bands, a click in a
+                // gap snapping to the nearest band-edge pitch (an exact
+                // midpoint resolves toward the lower-pitched band); the
+                // whole-piece view is today's single affine inverse.
+                const System* system = pos.segment && pos.segment->measure() ? pos.segment->measure()->system() : nullptr;
+                const StaffType::JimsFrameView& view = jimsSt->jimsFrameView(st->score(), st->idx(), system);
+                // `line` counts half line-distances below the staff top.
+                const double cents = view.bands.size() <= 1
+                                     ? jimsSt->jimsFrameTopCents()
+                                     - double(line) * StaffType::JIMS_CENTS_PER_LINE_DISTANCE / 2.0
+                                     : view.centsFromYLd(double(line) / 2.0);
                 mu::engraving::jims::PitchHit hit;
                 if (mu::engraving::jims::nearestPitch(jimsSt->jimsStateJson(), cents,
                                                       false, 0, 0, hit)) {

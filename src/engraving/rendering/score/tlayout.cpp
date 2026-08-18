@@ -5048,23 +5048,24 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         const bool systemHead = item->measure() && item->measure()->system()
                                 && item->measure()->system()->firstMeasure() == item->measure();
 
-        // Frame derivation is shared and lazy (StaffType::jimsEnsureFrame);
-        // note layout may already have refreshed the cache this pass.
-        jimsSt->jimsEnsureFrame(item->score(), item->staffIdx());
-
         // The frame is the Kernel's, always (Milestone 4): an empty
         // staff gets one whole period from frame_for_melody, and a
         // failed derivation leaves NO frame — nothing is synthesized
         // here. With no frame there is nothing JiMS to lay out.
-        const std::vector<StaffType::JimsSegment>& frame = jimsSt->jimsFrameSegments();
+        // Milestone 8: the EXPLICIT frame view for the system this
+        // measure belongs to (measure->system() is set before staff-line
+        // layout); the whole-piece legacy view is one band, so the
+        // elision-off geometry below is today's, bit for bit.
+        const StaffType::JimsFrameView& view
+            = jimsSt->jimsFrameView(item->score(), item->staffIdx(), item->measure()->system());
         const double periodCents = jimsSt->jimsPeriodCents();
-        if (frame.empty() || periodCents <= 0.0) {
+        if (view.empty() || periodCents <= 0.0) {
             item->setJimsGuideLines({});
             item->setLines({});
             return;
         }
-        const double frameTop = frame.back().upperCents;
-        const double frameBottom = frame.front().lowerCents;
+        const double frameTop = view.topCents();
+        const double frameBottom = view.bottomCents();
 
         // Header geometry (owner ruling 2026-08-14), unchanged: dots and
         // per-stave clefs left of the staff, lines extending behind them.
@@ -5082,7 +5083,7 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
 
         std::vector<StaffLines::JimsGuideLine> guides;
         auto guide = [&](double cents, bool dashed, int rgb) {
-            double gy = y + jimsSt->jimsYFromCents(cents) * _spatium;
+            double gy = y + jimsSt->jimsYFromCents(cents, view) * _spatium;
             guides.push_back({ LineF(lineStartX, gy, x2, gy), dashed, rgb });
         };
         // Kernel JI lines for the scaffold colors (fetched once).
@@ -5103,36 +5104,44 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         // beyond a partial cut are simply not drawn — the cut edge
         // itself is closed by the sliced clef, not by a staff line.
         const double epsilon = 1e-6;
-        for (const StaffType::JimsSegment& segment : frame) {
-            double firstBoundary = std::ceil((segment.lowerCents - epsilon) / periodCents) * periodCents;
-            for (double boundary = firstBoundary; boundary <= segment.upperCents + epsilon;
-                 boundary += periodCents) {
-                guide(boundary, false, 0xE03030);
-            }
-            double basePeriod = std::floor(segment.lowerCents / periodCents) * periodCents;
-            for (double period = basePeriod; period < segment.upperCents; period += periodCents) {
-                if (haveJi) {
-                    for (const jims::JiLine& ji : jiLines) {
-                        if (ji.visible) {
-                            double cents = period + ji.cents;
-                            if (cents > segment.lowerCents + epsilon
-                                && cents < segment.upperCents - epsilon) {
-                                guide(cents, true, limitColor(ji.limit));
+        // Per band, per segment (one band when elision is off).
+        for (const StaffType::JimsFrameBand& band : view.bands) {
+            for (const StaffType::JimsSegment& segment : band.segments) {
+                double firstBoundary = std::ceil((segment.lowerCents - epsilon) / periodCents) * periodCents;
+                for (double boundary = firstBoundary; boundary <= segment.upperCents + epsilon;
+                     boundary += periodCents) {
+                    guide(boundary, false, 0xE03030);
+                }
+                double basePeriod = std::floor(segment.lowerCents / periodCents) * periodCents;
+                for (double period = basePeriod; period < segment.upperCents; period += periodCents) {
+                    if (haveJi) {
+                        for (const jims::JiLine& ji : jiLines) {
+                            if (ji.visible) {
+                                double cents = period + ji.cents;
+                                if (cents > segment.lowerCents + epsilon
+                                    && cents < segment.upperCents - epsilon) {
+                                    guide(cents, true, limitColor(ji.limit));
+                                }
                             }
                         }
-                    }
-                } else if (!jimsSt->jimsJiLines()) {
-                    double cents = period + periodCents / 2.0;   // mid-period line
-                    if (cents > segment.lowerCents + epsilon && cents < segment.upperCents - epsilon) {
-                        guide(cents, true, 0xE0C020);
+                    } else if (!jimsSt->jimsJiLines()) {
+                        double cents = period + periodCents / 2.0; // mid-period line
+                        if (cents > segment.lowerCents + epsilon && cents < segment.upperCents - epsilon) {
+                            guide(cents, true, 0xE0C020);
+                        }
                     }
                 }
             }
         }
         item->setJimsGuideLines(guides);
         item->setLines({});
-        const double frameHeightSp = (frameTop - frameBottom)
-                                     / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * dist;
+        // Drawn height: one band -> today's expression; banded -> the sum
+        // of band heights plus one staffDistance gap per interior boundary
+        // (StaffType::JimsFrameView::heightLd), which is what the skyline
+        // and the barline spans see.
+        const double frameHeightSp = view.bands.size() == 1
+                                     ? (frameTop - frameBottom) / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * dist
+                                     : view.heightLd() * dist;
         if (systemHead) {
             const double headerWidth = x1 - leftEdge;
             // Label band: the tuning label draws above the frame top at
@@ -6340,17 +6349,26 @@ void TLayout::layoutTimeSig(const TimeSig* item, TimeSig::LayoutData* ldata, con
         const Staff* jstaff = item->staff();
         const StaffType* jimsSt = jstaff ? jstaff->staffTypeForElement(item) : nullptr;
         if (jimsSt && jimsSt->isJiMS() && item->segment() && item->segment()->tick().isZero()) {
-            jimsSt->jimsEnsureFrame(item->score(), jstaff->idx());
+            // Milestone 8: the view of the system this measure sits in
+            // (whole-piece when unknown or when elision is off there).
+            const StaffType::JimsFrameView& view
+                = jimsSt->jimsFrameView(item->score(), jstaff->idx(), item->segment()->measure()->system());
             const double ld = jimsSt->lineDistance().val();
-            const double frameMid = (jimsSt->jimsFrameTopCents() - jimsSt->jimsFrameBottomCents())
-                                    / 2.0 / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * ld;
+            // One band (or no frame): today's expression on the legacy
+            // accessors (an empty frame reads the nominal line count there).
+            const double frameMid = view.bands.size() <= 1
+                                    ? (jimsSt->jimsFrameTopCents() - jimsSt->jimsFrameBottomCents())
+                                    / 2.0 / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * ld
+                                    : view.heightLd() / 2.0 * ld;
             const double nominalMid = (jimsSt->lines() - 1) / 2.0 * ld;
             ldata->moveY((frameMid - nominalMid) * spatium);
             bool hasWhole = false;
-            for (const StaffType::JimsSegment& segment : jimsSt->jimsFrameSegments()) {
-                hasWhole = hasWhole || segment.whole;
+            for (const StaffType::JimsFrameBand& band : view.bands) {
+                for (const StaffType::JimsSegment& segment : band.segments) {
+                    hasWhole = hasWhole || segment.whole;
+                }
             }
-            if (jimsSt->jimsFrameSegments().empty() || hasWhole) {
+            if (view.empty() || hasWhole) {
                 ldata->moveX(-3.2 * ld * spatium);
             }
         }

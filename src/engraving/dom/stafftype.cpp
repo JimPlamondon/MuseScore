@@ -38,11 +38,13 @@
 
 #include "mscore.h"
 #include "chord.h"
+#include "measure.h"
 #include "navigate.h"
 #include "note.h"
 #include "segment.h"
 #include "score.h"
 #include "staff.h"
+#include "system.h"
 
 #include "log.h"
 
@@ -1005,6 +1007,284 @@ double StaffType::jimsYFromCents(double centsAboveDo) const
     // cents value entering this map comes from the Kernel. y grows
     // downward, so the frame top maps to zero.
     return (jimsFrameTopCents() - centsAboveDo) / JIMS_CENTS_PER_LINE_DISTANCE * m_lineDistance.val();
+}
+
+//---------------------------------------------------------
+//   Milestone 8 — the explicit frame VIEW (octave-band elision)
+//    A view is ordered bands with one style-derived gap between
+//    neighbours. The legacy whole-piece frame is one band whose top sits
+//    at 0, so every one-band coordinate is jimsYFromCents's, bit for bit
+//    (same expression, same operation order). Which periods survive is
+//    the Kernel's decision; this code only lays the Kernel's bands out
+//    vertically and maps between y and cents.
+//---------------------------------------------------------
+
+double StaffType::JimsFrameView::heightLd() const
+{
+    if (bands.empty()) {
+        return 0.0;
+    }
+    if (bands.size() == 1) {
+        // Today's expression for the whole frame (kept verbatim so the
+        // legacy path is unchanged bit for bit).
+        return (bands.back().upperCents - bands.front().lowerCents) / JIMS_CENTS_PER_LINE_DISTANCE;
+    }
+    // Bands are bottom to top; the top band is the last one and sits at
+    // yTopLd 0; the bottom band's bottom edge is the total height.
+    return bands.front().yTopLd + bands.front().heightLd();
+}
+
+const StaffType::JimsFrameBand* StaffType::JimsFrameView::bandForCents(double cents) const
+{
+    const double epsilon = 1e-6;
+    for (const JimsFrameBand& band : bands) {
+        if (cents >= band.lowerCents - epsilon && cents <= band.upperCents + epsilon) {
+            return &band;
+        }
+    }
+    return nullptr;
+}
+
+double StaffType::JimsFrameView::yLdFromCents(double cents) const
+{
+    if (bands.empty()) {
+        return 0.0;
+    }
+    if (bands.size() == 1) {
+        // The legacy affine map (top band at 0): identical to
+        // jimsYFromCents's numerator, bit for bit.
+        return (bands.back().upperCents - cents) / JIMS_CENTS_PER_LINE_DISTANCE;
+    }
+    if (const JimsFrameBand* band = bandForCents(cents)) {
+        return band->yTopLd + (band->upperCents - cents) / JIMS_CENTS_PER_LINE_DISTANCE;
+    }
+    // Outside every band: above the top band or below the bottom band the
+    // outer band's affine map extrapolates (today's edge behaviour); in a
+    // gap, interpolate linearly between the two edges — drawing geometry
+    // for ink that legitimately crosses a gap (an arrow shaft), never a
+    // musical placement.
+    const JimsFrameBand& top = bands.back();
+    const JimsFrameBand& bottom = bands.front();
+    if (cents > top.upperCents) {
+        return top.yTopLd + (top.upperCents - cents) / JIMS_CENTS_PER_LINE_DISTANCE;
+    }
+    if (cents < bottom.lowerCents) {
+        return bottom.yTopLd + (bottom.upperCents - cents) / JIMS_CENTS_PER_LINE_DISTANCE;
+    }
+    for (size_t i = 0; i + 1 < bands.size(); ++i) {
+        const JimsFrameBand& lower = bands[i];
+        const JimsFrameBand& upper = bands[i + 1];
+        if (cents > lower.upperCents && cents < upper.lowerCents) {
+            const double t = (cents - lower.upperCents) / (upper.lowerCents - lower.upperCents);
+            const double yLowerEdge = lower.yTopLd;                       // lower band's top edge
+            const double yUpperEdge = upper.yTopLd + upper.heightLd();    // upper band's bottom edge
+            return yLowerEdge + (yUpperEdge - yLowerEdge) * t;
+        }
+    }
+    return 0.0;
+}
+
+double StaffType::JimsFrameView::centsFromYLd(double yLd) const
+{
+    if (bands.empty()) {
+        return 0.0;
+    }
+    if (bands.size() == 1) {
+        return bands.back().upperCents - yLd * JIMS_CENTS_PER_LINE_DISTANCE;
+    }
+    // Inside a band: that band's affine inverse. Above the top band or
+    // below the bottom band: extrapolate from the outer band (today's
+    // edge behaviour, so a drag past an edge keeps its cents delta).
+    const JimsFrameBand& top = bands.back();
+    const JimsFrameBand& bottom = bands.front();
+    if (yLd <= top.yTopLd) {
+        return top.upperCents - (yLd - top.yTopLd) * JIMS_CENTS_PER_LINE_DISTANCE;
+    }
+    if (yLd >= bottom.yTopLd + bottom.heightLd()) {
+        return bottom.upperCents - (yLd - bottom.yTopLd) * JIMS_CENTS_PER_LINE_DISTANCE;
+    }
+    for (const JimsFrameBand& band : bands) {
+        if (yLd >= band.yTopLd && yLd <= band.yTopLd + band.heightLd()) {
+            return band.upperCents - (yLd - band.yTopLd) * JIMS_CENTS_PER_LINE_DISTANCE;
+        }
+    }
+    // In a gap: snap to the nearest band edge; an exact midpoint resolves
+    // toward the LOWER-pitched band (the band below the gap).
+    for (size_t i = 0; i + 1 < bands.size(); ++i) {
+        const JimsFrameBand& lower = bands[i];        // lower-pitched, drawn below
+        const JimsFrameBand& upper = bands[i + 1];    // higher-pitched, drawn above
+        const double yUpperEdge = upper.yTopLd + upper.heightLd();   // gap top
+        const double yLowerEdge = lower.yTopLd;                      // gap bottom
+        if (yLd > yUpperEdge && yLd < yLowerEdge) {
+            const double toUpper = yLd - yUpperEdge;
+            const double toLower = yLowerEdge - yLd;
+            return toUpper < toLower ? upper.lowerCents : lower.upperCents;
+        }
+    }
+    return top.upperCents;
+}
+
+double StaffType::jimsYFromCents(double centsAboveDo, const JimsFrameView& view) const
+{
+    return view.yLdFromCents(centsAboveDo) * m_lineDistance.val();
+}
+
+// The system-range melody collector: the same lattice-identity walk as
+// jimsEnsureFrame's whole-piece collector (document order, every voice of
+// the staff, main-chord notes with a JiMS identity), restricted to the
+// measures of one system. Pure transport — no musical fact is computed.
+static muse::String jimsCollectSystemMelody(const System* system, staff_idx_t staffIdx)
+{
+    muse::String melody = u"{\"notes\":[";
+    bool first = true;
+    for (const MeasureBase* mb : system->measures()) {
+        if (!mb->isMeasure()) {
+            continue;
+        }
+        for (const Segment* seg = toMeasure(mb)->first(SegmentType::ChordRest); seg;
+             seg = seg->next(SegmentType::ChordRest)) {
+            for (track_idx_t track = staffIdx * VOICES; track < (staffIdx + 1) * VOICES; ++track) {
+                EngravingItem* el = seg->element(track);
+                if (el && el->isChord()) {
+                    for (Note* note : toChord(el)->notes()) {
+                        if (note->hasJimsPitch()) {
+                            if (!first) {
+                                melody += u",";
+                            }
+                            melody += muse::String(u"{\"nPer\":%1,\"nGen\":%2}")
+                                      .arg(note->jimsNPer()).arg(note->jimsNGen());
+                            first = false;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    melody += u"]}";
+    return melody;
+}
+
+const StaffType::JimsFrameView& StaffType::jimsWholeFrameView(const Score* score, staff_idx_t staffIdx) const
+{
+    static const JimsFrameView noView;
+    if (!isJiMS()) {
+        return noView;
+    }
+    jimsEnsureFrame(score, staffIdx);
+    // The whole-piece view is the legacy cache as one band; its identity
+    // is the legacy cache key, so it refreshes exactly when the frame does.
+    JimsFrameView& view = m_jimsFrameViews[u"whole"];
+    if (view.key == m_jimsFrameKey && (view.bands.empty() == m_jimsFrameSegments.empty())) {
+        return view;
+    }
+    view = JimsFrameView();
+    view.key = m_jimsFrameKey;
+    view.banded = false;
+    if (!m_jimsFrameSegments.empty()) {
+        JimsFrameBand band;
+        band.segments = m_jimsFrameSegments;
+        band.lowerCents = m_jimsFrameSegments.front().lowerCents;
+        band.upperCents = m_jimsFrameSegments.back().upperCents;
+        const double periodCents = jimsPeriodCents();
+        if (periodCents > 0.0) {
+            band.lowestPeriodIndex = int(std::floor((band.lowerCents + 1e-6) / periodCents));
+            band.highestPeriodIndex = int(std::floor((band.upperCents - 1e-6) / periodCents));
+            band.labelPeriodIndex = band.lowestPeriodIndex;
+        }
+        band.yTopLd = 0.0;
+        view.bands.push_back(band);
+    }
+    return view;
+}
+
+//---------------------------------------------------------
+//   jimsElisionActive
+//    The EFFECTIVE octave-band elision policy for one system
+//    (Milestone 8, MuseScore's hide-empty-staves shape): the score style
+//    opts in (default off), the staff's Auto/On/Off override beats the
+//    style in both directions, and by default the first system always
+//    shows the whole stack. Presentation only. Phase 2 keeps every
+//    switch unwired: the policy is forced off, so every system uses the
+//    whole-piece legacy view and nothing on the page can change.
+//---------------------------------------------------------
+
+bool StaffType::jimsElisionActive(const Score* score, const System* system) const
+{
+    UNUSED(score);
+    UNUSED(system);
+    return false;
+}
+
+const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, staff_idx_t staffIdx,
+                                                         const System* system) const
+{
+    static const JimsFrameView noView;
+    if (!isJiMS() || !score) {
+        return noView;
+    }
+    if (!system || !jimsElisionActive(score, system)) {
+        return jimsWholeFrameView(score, staffIdx);
+    }
+    // Per-system view: keyed by the system's tick range; the entry
+    // remembers the full derivation key (state | token | melody slice |
+    // options | policy) so a changed input never reuses a stale view,
+    // and a frozen frame (mid-drag) never re-derives.
+    const Measure* fm = system->firstMeasure();
+    const Measure* lm = system->lastMeasure();
+    if (!fm || !lm) {
+        return jimsWholeFrameView(score, staffIdx);
+    }
+    const muse::String rangeKey = muse::String(u"sys:%1-%2").arg(fm->tick().ticks()).arg(lm->endTick().ticks());
+    auto found = m_jimsFrameViews.find(rangeKey);
+    if (m_jimsFrameFrozen && found != m_jimsFrameViews.end() && !found->second.bands.empty()) {
+        return found->second;
+    }
+    const muse::String melody = jimsCollectSystemMelody(system, staffIdx);
+    const muse::String token = jimsTonicExtent();
+    const muse::String key = jimsStateJson() + u"|" + token + u"|" + melody + u"|elide:1|min:1";
+    if (found != m_jimsFrameViews.end() && found->second.key == key) {
+        return found->second;
+    }
+    JimsFrameView view;
+    view.key = key;
+    view.banded = true;
+    // Gap between bands: the style's staff distance (staves of one part,
+    // owner-approved plan §7.9), in line distances of this staff type.
+    const double ld = m_lineDistance.val();
+    view.gapLd = ld > 0.0 ? score->style().styleS(Sid::staffDistance).val() / ld : 0.0;
+    jims::FrameBands bands;
+    if (token.isEmpty()) {
+        LOGE() << "JiMStaff: no declared tonic-extent token; banded frame unavailable for staff " << staffIdx;
+    } else if (jims::frameBandsForMelody(jimsStateJson(), melody, token, true, 1, bands)) {
+        for (const jims::FrameBand& kb : bands.bands) {
+            JimsFrameBand band;
+            for (const jims::StaveSegment& segment : kb.segments) {
+                band.segments.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
+            }
+            band.lowerCents = kb.lowerCents;
+            band.upperCents = kb.upperCents;
+            band.lowestPeriodIndex = kb.lowestPeriodIndex;
+            band.highestPeriodIndex = kb.highestPeriodIndex;
+            band.labelPeriodIndex = kb.labelPeriodIndex;
+            band.tonicLabel = kb.tonicLabel.label;
+            view.bands.push_back(band);
+        }
+        view.omittedPeriodCount = bands.omittedPeriodCount;
+        // Vertical placement, top band at 0, then each lower band below the
+        // previous one plus one gap.
+        double y = 0.0;
+        for (size_t i = view.bands.size(); i > 0; --i) {
+            JimsFrameBand& band = view.bands[i - 1];
+            band.yTopLd = y;
+            y += band.heightLd() + view.gapLd;
+        }
+    } else {
+        LOGE() << "JiMStaff: Kernel banded frame derivation failed for staff " << staffIdx
+               << " (state/melody rejected); banded view cleared";
+    }
+    JimsFrameView& stored = m_jimsFrameViews[rangeKey];
+    stored = view;
+    return stored;
 }
 
 //---------------------------------------------------------

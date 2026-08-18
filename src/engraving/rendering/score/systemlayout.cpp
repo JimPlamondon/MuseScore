@@ -55,6 +55,7 @@
 #include "dom/spacer.h"
 #include "dom/staff.h"
 #include "dom/stafflines.h"
+#include "dom/stafftype.h"
 #include "dom/system.h"
 #include "dom/tie.h"
 #include "dom/timesig.h"
@@ -91,6 +92,88 @@ using namespace mu::engraving::rendering::score;
 //---------------------------------------------------------
 //   collectSystem
 //---------------------------------------------------------
+
+//---------------------------------------------------------
+//   applyJimsBandOffsets (JiMStaff Milestone 8, octave-band elision)
+//    Notes on a JiMStaff are placed by the single StaffType seam against
+//    the whole-piece frame while measures are laid out — before anyone
+//    knows which system a measure lands in. Once the system's measures
+//    are final, each JiMS chord is shifted RIGIDLY to its band's place in
+//    the system's frame view (the chord's own y, so its notes, stem,
+//    hook, accidentals, dots and articulations move together), and the
+//    segment shapes are rebuilt so spacing and skylines see the band
+//    positions. With elision off every view is the one-band whole-piece
+//    frame and no chord moves. The band a chord belongs to is a Kernel
+//    fact (which band holds its notes' cents); nothing musical is decided
+//    here.
+//---------------------------------------------------------
+
+static void applyJimsBandOffsets(System* system, LayoutContext& ctx)
+{
+    const Score* score = system->score();
+    for (staff_idx_t staffIdx = 0; staffIdx < ctx.dom().nstaves(); ++staffIdx) {
+        const Staff* staff = ctx.dom().staff(staffIdx);
+        if (!staff) {
+            continue;
+        }
+        for (MeasureBase* mb : system->measures()) {
+            if (!mb->isMeasure()) {
+                continue;
+            }
+            Measure* m = toMeasure(mb);
+            const StaffType* st = staff->staffType(m->tick());
+            if (!st || !st->isJiMS()) {
+                continue;
+            }
+            const StaffType::JimsFrameView& view = st->jimsFrameView(score, staffIdx, system);
+            if (!view.banded || view.bands.size() <= 1) {
+                continue;
+            }
+            const double wholeTop = st->jimsWholeFrameView(score, staffIdx).topCents();
+            const double ld = st->lineDistance().val();
+            for (Segment& seg : m->segments()) {
+                if (!seg.isChordRestType()) {
+                    continue;
+                }
+                bool changed = false;
+                for (track_idx_t track = staffIdx * VOICES; track < (staffIdx + 1) * VOICES; ++track) {
+                    EngravingItem* e = seg.element(track);
+                    if (!e || !e->isChord()) {
+                        continue;
+                    }
+                    Chord* chord = toChord(e);
+                    // The band holding this chord's notes (a chord's notes share a
+                    // band; the first identified note decides).
+                    const StaffType::JimsFrameBand* band = nullptr;
+                    for (const Note* note : chord->notes()) {
+                        if (note->hasJimsPitch() && note->jimsCentsValid()) {
+                            band = view.bandForCents(note->jimsCentsAboveDo());
+                            if (band) {
+                                break;
+                            }
+                        }
+                    }
+                    if (!band) {
+                        continue;
+                    }
+                    // Rigid shift from the whole-piece affine placement to the
+                    // band's place in this system's view (line distances ->
+                    // absolute through this chord's spatium).
+                    const double deltaLd = band->yTopLd + (band->upperCents - wholeTop) / StaffType::JIMS_CENTS_PER_LINE_DISTANCE;
+                    const double delta = deltaLd * ld * chord->spatium();
+                    chord->mutldata()->setPosY(delta);
+                    for (Chord* grace : chord->graceNotes()) {
+                        grace->mutldata()->setPosY(delta);
+                    }
+                    changed = true;
+                }
+                if (changed) {
+                    seg.createShape(staffIdx);
+                }
+            }
+        }
+    }
+}
 
 System* SystemLayout::collectSystem(LayoutContext& ctx)
 {
@@ -408,6 +491,11 @@ System* SystemLayout::collectSystem(LayoutContext& ctx)
     }
 
     updateTimeSigAboveStavesXPos(system, ctx);
+
+    // JiMStaff Milestone 8: now that the system's measure list is final,
+    // shift every JiMS chord to its octave band for THIS system (elision
+    // off: nothing to do) before spacing, skylines, and staff distances.
+    applyJimsBandOffsets(system, ctx);
 
     // Recompute spacing to account for the last changes (barlines, hidden staves, etc)
     curSysWidth = HorizontalSpacing::computeSpacingForFullSystem(system);

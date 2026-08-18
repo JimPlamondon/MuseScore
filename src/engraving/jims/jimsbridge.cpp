@@ -283,6 +283,8 @@ bool noteSoundingPitch(const String& stateJson, int nPer, int nGen, SoundingPitc
     return true;
 }
 
+static void readTonicPitchLabel(const JsonObject& o, TonicPitchLabel& out);
+
 bool tonicPitchLabel(const String& stateJson, TonicPitchLabel& out)
 {
     String envelope = String(u"{\"abi\":2,\"op\":\"tonic_pitch_label\",\"state\":%1}").arg(stateJson);
@@ -290,12 +292,16 @@ bool tonicPitchLabel(const String& stateJson, TonicPitchLabel& out)
     if (!okResult(callBridge(envelope), result)) {
         return false;
     }
-    JsonObject o = result.toObject();
+    readTonicPitchLabel(result.toObject(), out);
+    return !out.label.isEmpty();
+}
+
+static void readTonicPitchLabel(const JsonObject& o, TonicPitchLabel& out)
+{
     out.label = o.value("label").toString();
     out.keyNumber = o.value("key_number").toInt();
     out.nPer = o.value("nPer").toInt();
     out.nGen = o.value("nGen").toInt();
-    return !out.label.isEmpty();
 }
 
 bool changeIndicator(const String& oldStateJson, const String& newStateJson, ChangeIndicator& out, String* error)
@@ -380,6 +386,50 @@ bool frameForMelody(const String& stateJson, const String& melodyJson,
                              seg.value("whole").toBool() });
     }
     return !segments.empty();
+}
+
+bool frameBandsForMelody(const String& stateJson, const String& melodyJson,
+                         const String& extentToken, bool elideEmptyPeriods, int minBandPeriods,
+                         FrameBands& out)
+{
+    String envelope = String(
+        u"{\"abi\":2,\"op\":\"frame_for_melody\",\"state\":%1,\"melody\":%2,\"declared_extent\":\"%3\","
+        u"\"options\":{\"elide_empty_periods\":%4,\"min_band_periods\":%5}}")
+                      .arg(stateJson).arg(melodyJson).arg(extentToken)
+                      .arg(String(elideEmptyPeriods ? u"true" : u"false")).arg(minBandPeriods);
+    JsonValue result;
+    if (!okResult(callBridge(envelope), result)) {
+        return false;
+    }
+    JsonObject o = result.toObject();
+    if (o.value("schema").toString() != u"jims.frame-bands.v1") {
+        return false;
+    }
+    out = FrameBands();
+    out.omittedPeriodCount = o.value("omitted_period_count").toInt();
+    JsonArray bands = o.value("bands").toArray();
+    for (size_t i = 0; i < bands.size(); ++i) {
+        JsonObject b = bands.at(i).toObject();
+        FrameBand band;
+        JsonArray segs = b.value("segments").toArray();
+        for (size_t j = 0; j < segs.size(); ++j) {
+            JsonObject seg = segs.at(j).toObject();
+            band.segments.push_back({ seg.value("lower_cents").toDouble(),
+                                      seg.value("upper_cents").toDouble(),
+                                      seg.value("whole").toBool() });
+        }
+        band.lowerCents = b.value("lower_cents").toDouble();
+        band.upperCents = b.value("upper_cents").toDouble();
+        band.lowestPeriodIndex = b.value("lowest_period_index").toInt();
+        band.highestPeriodIndex = b.value("highest_period_index").toInt();
+        band.labelPeriodIndex = b.value("label_period_index").toInt();
+        readTonicPitchLabel(b.value("tonic_label").toObject(), band.tonicLabel);
+        if (band.segments.empty()) {
+            return false;
+        }
+        out.bands.push_back(band);
+    }
+    return !out.bands.empty();
 }
 
 bool nearestPitch(const String& stateJson, double targetCents,

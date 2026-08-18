@@ -23,6 +23,7 @@
 #pragma once
 
 #include <array>
+#include <map>
 
 #include "draw/types/font.h"
 
@@ -37,6 +38,7 @@ namespace mu::engraving {
 class Chord;
 class ChordRest;
 class Staff;
+class System;
 
 //---------------------------------------------------------
 //   TablatureFont
@@ -329,6 +331,68 @@ public:
     void jimsSetFrameFrozen(bool frozen) const { m_jimsFrameFrozen = frozen; }
     bool jimsFrameFrozen() const { return m_jimsFrameFrozen; }
     void jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const;
+
+    // Milestone 8 (octave-band elision, "hollow stacks"): the EXPLICIT
+    // derived frame view a consumer draws or hit-tests against — ordered
+    // bands (bottom to top, as the Kernel emits them), each carrying its
+    // segments, bounds, period indices, Kernel label, and its top edge in
+    // line-distance units from the staff top; one style-derived gap
+    // between adjacent bands. The legacy whole-piece frame is exactly one
+    // band at yTop 0, so one-band coordinates are today's, bit for bit.
+    // Which periods survive, each band's bounds/label, and the omitted
+    // count are Kernel facts (frame_for_melody with options); the fork
+    // slices the melody per system, caches, maps y<->cents, and draws.
+    struct JimsFrameBand {
+        std::vector<JimsSegment> segments;   // bottom to top
+        double lowerCents = 0.0;
+        double upperCents = 0.0;
+        int lowestPeriodIndex = 0;
+        int highestPeriodIndex = 0;
+        int labelPeriodIndex = 0;            // the band's lowest tonic row (Kernel)
+        muse::String tonicLabel;             // Kernel "[PitchN]" for that row (banded views)
+        double yTopLd = 0.0;                 // top edge, line distances below the staff top
+        double heightLd() const { return (upperCents - lowerCents) / JIMS_CENTS_PER_LINE_DISTANCE; }
+    };
+    struct JimsFrameView {
+        std::vector<JimsFrameBand> bands;    // bottom to top; empty = no frame
+        double gapLd = 0.0;                  // gap between adjacent bands, line distances
+        int omittedPeriodCount = 0;          // Kernel-authoritative
+        bool banded = false;                 // false = the legacy whole-piece frame (one band)
+        muse::String key;                    // derivation identity (cache key)
+        bool empty() const { return bands.empty(); }
+        double topCents() const { return bands.empty() ? 0.0 : bands.back().upperCents; }
+        double bottomCents() const { return bands.empty() ? 0.0 : bands.front().lowerCents; }
+        // Total drawn height in line distances: sum of band heights plus one
+        // gap per interior boundary. For one band this is the frame height.
+        double heightLd() const;
+        // The band whose closed [lower, upper] range holds `cents`, else null.
+        const JimsFrameBand* bandForCents(double cents) const;
+        // Piecewise cents -> y (line-distance units below the staff top).
+        // Inside a band: that band's affine map; inside a gap: linear across
+        // the gap between the two band edges (drawing geometry only, e.g.
+        // an arrow shaft crossing a gap).
+        double yLdFromCents(double cents) const;
+        // Piecewise y -> cents (inverse). y inside a gap snaps to the nearest
+        // band-edge pitch; an exact midpoint resolves toward the LOWER-
+        // pitched band's edge (deterministic, owner-approved plan §3.3).
+        // Above the top band / below the bottom band the outer band's
+        // affine map extrapolates (today's edge behaviour).
+        double centsFromYLd(double yLd) const;
+    };
+    // The frame view for this staff on `system` (whole-piece view when
+    // `system` is null or elision is not in effect for that system).
+    // Cached per (staff-type, system range, state, token, melody, options,
+    // effective policy); never re-derived while the frame is frozen.
+    const JimsFrameView& jimsFrameView(const Score* score, staff_idx_t staffIdx, const System* system) const;
+    // The legacy whole-piece view (jimsEnsureFrame's cache as one band).
+    const JimsFrameView& jimsWholeFrameView(const Score* score, staff_idx_t staffIdx) const;
+    // The EFFECTIVE elision policy for one system (style + first-system
+    // rule + this staff type's Auto/On/Off override, MuseScore's
+    // hide-empty-staves shape). Presentation only.
+    bool jimsElisionActive(const Score* score, const System* system) const;
+    // Milestone 8: cents -> chord-relative y in spatium units for `view`
+    // (the seam jimsYFromCents generalizes to; identical for one band).
+    double jimsYFromCents(double centsAboveDo, const JimsFrameView& view) const;
     String tabBassStringPrefix(int strg, bool* hasFret) const;   // return a string with the prefix, if any, identifying a bass string
     int     numOfTabLedgerLines(int string) const;
 
@@ -451,6 +515,10 @@ private:
     mutable muse::String m_jimsFrameKey;
     mutable bool m_jimsFrameFrozen = false;
     mutable std::vector<JimsSegment> m_jimsFrameSegments;
+    // Milestone 8: explicit per-range frame views, keyed by the system
+    // range ("whole" or the system's tick range); each entry remembers the
+    // full derivation key it was computed from. NEVER serialized.
+    mutable std::map<muse::String, JimsFrameView> m_jimsFrameViews;
 
     bool m_showBarlines = true;
     bool m_showLedgerLines = true;

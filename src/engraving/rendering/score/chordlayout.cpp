@@ -2269,6 +2269,19 @@ void ChordLayout::layoutChords1(LayoutContext& ctx, Segment* segment, staff_idx_
     const Fraction tick = segment->tick();
     const StaffType* staffType = staff->staffType(segment->tick());
 
+    // JiMStaff Milestone 8: a chord's octave-band offset
+    // (SystemLayout::applyJimsBandOffsets) belongs to the SYSTEM the
+    // measure ends up in; measure layout always starts from zero so an
+    // offset never leaks from one layout pass into the next.
+    if (staffType && staffType->isJiMS()) {
+        for (track_idx_t track = startTrack; track < endTrack; ++track) {
+            EngravingItem* e = segment->element(track);
+            if (e && e->isChord() && toChord(e)->ldata()->pos().y() != 0.0) {
+                toChord(e)->mutldata()->setPosY(0.0);
+            }
+        }
+    }
+
     // we need to check all the notes in all the staves of the part so that we don't get weird collisions
     // between accidentals etc with moved notes
     const Part* part = staff->part();

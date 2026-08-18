@@ -276,8 +276,28 @@ void BarLine::calcY()
     // JiMStaff (owner correction 2026-08-14): barlines span the DERIVED
     // frame, not the nominal line count — a partial stave is shorter
     // than the preset's lines, and a barline must never overshoot it.
+    // Milestone 8: on a banded system every band gets its own span; the
+    // barline never crosses the gap between bands. One band (elision
+    // off) is today's single span, bit for bit.
     if (staffType1->isJiMS() && !spanStaff) {
-        staffType1->jimsEnsureFrame(score(), staffIdx1);
+        const StaffType::JimsFrameView& view = staffType1->jimsFrameView(score(), staffIdx1, system);
+        data->jimsBandSpans.clear();
+        if (view.bands.size() > 1) {
+            for (size_t i = view.bands.size(); i > 0; --i) {   // top to bottom
+                const StaffType::JimsFrameBand& band = view.bands[i - 1];
+                BarLine::LayoutData::JimsBandSpan span;
+                span.y1 = offset + band.yTopLd * lineDistance - lineWidth;
+                span.y2 = offset + (band.yTopLd + band.heightLd()) * lineDistance + lineWidth;
+                // Repeat dots straddle the band's middle line distance.
+                const double midLd = band.yTopLd + band.heightLd() / 2.0;
+                span.dotY1 = offset + (midLd - 0.5) * lineDistance;
+                span.dotY2 = offset + (midLd + 0.5) * lineDistance;
+                data->jimsBandSpans.push_back(span);
+            }
+            data->y1 = data->jimsBandSpans.front().y1;
+            data->y2 = data->jimsBandSpans.back().y2;
+            return;
+        }
         const double frameH = (staffType1->jimsFrameTopCents() - staffType1->jimsFrameBottomCents())
                               / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * lineDistance;
         data->y1 = offset - lineWidth;

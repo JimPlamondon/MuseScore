@@ -164,6 +164,17 @@ public:
     struct LayoutData : public EngravingItem::LayoutData {
         double y1 = 0.0;
         double y2 = 0.0;
+        // Milestone 8 (octave-band elision): on a JiMStaff whose frame is
+        // banded on this system, one span per band (top to bottom, y in
+        // the barline's coordinates) with that band's repeat-dot rows.
+        // Empty or a single span means the ordinary y1..y2 form.
+        struct JimsBandSpan {
+            double y1 = 0.0;
+            double y2 = 0.0;
+            double dotY1 = 0.0;
+            double dotY2 = 0.0;
+        };
+        std::vector<JimsBandSpan> jimsBandSpans;
     };
 
     DECLARE_LAYOUTDATA_METHODS(BarLine)
