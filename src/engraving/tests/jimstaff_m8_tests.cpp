@@ -961,7 +961,11 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8GapIndicatorIsScreenOnlyAndNeverP
     MasterScore* score = ScoreRW::readScore(TWO_HAND);
     ASSERT_TRUE(score);
     score->doLayout();
-    auto textsOf = [](const StaffLines* lines, bool printing) {
+    struct Drawn {
+        String text;
+        double x;
+    };
+    auto drawnOf = [](const StaffLines* lines, bool printing) {
         std::shared_ptr<BufferedPaintProvider> prv = std::make_shared<BufferedPaintProvider>();
         Painter p(prv, "m8");
         p.setViewport(RectF(0, 0, 4000, 4000));
@@ -969,11 +973,11 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8GapIndicatorIsScreenOnlyAndNeverP
         opt.isPrinting = printing;
         lines->renderer()->drawItem(lines, &p, opt);
         p.endDraw();
-        std::vector<String> out;
+        std::vector<Drawn> out;
         std::function<void(const DrawData::Item&)> walk = [&](const DrawData::Item& item) {
             for (const DrawData::Data& d : item.datas) {
                 for (const DrawText& t : d.texts) {
-                    out.push_back(t.text);
+                    out.push_back({ t.text, t.rect.left() });
                 }
             }
             for (const DrawData::Item& c : item.chilren) {
@@ -983,9 +987,16 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8GapIndicatorIsScreenOnlyAndNeverP
         walk(prv->drawData()->item);
         return out;
     };
+    auto textsOf = [&](const StaffLines* lines, bool printing) {
+        std::vector<String> out;
+        for (const Drawn& d : drawnOf(lines, printing)) {
+            out.push_back(d.text);
+        }
+        return out;
+    };
     auto hasIndicator = [](const std::vector<String>& texts) {
         for (const String& t : texts) {
-            if (t.contains(u"elided")) {
+            if (t.contains(u"hidden")) {
                 return true;
             }
         }
@@ -1002,12 +1013,35 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8GapIndicatorIsScreenOnlyAndNeverP
     ASSERT_TRUE(hasIndicator(screen));
     bool sawCount = false;
     for (const String& t : screen) {
-        if (t.contains(u"elided")) {
-            EXPECT_EQ(t, u"3 octaves elided");
+        if (t.contains(u"hidden")) {
+            EXPECT_EQ(t, u"3 empty octaves hidden");   // owner wording 2026-08-18
             sawCount = true;
         }
     }
     EXPECT_TRUE(sawCount);
+    // Placement (owner finding 2026-08-18): the text's left edge sits at the
+    // right edge of the scale-dot column (no Split-mode right label stack in
+    // this fixture), i.e. dotCenterX + indicatorW of the header geometry —
+    // left of the crescent, never at the measure's start.
+    {
+        const StaffType::JimsFrameView& v = viewOn(score, system2);
+        const StaffType::JimsHeaderGeometry g
+            = st(score)->jimsHeaderGeometry(lines->spatium(), score->style().defaultSpatium(), &v);
+        const double sp = lines->spatium();
+        const double clefRight = lines->pos().x() - 0.3 * sp;
+        const double clefLeft = clefRight - g.clefRx;
+        const double dotCenterX = clefLeft - g.rightLabelBand - 2.0 * g.indicatorW + g.indicatorW;
+        const double expectedLeft = dotCenterX + g.indicatorW + g.rightLabelBand;
+        bool sawPlacement = false;
+        for (const Drawn& d : drawnOf(lines, false)) {
+            if (d.text.contains(u"hidden")) {
+                EXPECT_NEAR(d.x, expectedLeft, 1e-6);
+                EXPECT_LT(d.x, lines->pos().x());   // left of the staff's first measure
+                sawPlacement = true;
+            }
+        }
+        EXPECT_TRUE(sawPlacement);
+    }
     // Printing paths never see it ...
     EXPECT_FALSE(hasIndicator(textsOf(lines, true)));
     // ... nor does the screen when unprintables are hidden ...

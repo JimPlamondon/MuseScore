@@ -3084,13 +3084,16 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                 }
             }
 
-            // Milestone 8, Phase 4 (optional, owner plan §3.5): a small
-            // SCREEN-ONLY "n octaves elided" text in the topmost gap of a
-            // banded system head — the StaffVisibilityIndicator precedent
+            // Milestone 8, Phase 4 (optional, owner plan §3.5; wording and
+            // placement per owner finding 2026-08-18): a small SCREEN-ONLY
+            // "N empty octaves hidden" text in the topmost gap of a banded
+            // system head — the StaffVisibilityIndicator precedent
             // (TDraw::draw(const IndicatorIcon*)): never when printing, never
-            // when the score hides unprintables, formatting colour. The count
+            // when the score hides unprintables, formatting colour. Its left
+            // edge sits at the right edge of the scale-dot column, or of the
+            // right-hand (Split-mode) label stack when one is shown. The count
             // is the Kernel's omitted-period count for this system; the
-            // printed page keeps the plain gap (owner ruling 2a).
+            // printed page keeps the gap free of any marker (owner ruling 2a).
             if (view.banded && view.bands.size() > 1 && view.omittedPeriodCount > 0
                 && !opt.isPrinting && item->score()->showUnprintable()) {
                 const StaffType::JimsFrameBand& upper = view.bands.back();          // topmost band
@@ -3098,16 +3101,18 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                 const double gapTopY = topY + (upper.yTopLd + upper.heightLd()) * dist;
                 const double gapBottomY = topY + lower.yTopLd * dist;
                 const muse::String text = view.omittedPeriodCount == 1
-                                          ? muse::String(u"1 octave elided")
-                                          : muse::String(u"%1 octaves elided").arg(view.omittedPeriodCount);
+                                          ? muse::String(u"1 empty octave hidden")
+                                          : muse::String(u"%1 empty octaves hidden").arg(view.omittedPeriodCount);
                 Font indicatorFont(u"Edwin", Font::Type::Text);
                 indicatorFont.setPointSizeF(8.0 * item->spatium() / item->defaultSpatium());
                 FontMetrics ifm(indicatorFont);
                 const RectF tb = ifm.boundingRect(text);
                 const double baseline = (gapTopY + gapBottomY) / 2.0 - (tb.top() + tb.bottom()) / 2.0;
+                const double dotColumnRight = dotCenterX + indicatorW;
+                const double indicatorLeft = dotColumnRight + headerGeom.rightLabelBand;   // 0 unless Split labels
                 painter->setFont(indicatorFont);
                 painter->setPen(Pen(item->configuration()->formattingColor()));
-                painter->drawText(PointF(item->pos().x() + 0.5 * _spatium, baseline), text);
+                painter->drawText(PointF(indicatorLeft, baseline), text);
             }
         }
 

@@ -33,7 +33,7 @@ Automated sensory evidence for M8 (owner-approved plan `Plans/Add_JiMS_to_MuseSc
 - Reproducibility: every page's second render is byte-identical to its first (12/12 page pairs).
 - System 1: `off-p1.png` and `on-first-system-all-p1.png` are the same file (0 changed pixels); `on-first-system-banded-p1.png` differs (65 500 changed pixels, 0 outside the declared region).
 - Systems 2–4: identical between the two ON variants (only system 1 differs between them, as designed); each differs from off by 66 987–69 105 pixels, all inside the declared region; four Do lines and exactly one gap per banded system; 2 barline strokes run through each gap on systems 1–3 (mid-bar and end barline) and 3 on system 4 (final barline is double); 0 stray ink pixels in the gap's staff body; the header column carries the brace and the band-edge glyphs (290–315 px, expected).
-- The screen-only "n octaves elided" indicator (Phase 4) is absent from every printed page (0 stray gap ink), as the structural test `m8GapIndicatorIsScreenOnlyAndNeverPrints` also proves.
+- The screen-only "N empty octaves hidden" indicator (Phase 4; wording and placement per owner finding 2026-08-18) is absent from every printed page (0 stray gap ink), as the structural test `m8GapIndicatorIsScreenOnlyAndNeverPrints` also proves.
 - Whole-stack pages label their lowest Do row `C2: Do` (owner finding 2: the label names the octave of the row it sits on); banded pages `C6:`/`C2:`.
 
 ## Elision-off renders versus the pre-M8 baseline (separate from this folder)
