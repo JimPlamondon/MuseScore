@@ -296,6 +296,18 @@ bool tonicPitchLabel(const String& stateJson, TonicPitchLabel& out)
     return !out.label.isEmpty();
 }
 
+bool tonicPitchLabelInPeriod(const String& stateJson, int periodIndex, TonicPitchLabel& out)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"tonic_pitch_label\",\"state\":%1,\"period_index\":%2}")
+                      .arg(stateJson).arg(periodIndex);
+    JsonValue result;
+    if (!okResult(callBridge(envelope), result)) {
+        return false;
+    }
+    readTonicPitchLabel(result.toObject(), out);
+    return !out.label.isEmpty();
+}
+
 static void readTonicPitchLabel(const JsonObject& o, TonicPitchLabel& out)
 {
     out.label = o.value("label").toString();

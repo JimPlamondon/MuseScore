@@ -276,26 +276,22 @@ void BarLine::calcY()
     // JiMStaff (owner correction 2026-08-14): barlines span the DERIVED
     // frame, not the nominal line count — a partial stave is shorter
     // than the preset's lines, and a barline must never overshoot it.
-    // Milestone 8: on a banded system every band gets its own span; the
-    // barline never crosses the gap between bands. One band (elision
-    // off) is today's single span, bit for bit.
+    // Milestone 8, owner ruling 3b (keyboard precedent): on a banded system
+    // the barline runs continuously over the whole stack — through the gap
+    // between bands — and repeat dots sit at each band's middle rows. One
+    // band (elision off) is today's single span, bit for bit.
     if (staffType1->isJiMS() && !spanStaff) {
         const StaffType::JimsFrameView& view = staffType1->jimsFrameView(score(), staffIdx1, system);
-        data->jimsBandSpans.clear();
+        data->jimsBandDotRows.clear();
         if (view.bands.size() > 1) {
             for (size_t i = view.bands.size(); i > 0; --i) {   // top to bottom
                 const StaffType::JimsFrameBand& band = view.bands[i - 1];
-                BarLine::LayoutData::JimsBandSpan span;
-                span.y1 = offset + band.yTopLd * lineDistance - lineWidth;
-                span.y2 = offset + (band.yTopLd + band.heightLd()) * lineDistance + lineWidth;
-                // Repeat dots straddle the band's middle line distance.
                 const double midLd = band.yTopLd + band.heightLd() / 2.0;
-                span.dotY1 = offset + (midLd - 0.5) * lineDistance;
-                span.dotY2 = offset + (midLd + 0.5) * lineDistance;
-                data->jimsBandSpans.push_back(span);
+                data->jimsBandDotRows.push_back({ offset + (midLd - 0.5) * lineDistance,
+                                                  offset + (midLd + 0.5) * lineDistance });
             }
-            data->y1 = data->jimsBandSpans.front().y1;
-            data->y2 = data->jimsBandSpans.back().y2;
+            data->y1 = offset - lineWidth;
+            data->y2 = offset + view.heightLd() * lineDistance + lineWidth;
             return;
         }
         const double frameH = (staffType1->jimsFrameTopCents() - staffType1->jimsFrameBottomCents())

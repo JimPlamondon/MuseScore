@@ -284,6 +284,10 @@ public:
         double changeArrowLane = 0.0;
         double changeTerrainWidth = 0.0;
         double keyLabelAdvance = 0.0;        // "[PitchN]: " current-key label, left of the tonic row (owner spec 2026-08-17)
+        // Milestone 8, owner ruling 3b (2026-08-18): a hollow stack follows the
+        // keyboard precedent — a brace joins its bands at the system head.
+        double braceWidth = 0.0;             // brace glyph width (x-magnified) + akkoladeBarDistance; 0 unless banded
+        double braceMagX = 0.0;              // horizontal magnification of the brace glyph (MuseScore's Bracket rule)
     };
     // `view` (Milestone 8, optional): for a banded view the current-key
     // label advance is the WIDEST band label, so every band's "[PitchN]:"

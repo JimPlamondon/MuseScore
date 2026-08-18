@@ -27,6 +27,7 @@
 #include "io/file.h"
 #include "translation.h"
 
+#include "../iengravingfont.h"
 #include "../jims/jimsbridge.h"
 #include "../jims/jimsstrings.h"
 
@@ -847,8 +848,9 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
     jims::TonicPitchLabel key;
     double keyAdvance = jims::tonicPitchLabel(m_jimsStateJson, key)
                         ? fm.horizontalAdvance(key.label + u": ") : 0.0;
-    if (view && view->banded && keyAdvance > 0.0) {
-        // Milestone 8: reserve for the widest band label of this system.
+    if (view && keyAdvance > 0.0) {
+        // Milestone 8: reserve for the widest band label of this system (the
+        // whole-piece view is one band carrying its own row's label).
         for (const JimsFrameBand& band : view->bands) {
             if (!band.tonicLabel.isEmpty()) {
                 keyAdvance = std::max(keyAdvance, fm.horizontalAdvance(band.tonicLabel + u": "));
@@ -875,12 +877,28 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
     g.changeTerrainWidth = 0.3 * spatium + g.changeLabelBand + 2.0 * g.indicatorW
                            + g.changeRightLabelBand + g.changeArrowLane + 0.3 * spatium;
 
+    // Milestone 8, owner ruling 3b: a banded (hollow) stack is joined by a
+    // brace at the system head, exactly as MuseScore joins the staves of one
+    // keyboard instrument (Bracket, BracketType::BRACE): the SMuFL brace
+    // glyph, x-magnified by MuseScore's span rule and stretched to the
+    // stack's height, plus akkoladeBarDistance before the header. Reserve it.
+    if (view && view->bands.size() > 1 && m_score) {
+        const int span = int(view->bands.size());
+        g.braceMagX = span + ((span - 1) * 1.625);   // Bracket::setStaffSpan's rule
+        if (const IEngravingFontPtr font = m_score->engravingFont()) {
+            // Font magnification as EngravingItem::magS: spatium / default spatium.
+            const double glyphW = font->width(SymId::brace, spatium / defaultSpatium);
+            g.braceWidth = glyphW * g.braceMagX + m_score->style().styleMM(Sid::akkoladeBarDistance);
+        }
+    }
+
     const JimsScaleDotLabelMode mode = jimsResolvedScaleDotLabelMode();
     if (mode == JimsScaleDotLabelMode::None || !haveLabels) {
         if (keyAdvance > 0.0) {
             g.leftLabelBand = keyAdvance + gap;
             g.headerWidth += g.leftLabelBand;
         }
+        g.headerWidth += g.braceWidth;
         return g;
     }
     double maxLeft = 0.0;
@@ -909,7 +927,7 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
     if (maxRight > 0.0 && mode == JimsScaleDotLabelMode::Split) {
         g.rightLabelBand = maxRight + gap;
     }
-    g.headerWidth += g.leftLabelBand + g.rightLabelBand;
+    g.headerWidth += g.leftLabelBand + g.rightLabelBand + g.braceWidth;
     return g;
 }
 
@@ -1199,7 +1217,26 @@ const StaffType::JimsFrameView& StaffType::jimsWholeFrameView(const Score* score
         if (periodCents > 0.0) {
             band.lowestPeriodIndex = int(std::floor((band.lowerCents + 1e-6) / periodCents));
             band.highestPeriodIndex = int(std::floor((band.upperCents - 1e-6) / periodCents));
+            // Milestone 8 (owner finding 2): the whole-piece frame's "[PitchN]:"
+            // sits on the frame's lowest DRAWN tonic row and names THAT row's
+            // octave — the same rule the Kernel applies to every band. Both
+            // the row and the label come from the Kernel (tonic_cents_above_do,
+            // tonic_pitch_label with period_index); nothing is inferred here.
             band.labelPeriodIndex = band.lowestPeriodIndex;
+            double tonicCents = 0.0;
+            if (jims::tonicCentsAboveDo(jimsStateJson(), tonicCents)) {
+                for (int k = band.lowestPeriodIndex; k <= band.highestPeriodIndex; ++k) {
+                    const double row = double(k) * periodCents + tonicCents;
+                    if (row >= band.lowerCents - 1e-6 && row <= band.upperCents + 1e-6) {
+                        band.labelPeriodIndex = k;
+                        break;
+                    }
+                }
+            }
+            jims::TonicPitchLabel label;
+            if (jims::tonicPitchLabelInPeriod(jimsStateJson(), band.labelPeriodIndex, label)) {
+                band.tonicLabel = label.label;
+            }
         }
         band.yTopLd = 0.0;
         view.bands.push_back(band);

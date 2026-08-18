@@ -21,6 +21,8 @@
  */
 #include "tdraw.h"
 
+#include <map>
+
 #include <algorithm>
 
 #include "../../jims/jimsbridge.h"
@@ -661,16 +663,22 @@ void TDraw::draw(const BagpipeEmbellishment* item, Painter* painter, const Paint
     }
 }
 
-static void drawDots(const BarLine* item, Painter* painter, double x, const double* dotRows = nullptr)
+static void drawDots(const BarLine* item, Painter* painter, double x,
+                     const std::vector<BarLine::LayoutData::JimsDotRows>* dotRows = nullptr)
 {
     double spatium = item->spatium();
 
+    if (dotRows) {                          // Milestone 8: a JiMStaff band's own dot rows, per band
+        for (const BarLine::LayoutData::JimsDotRows& rows : *dotRows) {
+            item->drawSymbol(SymId::repeatDot, painter, PointF(x, rows.y1));
+            item->drawSymbol(SymId::repeatDot, painter, PointF(x, rows.y2));
+        }
+        return;
+    }
+
     double y1l;
     double y2l;
-    if (dotRows) {                          // Milestone 8: a JiMStaff band's own dot rows
-        y1l = dotRows[0];
-        y2l = dotRows[1];
-    } else if (item->explicitParent() == 0) {      // for use in palette (always Bravura)
+    if (item->explicitParent() == 0) {      // for use in palette (always Bravura)
         //Bravura shifted repeatDot symbol 0.5sp upper in the font itself (1.272)
         y1l = 1.5 * spatium;
         y2l = 2.5 * spatium;
@@ -714,7 +722,8 @@ static void drawTips(const BarLine* item, double y1, double y2, Painter* painter
 // One barline FORM between y1 and y2 (Milestone 8: a JiMStaff barline
 // draws every form once per band, never across the gap between bands;
 // dotRows, when given, are the repeat-dot rows of that band).
-static void drawBarLineForm(const BarLine* item, double y1, double y2, const double* dotRows, Painter* painter,
+static void drawBarLineForm(const BarLine* item, double y1, double y2,
+                            const std::vector<BarLine::LayoutData::JimsDotRows>* dotRows, Painter* painter,
                             const mu::engraving::rendering::PaintOptions& opt)
 {
     switch (item->barLineType()) {
@@ -884,17 +893,13 @@ void TDraw::draw(const BarLine* item, Painter* painter, const PaintOptions& opt)
 
     setMask(item, painter);
 
-    // Milestone 8: a JiMStaff barline with band spans draws each form once
-    // per band (dots at each band's middle rows); one span (or a stock
-    // staff) draws exactly as before.
-    if (data->jimsBandSpans.size() > 1) {
-        for (const BarLine::LayoutData::JimsBandSpan& span : data->jimsBandSpans) {
-            const double dotRows[2] = { span.dotY1, span.dotY2 };
-            drawBarLineForm(item, span.y1, span.y2, dotRows, painter, opt);
-        }
-    } else {
-        drawBarLineForm(item, data->y1, data->y2, nullptr, painter, opt);
-    }
+    // Milestone 8, owner ruling 3b: on a banded JiMStaff every barline form
+    // runs continuously from the top band to the bottom band — through the
+    // gap, as a keyboard instrument's barlines run between its staves — with
+    // repeat dots at each band's middle rows; a stock staff (or a one-band
+    // stack) draws exactly as before.
+    drawBarLineForm(item, data->y1, data->y2,
+                    data->jimsBandDotRows.empty() ? nullptr : &data->jimsBandDotRows, painter, opt);
 
     // draw irregular measure mark
 
@@ -2916,13 +2921,12 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     const double dotColLeft = dotCenterX - indicatorW;
                     const double dotColRight = dotCenterX + indicatorW;
                     for (const StaffType::JimsFrameBand& band : view.bands) {
-                        // The current-key label's row: the band's lowest tonic
-                        // row (Kernel label_period_index) for a banded view;
-                        // today's lowest-period rule for the whole-piece view.
-                        const double lowestPeriod = view.banded
-                                                    ? double(band.labelPeriodIndex) * periodCents
-                                                    : std::floor(view.bottomCents() / periodCents + epsilon) * periodCents;
-                        const muse::String keyText = view.banded ? band.tonicLabel : keyLabel.label;
+                        // The current-key label's row and text: the band's lowest
+                        // drawn tonic row and THAT row's Kernel label (owner
+                        // finding 2, 2026-08-18: octave numbers correct always and
+                        // everywhere) — for banded and whole-piece views alike.
+                        const double lowestPeriod = double(band.labelPeriodIndex) * periodCents;
+                        const muse::String keyText = band.tonicLabel.isEmpty() ? keyLabel.label : band.tonicLabel;
                         for (const StaffType::JimsSegment& segment : band.segments) {
                             double basePeriod = std::floor(segment.lowerCents / periodCents) * periodCents;
                             for (double period = basePeriod; period <= segment.upperCents + epsilon;
@@ -3053,6 +3057,33 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                 }
             }
 
+            // Milestone 8, owner ruling 3b (2026-08-18): a hollow stack follows
+            // the keyboard precedent — one brace joins its bands at the system
+            // head, drawn exactly as MuseScore draws a piano/harp brace
+            // (TDraw::draw(const Bracket*), BracketType::BRACE): the SMuFL brace
+            // glyph, x-magnified by the Bracket span rule and stretched to the
+            // stack's height, its right edge akkoladeBarDistance before the
+            // header. Printed ink, unlike the Phase-4 indicator below.
+            if (view.bands.size() > 1 && headerGeom.braceWidth > 0.0 && font) {
+                const double stackTopY = yOf(view.topCents());
+                const double stackBottomY = yOf(view.bottomCents());
+                const double h = stackBottomY - stackTopY;
+                const double glyphHeight = item->symHeight(SymId::brace);
+                if (h > 0.0 && glyphHeight > 0.0) {
+                    const double magY = h / glyphHeight;
+                    const double magX = headerGeom.braceMagX;
+                    const double glyphW = item->symWidth(SymId::brace) * magX;
+                    const double leftEdge = item->pos().x() - headerGeom.headerWidth;   // includes the brace band
+                    painter->save();
+                    painter->setPen(item->curColor(opt));
+                    painter->translate(leftEdge, stackTopY);
+                    painter->scale(magX, magY);
+                    item->drawSymbol(SymId::brace, painter, PointF(0.0, glyphHeight));
+                    painter->restore();
+                    UNUSED(glyphW);
+                }
+            }
+
             // Milestone 8, Phase 4 (optional, owner plan §3.5): a small
             // SCREEN-ONLY "n octaves elided" text in the topmost gap of a
             // banded system head — the StaffVisibilityIndicator precedent
@@ -3156,6 +3187,23 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     // the Kernel names.
                     jims::TonicPitchLabel keyLabel;
                     const bool haveKeyLabel = jims::tonicPitchLabel(changeSt->jimsStateJson(), keyLabel);
+                    // Owner finding 2 (2026-08-18): the terrain's "[PitchN]:" names
+                    // the octave of the ROW it is drawn on — the Kernel label for
+                    // the row's frame period (base period + the point's offset).
+                    const int basePeriodIndex = int(std::floor(view.bottomCents() / periodCents + 1e-6));
+                    std::map<int, muse::String> labelByPeriod;
+                    auto keyLabelForRow = [&](const jims::ChangePoint& tp) -> muse::String {
+                        const int k = basePeriodIndex + tp.periodOffset;
+                        auto found = labelByPeriod.find(k);
+                        if (found != labelByPeriod.end()) {
+                            return found->second;
+                        }
+                        jims::TonicPitchLabel rowLabel;
+                        const muse::String text = jims::tonicPitchLabelInPeriod(changeSt->jimsStateJson(), k, rowLabel)
+                                                  ? rowLabel.label : keyLabel.label;
+                        labelByPeriod[k] = text;
+                        return text;
+                    };
                     auto isNewTonic = [&](const jims::ChangePoint& tp) {
                         if (!haveKeyLabel) {
                             return false;
@@ -3171,13 +3219,12 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                         return tp.nGen == keyLabel.nGen;
                     };
 
-                    // Closing stroke: thin, spanning each band of the stack
-                    // (never the gap between bands).
+                    // Closing stroke: thin, one continuous stroke over the whole
+                    // stack — through any band gap, like a keyboard barline
+                    // (owner ruling 3b, 2026-08-18).
                     painter->setPen(Pen(item->curColor(opt), item->style().styleMM(
                                             Sid::barWidth), PenStyle::SolidLine, PenCapStyle::FlatCap));
-                    for (const StaffType::JimsFrameBand& band : view.bands) {
-                        painter->drawLine(LineF(strokeX, yOf(band.upperCents), strokeX, yOf(band.lowerCents)));
-                    }
+                    painter->drawLine(LineF(strokeX, yOf(view.topCents()), strokeX, yOf(view.bottomCents())));
 
                     // Dots (Kernel notehead classes); ALL labels LEFT of the dots
                     // (owner ruling 2026-08-16: the change stack must look like
@@ -3226,7 +3273,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                             // The new tonic's row carries "[PitchN]:" first.
                             for (const jims::ChangePoint& member : stack.members) {
                                 if (isNewTonic(member) && !text.isEmpty()) {
-                                    text = keyLabel.label + u": " + text;
+                                    text = keyLabelForRow(member) + u": " + text;
                                     break;
                                 }
                             }
@@ -3272,7 +3319,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                             if (!labelled) {
                                 muse::String text = tp.label;
                                 if (isNewTonic(tp)) {
-                                    text = keyLabel.label + u": " + text;
+                                    text = keyLabelForRow(tp) + u": " + text;
                                 }
                                 RectF tb = fm.boundingRect(text);
                                 painter->setFont(labelFont);

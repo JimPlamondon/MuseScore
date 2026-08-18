@@ -21,18 +21,21 @@ directory. The verifier FAILS unless every one of these holds:
      declared region — the JiMStaff area of that system in the OFF render
      (from just above its first Do line to just below its last, across the
      content width) — reported per system with bounding boxes;
-  5. every banded system's printed gap is plain: exactly one gap (the 6.5 sp
-     staffDistance between the two whole-period bands: 0.4-0.7 of a period,
-     the tallest span between consecutive Do lines) and no ink (nothing darker
-     than the paper threshold) (a) anywhere in the STAFF BODY of the gap —
-     full gap height, right of the header column — so no barline stroke,
-     repeat dot, guide line, stem or note reached it, and (b) anywhere in the
-     GAP CORE across the whole width (the middle of the gap, 16 px in from
-     each edge) — so no label, indicator text or crossing stroke is there.
-     The header column's band-EDGE glyphs (the tonic-indicator ring and its
-     "Do" label sit ON the edge Do lines and overlap the gap edge by a few
-     pixels, exactly as they overlap the outer edges of a whole stack) are
-     reported, not counted. Whole-stack systems have no gap.
+  5. every banded system has exactly one gap (the 6.5 sp staffDistance between
+     the two whole-period bands: 0.4-0.7 of a period, the tallest span between
+     consecutive Do lines), and — owner ruling 3b, 2026-08-18, the keyboard
+     precedent — the only ink inside it is (a) the barlines, which run
+     continuously through the gap like a piano's barlines between its staves:
+     in the STAFF BODY (right of the header column) every ink pixel must lie
+     in a "stroke column", a column whose ink covers >= 80 % of the gap's
+     rows (there must be at least one such column per banded system), and
+     nothing else — no repeat dot, guide line, stem, note, label or the
+     screen-only indicator; and (b) the brace joining the bands, which sits
+     in the header column left of the crescents (its pixels there are
+     reported, not counted). The header column's band-edge glyphs (the
+     tonic-indicator ring and its "Do" label sit ON the edge Do lines and
+     overlap the gap edge by a few pixels) are likewise reported. Whole-stack
+     systems have no gap.
 
 Do lines and band edges are located from the images themselves, not
 hand-typed, so a layout drift is a verifier failure, not a silently moved
@@ -56,7 +59,6 @@ RED_MIN_R = 150      # a red Do line pixel (0xE03030 anti-aliased): R high ...
 RED_MARGIN = 40      # ... and clearly above both G and B
 MARGIN = 60          # rows above/below the OFF stack that belong to its region
 HEADER_PX = 200      # header column width (crescent + dots + labels), 120 dpi
-CORE_INSET = 16      # rows trimmed from each gap edge for the gap-core check
 
 
 def sha256(path: Path) -> str:
@@ -172,21 +174,33 @@ def main() -> int:
             gap_reports = []
             for gap in gaps:
                 body = on[gap[0]:gap[1] + 1, x0 + HEADER_PX:x1 + 1]
-                body_ink = int((body.mean(axis=2) < PAPER).sum())
-                core = on[gap[0] + CORE_INSET:gap[1] + 1 - CORE_INSET, x0:x1 + 1]
-                core_ink = int((core.mean(axis=2) < PAPER).sum())
-                header_edge = on[gap[0]:gap[1] + 1, x0:x0 + HEADER_PX]
-                header_edge_ink = int((header_edge.mean(axis=2) < PAPER).sum())
+                body_ink = body.mean(axis=2) < PAPER
+                rows_in_gap = body_ink.shape[0]
+                col_cover = body_ink.sum(axis=0)
+                stroke_cols = np.nonzero(col_cover >= 0.8 * rows_in_gap)[0]
+                # Ink outside the stroke columns (repeat dots, lines, notes, text ...) must be zero.
+                stray = body_ink.copy()
+                stray[:, stroke_cols] = False
+                stray_ink = int(stray.sum())
+                header = on[gap[0]:gap[1] + 1, x0:x0 + HEADER_PX]
+                header_ink = int((header.mean(axis=2) < PAPER).sum())
+                # Stroke columns group into barlines (adjacent columns = one stroke).
+                strokes = 0
+                prev = -10
+                for c in stroke_cols.tolist():
+                    if c - prev > 2:
+                        strokes += 1
+                    prev = c
                 gap_reports.append({"rows": [int(gap[0]), int(gap[1])],
-                                    "staff_body_ink_pixels": body_ink,
-                                    "gap_core_ink_pixels": core_ink,
-                                    "header_edge_glyph_pixels_expected": header_edge_ink,
-                                    "body_shape": [int(body.shape[0]), int(body.shape[1])],
-                                    "core_shape": [int(core.shape[0]), int(core.shape[1])]})
-                if body_ink:
-                    fail(f"{name} system {k}: gap rows {gap} staff body contains {body_ink} ink pixels")
-                if core_ink:
-                    fail(f"{name} system {k}: gap rows {gap} core contains {core_ink} ink pixels")
+                                    "barline_strokes_through_gap": strokes,
+                                    "stroke_columns": [int(x0 + HEADER_PX + c) for c in stroke_cols.tolist()],
+                                    "stray_ink_pixels_in_staff_body": stray_ink,
+                                    "header_column_ink_pixels_expected_brace_and_edge_glyphs": header_ink,
+                                    "body_shape": [int(body.shape[0]), int(body.shape[1])]})
+                if strokes < 1:
+                    fail(f"{name} system {k}: gap rows {gap} — no barline stroke runs through the gap")
+                if stray_ink:
+                    fail(f"{name} system {k}: gap rows {gap} staff body contains {stray_ink} ink pixels outside the barline strokes")
             expected_banded = not (name == "on-first-system-all" and k == 1)
             entry = {"changed_pixels": changed, "changed_bbox": bbox_of(diff),
                      "pixels_outside_declared_region": escaped, "do_lines": len(lines),

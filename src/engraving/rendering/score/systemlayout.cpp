@@ -210,6 +210,30 @@ static void applyJimsBandOffsets(System* system, LayoutContext& ctx)
     }
 }
 
+//---------------------------------------------------------
+//   jimsSystemStaffHeight (JiMStaff Milestone 8, owner finding 1)
+//    The height a JiMStaff occupies on THIS system: its frame view's
+//    band heights plus gaps (in absolute units), not the staff type's
+//    nominal line count. Used wherever system layout stacks staves and
+//    where SystemLayout::minDistance subtracts the staff's height from the
+//    skyline distance — with the nominal one-period height a five-octave
+//    stack was placed at the skyline minimum instead of minSystemDistance
+//    / staffDistance. Non-JiMS staves keep Staff::staffHeight.
+//---------------------------------------------------------
+
+static double jimsSystemStaffHeight(const Staff* staff, staff_idx_t staffIdx, const System* system, const Fraction& tick)
+{
+    const StaffType* st = staff->staffType(tick);
+    if (!st || !st->isJiMS() || !system) {
+        return staff->staffHeight(tick);
+    }
+    const StaffType::JimsFrameView& view = st->jimsFrameView(staff->score(), staffIdx, system);
+    if (view.empty()) {
+        return staff->staffHeight(tick);
+    }
+    return view.heightLd() * st->lineDistance().val() * staff->spatium(tick);
+}
+
 System* SystemLayout::collectSystem(LayoutContext& ctx)
 {
     TRACEFUNC;
@@ -2648,7 +2672,12 @@ void SystemLayout::layout2(System* system, LayoutContext& ctx)
         const Staff* staff  = ctx.dom().staff(si1);
         auto ni = std::next(i);
 
-        double dist = staff->staffHeight();
+        // JiMStaff Milestone 8 (owner finding 1): a JiMStaff's height on this
+        // system is its frame view's height (bands + gaps), never the nominal
+        // line count — see jimsSystemStaffHeight.
+        const Measure* firstMeasure = system->firstMeasure();
+        const Fraction sysTick = firstMeasure ? firstMeasure->tick() : Fraction(0, 1);
+        double dist = jimsSystemStaffHeight(staff, si1, system, sysTick);
         double yOffset;
         double h;
         if (staff->lines(Fraction(0, 1)) == 1) {
@@ -2656,7 +2685,7 @@ void SystemLayout::layout2(System* system, LayoutContext& ctx)
             h = _spatium * (BARLINE_SPAN_1LINESTAFF_TO - BARLINE_SPAN_1LINESTAFF_FROM) * 0.5;
         } else {
             yOffset = 0.0;
-            h = staff->staffHeight();
+            h = jimsSystemStaffHeight(staff, si1, system, sysTick);
         }
         if (ni == visibleStaves.end()) {
             ss->setYOff(yOffset);
@@ -2685,16 +2714,16 @@ void SystemLayout::layout2(System* system, LayoutContext& ctx)
             Spacer* sp = m->vspacerDown(si1);
             if (sp) {
                 if (sp->spacerType() == SpacerType::FIXED) {
-                    dist = staff->staffHeight(m->tick()) + sp->absoluteGap();
+                    dist = jimsSystemStaffHeight(staff, si1, system, m->tick()) + sp->absoluteGap();
                     fixedSpace = true;
                     break;
                 } else {
-                    dist = std::max(dist, staff->staffHeight(m->tick()) + sp->absoluteGap());
+                    dist = std::max(dist, jimsSystemStaffHeight(staff, si1, system, m->tick()) + sp->absoluteGap());
                 }
             }
             sp = m->vspacerUp(si2);
             if (sp) {
-                dist = std::max(dist, staff->staffHeight(m->tick()) + sp->absoluteGap());
+                dist = std::max(dist, jimsSystemStaffHeight(staff, si1, system, m->tick()) + sp->absoluteGap());
             }
         }
         if (!fixedSpace) {

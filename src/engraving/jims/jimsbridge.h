@@ -98,6 +98,12 @@ struct TonicPitchLabel {
     int nGen = 0;
 };
 bool tonicPitchLabel(const muse::String& stateJson, TonicPitchLabel& out);
+/// Milestone 8 (owner finding 2, 2026-08-18): the current-key label for the
+/// tonic instance in frame period `periodIndex` (period k = [k·P, (k+1)·P)
+/// cents above the extent's lower Do) — the label of THAT row, so a
+/// "[PitchN]:" always names the octave of the row it sits on. Period 0 is
+/// exactly tonicPitchLabel. Same op with the additive period_index field.
+bool tonicPitchLabelInPeriod(const muse::String& stateJson, int periodIndex, TonicPitchLabel& out);
 
 /// Milestone 7 (playback): a note's SOUNDING pitch — the Kernel's answer
 /// (identity + the section's tuning and reference) that playback feeds

@@ -41,6 +41,7 @@
 #include "engraving/dom/stafflines.h"
 #include "engraving/dom/stafftype.h"
 #include "engraving/dom/system.h"
+#include "engraving/iengravingfont.h"
 #include "engraving/infrastructure/mscwriter.h"
 #include "engraving/jims/jimsbridge.h"
 #include "engraving/rendering/iscorerenderer.h"
@@ -197,6 +198,11 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8WholeViewIsOneBandWithLegacyGeome
     EXPECT_EQ(whole.bands[0].yTopLd, 0.0);
     EXPECT_EQ(whole.bands[0].segments.size(), jst->jimsFrameSegments().size());
     EXPECT_EQ(whole.bands[0].segments.size(), 5u);   // periods -2..2
+    // Owner finding 2 (2026-08-18): the whole frame's "[PitchN]:" names the
+    // octave of its lowest drawn tonic row — period -2 here, C2 — not the
+    // extent's period-0 tonic.
+    EXPECT_EQ(whole.bands[0].labelPeriodIndex, -2);
+    EXPECT_EQ(whole.bands[0].tonicLabel, u"C2");
     for (double cents : { -2400.0, -1500.0, 0.0, 1237.5, 3500.0, 3600.0 }) {
         EXPECT_EQ(jst->jimsYFromCents(cents, whole), jst->jimsYFromCents(cents)) << cents;
         EXPECT_NEAR(whole.centsFromYLd(whole.yLdFromCents(cents)), cents, EPS) << cents;
@@ -538,8 +544,12 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8KeyboardOctaveStepGrowsOnlyTheAff
     delete score;
 }
 
-// Barlines of every form span each band separately and never the gap.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8BarlinesSpanBandsNeverTheGap)
+// Owner ruling 3b (2026-08-18, keyboard precedent): on a banded system every
+// barline form runs continuously from the top band to the bottom band —
+// through the gap — with repeat dots at each band's middle rows; the tips of
+// a repeat sit at the stack's ends. Elision off: today's single span, no
+// band dot rows.
+TEST_F(Engraving_JiMStaffM8BandElisionTests, m8BarlinesRunThroughTheGapWithDotsInEachBand)
 {
     MasterScore* score = ScoreRW::readScore(TWO_HAND);
     ASSERT_TRUE(score);
@@ -575,34 +585,233 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8BarlinesSpanBandsNeverTheGap)
                 continue;
             }
             const BarLine::LayoutData* data = bl->ldata();
-            ASSERT_EQ(data->jimsBandSpans.size(), 2u) << "barline type " << int(bl->barLineType());
-            const auto& topSpan = data->jimsBandSpans[0];
-            const auto& bottomSpan = data->jimsBandSpans[1];
-            EXPECT_LT(topSpan.y2, bottomSpan.y1);                              // a plain gap between the spans
             const double lineDistance = ld * bl->spatium();
             const double lw = score->style().styleS(Sid::staffLineWidth).val() * bl->spatium() * .5;
-            EXPECT_NEAR(bottomSpan.y1 - topSpan.y2, v.gapLd * lineDistance - 2.0 * lw, 1e-6);
-            EXPECT_NEAR(topSpan.y2 - topSpan.y1, 12.0 * lineDistance + 2.0 * lw, 1e-6);
-            EXPECT_NEAR(bottomSpan.y2 - bottomSpan.y1, 12.0 * lineDistance + 2.0 * lw, 1e-6);
-            // Repeat-dot rows sit inside each band, never in the gap.
-            for (const auto& span : data->jimsBandSpans) {
-                EXPECT_GT(span.dotY1, span.y1);
-                EXPECT_LT(span.dotY2, span.y2);
+            // One continuous span over the whole stack (through the gap).
+            EXPECT_NEAR(data->y1, -lw, 1e-6) << "barline type " << int(bl->barLineType());
+            EXPECT_NEAR(data->y2, v.heightLd() * lineDistance + lw, 1e-6) << "barline type " << int(bl->barLineType());
+            // Dot rows: one pair per band, inside that band, straddling its middle.
+            ASSERT_EQ(data->jimsBandDotRows.size(), 2u);
+            for (size_t i = 0; i < 2; ++i) {
+                const StaffType::JimsFrameBand& band = v.bands[v.bands.size() - 1 - i];   // top to bottom
+                const double bandTop = band.yTopLd * lineDistance;
+                const double bandBottom = (band.yTopLd + band.heightLd()) * lineDistance;
+                EXPECT_GT(data->jimsBandDotRows[i].y1, bandTop);
+                EXPECT_LT(data->jimsBandDotRows[i].y2, bandBottom);
+                EXPECT_NEAR((data->jimsBandDotRows[i].y1 + data->jimsBandDotRows[i].y2) / 2.0,
+                            (bandTop + bandBottom) / 2.0, 1e-6);
             }
-            EXPECT_NEAR(data->y1, topSpan.y1, EPS);
-            EXPECT_NEAR(data->y2, bottomSpan.y2, EPS);
             ++checked;
         }
     }
     EXPECT_GE(checked, 3);
-    // With elision off, one span (today's y1..y2) — no band spans.
+    // With elision off: one span (today's y1..y2), no band dot rows.
     setElision(score, false);
     for (Segment* s = measureNo(score, 3)->first(SegmentType::BarLineType); s; s = s->next(SegmentType::BarLineType)) {
         if (BarLine* bl = toBarLine(s->element(0))) {
-            EXPECT_TRUE(bl->ldata()->jimsBandSpans.empty());
+            EXPECT_TRUE(bl->ldata()->jimsBandDotRows.empty());
         }
     }
     delete score;
+}
+
+// Owner ruling 3b: a brace joins the bands of a hollow stack at the system
+// head (MuseScore's keyboard brace: the SMuFL brace glyph, x-magnified by the
+// Bracket span rule, stretched to the stack); the header reserves its width;
+// a whole stack has none.
+TEST_F(Engraving_JiMStaffM8BandElisionTests, m8BraceJoinsTheBandsOfAHollowStack)
+{
+    MasterScore* score = ScoreRW::readScore(TWO_HAND);
+    ASSERT_TRUE(score);
+    score->doLayout();
+    const String braceGlyph = score->engravingFont()->toString(SymId::brace);
+    auto textsOf = [](const StaffLines* lines) {
+        std::shared_ptr<BufferedPaintProvider> prv = std::make_shared<BufferedPaintProvider>();
+        Painter p(prv, "m8");
+        p.setViewport(RectF(0, 0, 4000, 4000));
+        PaintOptions opt;
+        lines->renderer()->drawItem(lines, &p, opt);
+        p.endDraw();
+        std::vector<String> out;
+        std::function<void(const DrawData::Item&)> walk = [&](const DrawData::Item& item) {
+            for (const DrawData::Data& d : item.datas) {
+                for (const DrawText& t : d.texts) {
+                    out.push_back(t.text);
+                }
+            }
+            for (const DrawData::Item& c : item.chilren) {
+                walk(c);
+            }
+        };
+        walk(prv->drawData()->item);
+        return out;
+    };
+    auto hasBrace = [&](const std::vector<String>& texts) {
+        for (const String& t : texts) {
+            if (t == braceGlyph) {
+                return true;
+            }
+        }
+        return false;
+    };
+    const double sp = score->style().spatium();
+    const double dsp = score->style().defaultSpatium();
+    // Whole stack: no brace, nothing reserved.
+    {
+        System* system2 = measureSystems(score)[1];
+        const StaffType::JimsFrameView& v = viewOn(score, system2);
+        EXPECT_EQ(st(score)->jimsHeaderGeometry(sp, dsp, &v).braceWidth, 0.0);
+        EXPECT_FALSE(hasBrace(textsOf(system2->firstMeasure()->staffLines(0))));
+    }
+    setElision(score, true);
+    System* system2 = measureSystems(score)[1];
+    const StaffType::JimsFrameView& v = viewOn(score, system2);
+    ASSERT_EQ(v.bands.size(), 2u);
+    const StaffType::JimsHeaderGeometry g = st(score)->jimsHeaderGeometry(sp, dsp, &v);
+    EXPECT_GT(g.braceWidth, 0.0);
+    EXPECT_NEAR(g.braceMagX, 2 + 1.625, 1e-9);   // MuseScore's brace x-magnification for a two-staff span
+    EXPECT_TRUE(hasBrace(textsOf(system2->firstMeasure()->staffLines(0))));
+    EXPECT_FALSE(hasBrace(textsOf(system2->lastMeasure()->staffLines(0))));   // system head only
+    // System 1 (whole stack under the first-system rule): no brace.
+    EXPECT_FALSE(hasBrace(textsOf(measureSystems(score)[0]->firstMeasure()->staffLines(0))));
+    delete score;
+}
+
+// Owner finding 1 (2026-08-18): a JiMStaff's height on a system is its frame
+// view's height (bands + gaps), so systems keep the minimum system distance
+// and a following staff keeps the staff distance — instead of collapsing to
+// the skyline minimum as with the nominal one-period height.
+TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StaffHeightAndSystemDistanceUseTheFrame)
+{
+    for (bool elide : { false, true }) {
+        MasterScore* score = ScoreRW::readScore(TWO_HAND);
+        ASSERT_TRUE(score);
+        score->doLayout();
+        setElision(score, elide);
+        const std::vector<System*> systems = measureSystems(score);
+        ASSERT_EQ(systems.size(), 4u);
+        const double ld = st(score)->lineDistance().val();
+        const bool spread = score->style().styleB(Sid::enableVerticalSpread);
+        const double minSystem = score->style().styleMM(spread ? Sid::minSystemSpread : Sid::minSystemDistance);
+        for (size_t i = 0; i < systems.size(); ++i) {
+            System* system = systems[i];
+            const StaffType::JimsFrameView& v = viewOn(score, system);
+            const double frameH = v.heightLd() * ld * score->staff(0)->spatium(system->firstMeasure()->tick());
+            EXPECT_NEAR(system->staff(0)->bbox().height(), frameH, 1e-6) << "elide=" << elide << " system " << i + 1;
+            EXPECT_NEAR(system->height(), system->staff(0)->bbox().bottom(), 1e-6);
+            if (i + 1 < systems.size() && systems[i + 1]->page() == system->page()) {
+                const double gap = systems[i + 1]->y() - (system->y() + system->height());
+                EXPECT_GE(gap, minSystem - 1e-6) << "elide=" << elide << " between systems " << i + 1 << " and " << i + 2;
+            }
+        }
+        delete score;
+    }
+    // Two staves: the second staff sits at least staffDistance below the
+    // first staff's FRAME bottom (whole stack, hide-empty off).
+    MasterScore* two = ScoreRW::readScore(TWO_STAVES);
+    ASSERT_TRUE(two);
+    two->doLayout();
+    System* first = measureSystems(two)[0];
+    const StaffType::JimsFrameView& v = viewOn(two, first);
+    const double frameH = v.heightLd() * st(two)->lineDistance().val() * two->staff(0)->spatium(Fraction(0, 1));
+    EXPECT_NEAR(first->staff(0)->bbox().height(), frameH, 1e-6);
+    const double between = first->staff(1)->y() - (first->staff(0)->y() + first->staff(0)->bbox().height());
+    EXPECT_GE(between, two->style().styleMM(Sid::staffDistance) - 1e-6);
+    delete two;
+}
+
+// Owner finding 2 (2026-08-18): every "[PitchN]:" names the octave of the row
+// it sits on — header labels of whole and banded stacks and the change
+// indicator's terrain label — checked against the Kernel's per-period label
+// for the row the text is drawn on.
+TEST_F(Engraving_JiMStaffM8BandElisionTests, m8OctaveLabelsNameTheirRowEverywhere)
+{
+    struct Labeled {
+        String text;
+        double y;
+    };
+    auto labelsOf = [](const StaffLines* lines) {
+        std::shared_ptr<BufferedPaintProvider> prv = std::make_shared<BufferedPaintProvider>();
+        Painter p(prv, "m8");
+        p.setViewport(RectF(0, 0, 4000, 4000));
+        PaintOptions opt;
+        lines->renderer()->drawItem(lines, &p, opt);
+        p.endDraw();
+        std::vector<Labeled> out;
+        std::function<void(const DrawData::Item&)> walk = [&](const DrawData::Item& item) {
+            for (const DrawData::Data& d : item.datas) {
+                for (const DrawText& t : d.texts) {
+                    // "<Letter><accidentals><octave>: ..." e.g. "C2: Do", "Eb-1:"
+                    const size_t colon = t.text.indexOf(u':');
+                    if (colon != muse::nidx && colon >= 2 && colon <= 5) {
+                        const Char first = t.text.at(0);
+                        const Char last = t.text.at(colon - 1);
+                        if (first >= u'A' && first <= u'G' && last.isDigit()) {
+                            out.push_back({ t.text.left(colon), t.rect.top() });
+                        }
+                    }
+                }
+            }
+            for (const DrawData::Item& c : item.chilren) {
+                walk(c);
+            }
+        };
+        walk(prv->drawData()->item);
+        return out;
+    };
+    // The nearest tonic row decides which period a label sits on; its text
+    // must be the Kernel's label for that period.
+    auto checkLabels = [&](Score* score, const StaffType* jst, const StaffLines* lines,
+                           const StaffType::JimsFrameView& v, const char* what) {
+        const double topY = lines->pos().y();
+        const double ld = jst->lineDistance().val();
+        const double periodCents = jst->jimsPeriodCents();
+        double tonicCents = 0.0;
+        ASSERT_TRUE(jims::tonicCentsAboveDo(jst->jimsStateJson(), tonicCents));
+        const std::vector<Labeled> labels = labelsOf(lines);
+        ASSERT_GE(labels.size(), 1u) << what;
+        for (const Labeled& l : labels) {
+            const double yLd = (l.y - topY) / (ld * lines->spatium());
+            const double cents = v.centsFromYLd(yLd);
+            const int k = int(std::lround((cents - tonicCents) / periodCents));
+            jims::TonicPitchLabel expected;
+            ASSERT_TRUE(jims::tonicPitchLabelInPeriod(jst->jimsStateJson(), k, expected)) << what;
+            EXPECT_EQ(l.text, expected.label) << what << " row period " << k;
+        }
+        UNUSED(score);
+    };
+    MasterScore* score = ScoreRW::readScore(TWO_HAND);
+    ASSERT_TRUE(score);
+    score->doLayout();
+    // Whole stacks: the lowest drawn tonic row is period -2 -> "C2".
+    for (System* system : measureSystems(score)) {
+        const StaffLines* lines = system->firstMeasure()->staffLines(0);
+        checkLabels(score, st(score), lines, viewOn(score, system), "whole stack");
+        const std::vector<Labeled> labels = labelsOf(lines);
+        ASSERT_EQ(labels.size(), 1u);
+        EXPECT_EQ(labels[0].text, u"C2");
+    }
+    setElision(score, true);
+    for (System* system : measureSystems(score)) {
+        const StaffType::JimsFrameView& v = viewOn(score, system);
+        const StaffLines* lines = system->firstMeasure()->staffLines(0);
+        checkLabels(score, st(score), lines, v, "banded");
+        EXPECT_EQ(labelsOf(lines).size(), v.bands.size());   // one label per band
+    }
+    delete score;
+    // Change indicator terrain (M6/M7 gate: bar 2 moves to reference 53, La-mode):
+    // the terrain's "[PitchN]:" is the Kernel label of ITS row's period.
+    MasterScore* gate = ScoreRW::readScore(u"jimstaff_data/m7-gate.mscz");
+    ASSERT_TRUE(gate);
+    gate->doLayout();
+    Measure* m2 = measureNo(gate, 2);
+    ASSERT_TRUE(m2);
+    const StaffType* changeSt = gate->staff(0)->staffType(m2->tick());
+    ASSERT_TRUE(changeSt && changeSt->isJiMS());
+    const StaffType::JimsFrameView& gv = changeSt->jimsFrameView(gate, 0, m2->system());
+    ASSERT_FALSE(gv.empty());
+    checkLabels(gate, changeSt, m2->staffLines(0), gv, "terrain");
+    delete gate;
 }
 
 // MuseScore's stock hide-empty-staves still hides a fully empty JiMStaff on

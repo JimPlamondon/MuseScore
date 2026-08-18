@@ -2,8 +2,8 @@
   "settings": {
     "off": {
       "page1": {
-        "sha256": "eb8d2317a88be81710d628f75c28f99ef999352cf1a29df34a4f7b96a3ff6226",
-        "sha256_second_render": "eb8d2317a88be81710d628f75c28f99ef999352cf1a29df34a4f7b96a3ff6226",
+        "sha256": "6341195a30d9aada43adbc86392e6f40c1964055c5d6073f39395113269d4c1f",
+        "sha256_second_render": "6341195a30d9aada43adbc86392e6f40c1964055c5d6073f39395113269d4c1f",
         "reproducible": true,
         "size": [
           1020,
@@ -11,8 +11,8 @@
         ]
       },
       "page2": {
-        "sha256": "e711f916527cf71d8d70277a3ceb72bfe4517e6de5ec659a95eb8fd42e9f442f",
-        "sha256_second_render": "e711f916527cf71d8d70277a3ceb72bfe4517e6de5ec659a95eb8fd42e9f442f",
+        "sha256": "51764ae73419ffa6e1443cb0d5448132e7c23541545c48a8a1476ea7631b7180",
+        "sha256_second_render": "51764ae73419ffa6e1443cb0d5448132e7c23541545c48a8a1476ea7631b7180",
         "reproducible": true,
         "size": [
           1020,
@@ -20,8 +20,8 @@
         ]
       },
       "page3": {
-        "sha256": "574998202a94f9b5623af12c4c56718ca9a5cc92e85ce0c59769021b28e23068",
-        "sha256_second_render": "574998202a94f9b5623af12c4c56718ca9a5cc92e85ce0c59769021b28e23068",
+        "sha256": "7cfc0bccd3af2447a98154fbbcd2baeec6a9df599e7f0487d04bfff3be38fd70",
+        "sha256_second_render": "7cfc0bccd3af2447a98154fbbcd2baeec6a9df599e7f0487d04bfff3be38fd70",
         "reproducible": true,
         "size": [
           1020,
@@ -29,8 +29,8 @@
         ]
       },
       "page4": {
-        "sha256": "a0a3bef3019ba389d44e0e44ee7cbcaad2dd34152dcd39242fc2d29eece00310",
-        "sha256_second_render": "a0a3bef3019ba389d44e0e44ee7cbcaad2dd34152dcd39242fc2d29eece00310",
+        "sha256": "b98580e820fbafa7787c9e3714d425abc7a585fd8139854cda4ece86a96ab52a",
+        "sha256_second_render": "b98580e820fbafa7787c9e3714d425abc7a585fd8139854cda4ece86a96ab52a",
         "reproducible": true,
         "size": [
           1020,
@@ -40,8 +40,8 @@
     },
     "on-first-system-all": {
       "page1": {
-        "sha256": "eb8d2317a88be81710d628f75c28f99ef999352cf1a29df34a4f7b96a3ff6226",
-        "sha256_second_render": "eb8d2317a88be81710d628f75c28f99ef999352cf1a29df34a4f7b96a3ff6226",
+        "sha256": "6341195a30d9aada43adbc86392e6f40c1964055c5d6073f39395113269d4c1f",
+        "sha256_second_render": "6341195a30d9aada43adbc86392e6f40c1964055c5d6073f39395113269d4c1f",
         "reproducible": true,
         "size": [
           1020,
@@ -49,8 +49,8 @@
         ]
       },
       "page2": {
-        "sha256": "10c2f74101b3215ab720ad15e7b2f2ffe03ec7106f9f4cc2992bcf3bb3f8cb08",
-        "sha256_second_render": "10c2f74101b3215ab720ad15e7b2f2ffe03ec7106f9f4cc2992bcf3bb3f8cb08",
+        "sha256": "fdf7388a733da63a277dffac17a9042d92b043f47d3b482b8372194eb931f88c",
+        "sha256_second_render": "fdf7388a733da63a277dffac17a9042d92b043f47d3b482b8372194eb931f88c",
         "reproducible": true,
         "size": [
           1020,
@@ -58,8 +58,8 @@
         ]
       },
       "page3": {
-        "sha256": "48f76c7534e2e36449db71b0ee7330a99e9db7749f1e7e60d13364b6bb123667",
-        "sha256_second_render": "48f76c7534e2e36449db71b0ee7330a99e9db7749f1e7e60d13364b6bb123667",
+        "sha256": "57331aaa2c3e2a9bddedf9923a1b8869b2c9d400b50095b23061b0cea28bfc6d",
+        "sha256_second_render": "57331aaa2c3e2a9bddedf9923a1b8869b2c9d400b50095b23061b0cea28bfc6d",
         "reproducible": true,
         "size": [
           1020,
@@ -67,8 +67,8 @@
         ]
       },
       "page4": {
-        "sha256": "766a90471b3210fbb7087ad49a669e70ccffd341abb9d2407c3e3e091a5fcc7e",
-        "sha256_second_render": "766a90471b3210fbb7087ad49a669e70ccffd341abb9d2407c3e3e091a5fcc7e",
+        "sha256": "b74440602747a7e70e7cdbb73c5c1e4eecb33771df3ac01083cf25d68d2c4663",
+        "sha256_second_render": "b74440602747a7e70e7cdbb73c5c1e4eecb33771df3ac01083cf25d68d2c4663",
         "reproducible": true,
         "size": [
           1020,
@@ -78,8 +78,8 @@
     },
     "on-first-system-banded": {
       "page1": {
-        "sha256": "fb044d91796649603960b941a86bfcafc009375af772afb807c6a44fc0329f53",
-        "sha256_second_render": "fb044d91796649603960b941a86bfcafc009375af772afb807c6a44fc0329f53",
+        "sha256": "4c28e222ea685363cccfde464e5bb8d3f32753ef6b215940b9363974855c8911",
+        "sha256_second_render": "4c28e222ea685363cccfde464e5bb8d3f32753ef6b215940b9363974855c8911",
         "reproducible": true,
         "size": [
           1020,
@@ -87,8 +87,8 @@
         ]
       },
       "page2": {
-        "sha256": "10c2f74101b3215ab720ad15e7b2f2ffe03ec7106f9f4cc2992bcf3bb3f8cb08",
-        "sha256_second_render": "10c2f74101b3215ab720ad15e7b2f2ffe03ec7106f9f4cc2992bcf3bb3f8cb08",
+        "sha256": "fdf7388a733da63a277dffac17a9042d92b043f47d3b482b8372194eb931f88c",
+        "sha256_second_render": "fdf7388a733da63a277dffac17a9042d92b043f47d3b482b8372194eb931f88c",
         "reproducible": true,
         "size": [
           1020,
@@ -96,8 +96,8 @@
         ]
       },
       "page3": {
-        "sha256": "48f76c7534e2e36449db71b0ee7330a99e9db7749f1e7e60d13364b6bb123667",
-        "sha256_second_render": "48f76c7534e2e36449db71b0ee7330a99e9db7749f1e7e60d13364b6bb123667",
+        "sha256": "57331aaa2c3e2a9bddedf9923a1b8869b2c9d400b50095b23061b0cea28bfc6d",
+        "sha256_second_render": "57331aaa2c3e2a9bddedf9923a1b8869b2c9d400b50095b23061b0cea28bfc6d",
         "reproducible": true,
         "size": [
           1020,
@@ -105,8 +105,8 @@
         ]
       },
       "page4": {
-        "sha256": "766a90471b3210fbb7087ad49a669e70ccffd341abb9d2407c3e3e091a5fcc7e",
-        "sha256_second_render": "766a90471b3210fbb7087ad49a669e70ccffd341abb9d2407c3e3e091a5fcc7e",
+        "sha256": "b74440602747a7e70e7cdbb73c5c1e4eecb33771df3ac01083cf25d68d2c4663",
+        "sha256_second_render": "b74440602747a7e70e7cdbb73c5c1e4eecb33771df3ac01083cf25d68d2c4663",
         "reproducible": true,
         "size": [
           1020,
@@ -133,10 +133,10 @@
         "expected_banded": false
       },
       "on-first-system-banded": {
-        "changed_pixels": 56614,
+        "changed_pixels": 65500,
         "changed_bbox": [
           112,
-          244,
+          188,
           949,
           717
         ],
@@ -148,16 +148,19 @@
               314,
               360
             ],
-            "staff_body_ink_pixels": 0,
-            "gap_core_ink_pixels": 0,
-            "header_edge_glyph_pixels_expected": 147,
+            "barline_strokes_through_gap": 2,
+            "stroke_columns": [
+              609,
+              610,
+              947,
+              948,
+              949
+            ],
+            "stray_ink_pixels_in_staff_body": 0,
+            "header_column_ink_pixels_expected_brace_and_edge_glyphs": 290,
             "body_shape": [
               47,
               638
-            ],
-            "core_shape": [
-              15,
-              838
             ]
           }
         ],
@@ -173,10 +176,10 @@
         "x1": 949
       },
       "on-first-system-all": {
-        "changed_pixels": 59054,
+        "changed_pixels": 66987,
         "changed_bbox": [
           70,
-          217,
+          98,
           949,
           634
         ],
@@ -188,26 +191,29 @@
               231,
               277
             ],
-            "staff_body_ink_pixels": 0,
-            "gap_core_ink_pixels": 0,
-            "header_edge_glyph_pixels_expected": 170,
+            "barline_strokes_through_gap": 2,
+            "stroke_columns": [
+              583,
+              584,
+              947,
+              948,
+              949
+            ],
+            "stray_ink_pixels_in_staff_body": 0,
+            "header_column_ink_pixels_expected_brace_and_edge_glyphs": 315,
             "body_shape": [
               47,
               680
-            ],
-            "core_shape": [
-              15,
-              880
             ]
           }
         ],
         "expected_banded": true
       },
       "on-first-system-banded": {
-        "changed_pixels": 59054,
+        "changed_pixels": 66987,
         "changed_bbox": [
           70,
-          217,
+          98,
           949,
           634
         ],
@@ -219,16 +225,19 @@
               231,
               277
             ],
-            "staff_body_ink_pixels": 0,
-            "gap_core_ink_pixels": 0,
-            "header_edge_glyph_pixels_expected": 170,
+            "barline_strokes_through_gap": 2,
+            "stroke_columns": [
+              583,
+              584,
+              947,
+              948,
+              949
+            ],
+            "stray_ink_pixels_in_staff_body": 0,
+            "header_column_ink_pixels_expected_brace_and_edge_glyphs": 315,
             "body_shape": [
               47,
               680
-            ],
-            "core_shape": [
-              15,
-              880
             ]
           }
         ],
@@ -244,10 +253,10 @@
         "x1": 949
       },
       "on-first-system-all": {
-        "changed_pixels": 59048,
+        "changed_pixels": 66992,
         "changed_bbox": [
           70,
-          217,
+          98,
           949,
           634
         ],
@@ -259,26 +268,29 @@
               231,
               277
             ],
-            "staff_body_ink_pixels": 0,
-            "gap_core_ink_pixels": 0,
-            "header_edge_glyph_pixels_expected": 170,
+            "barline_strokes_through_gap": 2,
+            "stroke_columns": [
+              583,
+              584,
+              947,
+              948,
+              949
+            ],
+            "stray_ink_pixels_in_staff_body": 0,
+            "header_column_ink_pixels_expected_brace_and_edge_glyphs": 315,
             "body_shape": [
               47,
               680
-            ],
-            "core_shape": [
-              15,
-              880
             ]
           }
         ],
         "expected_banded": true
       },
       "on-first-system-banded": {
-        "changed_pixels": 59048,
+        "changed_pixels": 66992,
         "changed_bbox": [
           70,
-          217,
+          98,
           949,
           634
         ],
@@ -290,16 +302,19 @@
               231,
               277
             ],
-            "staff_body_ink_pixels": 0,
-            "gap_core_ink_pixels": 0,
-            "header_edge_glyph_pixels_expected": 170,
+            "barline_strokes_through_gap": 2,
+            "stroke_columns": [
+              583,
+              584,
+              947,
+              948,
+              949
+            ],
+            "stray_ink_pixels_in_staff_body": 0,
+            "header_column_ink_pixels_expected_brace_and_edge_glyphs": 315,
             "body_shape": [
               47,
               680
-            ],
-            "core_shape": [
-              15,
-              880
             ]
           }
         ],
@@ -315,10 +330,10 @@
         "x1": 949
       },
       "on-first-system-all": {
-        "changed_pixels": 60119,
+        "changed_pixels": 69105,
         "changed_bbox": [
           70,
-          217,
+          98,
           949,
           634
         ],
@@ -330,26 +345,34 @@
               231,
               277
             ],
-            "staff_body_ink_pixels": 0,
-            "gap_core_ink_pixels": 0,
-            "header_edge_glyph_pixels_expected": 170,
+            "barline_strokes_through_gap": 3,
+            "stroke_columns": [
+              579,
+              580,
+              940,
+              941,
+              944,
+              945,
+              946,
+              947,
+              948,
+              949
+            ],
+            "stray_ink_pixels_in_staff_body": 0,
+            "header_column_ink_pixels_expected_brace_and_edge_glyphs": 315,
             "body_shape": [
               47,
               680
-            ],
-            "core_shape": [
-              15,
-              880
             ]
           }
         ],
         "expected_banded": true
       },
       "on-first-system-banded": {
-        "changed_pixels": 60119,
+        "changed_pixels": 69105,
         "changed_bbox": [
           70,
-          217,
+          98,
           949,
           634
         ],
@@ -361,16 +384,24 @@
               231,
               277
             ],
-            "staff_body_ink_pixels": 0,
-            "gap_core_ink_pixels": 0,
-            "header_edge_glyph_pixels_expected": 170,
+            "barline_strokes_through_gap": 3,
+            "stroke_columns": [
+              579,
+              580,
+              940,
+              941,
+              944,
+              945,
+              946,
+              947,
+              948,
+              949
+            ],
+            "stray_ink_pixels_in_staff_body": 0,
+            "header_column_ink_pixels_expected_brace_and_edge_glyphs": 315,
             "body_shape": [
               47,
               680
-            ],
-            "core_shape": [
-              15,
-              880
             ]
           }
         ],
