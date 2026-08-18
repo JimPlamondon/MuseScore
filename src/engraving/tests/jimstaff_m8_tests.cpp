@@ -486,7 +486,10 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DragFreezeThenDropRederives)
     n->setPitch(74);
     score->setLayoutAll();
     score->doLayout();
-    // Frozen: the two-band view survives.
+    // Frozen: the two-band view survives. (System objects are recreated by
+    // every layout — always re-fetch them; the view cache itself is keyed by
+    // tick range, never by System pointer.)
+    system2 = measureSystems(score)[1];
     EXPECT_EQ(viewOn(score, system2).bands.size(), 2u);
     EXPECT_EQ(viewOn(score, system2).omittedPeriodCount, 3);
     st(score)->jimsSetFrameFrozen(false);
