@@ -814,6 +814,262 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8OctaveLabelsNameTheirRowEverywher
     delete gate;
 }
 
+// Regression net for owner finding 5 (M8 gate 2026-08-18; sighting of
+// 2026-08-17: "partial staves in which Do was not the tonic, the red staff
+// line was not on Do, other lines at wrong heights relative to the crescent
+// clef, which did not point at the Do line"). The sweep did not reproduce it;
+// this pins the invariants a correct display has, on off-Do (La-mode,
+// tonic-bounded) partial staves at 686/700/720 cents, the M7 gate terrain
+// (La-mode section, reference 53), and a banded hollow stack:
+//   (a) every solid red guide line is a Do row (cents = 0 mod period), every
+//       Do row inside a drawn segment has one, and no dashed scaffold line
+//       lies on a Do row — in every measure, head or not;
+//   (b) at every system head, every crescent horn is a Do row and every drawn
+//       red line has a crescent horn on it (the clef points at the Do line);
+//   (c) the Kernel's Do dot stack sits at 0 cents and its glyph is drawn on
+//       the red line of every period drawn.
+TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsAndDoDots)
+{
+    const Color RED(0xE0, 0x30, 0x30);
+    struct HeadPaint {
+        std::vector<double> redYs;                        // solid red polylines
+        std::vector<std::pair<double, double> > horns;    // crescent top / bottom
+        std::vector<PointF> glyphs;                       // single-codepoint (music-font) glyph origins
+    };
+    auto paintOf = [&](const StaffLines* lines) {
+        std::shared_ptr<BufferedPaintProvider> prv = std::make_shared<BufferedPaintProvider>();
+        Painter p(prv, "m8");
+        p.setViewport(RectF(0, 0, 4000, 4000));
+        PaintOptions opt;
+        lines->renderer()->drawItem(lines, &p, opt);
+        p.endDraw();
+        HeadPaint out;
+        const DrawDataPtr dd = prv->drawData();
+        std::function<void(const DrawData::Item&)> walk = [&](const DrawData::Item& item) {
+            for (const DrawData::Data& d : item.datas) {
+                const DrawData::State& state = dd->states.at(d.state);
+                for (const DrawPolygon& poly : d.polygons) {
+                    if (poly.mode == PolygonMode::Polyline && poly.polygon.size() == 2
+                        && state.pen.style() == PenStyle::SolidLine && state.pen.color() == RED
+                        && std::abs(poly.polygon[0].y() - poly.polygon[1].y()) < EPS) {
+                        out.redYs.push_back(poly.polygon[0].y());
+                    }
+                }
+                for (const DrawPath& path : d.paths) {
+                    // The crescent is the only white-filled stroked path.
+                    if (path.mode == DrawMode::StrokeAndFill && path.brush.color() == Color::WHITE) {
+                        const RectF r = path.path.boundingRect();
+                        out.horns.push_back({ r.top(), r.bottom() });
+                    }
+                }
+                for (const DrawText& t : d.texts) {
+                    if (t.mode == DrawText::Point && t.text.size() == 1) {
+                        out.glyphs.push_back(t.rect.topLeft());
+                    }
+                }
+            }
+            for (const DrawData::Item& c : item.chilren) {
+                walk(c);
+            }
+        };
+        walk(dd->item);
+        return out;
+    };
+    auto isDoRow = [](double cents, double period) {
+        return std::abs(cents - std::round(cents / period) * period) < 1e-3;
+    };
+    // (c) first half: the Kernel's dot labelled "Do" (its own canonical-solfa
+    // name; the lattice is centred on Re, so Do's generator coordinate is the
+    // Kernel's to know) sits at 0 cents in both the labelled and the plain
+    // dot-stack views.
+    auto doGlyph = [&](Score* score, const StaffType* jst, SymId& sym, double& centroidDy) {
+        std::vector<jims::LabeledDotStack> labelStacks;
+        ASSERT_TRUE(jims::scaleDotLabels(jst->jimsStateJson(), labelStacks));
+        int doMembers = 0;
+        int doNGen = 0;
+        for (const jims::LabeledDotStack& s : labelStacks) {
+            for (const jims::LabeledDotMember& member : s.members) {
+                if (member.label == u"Do") {
+                    ++doMembers;
+                    doNGen = member.nGen;
+                    EXPECT_NEAR(s.cents, 0.0, 1e-9) << "the Do dot is not at 0 cents";
+                }
+            }
+        }
+        ASSERT_EQ(doMembers, 1);
+        std::vector<jims::ScaleDotStack> stacks;
+        ASSERT_TRUE(jims::scaleDots(jst->jimsStateJson(), stacks));
+        int doStacks = 0;
+        for (const jims::ScaleDotStack& s : stacks) {
+            for (int nGen : s.frontToBack) {
+                if (nGen == doNGen) {
+                    ++doStacks;
+                    EXPECT_NEAR(s.cents, 0.0, 1e-9) << "Do dot stack is not at 0 cents";
+                }
+            }
+        }
+        EXPECT_EQ(doStacks, 1);
+        muse::String token;
+        ASSERT_TRUE(jims::noteheadToken(jst->jimsStateJson(), doNGen, token));
+        sym = SymId::noteheadHalf;
+        if (token == u"triangle-vertex-up") {
+            sym = SymId::noteheadTriangleUpBlack;
+        } else if (token == u"triangle-vertex-down") {
+            sym = SymId::noteheadTriangleDownBlack;
+        } else if (token == u"square-vertex-up") {
+            sym = SymId::noteheadDiamondBlack;
+        } else if (token == u"square-edge-up") {
+            sym = SymId::noteheadSquareBlack;
+        }
+        const RectF gb = score->engravingFont()->bbox(sym, 1.0);
+        centroidDy = 0.0;
+        if (sym == SymId::noteheadTriangleUpBlack) {
+            centroidDy = -gb.height() / 6.0;
+        } else if (sym == SymId::noteheadTriangleDownBlack) {
+            centroidDy = gb.height() / 6.0;
+        }
+    };
+    // Every measure of every system: (a); system heads additionally (b), (c).
+    auto checkScore = [&](Score* score, const char* what, bool* sawPartial) {
+        for (System* system : measureSystems(score)) {
+            for (MeasureBase* mb : system->measures()) {
+                if (!mb->isMeasure()) {
+                    continue;
+                }
+                Measure* m = toMeasure(mb);
+                const StaffType* jst = score->staff(0)->staffType(m->tick());
+                ASSERT_TRUE(jst && jst->isJiMS()) << what;
+                const StaffType::JimsFrameView& v = jst->jimsFrameView(score, 0, system);
+                ASSERT_FALSE(v.empty()) << what;
+                const double period = jst->jimsPeriodCents();
+                const StaffLines* lines = m->staffLines(0);
+                ASSERT_TRUE(lines) << what;
+                const double topY = lines->pos().y();
+                const double ldSp = jst->lineDistance().val() * lines->spatium();
+                auto centsOfY = [&](double y) { return v.centsFromYLd((y - topY) / ldSp); };
+                // (a) red = Do row, dashed != Do row; one red line per Do row in a segment.
+                int red = 0;
+                int expectedRed = 0;
+                std::vector<double> redYs;
+                for (const StaffLines::JimsGuideLine& g : lines->jimsGuideLines()) {
+                    const double cents = centsOfY(g.line.y1());
+                    if (!g.dashed && g.rgb == 0xE03030) {
+                        ++red;
+                        redYs.push_back(g.line.y1());
+                        EXPECT_TRUE(isDoRow(cents, period)) << what << " red line at " << cents << " cents";
+                    } else {
+                        EXPECT_FALSE(isDoRow(cents, period)) << what << " scaffold line on a Do row at " << cents;
+                    }
+                }
+                for (const StaffType::JimsFrameBand& band : v.bands) {
+                    for (const StaffType::JimsSegment& seg : band.segments) {
+                        if (!seg.whole) {
+                            *sawPartial = true;
+                        }
+                        const double first = std::ceil((seg.lowerCents - 1e-6) / period) * period;
+                        for (double b = first; b <= seg.upperCents + 1e-6; b += period) {
+                            ++expectedRed;
+                        }
+                    }
+                }
+                EXPECT_EQ(red, expectedRed) << what << " tick " << m->tick().ticks();
+                if (system->firstMeasure() != m) {
+                    continue;
+                }
+                // (b) horns are Do rows; every red line has a horn on it.
+                const HeadPaint paint = paintOf(lines);
+                EXPECT_EQ(paint.redYs.size(), redYs.size()) << what;
+                size_t segments = 0;
+                for (const StaffType::JimsFrameBand& band : v.bands) {
+                    segments += band.segments.size();
+                }
+                EXPECT_EQ(paint.horns.size(), segments) << what << " one crescent per segment";
+                for (const auto& h : paint.horns) {
+                    EXPECT_TRUE(isDoRow(centsOfY(h.first), period)) << what << " upper horn off Do";
+                    EXPECT_TRUE(isDoRow(centsOfY(h.second), period)) << what << " lower horn off Do";
+                }
+                for (double y : redYs) {
+                    bool hornOnLine = false;
+                    for (const auto& h : paint.horns) {
+                        hornOnLine = hornOnLine || std::abs(h.first - y) < 1e-6 || std::abs(h.second - y) < 1e-6;
+                    }
+                    EXPECT_TRUE(hornOnLine) << what << " no crescent horn on the Do line at "
+                                            << centsOfY(y) << " cents";
+                }
+                // (c) the Do glyph sits on every drawn red line.
+                SymId doSym = SymId::noSym;
+                double doDy = 0.0;
+                doGlyph(score, jst, doSym, doDy);
+                // The glyph's recorded origin is the draw call's point (the
+                // header draws at mag 1); the drawn codepoint is the engraving
+                // font's business (a fallback font may substitute an alternate),
+                // so the match is by position: in the dot column, on the row.
+                for (double y : redYs) {
+                    bool glyphOnLine = false;
+                    for (const PointF& g : paint.glyphs) {
+                        glyphOnLine = glyphOnLine
+                                      || (g.x() < lines->pos().x() && std::abs(g.y() - (y + doDy)) < 1e-6);
+                    }
+                    EXPECT_TRUE(glyphOnLine) << what << " no Do dot on the Do line at " << centsOfY(y) << " cents";
+                }
+            }
+        }
+    };
+    // Off-Do partial staves (La-mode, tonic-bounded, with a mid-piece
+    // change back to Do-mode) at three generator widths.
+    for (double g : { 686.0, 700.0, 720.0 }) {
+        io::File f(ScoreRW::rootPath() + u"/jimstaff_data/m5-syshead.mscx");
+        ASSERT_TRUE(f.open(io::IODevice::ReadOnly));
+        String text = String::fromUtf8(f.readAll());
+        text.replace(u"\"generator_cents\":700.0", u"\"generator_cents\":" + String::number(g, 1));
+        const String dir = ScoreRW::rootPath() + u"/../../../build.release/jims-m8-scratch";
+        io::Dir::mkpath(dir);
+        const String path = dir + u"/m8-do-row-net-" + String::number(g, 0) + u".mscx";
+        io::File out(path);
+        ASSERT_TRUE(out.open(io::IODevice::WriteOnly));
+        out.write(text.toUtf8());
+        out.close();
+        MasterScore* score = ScoreRW::readScore(path, true);
+        ASSERT_TRUE(score) << g;
+        score->doLayout();
+        double generator = 0.0, period = 0.0;
+        ASSERT_TRUE(jims::staffMetrics(st(score)->jimsStateJson(), generator, period));
+        EXPECT_NEAR(generator, g, 1e-9);
+        double tonic = 0.0;
+        ASSERT_TRUE(jims::tonicCentsAboveDo(st(score)->jimsStateJson(), tonic));
+        EXPECT_GT(tonic, 1.0) << "the fixture must be off-Do (La-mode)";
+        bool sawPartial = false;
+        const std::string what = "syshead@" + std::to_string(int(g));
+        checkScore(score, what.c_str(), &sawPartial);
+        EXPECT_TRUE(sawPartial) << what << " must exercise partial staves";
+        delete score;
+    }
+    // The M7 gate terrain (bar 2: La-mode, reference 53).
+    {
+        MasterScore* gate = ScoreRW::readScore(u"jimstaff_data/m7-gate.mscz");
+        ASSERT_TRUE(gate);
+        gate->doLayout();
+        bool sawPartial = false;
+        checkScore(gate, "m7-gate", &sawPartial);
+        delete gate;
+    }
+    // A banded hollow stack: Do rows in every band.
+    {
+        MasterScore* score = ScoreRW::readScore(TWO_HAND);
+        ASSERT_TRUE(score);
+        score->doLayout();
+        setElision(score, true);
+        bool banded = false;
+        for (System* system : measureSystems(score)) {
+            banded = banded || viewOn(score, system).banded;
+        }
+        ASSERT_TRUE(banded);
+        bool sawPartial = false;
+        checkScore(score, "two-hand banded", &sawPartial);
+        delete score;
+    }
+}
+
 // MuseScore's stock hide-empty-staves still hides a fully empty JiMStaff on
 // a system, unchanged, whether or not elision is on.
 TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StockHideEmptyStavesStillHidesAnEmptyJiMStaff)
