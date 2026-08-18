@@ -6349,17 +6349,16 @@ void TLayout::layoutTimeSig(const TimeSig* item, TimeSig::LayoutData* ldata, con
         const Staff* jstaff = item->staff();
         const StaffType* jimsSt = jstaff ? jstaff->staffTypeForElement(item) : nullptr;
         if (jimsSt && jimsSt->isJiMS() && item->segment() && item->segment()->tick().isZero()) {
-            // Milestone 8: the view of the system this measure sits in
-            // (whole-piece when unknown or when elision is off there).
-            const StaffType::JimsFrameView& view
-                = jimsSt->jimsFrameView(item->score(), jstaff->idx(), item->segment()->measure()->system());
+            // Measure layout runs before the measure's system is known, so
+            // this centres on the WHOLE-piece frame (today's expression on
+            // the legacy accessors; an empty frame reads the nominal line
+            // count there). Milestone 8: on a banded first system,
+            // SystemLayout::applyJimsBandOffsets re-centres the time
+            // signature into a band once the system is final.
+            const StaffType::JimsFrameView& view = jimsSt->jimsWholeFrameView(item->score(), jstaff->idx());
             const double ld = jimsSt->lineDistance().val();
-            // One band (or no frame): today's expression on the legacy
-            // accessors (an empty frame reads the nominal line count there).
-            const double frameMid = view.bands.size() <= 1
-                                    ? (jimsSt->jimsFrameTopCents() - jimsSt->jimsFrameBottomCents())
-                                    / 2.0 / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * ld
-                                    : view.heightLd() / 2.0 * ld;
+            const double frameMid = (jimsSt->jimsFrameTopCents() - jimsSt->jimsFrameBottomCents())
+                                    / 2.0 / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * ld;
             const double nominalMid = (jimsSt->lines() - 1) / 2.0 * ld;
             ldata->moveY((frameMid - nominalMid) * spatium);
             bool hasWhole = false;

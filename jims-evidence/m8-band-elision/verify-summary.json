@@ -1,0 +1,383 @@
+{
+  "settings": {
+    "off": {
+      "page1": {
+        "sha256": "eb8d2317a88be81710d628f75c28f99ef999352cf1a29df34a4f7b96a3ff6226",
+        "sha256_second_render": "eb8d2317a88be81710d628f75c28f99ef999352cf1a29df34a4f7b96a3ff6226",
+        "reproducible": true,
+        "size": [
+          1020,
+          1320
+        ]
+      },
+      "page2": {
+        "sha256": "e711f916527cf71d8d70277a3ceb72bfe4517e6de5ec659a95eb8fd42e9f442f",
+        "sha256_second_render": "e711f916527cf71d8d70277a3ceb72bfe4517e6de5ec659a95eb8fd42e9f442f",
+        "reproducible": true,
+        "size": [
+          1020,
+          1320
+        ]
+      },
+      "page3": {
+        "sha256": "574998202a94f9b5623af12c4c56718ca9a5cc92e85ce0c59769021b28e23068",
+        "sha256_second_render": "574998202a94f9b5623af12c4c56718ca9a5cc92e85ce0c59769021b28e23068",
+        "reproducible": true,
+        "size": [
+          1020,
+          1320
+        ]
+      },
+      "page4": {
+        "sha256": "a0a3bef3019ba389d44e0e44ee7cbcaad2dd34152dcd39242fc2d29eece00310",
+        "sha256_second_render": "a0a3bef3019ba389d44e0e44ee7cbcaad2dd34152dcd39242fc2d29eece00310",
+        "reproducible": true,
+        "size": [
+          1020,
+          1320
+        ]
+      }
+    },
+    "on-first-system-all": {
+      "page1": {
+        "sha256": "eb8d2317a88be81710d628f75c28f99ef999352cf1a29df34a4f7b96a3ff6226",
+        "sha256_second_render": "eb8d2317a88be81710d628f75c28f99ef999352cf1a29df34a4f7b96a3ff6226",
+        "reproducible": true,
+        "size": [
+          1020,
+          1320
+        ]
+      },
+      "page2": {
+        "sha256": "10c2f74101b3215ab720ad15e7b2f2ffe03ec7106f9f4cc2992bcf3bb3f8cb08",
+        "sha256_second_render": "10c2f74101b3215ab720ad15e7b2f2ffe03ec7106f9f4cc2992bcf3bb3f8cb08",
+        "reproducible": true,
+        "size": [
+          1020,
+          1320
+        ]
+      },
+      "page3": {
+        "sha256": "48f76c7534e2e36449db71b0ee7330a99e9db7749f1e7e60d13364b6bb123667",
+        "sha256_second_render": "48f76c7534e2e36449db71b0ee7330a99e9db7749f1e7e60d13364b6bb123667",
+        "reproducible": true,
+        "size": [
+          1020,
+          1320
+        ]
+      },
+      "page4": {
+        "sha256": "766a90471b3210fbb7087ad49a669e70ccffd341abb9d2407c3e3e091a5fcc7e",
+        "sha256_second_render": "766a90471b3210fbb7087ad49a669e70ccffd341abb9d2407c3e3e091a5fcc7e",
+        "reproducible": true,
+        "size": [
+          1020,
+          1320
+        ]
+      }
+    },
+    "on-first-system-banded": {
+      "page1": {
+        "sha256": "fb044d91796649603960b941a86bfcafc009375af772afb807c6a44fc0329f53",
+        "sha256_second_render": "fb044d91796649603960b941a86bfcafc009375af772afb807c6a44fc0329f53",
+        "reproducible": true,
+        "size": [
+          1020,
+          1320
+        ]
+      },
+      "page2": {
+        "sha256": "10c2f74101b3215ab720ad15e7b2f2ffe03ec7106f9f4cc2992bcf3bb3f8cb08",
+        "sha256_second_render": "10c2f74101b3215ab720ad15e7b2f2ffe03ec7106f9f4cc2992bcf3bb3f8cb08",
+        "reproducible": true,
+        "size": [
+          1020,
+          1320
+        ]
+      },
+      "page3": {
+        "sha256": "48f76c7534e2e36449db71b0ee7330a99e9db7749f1e7e60d13364b6bb123667",
+        "sha256_second_render": "48f76c7534e2e36449db71b0ee7330a99e9db7749f1e7e60d13364b6bb123667",
+        "reproducible": true,
+        "size": [
+          1020,
+          1320
+        ]
+      },
+      "page4": {
+        "sha256": "766a90471b3210fbb7087ad49a669e70ccffd341abb9d2407c3e3e091a5fcc7e",
+        "sha256_second_render": "766a90471b3210fbb7087ad49a669e70ccffd341abb9d2407c3e3e091a5fcc7e",
+        "reproducible": true,
+        "size": [
+          1020,
+          1320
+        ]
+      }
+    }
+  },
+  "systems": {
+    "system1": {
+      "off_do_lines": 6,
+      "declared_region": {
+        "top_row": 151,
+        "bottom_row": 767,
+        "x0": 112,
+        "x1": 949
+      },
+      "on-first-system-all": {
+        "changed_pixels": 0,
+        "changed_bbox": null,
+        "pixels_outside_declared_region": 0,
+        "do_lines": 6,
+        "gaps": [],
+        "expected_banded": false
+      },
+      "on-first-system-banded": {
+        "changed_pixels": 56614,
+        "changed_bbox": [
+          112,
+          244,
+          949,
+          717
+        ],
+        "pixels_outside_declared_region": 0,
+        "do_lines": 4,
+        "gaps": [
+          {
+            "rows": [
+              314,
+              360
+            ],
+            "staff_body_ink_pixels": 0,
+            "gap_core_ink_pixels": 0,
+            "header_edge_glyph_pixels_expected": 147,
+            "body_shape": [
+              47,
+              638
+            ],
+            "core_shape": [
+              15,
+              838
+            ]
+          }
+        ],
+        "expected_banded": true
+      }
+    },
+    "system2": {
+      "off_do_lines": 6,
+      "declared_region": {
+        "top_row": 68,
+        "bottom_row": 684,
+        "x0": 70,
+        "x1": 949
+      },
+      "on-first-system-all": {
+        "changed_pixels": 59054,
+        "changed_bbox": [
+          70,
+          217,
+          949,
+          634
+        ],
+        "pixels_outside_declared_region": 0,
+        "do_lines": 4,
+        "gaps": [
+          {
+            "rows": [
+              231,
+              277
+            ],
+            "staff_body_ink_pixels": 0,
+            "gap_core_ink_pixels": 0,
+            "header_edge_glyph_pixels_expected": 170,
+            "body_shape": [
+              47,
+              680
+            ],
+            "core_shape": [
+              15,
+              880
+            ]
+          }
+        ],
+        "expected_banded": true
+      },
+      "on-first-system-banded": {
+        "changed_pixels": 59054,
+        "changed_bbox": [
+          70,
+          217,
+          949,
+          634
+        ],
+        "pixels_outside_declared_region": 0,
+        "do_lines": 4,
+        "gaps": [
+          {
+            "rows": [
+              231,
+              277
+            ],
+            "staff_body_ink_pixels": 0,
+            "gap_core_ink_pixels": 0,
+            "header_edge_glyph_pixels_expected": 170,
+            "body_shape": [
+              47,
+              680
+            ],
+            "core_shape": [
+              15,
+              880
+            ]
+          }
+        ],
+        "expected_banded": true
+      }
+    },
+    "system3": {
+      "off_do_lines": 6,
+      "declared_region": {
+        "top_row": 68,
+        "bottom_row": 684,
+        "x0": 70,
+        "x1": 949
+      },
+      "on-first-system-all": {
+        "changed_pixels": 59048,
+        "changed_bbox": [
+          70,
+          217,
+          949,
+          634
+        ],
+        "pixels_outside_declared_region": 0,
+        "do_lines": 4,
+        "gaps": [
+          {
+            "rows": [
+              231,
+              277
+            ],
+            "staff_body_ink_pixels": 0,
+            "gap_core_ink_pixels": 0,
+            "header_edge_glyph_pixels_expected": 170,
+            "body_shape": [
+              47,
+              680
+            ],
+            "core_shape": [
+              15,
+              880
+            ]
+          }
+        ],
+        "expected_banded": true
+      },
+      "on-first-system-banded": {
+        "changed_pixels": 59048,
+        "changed_bbox": [
+          70,
+          217,
+          949,
+          634
+        ],
+        "pixels_outside_declared_region": 0,
+        "do_lines": 4,
+        "gaps": [
+          {
+            "rows": [
+              231,
+              277
+            ],
+            "staff_body_ink_pixels": 0,
+            "gap_core_ink_pixels": 0,
+            "header_edge_glyph_pixels_expected": 170,
+            "body_shape": [
+              47,
+              680
+            ],
+            "core_shape": [
+              15,
+              880
+            ]
+          }
+        ],
+        "expected_banded": true
+      }
+    },
+    "system4": {
+      "off_do_lines": 6,
+      "declared_region": {
+        "top_row": 68,
+        "bottom_row": 684,
+        "x0": 70,
+        "x1": 949
+      },
+      "on-first-system-all": {
+        "changed_pixels": 60119,
+        "changed_bbox": [
+          70,
+          217,
+          949,
+          634
+        ],
+        "pixels_outside_declared_region": 0,
+        "do_lines": 4,
+        "gaps": [
+          {
+            "rows": [
+              231,
+              277
+            ],
+            "staff_body_ink_pixels": 0,
+            "gap_core_ink_pixels": 0,
+            "header_edge_glyph_pixels_expected": 170,
+            "body_shape": [
+              47,
+              680
+            ],
+            "core_shape": [
+              15,
+              880
+            ]
+          }
+        ],
+        "expected_banded": true
+      },
+      "on-first-system-banded": {
+        "changed_pixels": 60119,
+        "changed_bbox": [
+          70,
+          217,
+          949,
+          634
+        ],
+        "pixels_outside_declared_region": 0,
+        "do_lines": 4,
+        "gaps": [
+          {
+            "rows": [
+              231,
+              277
+            ],
+            "staff_body_ink_pixels": 0,
+            "gap_core_ink_pixels": 0,
+            "header_edge_glyph_pixels_expected": 170,
+            "body_shape": [
+              47,
+              680
+            ],
+            "core_shape": [
+              15,
+              880
+            ]
+          }
+        ],
+        "expected_banded": true
+      }
+    }
+  },
+  "ok": true,
+  "failures": []
+}

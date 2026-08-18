@@ -311,7 +311,10 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StyleOnBandsLaterSystemsWithLabel
     delete score;
 }
 
-// (iv) First-system switch off: system 1 is banded too.
+// (iv) First-system switch off: system 1 is banded too, and the header time
+// signature (tick 0) sits inside a band — the band holding the stack's
+// vertical middle, or the band above the gap when the middle falls in it —
+// never in the gap and never below the stack.
 TEST_F(Engraving_JiMStaffM8BandElisionTests, m8FirstSystemSwitchOffBandsSystemOneToo)
 {
     MasterScore* score = ScoreRW::readScore(TWO_HAND);
@@ -326,6 +329,21 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8FirstSystemSwitchOffBandsSystemOn
         EXPECT_TRUE(v.banded);
         EXPECT_EQ(v.bands.size(), 2u);
         EXPECT_EQ(v.omittedPeriodCount, 3);
+    }
+    {
+        Measure* m1 = systems[0]->firstMeasure();
+        Segment* tsSeg = m1->findSegmentR(SegmentType::TimeSig, Fraction(0, 1));
+        ASSERT_TRUE(tsSeg);
+        EngravingItem* ts = tsSeg->element(0);
+        ASSERT_TRUE(ts && ts->isTimeSig());
+        const StaffType::JimsFrameView& v = viewOn(score, systems[0]);
+        const double ld = st(score)->lineDistance().val() * ts->spatium();
+        // The time signature's vertical centre, in line distances below the staff top.
+        const double centerLd = (ts->ldata()->pos().y() + ts->ldata()->bbox().center().y()) / ld;
+        const StaffType::JimsFrameBand& top = v.bands.back();
+        EXPECT_GE(centerLd, top.yTopLd - 0.5);
+        EXPECT_LE(centerLd, top.yTopLd + top.heightLd() + 0.5);
+        EXPECT_NEAR(centerLd, top.yTopLd + top.heightLd() / 2.0, 1.0);
     }
     setFirstSystemAll(score, true);
     EXPECT_FALSE(viewOn(score, measureSystems(score)[0]).banded);

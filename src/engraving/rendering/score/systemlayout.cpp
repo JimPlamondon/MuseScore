@@ -129,8 +129,43 @@ static void applyJimsBandOffsets(System* system, LayoutContext& ctx)
             if (!view.banded || view.bands.size() <= 1) {
                 continue;
             }
-            const double wholeTop = st->jimsWholeFrameView(score, staffIdx).topCents();
+            const StaffType::JimsFrameView& whole = st->jimsWholeFrameView(score, staffIdx);
+            const double wholeTop = whole.topCents();
             const double ld = st->lineDistance().val();
+            // The header time signature (tick 0) was centred on the whole-piece
+            // frame during measure layout (TLayout::layoutTimeSig); on a banded
+            // system move it into the band that holds the stack's vertical
+            // middle — or, when that middle falls in a gap, the band just above
+            // the gap — so it never sits in a gap or below the stack.
+            if (m->tick().isZero()) {
+                if (Segment* tsSeg = m->findSegmentR(SegmentType::TimeSig, Fraction(0, 1))) {
+                    if (EngravingItem* ts = tsSeg->element(staffIdx * VOICES); ts && ts->isTimeSig()) {
+                        const double wholeMidLd = (whole.topCents() - whole.bottomCents()) / 2.0
+                                                  / StaffType::JIMS_CENTS_PER_LINE_DISTANCE;
+                        const double midLd = view.heightLd() / 2.0;
+                        const StaffType::JimsFrameBand* target = nullptr;
+                        const StaffType::JimsFrameBand* above = nullptr;
+                        for (size_t i = view.bands.size(); i > 0; --i) {       // top to bottom
+                            const StaffType::JimsFrameBand& band = view.bands[i - 1];
+                            if (midLd < band.yTopLd) {
+                                target = above ? above : &band;                 // the middle fell in the gap above this band
+                                break;
+                            }
+                            if (midLd <= band.yTopLd + band.heightLd()) {
+                                target = &band;                                 // the middle lies inside this band
+                                break;
+                            }
+                            above = &band;
+                        }
+                        if (!target) {
+                            target = &view.bands.front();
+                        }
+                        const double targetMidLd = target->yTopLd + target->heightLd() / 2.0;
+                        ts->mutldata()->moveY((targetMidLd - wholeMidLd) * ld * ts->spatium());
+                        tsSeg->createShape(staffIdx);
+                    }
+                }
+            }
             for (Segment& seg : m->segments()) {
                 if (!seg.isChordRestType()) {
                     continue;
