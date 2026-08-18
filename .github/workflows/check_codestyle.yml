@@ -7,7 +7,7 @@ on:
       - jims/main
       - 'claude/**'
       - 'codex/**'
-  pull_request:
+  # musescore-jims: no pull_request trigger — the push trigger above already covers every branch a PR could come from (a PR would run this twice).
   workflow_dispatch:
 
 jobs:
