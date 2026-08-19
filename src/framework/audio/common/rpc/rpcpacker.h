@@ -383,14 +383,43 @@ inline void unpack_custom(muse::msgpack::UnPacker& p, muse::mpe::ArrangementCont
               value.voiceLayerIndex, value.staffLayerIndex, value.bps);
 }
 
+// PitchContext: the stock fields, then an OPTIONAL exact-pitch tail
+// (JiMStaff, JiMSynth VST3 workstream 2026-08-19). Encoding contract:
+//  - a context without exactPitch packs exactly as before (byte-identical to
+//    the pre-change encoding: nominalPitchLevel, pitchCurve — nothing else);
+//  - a context with exactPitch appends msgpack `true` (0xc3) followed by the
+//    six ExactPitch fields;
+//  - the reader peeks one byte after pitchCurve: 0xc3 can only be that tail
+//    (the next field of a NoteEvent, ExpressionContext::articulations, is a
+//    map; a standalone PitchContext is followed by end-of-stream), so an old
+//    payload (no tail) decodes as stock behaviour and a new payload with no
+//    tail is indistinguishable from an old one.
+// This msgpack is positional (no field tags), so a reader that predates the
+// tail cannot skip it; both ends of the audio RPC are always the same build.
 inline void pack_custom(muse::msgpack::Packer& p, const muse::mpe::PitchContext& value)
 {
     p.process(value.nominalPitchLevel, value.pitchCurve);
+    if (value.exactPitch.has_value()) {
+        const muse::mpe::ExactPitch& e = value.exactPitch.value();
+        p.process(true);
+        p.process(e.frequencyHz, e.centsOffset, e.midiKey, e.nPer, e.nGen, e.hasLattice);
+    }
 }
 
 inline void unpack_custom(muse::msgpack::UnPacker& p, muse::mpe::PitchContext& value)
 {
     p.process(value.nominalPitchLevel, value.pitchCurve);
+    value.exactPitch = std::nullopt;
+    muse::msgpack::Cursor& cursor = p.cursor();
+    if (!cursor.error && cursor.remain() > 0 && cursor.data() == 0xc3) {
+        bool tag = false;
+        muse::mpe::ExactPitch e;
+        p.process(tag);
+        p.process(e.frequencyHz, e.centsOffset, e.midiKey, e.nPer, e.nGen, e.hasLattice);
+        if (p.success()) {
+            value.exactPitch = e;
+        }
+    }
 }
 
 inline void pack_custom(muse::msgpack::Packer& p, const muse::mpe::ArrangementPattern& value)

@@ -28,6 +28,8 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#include <cmath>
+#include <optional>
 #include <set>
 
 #include "engraving/dom/chord.h"
@@ -82,6 +84,38 @@ protected:
             }
         }
         return out;
+    }
+
+    /// The exact-pitch field of every NoteEvent, in event order (JiMSynth
+    /// VST3 workstream: the lossless Kernel answer beside the pitch level).
+    std::vector<std::optional<ExactPitch> > exactPitches(Score* score)
+    {
+        PlaybackModel model(modularity::globalCtx());
+        model.profilesRepository.set(m_repositoryMock);
+        model.load(score);
+        const Part* part = score->parts().at(0);
+        const PlaybackEventsMap& events = model.resolveTrackPlaybackData(part->id(), part->instrumentId()).originEvents;
+        std::vector<std::optional<ExactPitch> > out;
+        for (const auto& pair : events) {
+            for (const PlaybackEvent& ev : pair.second) {
+                if (std::holds_alternative<muse::mpe::NoteEvent>(ev)) {
+                    out.push_back(std::get<muse::mpe::NoteEvent>(ev).pitchCtx().exactPitch);
+                }
+            }
+        }
+        return out;
+    }
+
+    /// The Kernel's fresh sounding-pitch answer for a JiMS note (the oracle
+    /// for the exact-pitch field).
+    static jims::SoundingPitch kernelSoundingPitch(const Note* note)
+    {
+        const StaffType* st = note->staff()->staffTypeForElement(note);
+        EXPECT_TRUE(st && st->isJiMS());
+        jims::SoundingPitch sp;
+        String err;
+        EXPECT_TRUE(jims::noteSoundingPitch(st->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), sp, &err)) << err.toStdString();
+        return sp;
     }
 
     /// The Kernel's expected pitch level for a JiMS note in the section
@@ -158,6 +192,50 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, m7PlaybackUsesKernelPitchForDefaultAnd
     // Falsification anchor: bar 2's C-identity note (C5 spelling) must NOT
     // play its 12-TET compatibility pitch under reference 53.
     EXPECT_NE(levels[4], notePitchLevel(notes[4]->tpc(), notes[4]->octave(), notes[4]->tuning()));
+    delete score;
+}
+
+// JiMSynth VST3 workstream (2026-08-19): every lattice-identified JiMS note's
+// NoteEvent carries the Kernel's exact sounding pitch — the same fresh
+// note_sounding_pitch answer, lossless (frequency, transport key, full
+// residual cents) plus the note's lattice identity — beside the integer
+// pitch level; never reconstructed downstream.
+TEST_F(Engraving_JiMStaffM7PlaybackTests, jimsynthJimsNotesCarryTheExactKernelPitchAndLatticeIdentity)
+{
+    Score* score = ScoreRW::readScore(M7_GATE);
+    ASSERT_TRUE(score);
+    score->doLayout();
+    std::vector<Note*> notes = notesOf(score);
+    ASSERT_EQ(notes.size(), 12u);
+    std::vector<std::optional<ExactPitch> > exact = exactPitches(score);
+    ASSERT_EQ(exact.size(), notes.size());
+    for (size_t i = 0; i < notes.size(); ++i) {
+        ASSERT_TRUE(exact[i].has_value()) << "note " << i;
+        const jims::SoundingPitch sp = kernelSoundingPitch(notes[i]);
+        EXPECT_DOUBLE_EQ(exact[i]->frequencyHz, sp.frequencyHz) << "note " << i;
+        EXPECT_EQ(exact[i]->midiKey, sp.midiKey) << "note " << i;
+        EXPECT_DOUBLE_EQ(exact[i]->centsOffset, sp.centsOffset) << "note " << i;
+        EXPECT_EQ(exact[i]->hasLattice, 1);
+        EXPECT_EQ(exact[i]->nPer, notes[i]->jimsNPer());
+        EXPECT_EQ(exact[i]->nGen, notes[i]->jimsNGen());
+        // Transport precision: key + full cents recover the Kernel frequency
+        // within 0.01 cent (the pitch-level grid alone cannot: 2-cent steps).
+        const double hz = 440.0 * std::pow(2.0, (exact[i]->midiKey - 69 + exact[i]->centsOffset / 100.0) / 12.0);
+        EXPECT_NEAR(1200.0 * std::log2(hz / sp.frequencyHz), 0.0, 0.01) << "note " << i;
+    }
+    delete score;
+}
+
+TEST_F(Engraving_JiMStaffM7PlaybackTests, jimsynthStockNotesCarryNoExactPitch)
+{
+    Score* score = ScoreRW::readScore(u"playback/playbackmodel_data/repeat_range/repeat_range.mscx");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    std::vector<std::optional<ExactPitch> > exact = exactPitches(score);
+    ASSERT_FALSE(exact.empty());
+    for (const auto& e : exact) {
+        EXPECT_FALSE(e.has_value()) << "stock events stay byte-equivalent: no exact-pitch field";
+    }
     delete score;
 }
 

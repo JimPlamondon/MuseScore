@@ -22,6 +22,8 @@
 
 #include "vstsequencer.h"
 
+#include <unordered_map>
+
 #include "global/interpolation.h"
 
 using namespace muse;
@@ -44,13 +46,33 @@ static const mpe::ArticulationTypeSet BEND_SUPPORTED_TYPES {
     mpe::ArticulationType::Multibend, mpe::ArticulationType::ContinuousGlissando,
 };
 
-void VstSequencer::init(ParamsMapping&& mapping, bool useDynamicEvents)
+void VstSequencer::init(ParamsMapping&& mapping, bool useDynamicEvents, const VstNoteExpressionCapabilities& capabilities)
 {
     m_mapping = std::move(mapping);
     m_useDynamicEvents = useDynamicEvents;
+    m_capabilities = capabilities;
     m_inited = true;
 
     updateMainStreamEvents(m_playbackData.originEvents, m_playbackData.dynamics);
+}
+
+int32_t VstSequencer::allocateNoteId()
+{
+    const int32_t id = m_nextNoteId;
+    if (m_nextNoteId >= MAX_NOTE_ID) {
+        // Wrap only after every sounding note has been released under its own
+        // id: the flush callbacks end the active notes before ids are reused.
+        if (m_onMainStreamFlushed) {
+            m_onMainStreamFlushed();
+        }
+        if (m_onOffStreamFlushed) {
+            m_onOffStreamFlushed();
+        }
+        m_nextNoteId = 0;
+    } else {
+        ++m_nextNoteId;
+    }
+    return id;
 }
 
 void VstSequencer::updateOffStreamEvents(const mpe::PlaybackEventsMap& events, const mpe::DynamicLevelLayers& dynamics)
@@ -126,17 +148,32 @@ void VstSequencer::addNoteEvent(EventSequenceMap& destination, const mpe::NoteEv
                                 SostenutoTimeAndDurations& sostenutoTimeAndDurations)
 {
     const mpe::ArrangementContext& arrangementCtx = noteEvent.arrangementCtx();
-    const int32_t noteId = noteIndex(noteEvent.pitchCtx().nominalPitchLevel);
+    // JiMSynth VST3 workstream: the VST3 note identifier is its own unique,
+    // monotonic value — never the pitch index (the stock code wrote -1).
+    const int32_t noteId = allocateNoteId();
+    const std::optional<mpe::ExactPitch>& exact = noteEvent.pitchCtx().exactPitch;
+    // A lattice-identified JiMS note carries its exact sounding pitch: the
+    // Note On uses the Kernel's nearest key and the FULL residual cents
+    // instead of the 2-cent pitch-level grid; stock notes keep the stock
+    // construction byte for byte.
+    const int32_t noteIdx = exact.has_value() ? std::clamp(exact->midiKey, 0, 127)
+                            : noteIndex(noteEvent.pitchCtx().nominalPitchLevel);
     const float velocityFraction = noteVelocityFraction(noteEvent);
-    const float tuning = noteTuning(noteEvent, noteId);
+    const float tuning = exact.has_value() ? static_cast<float>(exact->centsOffset) : noteTuning(noteEvent, noteIdx);
 
     if (arrangementCtx.hasStart()) {
-        destination[arrangementCtx.actualTimestamp].emplace_back(buildEvent(VstEvent::kNoteOnEvent, noteId, velocityFraction, tuning));
+        destination[arrangementCtx.actualTimestamp].emplace_back(buildEvent(VstEvent::kNoteOnEvent, noteIdx, velocityFraction,
+                                                                            tuning, noteId));
+        // Lattice identity travels only to a plug-in that advertises BOTH
+        // frozen custom types, once, at the Note On offset, under the same id.
+        if (exact.has_value() && exact->hasLattice && m_capabilities.jimsLattice) {
+            addLatticeIdentity(destination, arrangementCtx.actualTimestamp, *exact, noteId);
+        }
     }
 
     if (arrangementCtx.hasEnd()) {
         const mpe::timestamp_t timestampTo = arrangementCtx.actualTimestamp + noteEvent.arrangementCtx().actualDuration;
-        destination[timestampTo].emplace_back(buildEvent(VstEvent::kNoteOffEvent, noteId, velocityFraction, tuning));
+        destination[timestampTo].emplace_back(buildEvent(VstEvent::kNoteOffEvent, noteIdx, velocityFraction, tuning, noteId));
     }
 
     for (const auto& artPair : noteEvent.expressionCtx().articulations) {
@@ -147,7 +184,14 @@ void VstSequencer::addNoteEvent(EventSequenceMap& destination, const mpe::NoteEv
         const mpe::ArticulationMeta& meta = artPair.second.meta;
 
         if (!noteEvent.pitchCtx().pitchCurve.empty() && muse::contains(BEND_SUPPORTED_TYPES, meta.type)) {
-            addPitchCurve(destination, noteEvent, meta);
+            if (m_capabilities.tuning) {
+                // The plug-in advertises the standard per-note tuning
+                // expression: the curve goes to THIS note only; the global
+                // pitch-bend parameter is never used for it.
+                addTuningExpressionCurve(destination, noteEvent, meta, noteId);
+            } else {
+                addPitchCurve(destination, noteEvent, meta, noteId);
+            }
             continue;
         }
 
@@ -219,8 +263,10 @@ void VstSequencer::addParamChange(EventSequenceMap& destination, const mpe::time
 }
 
 void VstSequencer::addPitchCurve(EventSequenceMap& destination, const mpe::NoteEvent& noteEvent,
-                                 const mpe::ArticulationMeta& artMeta)
+                                 const mpe::ArticulationMeta& artMeta, const int32_t /*noteId*/)
 {
+    // Stock compatibility path for plug-ins WITHOUT the standard per-note
+    // tuning expression: the curve rides the global pitch-bend parameter.
     auto pitchBendIt = m_mapping.find(PITCH_BEND_IDX);
     if (pitchBendIt == m_mapping.cend()) {
         return;
@@ -272,6 +318,87 @@ void VstSequencer::addPitchCurve(EventSequenceMap& destination, const mpe::NoteE
     }
 }
 
+void VstSequencer::addTuningExpressionCurve(EventSequenceMap& destination, const mpe::NoteEvent& noteEvent,
+                                            const mpe::ArticulationMeta& artMeta, const int32_t noteId)
+{
+    // Same interpolation as the global-bend path, but every point becomes a
+    // kTuningTypeID note expression paired to this note's id at its original
+    // timestamp. VST3 kTuningTypeID: normalized = 0.5 + cents / 24000.
+    const mpe::timestamp_t noteTimestampTo = noteEvent.arrangementCtx().actualTimestamp + noteEvent.arrangementCtx().actualDuration;
+    const mpe::timestamp_t curveTimestampTo = std::min(artMeta.timestamp + artMeta.overallDuration, noteTimestampTo);
+
+    auto currIt = noteEvent.pitchCtx().pitchCurve.cbegin();
+    auto nextIt = std::next(currIt);
+    auto endIt = noteEvent.pitchCtx().pitchCurve.cend();
+
+    auto tuningNormalized = [](const mpe::pitch_level_t pitchLevelOffset) {
+        const double cents = (pitchLevelOffset / static_cast<double>(mpe::PITCH_LEVEL_STEP)) * 100.0;
+        return 0.5 + cents / 24000.0;
+    };
+
+    double prevValue = -1.0;
+
+    // A single-point curve still states the note's offset at its start.
+    if (nextIt == endIt && currIt != endIt) {
+        const double value = tuningNormalized(currIt->second);
+        destination[artMeta.timestamp].push_back(buildNoteExpressionEvent(Steinberg::Vst::kTuningTypeID, noteId, value));
+        return;
+    }
+
+    for (; nextIt != endIt; currIt = nextIt, nextIt = std::next(currIt)) {
+        const double currValue = tuningNormalized(currIt->second);
+        const double nextValue = tuningNormalized(nextIt->second);
+
+        const mpe::timestamp_t currTime = artMeta.timestamp + artMeta.overallDuration * mpe::percentageToFactor(currIt->first);
+        const mpe::timestamp_t nextTime = artMeta.timestamp + artMeta.overallDuration * mpe::percentageToFactor(nextIt->first);
+
+        using namespace muse::interpolation;
+        const Point currPoint { static_cast<double>(currTime), currValue };
+        const Point nextPoint { static_cast<double>(nextTime), nextValue };
+
+        constexpr mpe::pitch_level_t POINT_WEIGHT = mpe::PITCH_LEVEL_STEP / 25;
+        size_t pointCount = std::abs(nextIt->second - currIt->second) / POINT_WEIGHT;
+        pointCount = std::max(pointCount, size_t(1));
+
+        const std::vector<Point> points = lerp(currPoint, nextPoint, pointCount);
+
+        for (const Point& point : points) {
+            const mpe::timestamp_t time = static_cast<mpe::timestamp_t>(std::round(point.x));
+            const double value = point.y;
+
+            if (time < curveTimestampTo && !RealIsEqual(prevValue, value)) {
+                destination[time].push_back(buildNoteExpressionEvent(Steinberg::Vst::kTuningTypeID, noteId, value));
+            }
+
+            prevValue = value;
+        }
+    }
+}
+
+void VstSequencer::addLatticeIdentity(EventSequenceMap& destination, const mpe::timestamp_t timestamp,
+                                      const mpe::ExactPitch& exact, const int32_t noteId)
+{
+    // VST3 discrete-step encoding over the plug-in-declared domain:
+    // normalized = (coord - min) / stepCount. A coordinate outside the
+    // declared domain sends NO identity (explicit non-JiMS fallback; the
+    // exact pitch itself still travels in the Note On).
+    const auto encode = [](const int32_t coord, const int32_t min, const int32_t stepCount, double& out) {
+        if (stepCount <= 0 || coord < min || coord > min + stepCount) {
+            return false;
+        }
+        out = static_cast<double>(coord - min) / static_cast<double>(stepCount);
+        return true;
+    };
+    double nPer = 0.0;
+    double nGen = 0.0;
+    if (!encode(exact.nPer, m_capabilities.nPerMin, m_capabilities.nPerStepCount, nPer)
+        || !encode(exact.nGen, m_capabilities.nGenMin, m_capabilities.nGenStepCount, nGen)) {
+        return;
+    }
+    destination[timestamp].push_back(buildNoteExpressionEvent(JIMS_NOTE_EXPRESSION_NPER, noteId, nPer));
+    destination[timestamp].push_back(buildNoteExpressionEvent(JIMS_NOTE_EXPRESSION_NGEN, noteId, nGen));
+}
+
 void VstSequencer::addSostenutoEvents(EventSequenceMap& destination, const SostenutoTimeAndDurations& sostenutoTimeAndDurations)
 {
     for (size_t i = 0; i < sostenutoTimeAndDurations.size(); ++i) {
@@ -294,6 +421,11 @@ void VstSequencer::addSostenutoEvents(EventSequenceMap& destination, const Soste
 
 //! Hack to make keyswitches work until we have proper UI support
 //! see: https://github.com/musescore/MuseScore/issues/32150
+//!
+//! JiMSynth VST3 workstream: per-note expression events (lattice identity,
+//! tuning) that share a timestamp with their Note On travel WITH it — they
+//! are grouped behind the Note On of the same id before the pitch sort, so a
+//! plug-in always sees the Note On before the note's expressions.
 void VstSequencer::sortNoteOnEventsByPitch(EventSequenceMap& destination)
 {
     for (auto& [_, seq] : destination) {
@@ -301,25 +433,64 @@ void VstSequencer::sortNoteOnEventsByPitch(EventSequenceMap& destination)
             continue;
         }
 
-        std::stable_sort(seq.begin(), seq.end(), [](const EventType& e1, const EventType& e2) {
-            if (!std::holds_alternative<VstEvent>(e1) || !std::holds_alternative<VstEvent>(e2)) {
-                return false;
+        struct Group {
+            bool isNoteOn = false;
+            int pitch = 0;
+            int32_t noteId = -1;
+            std::vector<EventType> items;
+        };
+
+        std::vector<Group> groups;
+        groups.reserve(seq.size());
+
+        // Note Ons open groups; expressions join the group of their id.
+        std::unordered_map<int32_t, size_t> groupOfId;
+        for (const EventType& e : seq) {
+            if (std::holds_alternative<VstEvent>(e)) {
+                const VstEvent& ve = std::get<VstEvent>(e);
+                if (ve.type == VstEvent::kNoteOnEvent) {
+                    Group g;
+                    g.isNoteOn = true;
+                    g.pitch = ve.noteOn.pitch;
+                    g.noteId = ve.noteOn.noteId;
+                    g.items.push_back(e);
+                    if (ve.noteOn.noteId >= 0) {
+                        groupOfId[ve.noteOn.noteId] = groups.size();
+                    }
+                    groups.push_back(std::move(g));
+                    continue;
+                }
+                if (ve.type == VstEvent::kNoteExpressionValueEvent && ve.noteExpressionValue.noteId >= 0) {
+                    auto it = groupOfId.find(ve.noteExpressionValue.noteId);
+                    if (it != groupOfId.end()) {
+                        groups[it->second].items.push_back(e);
+                        continue;
+                    }
+                }
             }
+            Group g;
+            g.items.push_back(e);
+            groups.push_back(std::move(g));
+        }
 
-            const VstEvent& ve1 = std::get<VstEvent>(e1);
-            const VstEvent& ve2 = std::get<VstEvent>(e2);
-
-            if (ve1.type == VstEvent::kNoteOnEvent && ve2.type == VstEvent::kNoteOnEvent) {
-                return ve1.noteOn.pitch < ve2.noteOn.pitch;
+        std::stable_sort(groups.begin(), groups.end(), [](const Group& g1, const Group& g2) {
+            if (g1.isNoteOn && g2.isNoteOn) {
+                return g1.pitch < g2.pitch;
             }
-
             return false;
         });
+
+        seq.clear();
+        for (Group& g : groups) {
+            for (EventType& e : g.items) {
+                seq.push_back(std::move(e));
+            }
+        }
     }
 }
 
 VstEvent VstSequencer::buildEvent(const VstEvent::EventTypes type, const int32_t noteIdx, const float velocityFraction,
-                                  const float tuning) const
+                                  const float tuning, const int32_t noteId) const
 {
     VstEvent result;
 
@@ -330,18 +501,36 @@ VstEvent VstSequencer::buildEvent(const VstEvent::EventTypes type, const int32_t
     result.type = type;
 
     if (type == VstEvent::kNoteOnEvent) {
-        result.noteOn.noteId = -1;
+        result.noteOn.noteId = noteId;
         result.noteOn.channel = 0;
         result.noteOn.pitch = noteIdx;
         result.noteOn.tuning = tuning;
         result.noteOn.velocity = velocityFraction;
+        result.noteOn.length = 0;
     } else {
-        result.noteOff.noteId = -1;
+        result.noteOff.noteId = noteId;
         result.noteOff.channel = 0;
         result.noteOff.pitch = noteIdx;
         result.noteOff.tuning = tuning;
         result.noteOff.velocity = velocityFraction;
     }
+
+    return result;
+}
+
+VstEvent VstSequencer::buildNoteExpressionEvent(const Steinberg::Vst::NoteExpressionTypeID typeId, const int32_t noteId,
+                                                const double normalizedValue) const
+{
+    VstEvent result;
+
+    result.busIndex = 0;
+    result.sampleOffset = 0;
+    result.ppqPosition = 0;
+    result.flags = VstEvent::kIsLive;
+    result.type = VstEvent::kNoteExpressionValueEvent;
+    result.noteExpressionValue.typeId = typeId;
+    result.noteExpressionValue.noteId = noteId;
+    result.noteExpressionValue.value = std::clamp(normalizedValue, 0.0, 1.0);
 
     return result;
 }

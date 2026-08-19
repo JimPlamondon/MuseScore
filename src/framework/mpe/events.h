@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include <optional>
 #include <variant>
 #include <vector>
 
@@ -67,15 +68,48 @@ struct ArrangementContext
     }
 };
 
+/// JiMStaff (JiMSynth VST3 workstream, 2026-08-19): the exact sounding pitch
+/// of a lattice-identified JiMS note — the Kernel's `note_sounding_pitch`
+/// answer carried losslessly beside the integer `nominalPitchLevel`, so a
+/// VST3 instrument receives the note without the pitch-level grid's 2-cent
+/// quantization. `midiKey` + `centsOffset` are the note's transport form
+/// (nearest key + full residual cents), never its identity; the optional
+/// lattice pair is the identity. Stock notes never carry this.
+struct ExactPitch
+{
+    // Field order is padding-free (32 bytes) so the RPC field-size audit in
+    // the packer tests holds on every platform.
+    double frequencyHz = 0.0;
+    double centsOffset = 0.0;
+    int32_t midiKey = 0;
+    int32_t nPer = 0;
+    int32_t nGen = 0;
+    int32_t hasLattice = 0; // 0 = no lattice identity, 1 = (nPer, nGen) valid
+
+    bool operator==(const ExactPitch& other) const
+    {
+        return frequencyHz == other.frequencyHz
+               && centsOffset == other.centsOffset
+               && midiKey == other.midiKey
+               && nPer == other.nPer
+               && nGen == other.nGen
+               && hasLattice == other.hasLattice;
+    }
+};
+
 struct PitchContext
 {
     pitch_level_t nominalPitchLevel = 0;
     PitchCurve pitchCurve;
+    /// Present only for a lattice-identified JiMS note (see ExactPitch);
+    /// every stock consumer ignores it and every stock event leaves it empty.
+    std::optional<ExactPitch> exactPitch;
 
     bool operator==(const PitchContext& other) const
     {
         return nominalPitchLevel == other.nominalPitchLevel
-               && pitchCurve == other.pitchCurve;
+               && pitchCurve == other.pitchCurve
+               && exactPitch == other.exactPitch;
     }
 };
 
@@ -117,7 +151,8 @@ struct NoteEvent
                        const ArticulationMap& articulationsApplied,
                        const double bps,
                        const float requiredVelocityFraction = 0.f,
-                       const PitchCurve& requiredPitchCurve = {})
+                       const PitchCurve& requiredPitchCurve = {},
+                       const std::optional<ExactPitch>& exactPitch = std::nullopt)
     {
         m_arrangementCtx.nominalDuration = nominalDuration;
         m_arrangementCtx.nominalTimestamp = nominalTimestamp;
@@ -126,6 +161,7 @@ struct NoteEvent
         m_arrangementCtx.bps = bps;
 
         m_pitchCtx.nominalPitchLevel = nominalPitchLevel;
+        m_pitchCtx.exactPitch = exactPitch;
 
         m_expressionCtx.articulations = articulationsApplied;
         m_expressionCtx.nominalDynamicLevel = nominalDynamicLevel;

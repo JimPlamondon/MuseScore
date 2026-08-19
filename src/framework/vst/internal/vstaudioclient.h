@@ -25,6 +25,7 @@
 
 #include "../ivstplugininstance.h"
 #include "../vsttypes.h"
+#include "vstactivenotes.h"
 
 #include "modularity/ioc.h"
 #include "audio/engine/itransporteventsdispatcher.h"
@@ -57,6 +58,12 @@ public:
     audio::samples_t process(float* output, audio::samples_t samplesPerChannel, audio::samples_t playbackPositionSamples = 0);
 
     ParamsMapping paramsMapping(const std::set<Steinberg::Vst::CtrlNumber>& controllers) const;
+
+    //! JiMSynth VST3 workstream: what the plug-in advertises through
+    //! INoteExpressionController on event bus 0 / channel 0 (standard
+    //! per-note tuning, and both frozen JiMS lattice types with their
+    //! declared discrete-step domains). Absent interface → everything false.
+    VstNoteExpressionCapabilities noteExpressionCapabilities() const;
 
 private:
     IAudioProcessorPtr pluginProcessor() const;
@@ -94,7 +101,7 @@ private:
     VstProcessContext m_processContext;
     VstProcessMode m_processMode = VstProcessMode::kRealtime;
 
-    std::unordered_map<size_t, VstEvent> m_playingNotes;
+    VstActiveNotes m_playingNotes;
     std::vector<PluginParamId> m_playingParams;
 
     std::unordered_map<PluginParamId, PluginParamInfo> m_pluginParamInfoMap;

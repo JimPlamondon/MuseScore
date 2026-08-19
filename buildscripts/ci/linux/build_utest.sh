@@ -55,6 +55,10 @@ fi
 
 echo "=== BUILD ==="
 
+# musescore-jims (JiMSynth VST3 workstream, 2026-08-19): build the VST module
+# in the unit-test configuration too, so muse_vst_tests (note identity, exact
+# JiMS pitch, note expressions) compile and run in CI.
+
 MUSESCORE_REVISION=$(git rev-parse --short=7 HEAD)
 
 MUSESCORE_BUILD_CONFIGURATION=utest \
@@ -63,6 +67,7 @@ MUSESCORE_BUILD_NUMBER=$BUILD_NUMBER \
 MUSESCORE_REVISION=$MUSESCORE_REVISION \
 MUSESCORE_DOWNLOAD_SOUNDFONT=OFF \
 MUSESCORE_BUILD_UNIT_TESTS=ON \
+MUSESCORE_BUILD_VST_MODULE=ON \
 MUSESCORE_UNIT_TESTS_ENABLE_CODE_COVERAGE=$TESTS_ENABLE_CODE_COVERAGE \
 MUSESCORE_COMPILE_USE_UNITY=$TESTS_COMPILE_USE_UNITY \
 bash ./ninja_build.sh -t installdebug

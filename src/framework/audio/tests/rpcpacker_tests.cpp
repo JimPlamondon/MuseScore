@@ -21,6 +21,8 @@
  */
 #include <gtest/gtest.h>
 
+#include <cstring>
+
 #pragma pack(push, 1)
 #include "audio/common/audiotypes.h"
 #pragma pack(pop)
@@ -443,7 +445,8 @@ TEST_F(Audio_RpcPackerTests, MPE_PitchContext)
 
     KNOWN_FIELDS(origin,
                  origin.nominalPitchLevel,
-                 origin.pitchCurve);
+                 origin.pitchCurve,
+                 origin.exactPitch);
 
     ByteArray data = rpc::RpcPacker::pack(origin);
 
@@ -452,6 +455,52 @@ TEST_F(Audio_RpcPackerTests, MPE_PitchContext)
 
     EXPECT_TRUE(ok);
     EXPECT_TRUE(origin == unpacked);
+    EXPECT_FALSE(unpacked.exactPitch.has_value());
+}
+
+// musescore-jims (JiMSynth VST3 workstream, 2026-08-19): the optional exact
+// JiMS pitch rides an optional tail that round-trips and leaves stock
+// payloads byte-identical (the four writer/reader directions are exercised
+// in src/framework/vst/tests/vstexactpitchrpc_tests.cpp).
+TEST_F(Audio_RpcPackerTests, MPE_PitchContext_ExactPitch)
+{
+    mpe::PitchContext origin = makePitchContext();
+    const ByteArray stockBytes = rpc::RpcPacker::pack(origin);
+
+    mpe::ExactPitch exact;
+    exact.frequencyHz = 293.66476791740757;
+    exact.midiKey = 62;
+    exact.centsOffset = -0.0000123;
+    exact.hasLattice = 1;
+    exact.nPer = -1;
+    exact.nGen = 3;
+    origin.exactPitch = exact;
+
+    KNOWN_FIELDS(exact,
+                 exact.frequencyHz,
+                 exact.centsOffset,
+                 exact.midiKey,
+                 exact.nPer,
+                 exact.nGen,
+                 exact.hasLattice);
+
+    ByteArray data = rpc::RpcPacker::pack(origin);
+    EXPECT_GT(data.size(), stockBytes.size());
+    EXPECT_EQ(std::memcmp(data.constData(), stockBytes.constData(), stockBytes.size()), 0) << "stock prefix unchanged";
+
+    mpe::PitchContext unpacked;
+    bool ok = rpc::RpcPacker::unpack(data, unpacked);
+
+    EXPECT_TRUE(ok);
+    EXPECT_TRUE(origin == unpacked);
+    ASSERT_TRUE(unpacked.exactPitch.has_value());
+    EXPECT_DOUBLE_EQ(unpacked.exactPitch->frequencyHz, exact.frequencyHz);
+    EXPECT_EQ(unpacked.exactPitch->nGen, 3);
+
+    // A stock payload (no tail) still decodes as stock.
+    mpe::PitchContext stock;
+    EXPECT_TRUE(rpc::RpcPacker::unpack(stockBytes, stock));
+    EXPECT_FALSE(stock.exactPitch.has_value());
 }
 
 TEST_F(Audio_RpcPackerTests, MPE_ArrangementPattern)

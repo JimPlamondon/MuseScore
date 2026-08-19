@@ -21,6 +21,8 @@
  */
 #pragma once
 
+#include <optional>
+
 #include "mpe/events.h"
 
 #include "../dom/chord.h"
@@ -109,6 +111,16 @@ struct NominalNoteCtx {
     muse::mpe::dynamic_level_t dynamicLevel = 0;
     float userVelocityFraction = 0.f;
 
+    /// JiMStaff (JiMSynth VST3 workstream): the exact sounding pitch of a
+    /// lattice-identified JiMS note from the same fresh Kernel call that
+    /// produces `pitchLevel` (declared before it so the call below can fill
+    /// it), plus the pitch level it belongs to. Renderers that derive
+    /// sub-notes by moving `pitchLevel` (ornaments, bends, glissandi)
+    /// automatically lose it — see buildNoteEvent — so the exact pitch is
+    /// never reconstructed or re-attached downstream.
+    std::optional<muse::mpe::ExactPitch> exactPitch;
+    muse::mpe::pitch_level_t exactPitchLevel = 0;
+
     muse::mpe::pitch_level_t pitchLevel = 0;
 
     RenderingContext chordCtx;
@@ -122,10 +134,13 @@ struct NominalNoteCtx {
         tempo(ctx.beatsPerSecond),
         dynamicLevel(ctx.nominalDynamicLevel),
         userVelocityFraction(note->userVelocityFraction()),
-        pitchLevel(nominalPitchLevelOf(note)),
+        exactPitch(std::nullopt),
+        exactPitchLevel(0),
+        pitchLevel(nominalPitchLevelOf(note, &exactPitch)),
         chordCtx(ctx),
         articulations(ctx.commonArticulations)
     {
+        exactPitchLevel = pitchLevel;
     }
 
     /// The nominal pitch level of a note. JiMStaff Milestone 7 (owner
@@ -134,7 +149,8 @@ struct NominalNoteCtx {
     /// note_sounding_pitch answer, resolved per note against the staff
     /// type in force at that element, uncached, on every rebuild. Every
     /// other note keeps the stock construction byte-identical.
-    static muse::mpe::pitch_level_t nominalPitchLevelOf(const Note* note)
+    static muse::mpe::pitch_level_t nominalPitchLevelOf(const Note* note,
+                                                        std::optional<muse::mpe::ExactPitch>* exactPitch = nullptr)
     {
         if (note->hasJimsPitch() && note->staff()) {
             const StaffType* st = note->staff()->staffTypeForElement(note);
@@ -142,6 +158,19 @@ struct NominalNoteCtx {
                 jims::SoundingPitch sp;
                 muse::String error;
                 if (jims::noteSoundingPitch(st->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), sp, &error)) {
+                    if (exactPitch) {
+                        // The same Kernel answer, lossless: frequency, the
+                        // transport key + full residual cents, and the
+                        // lattice identity (JiMSynth VST3 workstream).
+                        muse::mpe::ExactPitch exact;
+                        exact.frequencyHz = sp.frequencyHz;
+                        exact.midiKey = sp.midiKey;
+                        exact.centsOffset = sp.centsOffset;
+                        exact.hasLattice = 1;
+                        exact.nPer = note->jimsNPer();
+                        exact.nGen = note->jimsNGen();
+                        *exactPitch = exact;
+                    }
                     return jimsPitchLevelFromMidi(sp.midiKey, sp.centsOffset);
                 }
                 // Explicit degraded path (never a silent wrong pitch): the
@@ -156,6 +185,11 @@ struct NominalNoteCtx {
 
 inline muse::mpe::NoteEvent buildNoteEvent(const NominalNoteCtx& ctx, const muse::mpe::PitchCurve& pitchCurve = {})
 {
+    // The exact pitch belongs to the pitch level it was captured with; a
+    // renderer that moved `pitchLevel` (a derived ornament/bend/glissando
+    // sub-note) gets a stock event — nothing is reconstructed downstream.
+    const std::optional<muse::mpe::ExactPitch> exactPitch
+        = (ctx.exactPitch.has_value() && ctx.pitchLevel == ctx.exactPitchLevel) ? ctx.exactPitch : std::nullopt;
     return muse::mpe::NoteEvent(ctx.timestamp,
                                 ctx.duration,
                                 static_cast<muse::mpe::voice_layer_idx_t>(ctx.voiceIdx),
@@ -165,6 +199,7 @@ inline muse::mpe::NoteEvent buildNoteEvent(const NominalNoteCtx& ctx, const muse
                                 ctx.articulations,
                                 ctx.tempo.val,
                                 ctx.userVelocityFraction,
-                                pitchCurve);
+                                pitchCurve,
+                                exactPitch);
 }
 }

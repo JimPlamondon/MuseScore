@@ -21,6 +21,8 @@
  */
 #include "vstaudioclient.h"
 
+#include <cmath>
+
 #include "log.h"
 
 using namespace muse;
@@ -30,13 +32,6 @@ using namespace muse::audio;
 using namespace muse::audio::engine;
 using namespace muse::audioplugins;
 using namespace muse::midiremote;
-
-static size_t noteEventKey(int pitch, int channel)
-{
-    std::size_t h1 = std::hash<int> {}(pitch);
-    std::size_t h2 = std::hash<int> {}(channel);
-    return h1 ^ (h2 << 1);
-}
 
 static std::optional<TransportEvent> mmcToTransportEvent(const IMMCDecoderPtr& decoder, const MMCMessage& msg)
 {
@@ -176,12 +171,14 @@ bool VstAudioClient::handleEvent(const VstEvent& event)
 {
     ensureActivity();
 
+    // JiMSynth VST3 workstream: active notes are keyed by their VST3 note
+    // identifier (pitch/channel only for legacy events with noteId < 0), so
+    // overlapping unisons with distinct ids are tracked — and released —
+    // separately. Note-expression events pass straight through.
     if (event.type == VstEvent::kNoteOnEvent) {
-        size_t key = noteEventKey(event.noteOn.pitch, event.noteOn.channel);
-        m_playingNotes.insert_or_assign(key, event);
+        m_playingNotes.noteOn(event);
     } else if (event.type == VstEvent::kNoteOffEvent) {
-        size_t key = noteEventKey(event.noteOff.pitch, event.noteOff.channel);
-        m_playingNotes.erase(key);
+        m_playingNotes.noteOff(event);
     }
 
     if (m_inputEvents.addEvent(const_cast<VstEvent&>(event)) == Steinberg::kResultTrue) {
@@ -212,23 +209,10 @@ void VstAudioClient::flushSound()
     m_inputEvents.clear();
     m_inputParamChanges.clearQueue();
 
-    for (const auto& pair : m_playingNotes) {
-        const VstEvent& noteOn = pair.second;
-
-        VstEvent noteOff;
-        noteOff.type = VstEvent::kNoteOffEvent;
-        noteOff.ppqPosition = 0;
-        noteOff.sampleOffset = 0;
-        noteOff.busIndex = noteOn.busIndex;
-        noteOff.flags = noteOn.flags;
-        noteOff.noteOff.noteId = noteOn.noteOn.noteId;
-        noteOff.noteOff.channel = noteOn.noteOn.channel;
-        noteOff.noteOff.pitch = noteOn.noteOn.pitch;
-        noteOff.noteOff.tuning = noteOn.noteOn.tuning;
-        noteOff.noteOff.velocity = noteOn.noteOn.velocity;
-
-        m_inputEvents.addEvent(noteOff);
-    }
+    // Every sounding note ends under its own id (the paired Note Off).
+    m_playingNotes.flush([this](const VstEvent& noteOff) {
+        m_inputEvents.addEvent(const_cast<VstEvent&>(noteOff));
+    });
 
     for (PluginParamId id : m_playingParams) {
         auto infoIt = m_pluginParamInfoMap.find(id);
@@ -243,8 +227,61 @@ void VstAudioClient::flushSound()
         addParamChange(paramOff);
     }
 
-    m_playingNotes.clear();
     m_playingParams.clear();
+}
+
+VstNoteExpressionCapabilities VstAudioClient::noteExpressionCapabilities() const
+{
+    VstNoteExpressionCapabilities caps;
+    if (!m_pluginPtr) {
+        return caps;
+    }
+    PluginControllerPtr controller = m_pluginPtr->controller();
+    if (!controller) {
+        return caps;
+    }
+    Steinberg::FUnknownPtr<Steinberg::Vst::INoteExpressionController> nec(controller);
+    if (!nec) {
+        return caps;
+    }
+    bool hasNPer = false;
+    bool hasNGen = false;
+    int32_t nPerMin = 0, nPerSteps = 0, nGenMin = 0, nGenSteps = 0;
+    const Steinberg::int32 count = nec->getNoteExpressionCount(0, 0);
+    for (Steinberg::int32 i = 0; i < count; ++i) {
+        Steinberg::Vst::NoteExpressionTypeInfo info;
+        if (nec->getNoteExpressionInfo(0, 0, i, info) != Steinberg::kResultOk) {
+            continue;
+        }
+        if (info.typeId == Steinberg::Vst::kTuningTypeID) {
+            caps.tuning = true;
+        } else if (info.typeId == JIMS_NOTE_EXPRESSION_NPER || info.typeId == JIMS_NOTE_EXPRESSION_NGEN) {
+            // The plug-in declares the discrete-step domain: stepCount and
+            // the encoding of coordinate 0 (its default) give min.
+            const int32_t steps = info.valueDesc.stepCount;
+            if (steps <= 0) {
+                continue;
+            }
+            const int32_t min = -static_cast<int32_t>(std::lround(info.valueDesc.defaultValue * steps));
+            if (info.typeId == JIMS_NOTE_EXPRESSION_NPER) {
+                hasNPer = true;
+                nPerMin = min;
+                nPerSteps = steps;
+            } else {
+                hasNGen = true;
+                nGenMin = min;
+                nGenSteps = steps;
+            }
+        }
+    }
+    if (hasNPer && hasNGen) {
+        caps.jimsLattice = true;
+        caps.nPerMin = nPerMin;
+        caps.nPerStepCount = nPerSteps;
+        caps.nGenMin = nGenMin;
+        caps.nGenStepCount = nGenSteps;
+    }
+    return caps;
 }
 
 audio::samples_t VstAudioClient::process(float* output, samples_t samplesPerChannel,

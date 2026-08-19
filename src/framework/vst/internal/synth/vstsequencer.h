@@ -30,9 +30,22 @@ namespace muse::vst {
 class VstSequencer : public audio::engine::AbstractEventSequencer<VstEvent, ParamChangeEvent, muse::audio::gain_t>
 {
 public:
-    void init(ParamsMapping&& mapping, bool useDynamicEvents);
+    void init(ParamsMapping&& mapping, bool useDynamicEvents,
+              const VstNoteExpressionCapabilities& capabilities = VstNoteExpressionCapabilities());
 
     muse::audio::gain_t currentGain() const;
+
+    //! The note-expression capabilities this sequencer was initialised with.
+    const VstNoteExpressionCapabilities& noteExpressionCapabilities() const { return m_capabilities; }
+
+    //! JiMSynth VST3 workstream: every new note gets its own nonnegative
+    //! 31-bit VST3 note identifier from this monotonic allocator; the same id
+    //! follows its Note Off and every per-note expression event. The counter
+    //! wraps only after the callback that flushes all active notes has run.
+    int32_t allocateNoteId();
+    int32_t nextNoteIdForTesting() const { return m_nextNoteId; }
+    void setNextNoteIdForTesting(int32_t next) { m_nextNoteId = next; }
+    static constexpr int32_t MAX_NOTE_ID = 0x7FFFFFFE;
 
 private:
     void updateOffStreamEvents(const mpe::PlaybackEventsMap& events, const mpe::DynamicLevelLayers& dynamics) override;
@@ -47,13 +60,20 @@ private:
     void addControlChangeEvent(EventSequenceMap& destination, const mpe::timestamp_t timestamp, const mpe::ControllerChangeEvent& event);
     void addParamChange(EventSequenceMap& destination, const mpe::timestamp_t timestamp, const ControlIdx controlIdx,
                         const PluginParamValue value);
-    void addPitchCurve(EventSequenceMap& destination, const mpe::NoteEvent& noteEvent, const mpe::ArticulationMeta& artMeta);
+    void addPitchCurve(EventSequenceMap& destination, const mpe::NoteEvent& noteEvent, const mpe::ArticulationMeta& artMeta,
+                       const int32_t noteId);
+    void addTuningExpressionCurve(EventSequenceMap& destination, const mpe::NoteEvent& noteEvent, const mpe::ArticulationMeta& artMeta,
+                                  const int32_t noteId);
+    void addLatticeIdentity(EventSequenceMap& destination, const mpe::timestamp_t timestamp, const mpe::ExactPitch& exact,
+                            const int32_t noteId);
     void addSostenutoEvents(EventSequenceMap& destination, const SostenutoTimeAndDurations& sostenutoTimeAndDurations);
 
     void sortNoteOnEventsByPitch(EventSequenceMap& destination);
 
     VstEvent buildEvent(const Steinberg::Vst::Event::EventTypes type, const int32_t noteIdx, const float velocityFraction,
-                        const float tuning) const;
+                        const float tuning, const int32_t noteId) const;
+    VstEvent buildNoteExpressionEvent(const Steinberg::Vst::NoteExpressionTypeID typeId, const int32_t noteId,
+                                      const double normalizedValue) const;
 
     int32_t noteIndex(const mpe::pitch_level_t pitchLevel) const;
     float noteTuning(const mpe::NoteEvent& noteEvent, const int noteIdx) const;
@@ -64,5 +84,7 @@ private:
     bool m_inited = false;
     bool m_useDynamicEvents = false;
     ParamsMapping m_mapping;
+    VstNoteExpressionCapabilities m_capabilities;
+    int32_t m_nextNoteId = 0;
 };
 }

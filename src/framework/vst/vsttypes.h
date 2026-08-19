@@ -39,6 +39,7 @@
 #include "pluginterfaces/vst/ivstaudioprocessor.h"
 #include "pluginterfaces/vst/ivsteditcontroller.h"
 #include "pluginterfaces/vst/ivstmidicontrollers.h" // IWYU pragma: export
+#include "pluginterfaces/vst/ivstnoteexpression.h"
 
 #include "io/path.h"
 #include "log.h"
@@ -136,6 +137,37 @@ struct ParamChangeEvent {
     PluginParamId paramId;
     PluginParamValue value = 0.;
 };
+
+//! What the selected plug-in advertises through INoteExpressionController
+//! (JiMSynth VST3 workstream, 2026-08-19). Discovered once per plug-in
+//! instance; the sequencer emits only what is advertised:
+//!  - `tuning`: the standard per-note tuning expression (kTuningTypeID) —
+//!    when present, a note's pitch curve travels as per-note events with the
+//!    note's id instead of the global pitch-bend parameter;
+//!  - `jimsLattice`: BOTH frozen JiMS custom types (jims.note.nPer
+//!    0x4A531001 and jims.note.nGen 0x4A531002) with their plug-in-declared
+//!    discrete-step domains (`min`, `stepCount`; normalized =
+//!    (coord - min) / stepCount) — when present, a lattice-identified note's
+//!    (nPer, nGen) is sent once at its Note On.
+//! Ordinary plug-ins leave both flags false and receive only standard events.
+struct VstNoteExpressionCapabilities {
+    bool tuning = false;
+    bool jimsLattice = false;
+    int32_t nPerMin = 0;
+    int32_t nPerStepCount = 0;
+    int32_t nGenMin = 0;
+    int32_t nGenStepCount = 0;
+
+    bool operator==(const VstNoteExpressionCapabilities& o) const
+    {
+        return tuning == o.tuning && jimsLattice == o.jimsLattice
+               && nPerMin == o.nPerMin && nPerStepCount == o.nPerStepCount
+               && nGenMin == o.nGenMin && nGenStepCount == o.nGenStepCount;
+    }
+};
+
+static constexpr Steinberg::Vst::NoteExpressionTypeID JIMS_NOTE_EXPRESSION_NPER = 0x4A531001u;
+static constexpr Steinberg::Vst::NoteExpressionTypeID JIMS_NOTE_EXPRESSION_NGEN = 0x4A531002u;
 }
 
 template<>
