@@ -12,6 +12,7 @@
 #define MU_ENGRAVING_JIMSCHANGE_H
 
 #include "jimsbridge.h"
+#include "../dom/stafftype.h"
 #include "../types/types.h"
 
 namespace mu::engraving {
@@ -48,6 +49,16 @@ bool courtesyChangeIndicator(const Measure* measure, staff_idx_t staffIdx, Chang
 
 /// The courtesy terrain width to reserve at the end of `measure`, or 0.
 double courtesyTerrainWidth(const Measure* measure);
+
+/// Owner ruling 2026-08-19: the change indicator (tonic indicators and the
+/// key/mode arrow ends) is anchored on the Do-line of the drawn stave stack
+/// that keeps the WHOLE indicator inside the staff — the lowest such Do-line;
+/// when none does, the Do-line that overflows least (extending the staff to
+/// fit is a separate follow-up). Returns the anchor as cents relative to
+/// the frame origin (a multiple of the period); scale-change dot stacks are
+/// instantiated per period and do not depend on it. Falls back to the
+/// stack's lowest period for an empty view.
+double changeAnchorPeriodCents(const StaffType::JimsFrameView& view, const ChangeIndicator& model, double periodCents);
 }
 
 #endif

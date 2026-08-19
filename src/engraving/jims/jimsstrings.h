@@ -25,9 +25,10 @@ inline muse::String tonicIndicatorName() { return muse::mtrc("engraving", "tonic
 inline muse::String stockLossWarning()
 {
     return muse::mtrc("engraving",
-                      "This score carries JiMS notation data. Opening and saving it with a "
-                      "standard MuseScore build will silently discard that data; only this "
-                      "JiMS-enabled build and JiMS MusicXML preserve it.");
+                      "This JiMS-enabled version of MuseScore can save and open files that include JiMS notation. "
+                      "However, if you open it with the standard version of MuseScore, the JiMS-specific information "
+                      "will be lost. Until MuseScore accepts the JiMS features in its main version, use only this "
+                      "JiMS-enabled version of MuseScore to avoid losing JiMS-related information.");
 }
 }
 

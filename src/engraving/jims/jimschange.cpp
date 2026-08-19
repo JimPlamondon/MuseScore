@@ -6,6 +6,10 @@
  */
 #include "jimschange.h"
 
+#include <algorithm>
+#include <cmath>
+#include <limits>
+
 #include "dom/measure.h"
 #include "dom/score.h"
 #include "dom/staff.h"
@@ -124,5 +128,71 @@ double courtesyTerrainWidth(const Measure* measure)
         }
     }
     return width;
+}
+
+double changeAnchorPeriodCents(const StaffType::JimsFrameView& view, const ChangeIndicator& model, double periodCents)
+{
+    const double eps = 1e-6;
+    const double fallback = std::floor(view.bottomCents() / periodCents + eps) * periodCents;
+    if (view.empty() || periodCents <= 0.0) {
+        return fallback;
+    }
+    // The points that move with the anchor: tonic indicators and arrow ends,
+    // as (periodOffset + ordinate) in periods.
+    std::vector<double> offsets;
+    for (const ChangePoint& p : model.tonicIndicators) {
+        offsets.push_back(p.periodOffset + p.ordinate);
+    }
+    for (const ChangeArrow& a : model.arrows) {
+        offsets.push_back(a.from.periodOffset + a.from.ordinate);
+        offsets.push_back(a.to.periodOffset + a.to.ordinate);
+    }
+    if (offsets.empty()) {
+        return fallback;
+    }
+    // Candidate anchors: every Do-line inside a drawn segment, ascending.
+    std::vector<double> candidates;
+    for (const StaffType::JimsFrameBand& band : view.bands) {
+        for (const StaffType::JimsSegment& seg : band.segments) {
+            const double first = std::ceil((seg.lowerCents - eps) / periodCents) * periodCents;
+            for (double b = first; b <= seg.upperCents + eps; b += periodCents) {
+                if (candidates.empty() || std::abs(candidates.back() - b) > eps) {
+                    candidates.push_back(b);
+                }
+            }
+        }
+    }
+    std::sort(candidates.begin(), candidates.end());
+    if (candidates.empty()) {
+        return fallback;
+    }
+    // Overflow of a point: its distance outside the nearest drawn segment.
+    auto overflowOf = [&](double cents) {
+        double best = std::numeric_limits<double>::infinity();
+        for (const StaffType::JimsFrameBand& band : view.bands) {
+            for (const StaffType::JimsSegment& seg : band.segments) {
+                const double d = std::max({ 0.0, seg.lowerCents - cents, cents - seg.upperCents });
+                best = std::min(best, d);
+            }
+        }
+        return best <= eps ? 0.0 : best;
+    };
+    double bestAnchor = candidates.front();
+    double bestOverflow = std::numeric_limits<double>::infinity();
+    for (double anchor : candidates) {
+        double overflow = 0.0;
+        for (double off : offsets) {
+            overflow += overflowOf(anchor + off * periodCents);
+        }
+        // Strictly better only: ties keep the lowest candidate.
+        if (overflow < bestOverflow - eps) {
+            bestOverflow = overflow;
+            bestAnchor = anchor;
+        }
+        if (bestOverflow == 0.0) {
+            break;   // the lowest fully fitting Do-line wins
+        }
+    }
+    return bestAnchor;
 }
 }

@@ -44,6 +44,7 @@
 #include "engraving/iengravingfont.h"
 #include "engraving/infrastructure/mscwriter.h"
 #include "engraving/jims/jimsbridge.h"
+#include "engraving/jims/jimschange.h"
 #include "engraving/rendering/iscorerenderer.h"
 #include "engraving/rw/mscsaver.h"
 #include "engraving/style/style.h"
@@ -1068,6 +1069,117 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
         checkScore(score, "two-hand banded", &sawPartial);
         delete score;
     }
+}
+
+// Owner ruling 2026-08-19 (seen on the two-part gate score): a Do->La mode
+// change was drawn from the staff's LOWEST Do-line down to a La below the
+// staff. The indicator must anchor on the Do-line that keeps the whole
+// indicator on the staff — the lowest such Do-line — and, when none does,
+// on the one that overflows least (extending the staff is a follow-up).
+TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorAnchorsOnTheDoLineThatKeepsItOnTheStaff)
+{
+    const double P = 1200.0;
+    auto whole = [&](double lower, double upper) {
+        StaffType::JimsFrameView v;
+        StaffType::JimsFrameBand band;
+        for (double b = lower; b < upper - 1e-6; b += P) {
+            band.segments.push_back({ b, b + P, true });
+        }
+        band.lowerCents = lower;
+        band.upperCents = upper;
+        v.bands.push_back(band);
+        return v;
+    };
+    auto point = [](double ordinate, int periodOffset) {
+        jims::ChangePoint p;
+        p.ordinate = ordinate;
+        p.periodOffset = periodOffset;
+        return p;
+    };
+    // Do -> La ("fewest degrees" is down: La one period offset below at 0.75).
+    jims::ChangeIndicator doToLa;
+    doToLa.kinds = { u"mode" };
+    doToLa.tonicIndicators = { point(0.0, 0), point(0.75, -1) };
+    jims::ChangeArrow down;
+    down.kind = u"mode";
+    down.from = point(0.0, 0);
+    down.to = point(0.75, -1);
+    down.up = false;
+    doToLa.arrows = { down };
+    // One-period staff [0,1200]: only the UPPER Do-line keeps La (900) on the staff.
+    EXPECT_DOUBLE_EQ(jims::changeAnchorPeriodCents(whole(0, 1200), doToLa, P), 1200.0);
+    // Two-period staff [0,2400]: the lowest fitting Do-line is 1200 (La at 900).
+    EXPECT_DOUBLE_EQ(jims::changeAnchorPeriodCents(whole(0, 2400), doToLa, P), 1200.0);
+    // Do -> Re (up, inside the same period): the lowest Do-line already fits.
+    jims::ChangeIndicator doToRe;
+    doToRe.kinds = { u"mode" };
+    doToRe.tonicIndicators = { point(0.0, 0), point(1.0 / 6.0, 0) };
+    EXPECT_DOUBLE_EQ(jims::changeAnchorPeriodCents(whole(0, 2400), doToRe, P), 0.0);
+    // Nothing fits (a partial staff [300, 900] with Do -> La): least overflow wins.
+    StaffType::JimsFrameView partial;
+    StaffType::JimsFrameBand pb;
+    pb.segments.push_back({ 300.0, 900.0, false });
+    pb.lowerCents = 300.0;
+    pb.upperCents = 900.0;
+    partial.bands.push_back(pb);
+    // No Do-line inside the segment at all -> fallback (the stack's lowest period).
+    EXPECT_DOUBLE_EQ(jims::changeAnchorPeriodCents(partial, doToLa, P), 0.0);
+    // Banded (M8): [0,1200] and [3600,4800]; Do -> La fits in the low band at 1200
+    // (La 900) — the lowest fitting anchor, not the top band's.
+    StaffType::JimsFrameView banded = whole(0, 1200);
+    StaffType::JimsFrameBand top;
+    top.segments.push_back({ 3600.0, 4800.0, true });
+    top.lowerCents = 3600.0;
+    top.upperCents = 4800.0;
+    banded.bands.push_back(top);
+    banded.banded = true;
+    EXPECT_DOUBLE_EQ(jims::changeAnchorPeriodCents(banded, doToLa, P), 1200.0);
+
+    // Paint check on the accepted M5 piece: Do-mode -> La-mode at bar 2 on a
+    // one-period staff. The new tonic's label must be the UPPER register
+    // ("A4: La", not "A3: La") and every terrain text must lie on the staff.
+    MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m5-mode.mscx");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    Measure* m2 = measureNo(score, 2);
+    ASSERT_TRUE(m2);
+    const StaffType* changeSt = score->staff(0)->staffType(m2->tick());
+    ASSERT_TRUE(changeSt && changeSt->isJiMS());
+    const StaffLines* lines = m2->staffLines(0);
+    ASSERT_TRUE(lines);
+    const StaffType::JimsFrameView& v = changeSt->jimsFrameView(score, 0, m2->system());
+    ASSERT_FALSE(v.empty());
+    const double topY = lines->pos().y() + changeSt->jimsYFromCents(v.topCents(), v) * lines->spatium();
+    const double bottomY = lines->pos().y() + changeSt->jimsYFromCents(v.bottomCents(), v) * lines->spatium();
+    std::shared_ptr<BufferedPaintProvider> prv = std::make_shared<BufferedPaintProvider>();
+    Painter p(prv, "m8");
+    p.setViewport(RectF(0, 0, 4000, 4000));
+    PaintOptions opt;
+    lines->renderer()->drawItem(lines, &p, opt);
+    p.endDraw();
+    bool sawA4La = false;
+    bool sawA3La = false;
+    std::function<void(const DrawData::Item&)> walk = [&](const DrawData::Item& item) {
+        for (const DrawData::Data& d : item.datas) {
+            for (const DrawText& t : d.texts) {
+                if (t.text.contains(u"A4: La")) {
+                    sawA4La = true;
+                    EXPECT_GE(t.rect.top(), topY - lines->spatium()) << "label above the staff";
+                    EXPECT_LE(t.rect.top(), bottomY + lines->spatium()) << "label below the staff";
+                }
+                if (t.text.contains(u"A3: La")) {
+                    sawA3La = true;
+                }
+            }
+        }
+        for (const DrawData::Item& c : item.chilren) {
+            walk(c);
+        }
+    };
+    walk(prv->drawData()->item);
+    EXPECT_TRUE(sawA4La) << "the new tonic La is labelled in the register that keeps the indicator on the staff";
+    EXPECT_FALSE(sawA3La) << "the indicator no longer hangs below the staff";
+    delete score;
 }
 
 // MuseScore's stock hide-empty-staves still hides a fully empty JiMStaff on

@@ -3150,8 +3150,10 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     const double rightLabelLeft = dotCenterX + indicatorW;                 // Grey labels start here
                     const double arrowX = rightLabelLeft + g.changeRightLabelBand + g.changeArrowLane / 2.0;
                     const double strokeX = addedStrokeOnLeft ? x0 : x0 + g.changeTerrainWidth;
-                    // Period 0 of the model = the lowest period of the stave stack.
-                    const double basePeriod = std::floor(view.bottomCents() / periodCents + 1e-6) * periodCents;
+                    // Period 0 of the model = the anchor Do-line: the lowest Do-line
+                    // of the stave stack that keeps the whole indicator inside the
+                    // staff (owner ruling 2026-08-19; jims::changeAnchorPeriodCents).
+                    const double basePeriod = jims::changeAnchorPeriodCents(view, model, periodCents);
                     auto centsOf = [&](const jims::ChangePoint& p) {
                         return basePeriod + (p.periodOffset + p.ordinate) * periodCents;
                     };
@@ -3195,7 +3197,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     // Owner finding 2 (2026-08-18): the terrain's "[PitchN]:" names
                     // the octave of the ROW it is drawn on — the Kernel label for
                     // the row's frame period (base period + the point's offset).
-                    const int basePeriodIndex = int(std::floor(view.bottomCents() / periodCents + 1e-6));
+                    const int basePeriodIndex = int(std::lround(basePeriod / periodCents));
                     std::map<int, muse::String> labelByPeriod;
                     auto keyLabelForRow = [&](const jims::ChangePoint& tp) -> muse::String {
                         const int k = basePeriodIndex + tp.periodOffset;
