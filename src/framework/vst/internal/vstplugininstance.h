@@ -23,6 +23,7 @@
 #pragma once
 
 #include <mutex>
+#include <optional>
 #include <atomic>
 
 #include "../ivstplugininstance.h"
@@ -76,6 +77,7 @@ private:
     void syncControllerToComponentState();
     void rescanParams();
     void setPluginConfig(const muse::audio::AudioUnitConfig& config);
+    void doSetPluginConfig(const muse::audio::AudioUnitConfig& config);
 
     VstPluginInstanceId m_id = 0;
     muse::audio::AudioResourceId m_resourceId;
@@ -95,5 +97,10 @@ private:
     std::thread::id m_mainThreadId;
 
     mutable std::mutex m_mutex;
+    //! JiMSynth VST3 workstream: a configuration handed over before the
+    //! module has loaded is applied inside load(), before loadingCompleted
+    //! fires, so the plug-in starts with its saved state (instrument etc.)
+    //! rather than switching a few milliseconds into playback/export.
+    std::optional<muse::audio::AudioUnitConfig> m_pendingConfig;
 };
 }

@@ -21,6 +21,8 @@
  */
 #include "vstsynthesiser.h"
 
+#include "audio/common/audiosanitizer.h"
+
 #include "log.h"
 
 using namespace muse;
@@ -62,13 +64,26 @@ void VstSynthesiser::init(const OutputSpec& spec)
 
     m_vstAudioClient->init(AudioPluginType::Instrument, m_pluginPtr);
 
+    // Hand the saved configuration (component/controller state) over now: a
+    // not-yet-loaded instance applies it inside load() before it reports
+    // completion, so the plug-in starts in its saved state; an already
+    // loaded one applies it right away.
+    m_pluginPtr->updatePluginConfig(m_params.configuration);
+
     auto onPluginLoaded = [this]() {
-        m_pluginPtr->updatePluginConfig(m_params.configuration);
+        if (!m_pluginPtr->isLoaded()) {
+            // loadingCompleted fired for a failed load: nothing will ever be
+            // set up, so stop waiters from waiting on this track.
+            m_loadFailed = true;
+            m_readyToPlayChanged.notify();
+            return;
+        }
         m_vstAudioClient->setOutputSpec(m_outputSpec);
         m_vstAudioClient->loadSupportedParams();
         m_sequencer.init(m_vstAudioClient->paramsMapping(SUPPORTED_CONTROLLERS), m_useDynamicEvents,
                          m_vstAudioClient->noteExpressionCapabilities());
         m_inited = true;
+        m_readyToPlayChanged.notify();
     };
 
     if (m_pluginPtr->isLoaded()) {
@@ -118,6 +133,13 @@ bool VstSynthesiser::isValid() const
     }
 
     return m_pluginPtr->isLoaded();
+}
+
+bool VstSynthesiser::readyToPlay() const
+{
+    ONLY_AUDIO_ENGINE_THREAD;
+
+    return m_inited || m_loadFailed || !m_pluginPtr;
 }
 
 muse::audio::AudioSourceType VstSynthesiser::type() const

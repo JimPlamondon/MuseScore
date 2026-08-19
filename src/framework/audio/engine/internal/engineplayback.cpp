@@ -625,13 +625,28 @@ async::Promise<Ret> EnginePlayback::saveSoundTrack(const TrackSequenceId sequenc
         const bool lazyProcessingWasEnabled = configuration()->isLazyProcessingOfOnlineSoundsEnabled();
         configuration()->setIsLazyProcessingOfOnlineSoundsEnabled(false);
 
-        listenInputProcessing(s, [this, sequenceId, destination, format, lazyProcessingWasEnabled, resolve](Ret ret) {
-            if (ret) {
-                ret = doSaveSoundTrack(sequenceId, destination, format);
+        // JiMSynth VST3 workstream: wait until every track's input is ready to
+        // play (the same gate SequencePlayer::play uses) before rendering, so
+        // an instrument that is still loading/setting up — a VST3 module
+        // loads asynchronously on the main thread — is not rendered as
+        // silence or with its first notes dropped (observed with the
+        // command-line `mscore -o out.wav score.mscz` export).
+        s->player()->prepareToPlay().onResolve(this, [this, s, sequenceId, destination, format, lazyProcessingWasEnabled,
+                                                      resolve](const Ret& prepared) {
+            if (!prepared) {
+                configuration()->setIsLazyProcessingOfOnlineSoundsEnabled(lazyProcessingWasEnabled);
+                (void)resolve(prepared);
+                return;
             }
 
-            configuration()->setIsLazyProcessingOfOnlineSoundsEnabled(lazyProcessingWasEnabled);
-            (void)resolve(ret);
+            listenInputProcessing(s, [this, sequenceId, destination, format, lazyProcessingWasEnabled, resolve](Ret ret) {
+                if (ret) {
+                    ret = doSaveSoundTrack(sequenceId, destination, format);
+                }
+
+                configuration()->setIsLazyProcessingOfOnlineSoundsEnabled(lazyProcessingWasEnabled);
+                (void)resolve(ret);
+            });
         });
 
         return async::Promise<Ret>::dummy_result();

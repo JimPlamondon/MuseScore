@@ -134,8 +134,12 @@ void VstPluginInstance::load()
             m_module = modulesRepo()->pluginModule(m_resourceId);
         }
 
+        // JiMSynth VST3 workstream: every failure path below still fires
+        // loadingCompleted (with isLoaded() == false) so waiters such as
+        // VstSynthesiser::readyToPlay() can settle instead of waiting forever.
         if (!m_module) {
             LOGE() << "Unable to find vst plugin module, resourceId: " << m_resourceId;
+            m_loadingCompleted.notify();
             return;
         }
 
@@ -152,21 +156,29 @@ void VstPluginInstance::load()
 
         if (!m_pluginProvider) {
             LOGE() << "Unable to load vst plugin provider";
+            m_loadingCompleted.notify();
             return;
         }
 
         if (!m_pluginProvider->init()) {
             LOGE() << "Unable to initialize vst plugin provider";
+            m_loadingCompleted.notify();
             return;
         }
 
         PluginControllerPtr controller = m_pluginProvider->controller();
         if (!controller) {
+            m_loadingCompleted.notify();
             return;
         }
 
         controller->setComponentHandler(m_componentHandlerPtr);
         syncControllerToComponentState();
+
+        if (m_pendingConfig.has_value()) {
+            doSetPluginConfig(*m_pendingConfig);
+            m_pendingConfig.reset();
+        }
 
         m_isLoaded = true;
         m_loadingCompleted.notify();
@@ -258,11 +270,19 @@ void VstPluginInstance::setPluginConfig(const audio::AudioUnitConfig& config)
 {
     ONLY_MAIN_THREAD(threadSecurer);
 
+    std::lock_guard lock(m_mutex);
+
     if (!m_isLoaded) {
+        m_pendingConfig = config;
         return;
     }
 
-    std::lock_guard lock(m_mutex);
+    doSetPluginConfig(config);
+}
+
+void VstPluginInstance::doSetPluginConfig(const audio::AudioUnitConfig& config)
+{
+    ONLY_MAIN_THREAD(threadSecurer);
 
     if (!m_pluginProvider) {
         LOGE() << "Plugin provider is not initialized";
@@ -374,6 +394,18 @@ PluginMidiMappingPtr VstPluginInstance::midiMapping() const
 void VstPluginInstance::updatePluginConfig(const audio::AudioUnitConfig& config)
 {
     ONLY_AUDIO_THREAD(threadSecurer);
+
+    {
+        // Not loaded yet: park the configuration for load() to apply before
+        // it reports completion (no main-thread hop, so it cannot trail the
+        // loadingCompleted notification). try_lock: never block the audio
+        // thread behind a load in progress — fall through to the hop then.
+        std::unique_lock lock(m_mutex, std::try_to_lock);
+        if (lock.owns_lock() && !m_isLoaded) {
+            m_pendingConfig = config;
+            return;
+        }
+    }
 
     Async::call(this, [this, config]() {
         setPluginConfig(config);

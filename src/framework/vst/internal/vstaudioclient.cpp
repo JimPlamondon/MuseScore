@@ -21,7 +21,12 @@
  */
 #include "vstaudioclient.h"
 
+#include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <mutex>
+#include <vector>
 
 #include "log.h"
 
@@ -52,6 +57,118 @@ static std::optional<TransportEvent> mmcToTransportEvent(const IMMCDecoderPtr& d
     }
 
     return std::nullopt;
+}
+
+namespace {
+// JiMSynth VST3 workstream: an optional diagnostic trace of every event the
+// client forwards to the plug-in and every process call, appended as text to
+// the file named by MUSE_VST_EVENT_TRACE. Off (one static check) unless the
+// environment variable is set; the enabled path is not real-time safe and is
+// meant for offline export evidence (end-to-end transport-precision checks),
+// never for ordinary playback. Events are queued and written at the next
+// process call so their `pos` is the playback position (in samples) of the
+// block that consumes them.
+class EventTrace
+{
+public:
+    static EventTrace& instance()
+    {
+        static EventTrace trace;
+        return trace;
+    }
+
+    bool enabled() const { return m_file != nullptr; }
+
+    void event(const void* client, const VstEvent& event)
+    {
+        if (!m_file) {
+            return;
+        }
+        std::lock_guard lock(m_mutex);
+        m_pending.push_back({ client, event });
+    }
+
+    void param(const void* client, const ParamChangeEvent& param)
+    {
+        if (!m_file) {
+            return;
+        }
+        std::lock_guard lock(m_mutex);
+        std::fprintf(m_file, "client=%p param id=%u value=%.17g\n", client, param.paramId, param.value);
+        std::fflush(m_file);
+    }
+
+    void process(const void* client, samples_t playbackPositionSamples, samples_t frames, float peak, bool ok)
+    {
+        if (!m_file) {
+            return;
+        }
+        std::lock_guard lock(m_mutex);
+        for (const PendingEvent& pending : m_pending) {
+            if (pending.client == client) {
+                write(pending, playbackPositionSamples);
+            }
+        }
+        m_pending.erase(std::remove_if(m_pending.begin(), m_pending.end(),
+                                       [client](const PendingEvent& p) { return p.client == client; }),
+                        m_pending.end());
+        std::fprintf(m_file, "client=%p pos=%lld process frames=%u peak=%.9g ok=%d\n",
+                     client, static_cast<long long>(playbackPositionSamples), static_cast<unsigned>(frames), peak, ok ? 1 : 0);
+        std::fflush(m_file);
+    }
+
+private:
+    struct PendingEvent {
+        const void* client = nullptr;
+        VstEvent event;
+    };
+
+    EventTrace()
+    {
+        const char* path = std::getenv("MUSE_VST_EVENT_TRACE");
+        if (path && *path) {
+            m_file = std::fopen(path, "a");
+        }
+    }
+
+    ~EventTrace()
+    {
+        if (m_file) {
+            std::fclose(m_file);
+        }
+    }
+
+    void write(const PendingEvent& pending, samples_t playbackPositionSamples)
+    {
+        const VstEvent& event = pending.event;
+        const void* client = pending.client;
+        switch (event.type) {
+        case VstEvent::kNoteOnEvent:
+            std::fprintf(m_file, "client=%p pos=%lld offset=%d noteOn id=%d pitch=%d tuning=%.9g velocity=%.9g channel=%d\n",
+                         client, static_cast<long long>(playbackPositionSamples), event.sampleOffset, event.noteOn.noteId,
+                         event.noteOn.pitch, event.noteOn.tuning, event.noteOn.velocity, event.noteOn.channel);
+            break;
+        case VstEvent::kNoteOffEvent:
+            std::fprintf(m_file, "client=%p pos=%lld offset=%d noteOff id=%d pitch=%d velocity=%.9g channel=%d\n",
+                         client, static_cast<long long>(playbackPositionSamples), event.sampleOffset, event.noteOff.noteId,
+                         event.noteOff.pitch, event.noteOff.velocity, event.noteOff.channel);
+            break;
+        case VstEvent::kNoteExpressionValueEvent:
+            std::fprintf(m_file, "client=%p pos=%lld offset=%d noteExpression id=%d typeId=%u value=%.17g\n",
+                         client, static_cast<long long>(playbackPositionSamples), event.sampleOffset,
+                         event.noteExpressionValue.noteId, event.noteExpressionValue.typeId, event.noteExpressionValue.value);
+            break;
+        default:
+            std::fprintf(m_file, "client=%p pos=%lld offset=%d eventType=%d\n",
+                         client, static_cast<long long>(playbackPositionSamples), event.sampleOffset, event.type);
+            break;
+        }
+    }
+
+    std::FILE* m_file = nullptr;
+    std::mutex m_mutex;
+    std::vector<PendingEvent> m_pending;
+};
 }
 
 VstAudioClient::VstAudioClient(const modularity::ContextPtr& iocCtx)
@@ -181,6 +298,8 @@ bool VstAudioClient::handleEvent(const VstEvent& event)
         m_playingNotes.noteOff(event);
     }
 
+    EventTrace::instance().event(this, event);
+
     if (m_inputEvents.addEvent(const_cast<VstEvent&>(event)) == Steinberg::kResultTrue) {
         return true;
     }
@@ -192,6 +311,7 @@ bool VstAudioClient::handleParamChange(const ParamChangeEvent& param)
 {
     ensureActivity();
     addParamChange(param);
+    EventTrace::instance().param(this, param);
 
     m_playingParams.push_back(param.paramId);
 
@@ -316,6 +436,7 @@ audio::samples_t VstAudioClient::process(float* output, samples_t samplesPerChan
     }
 
     if (processor->process(m_processData) != Steinberg::kResultOk) {
+        EventTrace::instance().process(this, playbackPositionSamples, samplesPerChannel, 0.f, false);
         return 0;
     }
 
@@ -328,6 +449,15 @@ audio::samples_t VstAudioClient::process(float* output, samples_t samplesPerChan
         fillOutputBufferInstrument(samplesPerChannel, output);
     } else {
         fillOutputBufferFx(samplesPerChannel, output);
+    }
+
+    if (EventTrace::instance().enabled()) {
+        float peak = 0.f;
+        const size_t count = static_cast<size_t>(samplesPerChannel) * m_outputSpec.audioChannelCount;
+        for (size_t i = 0; i < count; ++i) {
+            peak = std::max(peak, std::fabs(output[i]));
+        }
+        EventTrace::instance().process(this, playbackPositionSamples, samplesPerChannel, peak, true);
     }
 
     processOutputEvents();

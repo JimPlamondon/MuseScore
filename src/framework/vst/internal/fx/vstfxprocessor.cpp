@@ -46,6 +46,9 @@ void VstFxProcessor::init(const audio::OutputSpec& spec)
     m_vstAudioClient->init(AudioPluginType::Fx, m_pluginPtr);
 
     auto onPluginLoaded = [this]() {
+        if (!m_pluginPtr->isLoaded()) {
+            return; // loadingCompleted fired for a failed load
+        }
         m_pluginPtr->updatePluginConfig(m_params.configuration);
         m_vstAudioClient->setOutputSpec(m_outputSpec);
         m_inited = true;

@@ -49,6 +49,13 @@ public:
 
     bool isValid() const override;
 
+    //! JiMSynth VST3 workstream: a VST instrument is ready to play only once
+    //! its module has loaded and the audio client/sequencer have been set up
+    //! on the audio-engine thread (or the load has failed for good), so play
+    //! and offline export wait for it instead of dropping the first notes or
+    //! rendering silence while the plug-in is still loading.
+    bool readyToPlay() const override;
+
     muse::audio::AudioSourceType type() const override;
     std::string name() const override;
 
@@ -87,6 +94,7 @@ private:
     muse::audio::TrackId m_trackId = muse::audio::INVALID_TRACK_ID;
 
     bool m_inited = false;
+    bool m_loadFailed = false;
     bool m_useDynamicEvents = false;
 
     audio::samples_t m_currentPositionSamples = 0;
