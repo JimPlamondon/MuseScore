@@ -24,6 +24,8 @@
 
 #include "iprojectfilescontroller.h"
 
+#include <set>
+
 #include <QObject>
 #include <QString>
 
@@ -174,6 +176,7 @@ private:
     void onAudioUploadFailed(const muse::Ret& ret);
 
     void warnCloudIsNotAvailable();
+    void warnJimsStockLossOnce(const INotationProjectPtr& project);
 
     bool askIfUserAgreesToSaveProjectWithErrors(const muse::Ret& ret, const SaveLocation& location);
     void warnScoreWithoutPartsCannotBeSaved();
@@ -223,6 +226,7 @@ private:
     QUrl scoreManagerUrl() const;
 
     bool m_isProjectSaving = false;
+    std::set<const INotationProject*> m_jimsStockLossWarned;   // projects warned this session (JiMStaff)
     bool m_isProjectClosing = false;
     bool m_isProjectProcessing = false;
     bool m_isProjectPublishing = false;

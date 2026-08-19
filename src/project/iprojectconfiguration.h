@@ -162,6 +162,10 @@ public:
     virtual bool showCloudIsNotAvailableWarning() const = 0;
     virtual void setShowCloudIsNotAvailableWarning(bool show) = 0;
 
+    // JiMStaff: warn once per project that a stock MuseScore build discards JiMS data on resave (M1 follow-up 7, owner 2026-08-19)
+    virtual bool showJimsStockLossWarning() const = 0;
+    virtual void setShowJimsStockLossWarning(bool show) = 0;
+
     virtual bool disableVersionChecking() const = 0;
     virtual void setDisableVersionChecking(bool disable) = 0;
 

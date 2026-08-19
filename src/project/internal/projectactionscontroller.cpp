@@ -37,6 +37,10 @@
 #include "cloud/qml/Muse/Cloud/enums.h"
 #include "engraving/infrastructure/mscio.h"
 #include "engraving/engravingerrors.h"
+#include "engraving/dom/masterscore.h"
+#include "engraving/dom/staff.h"
+#include "engraving/dom/stafftype.h"
+#include "engraving/jims/jimsstrings.h"
 
 #include "projecterrors.h"
 #include "projectextensionpoints.h"
@@ -951,6 +955,8 @@ bool ProjectActionsController::saveProjectAt(const SaveLocation& location, SaveM
         }
     }
 
+    warnJimsStockLossOnce(currentNotationProject());
+
     if (location.isLocal()) {
         return saveProjectLocally(location.localPath(), saveMode);
     }
@@ -1483,6 +1489,48 @@ void ProjectActionsController::warnCloudIsNotAvailable()
 
     result.onResolve(this, [this](const IInteractive::Result& res) {
         configuration()->setShowCloudIsNotAvailableWarning(res.showAgain());
+    });
+}
+
+void ProjectActionsController::warnJimsStockLossOnce(const INotationProjectPtr& project)
+{
+    // JiMStaff (M1 follow-up 7, owner 2026-08-19): the first time a score
+    // that carries JiMS notation is saved in a session, say once that a stock
+    // MuseScore build silently discards that data on resave — informational,
+    // never blocking the save; "don't show again" is a preference.
+    if (!project || !configuration()->showJimsStockLossWarning()) {
+        return;
+    }
+    if (m_jimsStockLossWarned.count(project.get())) {
+        return;
+    }
+    IMasterNotationPtr master = project->masterNotation();
+    const mu::engraving::MasterScore* score = master ? master->masterScore() : nullptr;
+    if (!score) {
+        return;
+    }
+    bool hasJims = false;
+    for (const mu::engraving::Staff* staff : score->staves()) {
+        const mu::engraving::StaffType* st = staff->staffType(mu::engraving::Fraction(0, 1));
+        if (st && st->isJiMS()) {
+            hasJims = true;
+            break;
+        }
+    }
+    if (!hasJims) {
+        return;
+    }
+    m_jimsStockLossWarned.insert(project.get());
+
+    std::string title = muse::trc("project/save", "This score uses JiMS notation");
+    std::string msg = mu::engraving::jims::stockLossWarning().toStdString();
+
+    auto result = interactive()->warning(title, msg,
+                                         { IInteractive::Button::Ok }, IInteractive::Button::Ok,
+                                         IInteractive::Option::WithIcon | IInteractive::Option::WithDontShowAgainCheckBox);
+
+    result.onResolve(this, [this](const IInteractive::Result& res) {
+        configuration()->setShowJimsStockLossWarning(res.showAgain());
     });
 }
 

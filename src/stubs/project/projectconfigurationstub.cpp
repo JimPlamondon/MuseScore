@@ -373,6 +373,15 @@ void ProjectConfigurationStub::setShowCloudIsNotAvailableWarning(bool)
 {
 }
 
+bool ProjectConfigurationStub::showJimsStockLossWarning() const
+{
+    return false;
+}
+
+void ProjectConfigurationStub::setShowJimsStockLossWarning(bool)
+{
+}
+
 bool ProjectConfigurationStub::disableVersionChecking() const
 {
     return false;
