@@ -380,11 +380,31 @@ bool connectorGlyph(ConnectorGlyph& out)
     return true;
 }
 
-bool frameForMelody(const String& stateJson, const String& melodyJson,
-                    const String& extentToken, std::vector<StaveSegment>& segments)
+static String jimsExtraCentsJson(const std::vector<double>& extraCents)
 {
-    String envelope = String(u"{\"abi\":2,\"op\":\"frame_for_melody\",\"state\":%1,\"melody\":%2,\"declared_extent\":\"%3\"}")
-                      .arg(stateJson).arg(melodyJson).arg(extentToken);
+    String out = u"[";
+    for (size_t i = 0; i < extraCents.size(); ++i) {
+        if (i) {
+            out += u",";
+        }
+        out += String::number(extraCents[i], 6);
+    }
+    return out + u"]";
+}
+
+bool frameForMelody(const String& stateJson, const String& melodyJson,
+                    const String& extentToken, std::vector<StaveSegment>& segments,
+                    const std::vector<double>& extraCents)
+{
+    // Owner rule 2026-08-19 (7b): extra cents the frame must cover ride in
+    // the same op's options; without them the envelope is byte-identical
+    // to the Milestone-4 request.
+    String envelope = extraCents.empty()
+                      ? String(u"{\"abi\":2,\"op\":\"frame_for_melody\",\"state\":%1,\"melody\":%2,\"declared_extent\":\"%3\"}")
+                      .arg(stateJson).arg(melodyJson).arg(extentToken)
+                      : String(u"{\"abi\":2,\"op\":\"frame_for_melody\",\"state\":%1,\"melody\":%2,\"declared_extent\":\"%3\","
+                               u"\"options\":{\"extra_cents\":%4}}")
+                      .arg(stateJson).arg(melodyJson).arg(extentToken).arg(jimsExtraCentsJson(extraCents));
     JsonValue result;
     if (!okResult(callBridge(envelope), result)) {
         return false;
@@ -402,13 +422,20 @@ bool frameForMelody(const String& stateJson, const String& melodyJson,
 
 bool frameBandsForMelody(const String& stateJson, const String& melodyJson,
                          const String& extentToken, bool elideEmptyPeriods, int minBandPeriods,
-                         FrameBands& out)
+                         FrameBands& out, const std::vector<double>& extraCents)
 {
-    String envelope = String(
+    String envelope = extraCents.empty()
+                      ? String(
         u"{\"abi\":2,\"op\":\"frame_for_melody\",\"state\":%1,\"melody\":%2,\"declared_extent\":\"%3\","
         u"\"options\":{\"elide_empty_periods\":%4,\"min_band_periods\":%5}}")
                       .arg(stateJson).arg(melodyJson).arg(extentToken)
-                      .arg(String(elideEmptyPeriods ? u"true" : u"false")).arg(minBandPeriods);
+                      .arg(String(elideEmptyPeriods ? u"true" : u"false")).arg(minBandPeriods)
+                      : String(
+        u"{\"abi\":2,\"op\":\"frame_for_melody\",\"state\":%1,\"melody\":%2,\"declared_extent\":\"%3\","
+        u"\"options\":{\"elide_empty_periods\":%4,\"min_band_periods\":%5,\"extra_cents\":%6}}")
+                      .arg(stateJson).arg(melodyJson).arg(extentToken)
+                      .arg(String(elideEmptyPeriods ? u"true" : u"false")).arg(minBandPeriods)
+                      .arg(jimsExtraCentsJson(extraCents));
     JsonValue result;
     if (!okResult(callBridge(envelope), result)) {
         return false;

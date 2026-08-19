@@ -1458,3 +1458,61 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, legacyTonicExtentSpellingsStillRead
     EXPECT_FALSE(viewOn(score, measureSystems(score)[0]).empty()) << "a legacy-keyed state still derives a frame";
     delete score;
 }
+
+// Owner rule 7b (2026-08-19): when no Do-line of the stave keeps a change
+// indicator on the staff, the staff extends to include it (Kernel
+// frame_for_melody_covering through the fork's frame derivation). Built
+// from the accepted m5-mode piece with its melody rewritten to Re4..Fa4
+// (200..500 cents): the Kernel's one-period window centred on that ambitus
+// is [-250, 950] — one Do-line (0). The Kernel's Do->La model puts the old
+// Do one period above the new La ("fewest degrees" down: Do at 1200, La at
+// 900), so with the only anchor at 0 the upper Do overflows and the change
+// section's frame must extend to cover it — here to the full [0, 1200]
+// octave, which then holds the whole indicator.
+TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorExtendsTheStaffWhenNoDoLineKeepsItOn)
+{
+    MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m5-mode.mscx");
+    ASSERT_TRUE(score);
+    bool alternate = false;
+    for (Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
+        for (Chord* chord : chordsOf(m)) {
+            for (Note* note : chord->notes()) {
+                if (alternate) {
+                    note->setJimsPitch(2, -3);   // Fa4 = 500 c
+                } else {
+                    note->setJimsPitch(0, 0);    // Re4 = 200 c
+                }
+                alternate = !alternate;
+            }
+        }
+    }
+    score->setLayoutAll();
+    score->doLayout();
+    Measure* m2 = measureNo(score, 2);
+    ASSERT_TRUE(m2);
+    const StaffType* baseSt = st(score);
+    const StaffType* changeSt = score->staff(0)->staffType(m2->tick());
+    ASSERT_TRUE(changeSt && changeSt->isJiMS() && changeSt != baseSt);
+    // The base section: the one-period window [-250, 950] — a single Do-line at 0.
+    const StaffType::JimsFrameView& baseView = baseSt->jimsWholeFrameView(score, 0);
+    ASSERT_FALSE(baseView.empty());
+    EXPECT_NEAR(baseView.bottomCents(), -250.0, 1e-6);
+    EXPECT_NEAR(baseView.topCents(), 950.0, 1e-6);
+    // The change section (Do -> La): its frame is extended to cover the
+    // indicator — La sits 300 cents below Do, one margin further down.
+    jims::ChangeIndicator model;
+    ASSERT_TRUE(jims::changeIndicatorIntoStaffType(score, 0, changeSt, model));
+    const StaffType::JimsFrameView& changeView = changeSt->jimsWholeFrameView(score, 0);
+    ASSERT_FALSE(changeView.empty());
+    // Before extension the indicator overflowed the base-shaped window.
+    EXPECT_FALSE(jims::changeIndicatorOverflowCents(baseView, model, changeSt->jimsPeriodCents()).empty())
+        << "the indicator does not fit the un-extended window";
+    // After extension: the section's frame grew (here to the Do..Do octave)
+    // and the whole indicator is on the staff.
+    EXPECT_GE(changeView.topCents(), 1200.0 - 1e-6) << "the section's staff extends to the upper Do";
+    EXPECT_NEAR(changeView.bottomCents(), 0.0, 1e-6);
+    EXPECT_TRUE(jims::changeIndicatorOverflowCents(changeView, model, changeSt->jimsPeriodCents()).empty())
+        << "after extension the whole indicator is on the staff";
+    EXPECT_DOUBLE_EQ(jims::changeAnchorPeriodCents(changeView, model, changeSt->jimsPeriodCents()), 0.0);
+    delete score;
+}

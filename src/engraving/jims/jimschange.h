@@ -59,6 +59,19 @@ double courtesyTerrainWidth(const Measure* measure);
 /// instantiated per period and do not depend on it. Falls back to the
 /// stack's lowest period for an empty view.
 double changeAnchorPeriodCents(const StaffType::JimsFrameView& view, const ChangeIndicator& model, double periodCents);
+
+/// The change indicator drawn against THIS staff type's frame — the one
+/// whose NEW state is `newStaffType` (its own section start; mid-system or
+/// courtesy alike). False when the staff type starts no JiMS section
+/// (the base type) or the Kernel derives no indicator.
+bool changeIndicatorIntoStaffType(const Score* score, staff_idx_t staffIdx, const StaffType* newStaffType, ChangeIndicator& out);
+
+/// Owner rule 2026-08-19 (7b): the cents (frame coordinates) of every
+/// indicator point that still falls outside the drawn stave after the
+/// best Do-line anchor was chosen — empty when the indicator fits. The
+/// frame is then re-derived covering them (Kernel `extra_cents`), so the
+/// staff extends to include the whole indicator.
+std::vector<double> changeIndicatorOverflowCents(const StaffType::JimsFrameView& view, const ChangeIndicator& model, double periodCents);
 }
 
 #endif

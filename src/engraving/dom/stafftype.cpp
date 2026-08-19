@@ -29,6 +29,7 @@
 
 #include "../iengravingfont.h"
 #include "../jims/jimsbridge.h"
+#include "../jims/jimschange.h"
 #include "../jims/jimsstrings.h"
 
 #include "rw/xmlreader.h"
@@ -986,7 +987,23 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
     }
     melody += u"]}";
     const muse::String token = jimsTonicAmbit();
-    const muse::String key = jimsStateJson() + u"|" + token + u"|" + melody;
+    // Owner rule 2026-08-19 (7b): the change indicator drawn against this
+    // staff type's frame (its own section start) is part of the derivation
+    // input — when no Do-line keeps it on the staff, the frame is re-derived
+    // covering it. Its old and new states are the key's extra ingredient.
+    jims::ChangeIndicator intoThis;
+    const bool hasIndicator = jims::changeIndicatorIntoStaffType(score, staffIdx, this, intoThis);
+    muse::String indicatorKey;
+    if (hasIndicator) {
+        for (const jims::ChangePoint& p : intoThis.tonicIndicators) {
+            indicatorKey += muse::String(u"t%1/%2;").arg(p.ordinate).arg(p.periodOffset);
+        }
+        for (const jims::ChangeArrow& a : intoThis.arrows) {
+            indicatorKey += muse::String(u"a%1/%2>%3/%4;").arg(a.from.ordinate).arg(a.from.periodOffset)
+                            .arg(a.to.ordinate).arg(a.to.periodOffset);
+        }
+    }
+    const muse::String key = jimsStateJson() + u"|" + token + u"|" + melody + u"|ind:" + indicatorKey;
     if (jimsFrameKey() != key) {
         // Milestone 4: EVERY melody — including the empty one — asks the
         // Kernel (frame_for_melody yields one whole period for no notes,
@@ -1001,6 +1018,28 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
             if (jims::frameForMelody(jimsStateJson(), melody, token, segments)) {
                 for (const jims::StaveSegment& segment : segments) {
                     cached.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
+                }
+                if (hasIndicator && jimsPeriodCents() > 0.0) {
+                    // Provisional one-band view -> overflow -> covering re-derivation.
+                    JimsFrameView provisional;
+                    JimsFrameBand band;
+                    band.segments = cached;
+                    if (!cached.empty()) {
+                        band.lowerCents = cached.front().lowerCents;
+                        band.upperCents = cached.back().upperCents;
+                    }
+                    provisional.bands.push_back(band);
+                    const std::vector<double> extra
+                        = jims::changeIndicatorOverflowCents(provisional, intoThis, jimsPeriodCents());
+                    if (!extra.empty()) {
+                        std::vector<jims::StaveSegment> covering;
+                        if (jims::frameForMelody(jimsStateJson(), melody, token, covering, extra)) {
+                            cached.clear();
+                            for (const jims::StaveSegment& segment : covering) {
+                                cached.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
+                            }
+                        }
+                    }
                 }
             } else {
                 LOGE() << "JiMStaff: Kernel frame derivation failed for staff " << staffIdx
@@ -1330,7 +1369,41 @@ const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, sta
     }
     const muse::String melody = jimsCollectSystemMelody(system, staffIdx);
     const muse::String token = jimsTonicAmbit();
-    const muse::String key = jimsStateJson() + u"|" + token + u"|" + melody + u"|elide:1|min:1";
+    // Owner rule 2026-08-19 (7b): the change indicator drawn against this
+    // staff type's frame is part of the derivation input (see the whole-
+    // piece derivation); it only matters on the system that draws it.
+    jims::ChangeIndicator intoThis;
+    bool hasIndicator = false;
+    muse::String indicatorKey;
+    if (jims::changeIndicatorIntoStaffType(score, staffIdx, this, intoThis)) {
+        // Drawn on this system when the section's carrier measure is in it
+        // (mid-system) or when this system's last measure precedes it (courtesy).
+        for (const MeasureBase* mb = fm; mb; mb = mb->next()) {
+            if (mb->isMeasure()) {
+                const Measure* m = toMeasure(mb);
+                const Measure* next = m->nextMeasure();
+                if ((jims::changeCarrier(m, staffIdx) && score->staff(staffIdx)->staffType(m->tick()) == this)
+                    || (m == lm && next && jims::changeCarrier(next, staffIdx)
+                        && score->staff(staffIdx)->staffType(next->tick()) == this)) {
+                    hasIndicator = true;
+                    break;
+                }
+            }
+            if (mb == lm) {
+                break;
+            }
+        }
+        if (hasIndicator) {
+            for (const jims::ChangePoint& p : intoThis.tonicIndicators) {
+                indicatorKey += muse::String(u"t%1/%2;").arg(p.ordinate).arg(p.periodOffset);
+            }
+            for (const jims::ChangeArrow& a : intoThis.arrows) {
+                indicatorKey += muse::String(u"a%1/%2>%3/%4;").arg(a.from.ordinate).arg(a.from.periodOffset)
+                                .arg(a.to.ordinate).arg(a.to.periodOffset);
+            }
+        }
+    }
+    const muse::String key = jimsStateJson() + u"|" + token + u"|" + melody + u"|elide:1|min:1|ind:" + indicatorKey;
     if (found != m_jimsFrameViews.end() && found->second.key == key) {
         return found->second;
     }
@@ -1341,10 +1414,12 @@ const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, sta
     // owner-approved plan §7.9), in line distances of this staff type.
     const double ld = m_lineDistance.val();
     view.gapLd = ld > 0.0 ? score->style().styleS(Sid::staffDistance).val() / ld : 0.0;
-    jims::FrameBands bands;
-    if (token.isEmpty()) {
-        LOGE() << "JiMStaff: no declared tonic-ambit token; banded frame unavailable for staff " << staffIdx;
-    } else if (jims::frameBandsForMelody(jimsStateJson(), melody, token, true, 1, bands)) {
+    auto deriveBands = [&](const std::vector<double>& extra, JimsFrameView& into) -> bool {
+        jims::FrameBands bands;
+        if (!jims::frameBandsForMelody(jimsStateJson(), melody, token, true, 1, bands, extra)) {
+            return false;
+        }
+        into.bands.clear();
         for (const jims::FrameBand& kb : bands.bands) {
             JimsFrameBand band;
             for (const jims::StaveSegment& segment : kb.segments) {
@@ -1356,16 +1431,27 @@ const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, sta
             band.highestPeriodIndex = kb.highestPeriodIndex;
             band.labelPeriodIndex = kb.labelPeriodIndex;
             band.tonicLabel = kb.tonicLabel.label;
-            view.bands.push_back(band);
+            into.bands.push_back(band);
         }
-        view.omittedPeriodCount = bands.omittedPeriodCount;
+        into.omittedPeriodCount = bands.omittedPeriodCount;
         // Vertical placement, top band at 0, then each lower band below the
         // previous one plus one gap.
         double y = 0.0;
-        for (size_t i = view.bands.size(); i > 0; --i) {
-            JimsFrameBand& band = view.bands[i - 1];
+        for (size_t i = into.bands.size(); i > 0; --i) {
+            JimsFrameBand& band = into.bands[i - 1];
             band.yTopLd = y;
-            y += band.heightLd() + view.gapLd;
+            y += band.heightLd() + into.gapLd;
+        }
+        return true;
+    };
+    if (token.isEmpty()) {
+        LOGE() << "JiMStaff: no declared tonic-ambit token; banded frame unavailable for staff " << staffIdx;
+    } else if (deriveBands({}, view)) {
+        if (hasIndicator && jimsPeriodCents() > 0.0) {
+            const std::vector<double> extra = jims::changeIndicatorOverflowCents(view, intoThis, jimsPeriodCents());
+            if (!extra.empty()) {
+                deriveBands(extra, view);
+            }
         }
     } else {
         LOGE() << "JiMStaff: Kernel banded frame derivation failed for staff " << staffIdx

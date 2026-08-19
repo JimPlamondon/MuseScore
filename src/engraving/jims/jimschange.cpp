@@ -195,4 +195,66 @@ double changeAnchorPeriodCents(const StaffType::JimsFrameView& view, const Chang
     }
     return bestAnchor;
 }
+
+bool changeIndicatorIntoStaffType(const Score* score, staff_idx_t staffIdx, const StaffType* newStaffType,
+                                  ChangeIndicator& out)
+{
+    if (!score || !newStaffType || !newStaffType->isJiMS()) {
+        return false;
+    }
+    const Staff* staff = score->staff(staffIdx);
+    if (!staff) {
+        return false;
+    }
+    for (const Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
+        if (!changeCarrier(m, staffIdx)) {
+            continue;
+        }
+        if (staff->staffType(m->tick()) != newStaffType) {
+            continue;
+        }
+        const Fraction before = Fraction::fromTicks(std::max(0, m->tick().ticks() - 1));
+        const StaffType* oldSt = staff->staffType(before);
+        if (!oldSt || !oldSt->isJiMS() || oldSt == newStaffType) {
+            return false;
+        }
+        return changeIndicator(oldSt->jimsStateJson(), newStaffType->jimsStateJson(), out);
+    }
+    return false;
+}
+
+std::vector<double> changeIndicatorOverflowCents(const StaffType::JimsFrameView& view, const ChangeIndicator& model,
+                                                 double periodCents)
+{
+    std::vector<double> out;
+    if (view.empty() || periodCents <= 0.0) {
+        return out;
+    }
+    const double eps = 1e-6;
+    const double anchor = changeAnchorPeriodCents(view, model, periodCents);
+    auto inside = [&](double cents) {
+        for (const StaffType::JimsFrameBand& band : view.bands) {
+            for (const StaffType::JimsSegment& seg : band.segments) {
+                if (cents >= seg.lowerCents - eps && cents <= seg.upperCents + eps) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+    auto consider = [&](const ChangePoint& p) {
+        const double cents = anchor + (p.periodOffset + p.ordinate) * periodCents;
+        if (!inside(cents)) {
+            out.push_back(cents);
+        }
+    };
+    for (const ChangePoint& p : model.tonicIndicators) {
+        consider(p);
+    }
+    for (const ChangeArrow& a : model.arrows) {
+        consider(a.from);
+        consider(a.to);
+    }
+    return out;
+}
 }
