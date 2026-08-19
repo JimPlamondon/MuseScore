@@ -11,6 +11,9 @@
 #include <limits>
 
 #include "dom/measure.h"
+#include "dom/segment.h"
+#include "dom/note.h"
+#include "dom/chord.h"
 #include "dom/score.h"
 #include "dom/staff.h"
 #include "dom/stafftype.h"
@@ -256,5 +259,98 @@ std::vector<double> changeIndicatorOverflowCents(const StaffType::JimsFrameView&
         consider(a.to);
     }
     return out;
+}
+
+int deriveTonicAmbits(Score* score)
+{
+    if (!score) {
+        return 0;
+    }
+    int changed = 0;
+    for (staff_idx_t staffIdx = 0; staffIdx < score->nstaves(); ++staffIdx) {
+        Staff* staff = score->staff(staffIdx);
+        if (!staff) {
+            continue;
+        }
+        // Section starts: tick 0 (the base type) and every JiMS carrier.
+        std::vector<Fraction> starts = { Fraction(0, 1) };
+        for (const Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
+            if (changeCarrier(m, staffIdx) && m->tick() > Fraction(0, 1)) {
+                starts.push_back(m->tick());
+            }
+        }
+        for (size_t i = 0; i < starts.size(); ++i) {
+            StaffType* st = staff->staffType(starts[i]);
+            if (!st || !st->isJiMS() || st->jimsStateJson().isEmpty()) {
+                continue;
+            }
+            const bool bounded = i + 1 < starts.size();
+            const Fraction end = bounded ? starts[i + 1] : Fraction(0, 1);
+            // The section's melody: every JiMS note on this staff, all voices,
+            // every chord note, in [start, end).
+            String melody = u"{\"notes\":[";
+            bool first = true;
+            for (const Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
+                 seg = seg->next1(SegmentType::ChordRest)) {
+                if (seg->tick() < starts[i]) {
+                    continue;
+                }
+                if (bounded && seg->tick() >= end) {
+                    break;
+                }
+                for (track_idx_t track = staffIdx * VOICES; track < (staffIdx + 1) * VOICES; ++track) {
+                    const EngravingItem* el = seg->element(track);
+                    if (!el || !el->isChord()) {
+                        continue;
+                    }
+                    for (const Note* note : toChord(el)->notes()) {
+                        if (!note->hasJimsPitch()) {
+                            continue;
+                        }
+                        if (!first) {
+                            melody += u",";
+                        }
+                        melody += String(u"{\"nPer\":%1,\"nGen\":%2}").arg(note->jimsNPer()).arg(note->jimsNGen());
+                        first = false;
+                    }
+                }
+            }
+            melody += u"]}";
+            if (first) {
+                continue;   // no notes: the declared token stands
+            }
+            String token;
+            String error;
+            if (!tonicAmbitForMelody(st->jimsStateJson(), melody, token, &error)) {
+                // Wider than the classifier's window (or a Kernel refusal): the
+                // declared token stands — never a third value, never a guess.
+                continue;
+            }
+            if (token == st->jimsTonicAmbit()) {
+                continue;
+            }
+            // Store: rewrite the state's tonic_ambit value (or append the field).
+            String state = st->jimsStateJson();
+            static const String key = u"\"tonic_ambit\":\"";
+            const size_t at = state.indexOf(key);
+            if (at != muse::nidx) {
+                const size_t from = at + key.size();
+                const size_t to = state.indexOf(u'"', from);
+                if (to == muse::nidx) {
+                    continue;
+                }
+                state = state.left(from) + token + state.mid(to);
+            } else {
+                const size_t close = state.lastIndexOf(u'}');
+                if (close == muse::nidx) {
+                    continue;
+                }
+                state = state.left(close) + u",\"tonic_ambit\":\"" + token + u"\"}";
+            }
+            st->setJimsStateJson(state);
+            ++changed;
+        }
+    }
+    return changed;
 }
 }

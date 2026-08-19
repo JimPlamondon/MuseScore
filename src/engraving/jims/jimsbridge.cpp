@@ -225,6 +225,22 @@ static bool stringResult(const String& response, String& out, String* error)
     return true;
 }
 
+bool tonicAmbitForMelody(const String& stateJson, const String& melodyJson, String& token, String* error)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"tonic_ambit\",\"state\":%1,\"melody\":%2}")
+                      .arg(stateJson).arg(melodyJson);
+    if (!stringResult(callBridge(envelope), token, error)) {
+        return false;
+    }
+    if (token != u"tonic-bounded" && token != u"tonic-centered") {
+        if (error) {
+            *error = u"Kernel returned an unknown tonic-ambit token: " + token;
+        }
+        return false;
+    }
+    return true;
+}
+
 bool musicxmlStaffStateV3Xml(const String& stateJson, int staffNumber, String& out, String* error)
 {
     String envelope = staffNumber > 0

@@ -72,6 +72,18 @@ bool changeIndicatorIntoStaffType(const Score* score, staff_idx_t staffIdx, cons
 /// frame is then re-derived covering them (Kernel `extra_cents`), so the
 /// staff extends to include the whole indicator.
 std::vector<double> changeIndicatorOverflowCents(const StaffType::JimsFrameView& view, const ChangeIndicator& model, double periodCents);
+
+/// Owner Q4 rider (derive-and-save), made automatic 2026-08-19: for every
+/// JiMS staff-type section of the score, classify the section's melody —
+/// every JiMS note on the staff, all voices, every chord note, within the
+/// span where that state applies (MuseScore's own Ambitus definition of a
+/// staff's range) — through the Kernel's tonic-ambit analysis and store the
+/// token in the section's state when it differs from the declared one. An
+/// empty section or one wider than the classifier's window keeps its
+/// declared token (never a third value). Returns the number of states
+/// changed. Called at the start of every layout, so a saved score always
+/// carries the fact for the melody it holds.
+int deriveTonicAmbits(Score* score);
 }
 
 #endif

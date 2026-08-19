@@ -108,6 +108,7 @@
 #include "volta.h"
 
 #include "engraving/automation/iautomation.h"
+#include "../jims/jimschange.h"
 
 #ifndef ENGRAVING_NO_ACCESSIBILITY
 #include "accessibility/accessibleitem.h"
@@ -6000,6 +6001,11 @@ void Score::doLayoutRange(const Fraction& st, const Fraction& et)
 
     m_engravingFont = engravingFonts()->fontByName(style().value(Sid::musicalSymbolFont).value<String>().toStdString());
     m_layoutOptions.noteHeadWidth = m_engravingFont->width(SymId::noteheadBlack, style().spatium() / style().defaultSpatium());
+
+    // JiMStaff: derive-and-save the tonic ambit of every JiMS section from
+    // its melody before layout reads the state (owner Q4 rider; automatic
+    // since 2026-08-19).
+    jims::deriveTonicAmbits(this);
 
     if (this->cmdState().layoutFlags & LayoutFlag::REBUILD_MIDI_MAPPING) {
         if (this->isMaster()) {

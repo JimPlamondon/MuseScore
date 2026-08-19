@@ -260,7 +260,18 @@ TEST(JiMStaffTests, m6ChangeControllerAuthorsCarriersFromKernelStates)
     score->doLayout();
     const StaffTypeChange* stc = jims::changeCarrier(m2, 0);
     ASSERT_TRUE(stc);
-    EXPECT_EQ(stc->staffType()->jimsStateJson(), expected);
+    // Byte for byte the Kernel's answer — except the tonic ambit, which layout
+    // derives from the new section's melody and saves (owner Q4 rider,
+    // automatic since 2026-08-19).
+    auto withoutAmbit = [](const muse::String& json) {
+        muse::String out = json;
+        for (const char16_t* tok : { u",\"tonic_ambit\":\"tonic-bounded\"", u",\"tonic_ambit\":\"tonic-centered\"" }) {
+            out.replace(muse::String(tok), muse::String());
+        }
+        return out;
+    };
+    EXPECT_EQ(withoutAmbit(stc->staffType()->jimsStateJson()), withoutAmbit(expected));
+    EXPECT_TRUE(stc->staffType()->jimsStateJson().contains(u"\"tonic_ambit\":\"tonic-"));
     EXPECT_TRUE(stc->staffType()->jimsStateJson().contains(u"\"mode_rotation\":5"));
     jims::ChangeIndicator model;
     ASSERT_TRUE(jims::midSystemChangeIndicator(m2, 0, model));

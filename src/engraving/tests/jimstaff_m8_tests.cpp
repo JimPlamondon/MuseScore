@@ -1516,3 +1516,92 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorExtendsTheStaffWhenN
     EXPECT_DOUBLE_EQ(jims::changeAnchorPeriodCents(changeView, model, changeSt->jimsPeriodCents()), 0.0);
     delete score;
 }
+
+// Owner Q4 rider, automatic since 2026-08-19: every JiMS section's tonic
+// ambit is derived from its melody (all JiMS notes on the staff, all voices,
+// every chord note, within the section — MuseScore's Ambitus definition of a
+// staff's range) at layout and stored in the state; a melody wider than the
+// classifier's window keeps the declared token.
+TEST_F(Engraving_JiMStaffM8BandElisionTests, tonicAmbitIsDerivedFromTheSectionMelodyAndSaved)
+{
+    // The single-octave collision piece starts as the template's tonic-bounded.
+    MasterScore* score = ScoreRW::readScore(SINGLE_OCTAVE);
+    ASSERT_TRUE(score);
+    score->doLayout();
+    ASSERT_EQ(st(score)->jimsTonicAmbit(), u"tonic-bounded");
+    // Rewrite the melody to the Kernel's plagal example (wanders around a
+    // middle tonic): (-1,-1) (-2,1) (0,-2) (-1,0) (1,-3).
+    const std::vector<std::pair<int, int> > plagal = { { -1, -1 }, { -2, 1 }, { 0, -2 }, { -1, 0 }, { 1, -3 } };
+    size_t k = 0;
+    for (Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
+        for (Chord* chord : chordsOf(m)) {
+            for (Note* note : chord->notes()) {
+                const auto& id = plagal[k++ % plagal.size()];
+                note->setJimsPitch(id.first, id.second);
+            }
+        }
+    }
+    score->setLayoutAll();
+    score->doLayout();
+    EXPECT_EQ(st(score)->jimsTonicAmbit(), u"tonic-centered") << "derived at layout from the section melody";
+    EXPECT_TRUE(st(score)->jimsStateJson().contains(u"\"tonic_ambit\":\"tonic-centered\"")) << "and stored in the state";
+    // Back to an authentic walk Do..Do: (0,-2) (-1,0) (-2,2) (0,-1) (-1,1) (1,-2).
+    const std::vector<std::pair<int, int> > authentic = { { 0, -2 }, { -1, 0 }, { -2, 2 }, { 0, -1 }, { -1, 1 }, { 1, -2 } };
+    k = 0;
+    for (Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
+        for (Chord* chord : chordsOf(m)) {
+            for (Note* note : chord->notes()) {
+                const auto& id = authentic[k++ % authentic.size()];
+                note->setJimsPitch(id.first, id.second);
+            }
+        }
+    }
+    score->setLayoutAll();
+    score->doLayout();
+    EXPECT_EQ(st(score)->jimsTonicAmbit(), u"tonic-bounded");
+    // The .mscz round trip carries the derived token.
+    const String dir = ScoreRW::rootPath() + u"/../../../build.release/jims-m8-scratch";
+    io::Dir::mkpath(dir);
+    const String out = dir + u"/ambit-roundtrip.mscz";
+    io::File::remove(out);
+    // Make it plagal again, save, reload.
+    k = 0;
+    for (Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
+        for (Chord* chord : chordsOf(m)) {
+            for (Note* note : chord->notes()) {
+                const auto& id = plagal[k++ % plagal.size()];
+                note->setJimsPitch(id.first, id.second);
+            }
+        }
+    }
+    score->setLayoutAll();
+    score->doLayout();
+    ASSERT_EQ(st(score)->jimsTonicAmbit(), u"tonic-centered");
+    {
+        io::File file(out);
+        ASSERT_TRUE(file.open(io::IODevice::WriteOnly));
+        MscWriter::Params params;
+        params.device = &file;
+        params.filePath = out;
+        params.mode = MscIoMode::Zip;
+        MscWriter writer(params);
+        ASSERT_TRUE(writer.open());
+        MscSaver saver(score->iocContext());
+        ASSERT_TRUE(saver.writeMscz(score, writer, false));
+        writer.close();
+        file.close();
+    }
+    delete score;
+    MasterScore* again = ScoreRW::readScore(out, true);
+    ASSERT_TRUE(again);
+    again->doLayout();
+    EXPECT_EQ(st(again)->jimsTonicAmbit(), u"tonic-centered");
+    delete again;
+    // A melody wider than the classifier's window (the five-octave two-hand
+    // piece) keeps its declared token — never a third value, never a guess.
+    MasterScore* wide = ScoreRW::readScore(TWO_HAND);
+    ASSERT_TRUE(wide);
+    wide->doLayout();
+    EXPECT_EQ(st(wide)->jimsTonicAmbit(), u"tonic-bounded");
+    delete wide;
+}

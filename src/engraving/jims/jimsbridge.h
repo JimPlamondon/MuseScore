@@ -48,6 +48,13 @@ bool scaleDots(const muse::String& stateJson, std::vector<ScaleDotStack>& stacks
 /// state's mode-selected (movable) tonic.
 bool tonicCentsAboveDo(const muse::String& stateJson, double& cents);
 
+/// The Kernel's tonic-ambit classification of a melody (owner criterion
+/// 2026-08-13; renamed 2026-08-19): `tonic-bounded` (authentic) or
+/// `tonic-centered` (plagal). False — with `error` set — for an empty melody
+/// or one wider than the classifier's two-tonic-octave window; the caller
+/// then keeps the declared token (never a third value).
+bool tonicAmbitForMelody(const muse::String& stateJson, const muse::String& melodyJson, muse::String& token, muse::String* error = nullptr);
+
 /// The staff's tuning metrics (generator and period widths in cents),
 /// Kernel-validated. The tuning label and any width-derived drawing use
 /// this; the fork never parses the state JSON for musical facts.
