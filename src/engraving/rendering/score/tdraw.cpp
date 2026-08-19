@@ -3349,20 +3349,27 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                             const double yFrom = yOf(centsOf(a.from));
                             const double yTo = yOf(centsOf(a.to));
                             painter->setPen(Pen(arrowInk, pen, PenStyle::SolidLine, PenCapStyle::RoundCap));
-                            // Solid triangular head at the `to` end (owner ruling
-                            // 2026-08-16: "close the notehead"); the shaft stops at
-                            // the head's base so it never pokes through the apex.
+                            // Solid head at the `to` end (owner ruling 2026-08-16:
+                            // "close the notehead"), drawn as MuseScore's SMuFL
+                            // arrowhead glyph (owner decision 6a, 2026-08-19: follow
+                            // MuseScore's arrows) scaled to the Kernel's head height;
+                            // the shaft stops at the head's base so it never pokes
+                            // through the apex.
                             const double back = a.up ? hh : -hh; // toward `from`
                             painter->drawLine(LineF(arrowX, yFrom, arrowX, yTo + back));
-                            PainterPath headPath;
-                            headPath.moveTo(arrowX, yTo);
-                            headPath.lineTo(arrowX - hw, yTo + back);
-                            headPath.lineTo(arrowX + hw, yTo + back);
-                            headPath.closeSubpath();
-                            painter->setBrush(Brush(arrowInk));
-                            painter->setNoPen();
-                            painter->drawPath(headPath);
-                            painter->setBrush(BrushStyle::NoBrush);
+                            const SymId headSym = a.up ? SymId::arrowheadBlackUp : SymId::arrowheadBlackDown;
+                            const RectF gb = font->bbox(headSym, 1.0);
+                            if (gb.height() > 0.0) {
+                                const double mag = hh / gb.height();
+                                // Glyph origin: SMuFL arrowheads sit on the baseline with
+                                // the apex up (Up) or down (Down); centre horizontally on
+                                // the shaft and put the apex on the `to` row.
+                                const double x = arrowX - gb.width() * mag / 2.0 - gb.left() * mag;
+                                const double y = a.up ? yTo - gb.top() * mag : yTo - gb.bottom() * mag;
+                                painter->setPen(Pen(arrowInk, pen));
+                                font->draw(headSym, painter, mag, PointF(x, y));
+                            }
+                            UNUSED(hw);
                         }
                     }
                 }
