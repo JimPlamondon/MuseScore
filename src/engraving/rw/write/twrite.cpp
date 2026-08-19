@@ -2966,7 +2966,7 @@ void TWrite::write(const StaffType* item, XmlWriter& xml, WriteContext& ctx)
     }
     if (item->isJiMS()) {
         // JiMStaff authoritative state only: marker, Kernel-owned
-        // section state, tonic-extent token. Projected geometry,
+        // section state, tonic-ambit token. Projected geometry,
         // notehead classes, and memberships are derived, never stored.
         xml.tag("jims", item->isJiMS());
         if (!item->jimsStateJson().isEmpty()) {
@@ -2974,9 +2974,9 @@ void TWrite::write(const StaffType* item, XmlWriter& xml, WriteContext& ctx)
         }
         // V2: the token lives inside the state JSON; the side tag is
         // written only for a legacy token with no V2 home to ride in.
-        if (!item->jimsTonicExtent().isEmpty()
-            && !item->jimsStateJson().contains(u"\"tonic_extent\"")) {
-            xml.tag("jimsTonicExtent", item->jimsTonicExtent());
+        if (!item->jimsTonicAmbit().isEmpty()
+            && !item->jimsStateJson().contains(u"\"tonic_ambit\"")) {
+            xml.tag("jimsTonicAmbit", item->jimsTonicAmbit());
         }
         if (item->jimsJiLines()) {
             xml.tag("jimsJiLines", item->jimsJiLines());

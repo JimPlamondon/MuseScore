@@ -36,7 +36,7 @@ STATE_XML = """<jims:staff-state>
 def state_xml(mode=0, coll=0, reference="", tonic=""):
     return STATE_XML.format(mode=mode, coll=coll,
                             reference=("\n  <jims:reference>" + reference + "</jims:reference>") if reference else "",
-                            tonic=("\n  <jims:tonic-extent>" + tonic + "</jims:tonic-extent>") if tonic else "")
+                            tonic=("\n  <jims:tonic-ambit>" + tonic + "</jims:tonic-ambit>") if tonic else "")
 
 
 def enriched(ns, measures):
@@ -127,8 +127,8 @@ class V3Timeline(unittest.TestCase):
         self.assertEqual(states[1]["reference"], {"reference-pitch": {"key_number": 53}})
         self.assertEqual(states[2]["collection_rotation"], -3)
         for s in states:
-            self.assertEqual(s["tonic_extent"], "tonic-bounded")
-            self.assertEqual(list(s)[-1], "tonic_extent")
+            self.assertEqual(s["tonic_ambit"], "tonic-bounded")
+            self.assertEqual(list(s)[-1], "tonic_ambit")
         # StaffTypeChange carriers sit at measures 3 and 4 (document order).
         measures = re.findall(r"<Measure>(.*?)</Measure>", out, re.S)
         self.assertEqual([("<StaffTypeChange>" in m) for m in measures], [False, False, True, True])
@@ -160,7 +160,7 @@ class V3Timeline(unittest.TestCase):
         self.assertEqual(states[0]["reference"], {"reference-pitch": {"key_number": 62}})
         self.assertEqual(states[1]["reference"], {"reference-pitch": {"key_number": 53}})
         self.assertEqual(states[1]["mode_rotation"], 5)
-        self.assertEqual(states[1]["tonic_extent"], "tonic-bounded")
+        self.assertEqual(states[1]["tonic_ambit"], "tonic-bounded")
 
     def test_out_of_contract_documents_are_rejected(self):
         rc, log, _ = run(enriched(V3, [(None, None, 1), (state_xml(reference="<jims:none/>"), None, 1)]), stock_mscx(2, 1))

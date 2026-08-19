@@ -260,8 +260,8 @@ public:
     void setJiMS(bool val) { m_jims = val; }
     const String& jimsStateJson() const { return m_jimsStateJson; }
     void setJimsStateJson(const String& s);
-    const String& jimsTonicExtent() const { return m_jimsTonicExtent; }
-    void setJimsTonicExtent(const String& s) { m_jimsTonicExtent = s; }
+    const String& jimsTonicAmbit() const { return m_jimsTonicAmbit; }
+    void setJimsTonicAmbit(const String& s) { m_jimsTonicAmbit = s; }
     // EXPERIMENTAL (owner request 2026-08-14, not locked in): draw the
     // Just Intonation diatonic scaffold instead of the mid-period line.
     JimsScaleDotLabelMode jimsScaleDotLabelMode() const { return m_jimsScaleDotLabelMode; }
@@ -526,11 +526,11 @@ private:
     Spatium m_lineDistance = 1_sp;
 
     // JiMStaff (Milestone 1): marker, Kernel-owned serialized section
-    // state, and the tonic-extent token (jims.tonic-extent.v1 envelope).
+    // state, and the tonic-ambit token (jims.tonic-ambit.v1 envelope).
     // Only authoritative state — projected geometry is never stored.
     bool m_jims = false;
     String m_jimsStateJson;
-    String m_jimsTonicExtent;
+    String m_jimsTonicAmbit;
     bool m_jimsJiLines = false;
     JimsScaleDotLabelMode m_jimsScaleDotLabelMode = JimsScaleDotLabelMode::Auto;
     JimsElideOctaves m_jimsElideOctaves = JimsElideOctaves::Auto;

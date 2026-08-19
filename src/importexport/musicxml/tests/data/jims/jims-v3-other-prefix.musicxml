@@ -13,7 +13,7 @@
           <zz:period-cents>1200</zz:period-cents>
           <zz:embedding large-steps="5" small-steps="2"/>
           <zz:extent lower-do-register="4" period-count="1"/>
-          <zz:tonic-extent>tonic-bounded</zz:tonic-extent>
+          <zz:tonic-ambit>tonic-bounded</zz:tonic-ambit>
           <zz:reference><zz:none/></zz:reference>
         </zz:staff-state>
       </attributes>
@@ -36,7 +36,7 @@
           <zz:period-cents>1200</zz:period-cents>
           <zz:embedding large-steps="5" small-steps="2"/>
           <zz:extent lower-do-register="4" period-count="1"/>
-          <zz:tonic-extent>tonic-bounded</zz:tonic-extent>
+          <zz:tonic-ambit>tonic-bounded</zz:tonic-ambit>
           <zz:reference><zz:none/></zz:reference>
         </zz:staff-state>
         <zz:change>

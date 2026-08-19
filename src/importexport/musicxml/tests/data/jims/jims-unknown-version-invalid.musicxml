@@ -13,7 +13,7 @@
           <jims:period-cents>1200</jims:period-cents>
           <jims:embedding large-steps="5" small-steps="2"/>
           <jims:extent lower-do-register="4" period-count="1"/>
-          <jims:tonic-extent>tonic-bounded</jims:tonic-extent>
+          <jims:tonic-ambit>tonic-bounded</jims:tonic-ambit>
           <jims:reference><jims:none/></jims:reference>
         </jims:staff-state>
       </attributes>
@@ -36,7 +36,7 @@
           <jims:period-cents>1200</jims:period-cents>
           <jims:embedding large-steps="5" small-steps="2"/>
           <jims:extent lower-do-register="4" period-count="1"/>
-          <jims:tonic-extent>tonic-bounded</jims:tonic-extent>
+          <jims:tonic-ambit>tonic-bounded</jims:tonic-ambit>
           <jims:reference><jims:none/></jims:reference>
         </jims:staff-state>
         <jims:change>

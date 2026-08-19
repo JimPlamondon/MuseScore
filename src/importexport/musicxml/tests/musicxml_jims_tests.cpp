@@ -108,17 +108,17 @@ public:
 
 // The exact converter output for the accepted m5-key-mode piece
 // (jims-evidence/m5-acceptance/m5-key-mode/m5-key-mode.mscx): byte-shape,
-// key order, no spaces, tonic_extent last.
+// key order, no spaces, tonic_ambit last.
 static const char* KEY_MODE_STATE_1
     = "{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],\"collection_rotation\":0,\"mode_rotation\":0,"
       "\"generator_cents\":700.0,\"period_cents\":1200.0,\"embedding\":{\"large_steps\":5,\"small_steps\":2},"
       "\"extent\":{\"lower_do_register\":4,\"period_count\":1},\"reference\":{\"reference-pitch\":{\"key_number\":62}},"
-      "\"tonic_extent\":\"tonic-bounded\"}";
+      "\"tonic_ambit\":\"tonic-bounded\"}";
 static const char* KEY_MODE_STATE_2
     = "{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],\"collection_rotation\":0,\"mode_rotation\":5,"
       "\"generator_cents\":700.0,\"period_cents\":1200.0,\"embedding\":{\"large_steps\":5,\"small_steps\":2},"
       "\"extent\":{\"lower_do_register\":4,\"period_count\":1},\"reference\":{\"reference-pitch\":{\"key_number\":53}},"
-      "\"tonic_extent\":\"tonic-bounded\"}";
+      "\"tonic_ambit\":\"tonic-bounded\"}";
 
 TEST_F(MusicXml_JiMS_Tests, v3ImportBuildsTheJiMStaffLikeTheConverter)
 {
@@ -132,7 +132,7 @@ TEST_F(MusicXml_JiMS_Tests, v3ImportBuildsTheJiMStaffLikeTheConverter)
     EXPECT_EQ(st->lines(), 13);
     EXPECT_EQ(st->jimsStateJson(), String::fromUtf8(KEY_MODE_STATE_1));
     EXPECT_TRUE(st->jimsJiLines());
-    EXPECT_EQ(st->jimsTonicExtent(), String(u"tonic-bounded"));
+    EXPECT_EQ(st->jimsTonicAmbit(), String(u"tonic-bounded"));
     // The change measure carries the complete second state (never derived from jims:change).
     Measure* m2 = measureNo(score, 2);
     ASSERT_TRUE(m2);
@@ -179,7 +179,7 @@ TEST_F(MusicXml_JiMS_Tests, everyReferenceFormTranscribesVerbatimAndOlderProfile
         const StaffType* st = staffTypeAtStart(score);
         ASSERT_TRUE(st && st->isJiMS()) << c.file;
         EXPECT_TRUE(st->jimsStateJson().contains(String::fromUtf8(c.reference))) << c.file << " " << st->jimsStateJson().toStdString();
-        EXPECT_FALSE(st->jimsStateJson().contains(u"\"tonic_extent\":\"\"")) << c.file;
+        EXPECT_FALSE(st->jimsStateJson().contains(u"\"tonic_ambit\":\"\"")) << c.file;
         delete score;
     }
     // A genuine V2 document with two states and no reference: the second
@@ -190,10 +190,10 @@ TEST_F(MusicXml_JiMS_Tests, everyReferenceFormTranscribesVerbatimAndOlderProfile
     ASSERT_TRUE(stc);
     EXPECT_TRUE(stc->staffType()->jimsStateJson().contains(u"\"mode_rotation\":5"));
     delete v2;
-    // V1 (no tonic-extent in the profile): the field is simply absent.
+    // V1 (no tonic-ambit in the profile): the field is simply absent.
     MasterScore* v1 = readJims("jims-v1-collision.musicxml");
     ASSERT_TRUE(v1);
-    EXPECT_FALSE(staffTypeAtStart(v1)->jimsStateJson().contains(u"tonic_extent"));
+    EXPECT_FALSE(staffTypeAtStart(v1)->jimsStateJson().contains(u"tonic_ambit"));
     EXPECT_EQ(notesInOrder(v1).size(), 12u);
     delete v1;
 }

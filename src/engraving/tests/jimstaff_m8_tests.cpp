@@ -1423,3 +1423,38 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8GapIndicatorIsScreenOnlyAndNeverP
     delete score;
 }
 } // namespace
+
+// Owner rename 2026-08-19: the state key is `tonic_ambit`. Every JiMS score
+// saved before the rename carries `tonic_extent` (in the state JSON and, for
+// pre-V2 files, as the <jimsTonicExtent> side tag); such files must open with
+// the token intact and be written back with the new key only.
+TEST_F(Engraving_JiMStaffM8BandElisionTests, legacyTonicExtentSpellingsStillReadAndAreNeverWritten)
+{
+    StaffType st;
+    st.setJiMS(true);
+    st.setJimsStateJson(String::fromUtf8(
+                            "{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],"
+                            "\"collection_rotation\":0,\"mode_rotation\":0,"
+                            "\"generator_cents\":700.0,\"period_cents\":1200.0,"
+                            "\"embedding\":{\"large_steps\":5,\"small_steps\":2},"
+                            "\"extent\":{\"lower_do_register\":4,\"period_count\":1},"
+                            "\"reference\":\"none\",\"tonic_extent\":\"tonic-centered\"}"));
+    EXPECT_EQ(st.jimsTonicAmbit(), u"tonic-centered");
+    EXPECT_TRUE(st.jimsStateJson().contains(u"\"tonic_ambit\":\"tonic-centered\""));
+    EXPECT_FALSE(st.jimsStateJson().contains(u"tonic_extent"));
+    // A modern state reads the same way.
+    st.setJimsStateJson(st.jimsStateJson());
+    EXPECT_EQ(st.jimsTonicAmbit(), u"tonic-centered");
+    // The Kernel accepts the normalized state (frame derivation runs on it).
+    MasterScore* score = ScoreRW::readScore(TWO_HAND);
+    ASSERT_TRUE(score);
+    StaffType* live = mutSt(score);
+    String legacy = live->jimsStateJson();
+    ASSERT_TRUE(legacy.contains(u"\"tonic_ambit\""));
+    legacy.replace(u"\"tonic_ambit\"", u"\"tonic_extent\"");
+    live->setJimsStateJson(legacy);
+    score->setLayoutAll();
+    score->doLayout();
+    EXPECT_FALSE(viewOn(score, measureSystems(score)[0]).empty()) << "a legacy-keyed state still derives a frame";
+    delete score;
+}

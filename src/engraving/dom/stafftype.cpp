@@ -188,7 +188,7 @@ bool StaffType::operator==(const StaffType& st) const
     equal &= (m_name == st.m_name);
     equal &= (m_jims == st.m_jims);
     equal &= (m_jimsStateJson == st.m_jimsStateJson);
-    equal &= (m_jimsTonicExtent == st.m_jimsTonicExtent);
+    equal &= (m_jimsTonicAmbit == st.m_jimsTonicAmbit);
     equal &= (m_jimsJiLines == st.m_jimsJiLines);
     equal &= (m_jimsScaleDotLabelMode == st.m_jimsScaleDotLabelMode);
     equal &= (m_jimsElideOctaves == st.m_jimsElideOctaves);
@@ -765,24 +765,32 @@ double StaffType::physStringToYOffset(int strg) const
 
 //---------------------------------------------------------
 //   setJimsStateJson
-//    JiMStaffStateV2 (Milestone 2): the tonic-extent token is a
+//    JiMStaffStateV2 (Milestone 2): the tonic-ambit token is a
 //    first-class field of the Kernel-owned state JSON. When the state
 //    carries it, extract it into the token member so layout consumes
 //    one value regardless of source; the legacy <jimsTonicExtent> tag
 //    remains as read compatibility for pre-V2 files (tread runs after
 //    this setter and may overwrite the member for such files).
+//    Owner rename 2026-08-19: the key is `tonic_ambit`; a state saved
+//    with the legacy key `tonic_extent` is normalized on read (the
+//    Kernel reads both; the fork writes only the new key).
 //---------------------------------------------------------
 
 void StaffType::setJimsStateJson(const String& s)
 {
-    m_jimsStateJson = s;
-    static const String marker = u"\"tonic_extent\":\"";
-    size_t at = s.indexOf(marker);
+    String state = s;
+    static const String legacyKey = u"\"tonic_extent\":";
+    if (state.contains(legacyKey)) {
+        state.replace(legacyKey, u"\"tonic_ambit\":");
+    }
+    m_jimsStateJson = state;
+    static const String marker = u"\"tonic_ambit\":\"";
+    size_t at = state.indexOf(marker);
     if (at != muse::nidx) {
         size_t from = at + marker.size();
-        size_t end = s.indexOf(u'"', from);
+        size_t end = state.indexOf(u'"', from);
         if (end != muse::nidx) {
-            m_jimsTonicExtent = s.mid(from, end - from);
+            m_jimsTonicAmbit = state.mid(from, end - from);
         }
     }
 }
@@ -936,7 +944,7 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
 //    Derive (or reuse) the Kernel staff frame for this staff's melody.
 //    Pure transport: the notes' lattice identities are collected in
 //    document order and handed to the Kernel with the declared
-//    tonic-extent token; no musical fact is computed here. Keyed by
+//    tonic-ambit token; no musical fact is computed here. Keyed by
 //    state+token+melody, so repeated calls are cheap. Every consumer of
 //    jimsFrameTopCents/jimsFrameSegments (staff lines, note placement,
 //    note entry, drawing) calls this first — note layout can run before
@@ -977,7 +985,7 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
         }
     }
     melody += u"]}";
-    const muse::String token = jimsTonicExtent();
+    const muse::String token = jimsTonicAmbit();
     const muse::String key = jimsStateJson() + u"|" + token + u"|" + melody;
     if (jimsFrameKey() != key) {
         // Milestone 4: EVERY melody — including the empty one — asks the
@@ -987,7 +995,7 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
         // and a diagnostic is emitted; nothing is synthesized fork-side.
         std::vector<JimsSegment> cached;
         if (token.isEmpty()) {
-            LOGE() << "JiMStaff: no declared tonic-extent token; frame unavailable for staff " << staffIdx;
+            LOGE() << "JiMStaff: no declared tonic-ambit token; frame unavailable for staff " << staffIdx;
         } else {
             std::vector<jims::StaveSegment> segments;
             if (jims::frameForMelody(jimsStateJson(), melody, token, segments)) {
@@ -1321,7 +1329,7 @@ const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, sta
         return found->second;
     }
     const muse::String melody = jimsCollectSystemMelody(system, staffIdx);
-    const muse::String token = jimsTonicExtent();
+    const muse::String token = jimsTonicAmbit();
     const muse::String key = jimsStateJson() + u"|" + token + u"|" + melody + u"|elide:1|min:1";
     if (found != m_jimsFrameViews.end() && found->second.key == key) {
         return found->second;
@@ -1335,7 +1343,7 @@ const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, sta
     view.gapLd = ld > 0.0 ? score->style().styleS(Sid::staffDistance).val() / ld : 0.0;
     jims::FrameBands bands;
     if (token.isEmpty()) {
-        LOGE() << "JiMStaff: no declared tonic-extent token; banded frame unavailable for staff " << staffIdx;
+        LOGE() << "JiMStaff: no declared tonic-ambit token; banded frame unavailable for staff " << staffIdx;
     } else if (jims::frameBandsForMelody(jimsStateJson(), melody, token, true, 1, bands)) {
         for (const jims::FrameBand& kb : bands.bands) {
             JimsFrameBand band;
@@ -1790,7 +1798,7 @@ void StaffType::initStaffTypes(const Color& defaultColor)
                               "\"generator_cents\":700.0,\"period_cents\":1200.0,"
                               "\"embedding\":{\"large_steps\":5,\"small_steps\":2},"
                               "\"extent\":{\"lower_do_register\":4,\"period_count\":1},"
-                              "\"reference\":\"none\",\"tonic_extent\":\"tonic-bounded\"}"));
+                              "\"reference\":\"none\",\"tonic_ambit\":\"tonic-bounded\"}"));
     m_presets.push_back(jims);
 }
 /* *INDENT-ON* */

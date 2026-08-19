@@ -4018,8 +4018,8 @@ void TRead::read(StaffType* t, XmlReader& e, ReadContext& ctx)
             t->setJiMS(e.readInt());
         } else if (tag == "jimsStateJson") {
             t->setJimsStateJson(e.readText());
-        } else if (tag == "jimsTonicExtent") {
-            t->setJimsTonicExtent(e.readText());
+        } else if (tag == "jimsTonicAmbit" || tag == "jimsTonicExtent") {   // legacy tag still read
+            t->setJimsTonicAmbit(e.readText());
         } else if (tag == "jimsJiLines") {
             t->setJimsJiLines(e.readInt());
         } else if (tag == "jimsScaleDotLabels") {

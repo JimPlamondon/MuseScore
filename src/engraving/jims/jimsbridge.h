@@ -138,7 +138,7 @@ struct StaveSegment {
     bool whole = true;
 };
 
-/// The Kernel frame for a melody plus the DECLARED tonic-extent token
+/// The Kernel frame for a melody plus the DECLARED tonic-ambit token
 /// ("tonic-bounded" / "tonic-centered"), derived at authoring and saved.
 // Milestone 5 — change indicators (owner notation rulings 2026-08-16).
 // The Kernel returns the COMPLETE ready-to-paint model; the fork parses

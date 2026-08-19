@@ -179,7 +179,7 @@ bool JimsImportContext::parseStaffState(XmlStreamReader& e, String& json, int& s
     std::vector<String> steps;
     bool haveScale = false, haveColl = false, haveMode = false, haveGen = false, havePer = false, haveEmb = false, haveExt = false;
     int collectionRotation = 0, modeRotation = 0, largeSteps = 0, smallSteps = 0, lowerDoRegister = 0, periodCount = 0;
-    String generatorCents, periodCents, tonicExtent, reference;
+    String generatorCents, periodCents, tonicAmbit, reference;
 
     while (e.readNextStartElement()) {
         const String tag = local(e.name());
@@ -214,8 +214,8 @@ bool JimsImportContext::parseStaffState(XmlStreamReader& e, String& json, int& s
             haveExt = integer(e.attribute("lower-do-register"), "extent/lower-do-register", lowerDoRegister)
                       && integer(e.attribute("period-count"), "extent/period-count", periodCount);
             e.skipCurrentElement();
-        } else if (tag == u"tonic-extent") {
-            tonicExtent = e.readText().trimmed();
+        } else if (tag == u"tonic-ambit" || tag == u"tonic-extent") {   // owner rename 2026-08-19; the legacy spelling is still read
+            tonicAmbit = e.readText().trimmed();
         } else if (tag == u"reference") {
             int forms = 0;
             while (e.readNextStartElement()) {
@@ -281,7 +281,7 @@ bool JimsImportContext::parseStaffState(XmlStreamReader& e, String& json, int& s
     scale += u"]";
 
     // Converter byte-shape (tools/jims/enriched_to_jims_mscx.py): fixed key
-    // order, no spaces, tonic_extent last. Built by concatenation — a "%10"
+    // order, no spaces, tonic_ambit last. Built by concatenation — a "%10"
     // placeholder would be read as "%1" + "0".
     json = u"{\"scale\":" + scale
            + u",\"collection_rotation\":" + String::number(collectionRotation)
@@ -293,8 +293,8 @@ bool JimsImportContext::parseStaffState(XmlStreamReader& e, String& json, int& s
            + u",\"extent\":{\"lower_do_register\":" + String::number(lowerDoRegister)
            + u",\"period_count\":" + String::number(periodCount) + u"}"
            + u",\"reference\":" + reference;
-    if (!tonicExtent.empty()) {
-        json += String(u",\"tonic_extent\":\"%1\"").arg(tonicExtent);
+    if (!tonicAmbit.empty()) {
+        json += String(u",\"tonic_ambit\":\"%1\"").arg(tonicAmbit);
     }
     json += u"}";
     return true;

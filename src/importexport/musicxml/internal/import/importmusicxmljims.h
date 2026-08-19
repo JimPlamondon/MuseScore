@@ -82,7 +82,7 @@ public:
 
     /// Parse a jims:staff-state element (reader on its start tag; the reader
     /// is left after its end tag) into the Kernel's compact state JSON —
-    /// converter byte-shape: fixed key order, no spaces, tonic_extent last.
+    /// converter byte-shape: fixed key order, no spaces, tonic_ambit last.
     /// `staffNumber` is the optional `number` attribute (0 when absent).
     /// Returns false with `error` set on a malformed state.
     bool parseStaffState(muse::XmlStreamReader& e, muse::String& json, int& staffNumber, muse::String& error) const;

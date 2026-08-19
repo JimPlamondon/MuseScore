@@ -86,9 +86,11 @@ def staff_state_json(element, ns):
         "extent": {"lower_do_register": int(extent.get("lower-do-register")), "period_count": int(extent.get("period-count"))},
         "reference": parse_reference(element.find(q("reference")), ns),
     }
-    tonic_extent = element.find(q("tonic-extent"))
-    if tonic_extent is not None and tonic_extent.text:
-        state["tonic_extent"] = tonic_extent.text.strip()
+    tonic_ambit = element.find(q("tonic-ambit"))
+    if tonic_ambit is None:
+        tonic_ambit = element.find(q("tonic-extent"))   # legacy spelling (owner rename 2026-08-19)
+    if tonic_ambit is not None and tonic_ambit.text:
+        state["tonic_ambit"] = tonic_ambit.text.strip()
     return state
 
 
@@ -168,15 +170,15 @@ def main(enriched_path, mscx_in, mscx_out, lines):
     if n_st != 1:
         sys.exit("ERROR: expected exactly one pitched StaffType block")
 
-    # Derive-and-save the tonic-extent token (owner Q4 rider): a state that
-    # already declares tonic_extent (V2/V3 XML) keeps it; otherwise classify
+    # Derive-and-save the tonic-ambit token (owner Q4 rider): a state that
+    # already declares tonic_ambit (V2/V3 XML) keeps it; otherwise classify
     # via the Kernel when a runner is available; melodies wider than the
     # classifier's window keep whatever token the caller supplies via
     # JIMS_TONIC_TOKEN, else the field is omitted (degenerate frame).
     import subprocess, tempfile
 
     def derive_token(seg_identities, seg_state_text):
-        """Kernel-classified tonic-extent token for a melody segment."""
+        """Kernel-classified tonic-ambit token for a melody segment."""
         runner = os.environ.get("JIMS_RUNNER", "")
         if not runner or not seg_identities:
             return ""
@@ -197,12 +199,12 @@ def main(enriched_path, mscx_in, mscx_out, lines):
     def with_token(seg_state_text, seg_token):
         stated = seg_state_text.rstrip()
         assert stated.endswith("}")
-        return stated[:-1].rstrip().rstrip(",") + f',"tonic_extent":"{seg_token}"}}'
+        return stated[:-1].rstrip().rstrip(",") + f',"tonic_ambit":"{seg_token}"}}'
 
     def stated_text(seg_state):
-        """Compact JSON with tonic_extent (when present) as the last field."""
+        """Compact JSON with tonic_ambit (when present) as the last field."""
         seg = dict(seg_state)
-        token = seg.pop("tonic_extent", "")
+        token = seg.pop("tonic_ambit", "")
         text = json.dumps(seg, separators=(",", ":"))
         return with_token(text, token) if token else text, token
 

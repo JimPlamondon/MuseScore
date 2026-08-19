@@ -597,7 +597,7 @@ Segs kernelFrameFor(Score* score)
     melody += u"]}";
     std::vector<jims::StaveSegment> segments;
     Segs out;
-    if (jims::frameForMelody(st->jimsStateJson(), melody, st->jimsTonicExtent(), segments)) {
+    if (jims::frameForMelody(st->jimsStateJson(), melody, st->jimsTonicAmbit(), segments)) {
         for (const jims::StaveSegment& s : segments) {
             out.push_back({ s.lowerCents, s.upperCents, s.whole });
         }

@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.1 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
 <score-partwise version="4.1" xmlns:jims="urn:jims:musicxml:3">
   <work><work-title>Mid-score static tuning change</work-title></work>
   <identification>
@@ -22,7 +23,7 @@
         <jims:period-cents>1200.0</jims:period-cents>
         <jims:embedding large-steps="5" small-steps="2"/>
         <jims:extent lower-do-register="4" period-count="1"/>
-        <jims:tonic-extent>tonic-bounded</jims:tonic-extent>
+        <jims:tonic-ambit>tonic-bounded</jims:tonic-ambit>
       </jims:staff-state>
     </attributes>
     <note>
@@ -49,7 +50,7 @@
         <jims:period-cents>1200.0</jims:period-cents>
         <jims:embedding large-steps="5" small-steps="2"/>
         <jims:extent lower-do-register="4" period-count="1"/>
-        <jims:tonic-extent>tonic-bounded</jims:tonic-extent>
+        <jims:tonic-ambit>tonic-bounded</jims:tonic-ambit>
       </jims:staff-state>
     </attributes>
     <note>
