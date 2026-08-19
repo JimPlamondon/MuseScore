@@ -47,6 +47,9 @@
 #include "importexport/musicxml/internal/export/exportmusicxml.h"
 #include "engraving/jims/jimsbridge.h"
 #include "engraving/rw/xmlwriter.h"
+#include "engraving/rw/mscsaver.h"
+#include "engraving/infrastructure/mscwriter.h"
+#include "engraving/jims/jimsinterchange.h"
 #include "io/buffer.h"
 #include "io/file.h"
 #include "io/fileinfo.h"
@@ -542,5 +545,294 @@ TEST_F(MusicXml_JiMS_Tests, m8ElisionSwitchesNeverChangeMusicXmlExport)
     const String on = readAll(exportToScratch(score, "export-m8-two-hand-on.musicxml"));
     EXPECT_EQ(on, off);
     EXPECT_FALSE(on.contains(u"elide"));
+    delete score;
+}
+
+// ---------------------------------------------------------------------------
+// Interchange hardening 2 (owner decisions 2026-08-19): jims:provenance and
+// jims:tuning-trajectory are transported — imported, saved in the score file,
+// exported back exactly as carried — and multi-part documents follow the
+// owner's rule: several JiMS parts allowed, mixed JiMS + stock parts allowed,
+// every JiMS part shares one state timeline.
+// ---------------------------------------------------------------------------
+
+TEST_F(MusicXml_JiMS_Tests, provenanceIsImportedSavedAndExportedVerbatim)
+{
+    MasterScore* score = readJims("jims-provenance.musicxml");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    const jims::Provenance prov = score->jimsProvenance();   // by value: the score is deleted before the reload check
+    ASSERT_EQ(prov.resources.size(), 3u);
+    EXPECT_TRUE(prov.strictFallback);
+    EXPECT_EQ(prov.resources[0].role, u"source");
+    EXPECT_EQ(prov.resources[0].uri, u"https://example.org/scores/original.pdf");
+    EXPECT_EQ(prov.resources[0].mediaType, u"application/pdf");
+    EXPECT_EQ(prov.resources[0].sha256, u"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+    EXPECT_EQ(prov.resources[0].text, u"Original engraving");
+    EXPECT_EQ(prov.resources[1].role, u"master");
+    EXPECT_TRUE(prov.resources[1].sha256.isEmpty());
+    EXPECT_TRUE(prov.resources[1].text.isEmpty());
+    EXPECT_EQ(prov.resources[2].role, u"arrangement");
+    // Export writes it back inside identification, before miscellaneous.
+    const String out = exportToScratch(score, "export-provenance.musicxml");
+    const String xml = readAll(out);
+    EXPECT_TRUE(xml.contains(u"<jims:provenance fallback-profile=\"strict\">"));
+    EXPECT_EQ(int(xml.count(u"<jims:resource ")), 3);
+    EXPECT_TRUE(xml.contains(
+                    u"sha-256=\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\">Original engraving</jims:resource>"));
+    const size_t provPos = xml.indexOf(u"<jims:provenance");
+    const size_t identEnd = xml.indexOf(u"</identification>");
+    const size_t misc = xml.indexOf(u"<miscellaneous>");
+    ASSERT_NE(provPos, muse::nidx);
+    EXPECT_LT(provPos, identEnd);
+    if (misc != muse::nidx) {
+        EXPECT_LT(provPos, misc);
+    }
+    // Round trip: the reimported carrier is equal.
+    auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
+        return importMusicXml(s, path.toQString(), false);
+    };
+    MasterScore* again = ScoreRW::readScore(out, true, importXml);
+    ASSERT_TRUE(again);
+    EXPECT_TRUE(again->jimsProvenance() == prov);
+    delete again;
+    // Score-file persistence (.mscz): survives save + reload, then exports the same.
+    const String dir = ScoreRW::rootPath() + u"/../../../../build.release/jims-export-scratch";
+    muse::io::Dir::mkpath(dir);
+    const String mscz = dir + u"/provenance-roundtrip.mscz";
+    muse::io::File::remove(mscz);
+    {
+        muse::io::File file(mscz);
+        ASSERT_TRUE(file.open(muse::io::IODevice::WriteOnly));
+        MscWriter::Params params;
+        params.device = &file;
+        params.filePath = mscz;
+        params.mode = MscIoMode::Zip;
+        MscWriter writer(params);
+        ASSERT_TRUE(writer.open());
+        MscSaver saver(score->iocContext());
+        ASSERT_TRUE(saver.writeMscz(score, writer, false));
+        writer.close();
+        file.close();
+    }
+    delete score;
+    MasterScore* reloaded = ScoreRW::readScore(mscz, true);
+    ASSERT_TRUE(reloaded);
+    reloaded->doLayout();
+    EXPECT_TRUE(reloaded->jimsProvenance() == prov);
+    const String xml2 = readAll(exportToScratch(reloaded, "export-provenance-after-mscz.musicxml"));
+    EXPECT_EQ(int(xml2.count(u"<jims:resource ")), 3);
+    EXPECT_TRUE(xml2.contains(u"<jims:provenance fallback-profile=\"strict\">"));
+    delete reloaded;
+}
+
+TEST_F(MusicXml_JiMS_Tests, tuningTrajectoriesAreImportedSavedAndExportedVerbatim)
+{
+    struct Case {
+        const char* file;
+        const char* interpolation;
+        size_t controls;
+    };
+    const Case cases[] = { { "jims-trajectory-linear.musicxml", "linear", 0 }, { "jims-trajectory-cubic.musicxml", "cubic-bezier", 2 } };
+    for (const Case& c : cases) {
+        MasterScore* score = readJims(c.file);
+        ASSERT_TRUE(score) << c.file;
+        score->doLayout();
+        const std::vector<jims::TuningTrajectory>& ts = score->staff(0)->jimsTuningTrajectories();
+        ASSERT_EQ(ts.size(), 1u) << c.file;
+        const jims::TuningTrajectory t = ts[0];   // by value: the score is deleted before the reload check
+        EXPECT_EQ(t.tick, Fraction(0, 1)) << c.file;
+        EXPECT_EQ(t.placement, u"above") << c.file;
+        ASSERT_EQ(t.segments.size(), 1u) << c.file;
+        const jims::TrajectorySegment& seg = t.segments[0];
+        EXPECT_EQ(seg.duration, Fraction(4, 4)) << c.file;   // 16 divisions at divisions=4: one whole note
+        EXPECT_EQ(seg.startCents, u"700") << c.file;
+        EXPECT_EQ(seg.endCents, u"696") << c.file;
+        EXPECT_EQ(seg.interpolation, String::fromAscii(c.interpolation)) << c.file;
+        ASSERT_EQ(seg.controls.size(), c.controls) << c.file;
+        if (c.controls == 2) {
+            EXPECT_EQ(seg.controls[0].time, u"0.25");
+            EXPECT_EQ(seg.controls[0].valueCents, u"699");
+            EXPECT_EQ(seg.controls[1].time, u"0.75");
+            EXPECT_EQ(seg.controls[1].valueCents, u"697");
+        }
+        // Export: a direction at the trajectory's measure with the carrier and
+        // the duration re-expressed in the export's own divisions.
+        const String out = exportToScratch(score, (String(u"export-") + String::fromUtf8(c.file)).toStdString().c_str());
+        const String xml = readAll(out);
+        EXPECT_TRUE(xml.contains(u"<direction placement=\"above\">")) << c.file;
+        EXPECT_TRUE(xml.contains(u"<jims:tuning-trajectory>")) << c.file;
+        EXPECT_TRUE(xml.contains(u"start-cents=\"700\" end-cents=\"696\" interpolation=\"" + String::fromAscii(c.interpolation) + u"\""))
+            << c.file << "\n" << xml.toStdString().substr(0, 3000);
+        if (c.controls == 2) {
+            EXPECT_TRUE(xml.contains(u"<jims:control time=\"0.25\" value-cents=\"699\"/>")) << c.file;
+            EXPECT_TRUE(xml.contains(u"<jims:control time=\"0.75\" value-cents=\"697\"/>")) << c.file;
+        }
+        // The exported duration-divisions is one whole note in the export's divisions.
+        const size_t divPos = xml.indexOf(u"<divisions>");
+        ASSERT_NE(divPos, muse::nidx) << c.file;
+        const size_t divEnd = xml.indexOf(u"</divisions>", divPos);
+        const int divisions = xml.mid(divPos + 11, divEnd - divPos - 11).toInt();
+        EXPECT_TRUE(xml.contains(String(u"duration-divisions=\"%1\"").arg(4 * divisions))) << c.file << " divisions=" << divisions;
+        // Round trip through the importer: equal carrier.
+        auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
+            return importMusicXml(s, path.toQString(), false);
+        };
+        MasterScore* again = ScoreRW::readScore(out, true, importXml);
+        ASSERT_TRUE(again) << c.file;
+        again->doLayout();
+        ASSERT_EQ(again->staff(0)->jimsTuningTrajectories().size(), 1u) << c.file;
+        EXPECT_TRUE(again->staff(0)->jimsTuningTrajectories()[0] == t) << c.file;
+        delete again;
+        // Score-file persistence (.mscz).
+        const String dir = ScoreRW::rootPath() + u"/../../../../build.release/jims-export-scratch";
+        muse::io::Dir::mkpath(dir);
+        const String mscz = dir + u"/" + String::fromUtf8(c.file) + u".mscz";
+        muse::io::File::remove(mscz);
+        {
+            muse::io::File file(mscz);
+            ASSERT_TRUE(file.open(muse::io::IODevice::WriteOnly));
+            MscWriter::Params params;
+            params.device = &file;
+            params.filePath = mscz;
+            params.mode = MscIoMode::Zip;
+            MscWriter writer(params);
+            ASSERT_TRUE(writer.open());
+            MscSaver saver(score->iocContext());
+            ASSERT_TRUE(saver.writeMscz(score, writer, false));
+            writer.close();
+            file.close();
+        }
+        delete score;
+        MasterScore* reloaded = ScoreRW::readScore(mscz, true);
+        ASSERT_TRUE(reloaded) << c.file;
+        reloaded->doLayout();
+        ASSERT_EQ(reloaded->staff(0)->jimsTuningTrajectories().size(), 1u) << c.file;
+        EXPECT_TRUE(reloaded->staff(0)->jimsTuningTrajectories()[0] == t) << c.file;
+        delete reloaded;
+    }
+}
+
+TEST_F(MusicXml_JiMS_Tests, malformedCarriersAreFatalImportErrors)
+{
+    // A trajectory segment without interpolation, and a provenance resource
+    // without a role: a JiMS document never imports with part of its JiMS
+    // content silently dropped.
+    const String dir = ScoreRW::rootPath() + u"/../../../../build.release/jims-export-scratch";
+    muse::io::Dir::mkpath(dir);
+    struct Bad {
+        const char* base;
+        const char* find;
+        const char* replace;
+        const char* name;
+    };
+    const Bad bads[] = {
+        { "jims-trajectory-linear.musicxml", " interpolation=\"linear\"", "", "bad-trajectory.musicxml" },
+        { "jims-provenance.musicxml", "role=\"master\" ", "", "bad-provenance.musicxml" },
+    };
+    for (const Bad& b : bads) {
+        String text = readAll(ScoreRW::rootPath() + u"/" + JIMS_DATA_DIR + String::fromUtf8(b.base));
+        ASSERT_TRUE(text.contains(String::fromUtf8(b.find))) << b.name;
+        text.replace(String::fromUtf8(b.find), String::fromUtf8(b.replace));
+        const String path = dir + u"/" + String::fromUtf8(b.name);
+        muse::io::File f(path);
+        ASSERT_TRUE(f.open(muse::io::IODevice::WriteOnly));
+        f.write(text.toUtf8());
+        f.close();
+        auto importXml = [](MasterScore* s, const muse::io::path_t& p) -> engraving::Err {
+            return importMusicXml(s, p.toQString(), false);
+        };
+        MasterScore* score = ScoreRW::readScore(path, true, importXml);
+        EXPECT_FALSE(score) << b.name;
+        delete score;
+    }
+}
+
+TEST_F(MusicXml_JiMS_Tests, severalJimsPartsSharingOneTimelineImportAndRoundTrip)
+{
+    MasterScore* score = readJims("jims-multi-part-shared.musicxml");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    ASSERT_EQ(score->nstaves(), 2u);
+    for (staff_idx_t s = 0; s < 2; ++s) {
+        EXPECT_TRUE(staffTypeAtStart(score, s)->isJiMS()) << s;
+        Measure* m2 = measureNo(score, 2);
+        ASSERT_TRUE(m2);
+        EXPECT_TRUE(jims::changeCarrier(m2, s) != nullptr) << s;   // the La-mode section on both parts
+    }
+    const JimsSnapshot before = snapshotOf(score);
+    EXPECT_EQ(before.identities.size(), 4u);
+    EXPECT_EQ(before.carriers.size(), 2u);
+    EXPECT_EQ(before.baseStates[0], before.baseStates[1]);
+    EXPECT_EQ(before.carriers[0].second, before.carriers[1].second);
+    const String out = exportToScratch(score, "export-multi-part-shared.musicxml");
+    const String xml = readAll(out);
+    EXPECT_EQ(int(xml.count(u"<jims:staff-state>")), 4);   // two parts x (base + bar 2)
+    auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
+        return importMusicXml(s, path.toQString(), false);
+    };
+    MasterScore* again = ScoreRW::readScore(out, true, importXml);
+    ASSERT_TRUE(again);
+    again->doLayout();
+    const JimsSnapshot after = snapshotOf(again);
+    EXPECT_EQ(after.baseStates, before.baseStates);
+    EXPECT_EQ(after.carriers, before.carriers);
+    EXPECT_EQ(after.identities, before.identities);
+    delete score;
+    delete again;
+}
+
+TEST_F(MusicXml_JiMS_Tests, aJimsPartBesideAStockPartImportsAndRoundTrips)
+{
+    MasterScore* score = readJims("jims-multi-part-mixed.musicxml");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    ASSERT_EQ(score->nstaves(), 2u);
+    EXPECT_TRUE(staffTypeAtStart(score, 0)->isJiMS());
+    EXPECT_FALSE(staffTypeAtStart(score, 1)->isJiMS());
+    const JimsSnapshot before = snapshotOf(score);
+    EXPECT_EQ(before.identities.size(), 2u);   // only the JiMS part carries identities
+    const String out = exportToScratch(score, "export-multi-part-mixed.musicxml");
+    const String xml = readAll(out);
+    EXPECT_EQ(int(xml.count(u"<jims:staff-state>")), 2);
+    // The stock part is exported as stock: its notes carry no jims:pitch.
+    const size_t p2 = xml.indexOf(u"<part id=\"P2\">");
+    ASSERT_NE(p2, muse::nidx);
+    EXPECT_EQ(xml.mid(p2).indexOf(u"<jims:pitch"), muse::nidx);
+    auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
+        return importMusicXml(s, path.toQString(), false);
+    };
+    MasterScore* again = ScoreRW::readScore(out, true, importXml);
+    ASSERT_TRUE(again);
+    again->doLayout();
+    EXPECT_TRUE(staffTypeAtStart(again, 0)->isJiMS());
+    EXPECT_FALSE(staffTypeAtStart(again, 1)->isJiMS());
+    const JimsSnapshot after = snapshotOf(again);
+    EXPECT_EQ(after.baseStates, before.baseStates);
+    EXPECT_EQ(after.identities, before.identities);
+    delete score;
+    delete again;
+}
+
+TEST_F(MusicXml_JiMS_Tests, jimsPartsWithDifferentTimelinesAreRefusedOnImportAndOnExport)
+{
+    // Import: the divergent fixture is refused outright.
+    EXPECT_FALSE(readJims("jims-multi-part-divergent-invalid.musicxml"));
+    // Export: a document whose JiMS parts have drifted apart in the editor
+    // is refused, and nothing is written.
+    MasterScore* score = readJims("jims-multi-part-shared.musicxml");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    StaffType* st = score->staff(1)->staffType(Fraction(0, 1));
+    String json = st->jimsStateJson();
+    ASSERT_TRUE(json.contains(u"\"generator_cents\":700.0"));
+    json.replace(u"\"generator_cents\":700.0", u"\"generator_cents\":696.578");
+    st->setJimsStateJson(json);
+    score->setLayoutAll();
+    score->doLayout();
+    muse::io::Buffer buf;
+    buf.open(muse::io::IODevice::WriteOnly);
+    EXPECT_FALSE(saveXml(score, &buf));
+    EXPECT_TRUE(buf.data().empty());
     delete score;
 }

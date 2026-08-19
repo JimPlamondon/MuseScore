@@ -39,6 +39,7 @@
 // error — a document that declares itself JiMS must never silently import as
 // a plain five-line staff.
 
+#include <functional>
 #include <map>
 #include <vector>
 
@@ -48,6 +49,7 @@
 #include "engraving/engravingerrors.h"
 #include "engraving/types/fraction.h"
 #include "engraving/types/types.h"
+#include "engraving/jims/jimsinterchange.h"
 
 namespace mu::engraving {
 class Score;
@@ -110,6 +112,23 @@ public:
     /// contract (owner decision 1b, 2026-08-16); not a musical fact.
     static int linesForPeriodCount(int periodCount) { return 12 * periodCount + 1; }
 
+    /// Parse a jims:provenance element (reader on its start tag; left after
+    /// its end tag) into the transported carrier. Returns false with `error`
+    /// set when a resource lacks role/uri/media-type or an unknown JiMS child
+    /// appears. Values are carried verbatim (owner decision 2026-08-19).
+    bool parseProvenance(muse::XmlStreamReader& e, engraving::jims::Provenance& out, muse::String& error) const;
+    /// Parse a jims:tuning-trajectory element (reader on its start tag; left
+    /// after its end tag). `ticksOf` converts a duration-divisions integer to
+    /// score time (the pass-1 divisions calculator). Tick, staff and placement
+    /// come from the enclosing direction and are set by the caller.
+    bool parseTuningTrajectory(muse::XmlStreamReader& e, const std::function<engraving::Fraction(int)>& ticksOf,
+                               engraving::jims::TuningTrajectory& out, muse::String& error) const;
+    /// Owner rule 2026-08-19 (multi-part documents): several JiMS parts are
+    /// allowed and mixed JiMS + stock parts are allowed, but every JiMS part
+    /// must carry the SAME state timeline (same declaring ticks, same Kernel
+    /// states). Returns false (after logging) when two JiMS parts differ.
+    /// Staff numbering within a part is compared as written.
+    bool checkSharedStatesAcrossParts(MusicXmlLogger* logger) const;
     /// Python-repr-style number text for the state JSON ("700" -> "700.0",
     /// "696.578" stays), so the importer's JSON is byte-identical to the
     /// converter's for the same document.

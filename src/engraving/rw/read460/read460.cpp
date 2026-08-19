@@ -183,6 +183,23 @@ bool Read460::readScoreTag(Score* score, XmlReader& e, ReadContext& ctx)
         } else if (tag == "metaTag") {
             String name = e.attribute("name");
             score->setMetaTag(name, e.readText());
+        } else if (tag == "jimsProvenance") {
+            jims::Provenance prov;
+            prov.strictFallback = e.intAttribute("strict", 0) != 0;
+            while (e.readNextStartElement()) {
+                if (e.name() == "resource") {
+                    jims::ProvenanceResource r;
+                    r.role = e.attribute("role");
+                    r.uri = e.attribute("uri");
+                    r.mediaType = e.attribute("mediaType");
+                    r.sha256 = e.attribute("sha256");
+                    r.text = e.readText();
+                    prov.resources.push_back(r);
+                } else {
+                    e.unknown();
+                }
+            }
+            score->setJimsProvenance(prov);
         } else if (tag == "Order") {
             ScoreOrder order;
             order.read(e);

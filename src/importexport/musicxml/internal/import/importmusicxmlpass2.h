@@ -23,8 +23,10 @@
 #pragma once
 
 #include <array>
+#include <optional>
 
 #include "importmusicxmlpass1.h"
+#include "engraving/jims/jimsinterchange.h"
 #include "../shared/musicxmlsupport.h"
 #include "../shared/musicxmltypes.h"
 #include "musicxmltupletstate.h"
@@ -420,6 +422,7 @@ public:
     void clearSpanner(const MusicXmlSpannerDesc& desc);
     void deleteHandledSpanner(engraving::SLine* const& spanner);
     int divs() { return m_divs; }
+    void setJimsError() { m_jimsError = engraving::Err::FileBadFormat; }   // native JiMS import: fatal carrier error
 
     engraving::SLine* delayedOttava() { return m_delayedOttava; }
     void setDelayedOttava(engraving::SLine* ottava) { m_delayedOttava = ottava; }
@@ -660,6 +663,7 @@ private:
     std::pair<int, int> m_swing = { 0, 0 };
     std::vector<engraving::EngravingItem*> m_elems;
     engraving::Fraction m_offset;
+    std::optional<engraving::jims::TuningTrajectory> m_jimsTrajectory;   // native JiMS import: transported carrier
     engraving::track_idx_t m_track = muse::nidx;
 };
 

@@ -2797,6 +2797,24 @@ void TWrite::write(const Staff* item, XmlWriter& xml, WriteContext& ctx)
         xml.tag("isStaffVisible", item->visible());
     }
 
+    // JiMS MusicXML interchange carriers, transported verbatim (jims/jimsinterchange.h).
+    for (const jims::TuningTrajectory& t : item->jimsTuningTrajectories()) {
+        XmlWriter::Attributes tattrs = { { "tick", t.tick.toString() } };
+        if (!t.placement.isEmpty()) {
+            tattrs.push_back({ "placement", t.placement });
+        }
+        xml.startElement("jimsTuningTrajectory", tattrs);
+        for (const jims::TrajectorySegment& seg : t.segments) {
+            xml.startElement("segment", { { "duration", seg.duration.toString() }, { "startCents", seg.startCents },
+                                 { "endCents", seg.endCents }, { "interpolation", seg.interpolation } });
+            for (const jims::TrajectoryControl& c : seg.controls) {
+                xml.tag("control", { { "time", c.time }, { "valueCents", c.valueCents } });
+            }
+            xml.endElement();
+        }
+        xml.endElement();
+    }
+
     for (const BracketItem* i : item->brackets()) {
         BracketType a = i->bracketType();
         size_t b = i->bracketSpan();

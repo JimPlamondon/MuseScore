@@ -178,6 +178,27 @@ void Writer::write(Score* score, XmlWriter& xml, WriteContext& ctx, compat::Writ
         }
     }
 
+    // JiMS MusicXML interchange carrier, transported verbatim (jims/jimsinterchange.h).
+    if (!score->m_jimsProvenance.empty()) {
+        XmlWriter::Attributes attrs;
+        if (score->m_jimsProvenance.strictFallback) {
+            attrs.push_back({ "strict", 1 });
+        }
+        xml.startElement("jimsProvenance", attrs);
+        for (const jims::ProvenanceResource& r : score->m_jimsProvenance.resources) {
+            XmlWriter::Attributes rattrs = { { "role", r.role }, { "uri", r.uri }, { "mediaType", r.mediaType } };
+            if (!r.sha256.isEmpty()) {
+                rattrs.push_back({ "sha256", r.sha256 });
+            }
+            if (r.text.isEmpty()) {
+                xml.tag("resource", rattrs);
+            } else {
+                xml.tag("resource", rattrs, r.text);
+            }
+        }
+        xml.endElement();
+    }
+
     if (score->m_scoreOrder.isValid()) {
         ScoreOrder order = score->m_scoreOrder;
         order.updateInstruments(score);

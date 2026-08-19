@@ -1321,6 +1321,11 @@ Err MusicXmlParserPass1::parse()
                 return Err::FileBadFormat;
             }
             scorePartwise();
+            if (m_jimsProvenanceError) {
+                // A document that declares itself JiMS never imports with part
+                // of its JiMS content silently dropped (same rule as states).
+                return Err::FileBadFormat;
+            }
         } else {
             m_logger->logError(String(u"this is not a MusicXML score-partwise file (top-level node '%1')")
                                .arg(String::fromAscii(m_e.name().ascii())), &m_e);
@@ -1548,6 +1553,16 @@ void MusicXmlParserPass1::identification()
             }
         } else if (m_e.name() == "source") {
             m_score->setMetaTag(u"source", m_e.readText());
+        } else if (m_jims.hasJims() && m_jims.isJimsElement(m_e.name(), "provenance")) {
+            // Native JiMS import: transported carrier (owner decision 2026-08-19).
+            engraving::jims::Provenance prov;
+            String error;
+            if (m_jims.parseProvenance(m_e, prov, error)) {
+                m_score->setJimsProvenance(prov);
+            } else {
+                m_logger->logError(error, &m_e);
+                m_jimsProvenanceError = true;
+            }
         } else if (m_e.name() == "miscellaneous") {
             // store all miscellaneous information
             while (m_e.readNextStartElement()) {

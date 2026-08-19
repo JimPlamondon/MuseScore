@@ -4132,6 +4132,34 @@ bool TRead::readProperties(Staff* s, XmlReader& e, ReadContext& ctx)
         s->setMergeMatchingRests(TConv::fromXml(e.readAsciiText(), AutoOnOff::AUTO));
     } else if (tag == "isStaffVisible") {
         s->setVisible(e.readBool());
+    } else if (tag == "jimsTuningTrajectory") {
+        jims::TuningTrajectory t;
+        t.tick = Fraction::fromString(e.attribute("tick"));
+        t.placement = e.attribute("placement");
+        while (e.readNextStartElement()) {
+            if (e.name() == "segment") {
+                jims::TrajectorySegment seg;
+                seg.duration = Fraction::fromString(e.attribute("duration"));
+                seg.startCents = e.attribute("startCents");
+                seg.endCents = e.attribute("endCents");
+                seg.interpolation = e.attribute("interpolation");
+                while (e.readNextStartElement()) {
+                    if (e.name() == "control") {
+                        jims::TrajectoryControl c;
+                        c.time = e.attribute("time");
+                        c.valueCents = e.attribute("valueCents");
+                        seg.controls.push_back(c);
+                        e.skipCurrentElement();
+                    } else {
+                        e.unknown();
+                    }
+                }
+                t.segments.push_back(seg);
+            } else {
+                e.unknown();
+            }
+        }
+        s->addJimsTuningTrajectory(t);
     } else if (tag == "keylist") {
         TRead::read(s->keyList(), e, ctx);
     } else if (tag == "bracket") {

@@ -75,6 +75,7 @@ target_sources(engraving PRIVATE
     jims/jimstuningcontroller.cpp
     jims/jimstuningcontroller.h
     jims/jimsstrings.h
+    jims/jimsinterchange.h
 )
 
 # Keep the JiMS sources out of unity batches: their addition would reshuffle

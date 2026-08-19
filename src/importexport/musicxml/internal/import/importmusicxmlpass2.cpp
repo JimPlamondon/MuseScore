@@ -2106,6 +2106,12 @@ void MusicXmlParserPass2::scorePartwise()
             skipLogCurrElem();
         }
     }
+    // Native JiMS import, owner rule 2026-08-19: every JiMS part shares one
+    // state timeline (several JiMS parts and mixed JiMS + stock parts are fine).
+    if (m_jims.anyBuffered() && !m_jims.checkSharedStatesAcrossParts(m_logger)) {
+        m_jimsError = Err::FileBadFormat;
+    }
+
     // set last measure barline to normal or MuseScore will generate light-heavy EndBarline
     // this creates non-generated barlines spanning only the current instrument
     // BarLine::_spanStaff is set using the default in Staff::_barLineSpan
@@ -3523,6 +3529,16 @@ void MusicXmlParserDirection::direction(const String& partId,
         }
     }
 
+    if (m_jimsTrajectory) {
+        m_jimsTrajectory->tick = tick + m_offset;
+        m_jimsTrajectory->placement = m_placement;
+        Staff* jimsStaff = m_score->staff(track2staff(m_track));
+        if (jimsStaff) {
+            jimsStaff->addJimsTuningTrajectory(*m_jimsTrajectory);
+        }
+        m_jimsTrajectory.reset();
+    }
+
     handleRepeats(measure, tick + m_offset, measureHasCoda, segnos, delayedDirections);
     handleNmiCmi(measure, tick + m_offset, delayedDirections);
     handleFraction();
@@ -4077,7 +4093,20 @@ void MusicXmlParserDirection::directionType(std::vector<MusicXmlSpannerDesc>& st
         const String type = m_e.attribute("type");
         m_color = Color::fromString(m_e.asciiAttribute("color").ascii());
         m_justify = m_e.attribute("justify");
-        if (m_e.name() == "metronome") {
+        if (m_pass1.jims().hasJims() && m_pass1.jims().isJimsElement(m_e.name(), "tuning-trajectory")) {
+            // Native JiMS import: transported carrier (owner decision 2026-08-19);
+            // tick, staff and placement are known only when the enclosing
+            // direction has been read in full.
+            engraving::jims::TuningTrajectory t;
+            String error;
+            auto ticksOf = [this](int divisions) { return m_pass1.calcTicks(divisions, m_pass2.divs(), &m_e); };
+            if (m_pass1.jims().parseTuningTrajectory(m_e, ticksOf, t, error)) {
+                m_jimsTrajectory = t;
+            } else {
+                m_logger->logError(error, &m_e);
+                m_pass2.setJimsError();
+            }
+        } else if (m_e.name() == "metronome") {
             m_metroText = metronome(m_tpoMetro);
         } else if (m_e.name() == "words") {
             m_enclosure = m_e.attribute("enclosure");

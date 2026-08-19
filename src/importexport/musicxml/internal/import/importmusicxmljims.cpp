@@ -426,4 +426,134 @@ bool JimsImportContext::applyToPart(Score* score, Part* part, const String& part
     score->style().set(Sid::hideInstrumentNameIfOneInstrument, false);
     return true;
 }
+
+//---------------------------------------------------------
+//   parseProvenance
+//---------------------------------------------------------
+
+bool JimsImportContext::parseProvenance(XmlStreamReader& e, engraving::jims::Provenance& out, String& error) const
+{
+    out = engraving::jims::Provenance();
+    out.strictFallback = e.attribute("fallback-profile") == u"strict";
+    while (e.readNextStartElement()) {
+        if (isJimsElement(e.name(), "resource")) {
+            engraving::jims::ProvenanceResource r;
+            r.role = e.attribute("role");
+            r.uri = e.attribute("uri");
+            r.mediaType = e.attribute("media-type");
+            r.sha256 = e.attribute("sha-256");
+            if (r.role.isEmpty() || r.uri.isEmpty() || r.mediaType.isEmpty()) {
+                error = u"jims:provenance resource is missing role, uri or media-type";
+                e.skipCurrentElement();
+                return false;
+            }
+            r.text = e.readText();
+            out.resources.push_back(r);
+        } else {
+            error = String(u"unexpected element in jims:provenance: %1").arg(String::fromAscii(e.name().ascii()));
+            e.skipCurrentElement();
+            return false;
+        }
+    }
+    return true;
+}
+
+//---------------------------------------------------------
+//   parseTuningTrajectory
+//---------------------------------------------------------
+
+bool JimsImportContext::parseTuningTrajectory(XmlStreamReader& e, const std::function<engraving::Fraction(int)>& ticksOf,
+                                              engraving::jims::TuningTrajectory& out, String& error) const
+{
+    out = engraving::jims::TuningTrajectory();
+    while (e.readNextStartElement()) {
+        if (!isJimsElement(e.name(), "segment")) {
+            error = String(u"unexpected element in jims:tuning-trajectory: %1").arg(String::fromAscii(e.name().ascii()));
+            e.skipCurrentElement();
+            return false;
+        }
+        engraving::jims::TrajectorySegment seg;
+        bool ok = false;
+        const int divisions = e.attribute("duration-divisions").toInt(&ok);
+        if (!ok || divisions <= 0) {
+            error = u"jims:segment duration-divisions must be a positive integer";
+            e.skipCurrentElement();
+            return false;
+        }
+        seg.duration = ticksOf(divisions);
+        seg.startCents = e.attribute("start-cents");
+        seg.endCents = e.attribute("end-cents");
+        seg.interpolation = e.attribute("interpolation");
+        if (seg.startCents.isEmpty() || seg.endCents.isEmpty()
+            || (seg.interpolation != u"linear" && seg.interpolation != u"cubic-bezier")) {
+            error = u"jims:segment needs start-cents, end-cents and interpolation linear|cubic-bezier";
+            e.skipCurrentElement();
+            return false;
+        }
+        while (e.readNextStartElement()) {
+            if (!isJimsElement(e.name(), "control")) {
+                error = String(u"unexpected element in jims:segment: %1").arg(String::fromAscii(e.name().ascii()));
+                e.skipCurrentElement();
+                return false;
+            }
+            engraving::jims::TrajectoryControl c;
+            c.time = e.attribute("time");
+            c.valueCents = e.attribute("value-cents");
+            if (c.time.isEmpty() || c.valueCents.isEmpty()) {
+                error = u"jims:control needs time and value-cents";
+                e.skipCurrentElement();
+                return false;
+            }
+            seg.controls.push_back(c);
+            e.skipCurrentElement();
+        }
+        if (seg.interpolation == u"cubic-bezier" && seg.controls.size() != 2) {
+            error = u"a cubic-bezier jims:segment carries exactly two controls";
+            return false;
+        }
+        if (seg.interpolation == u"linear" && !seg.controls.empty()) {
+            error = u"a linear jims:segment carries no controls";
+            return false;
+        }
+        out.segments.push_back(seg);
+    }
+    if (out.segments.empty()) {
+        error = u"jims:tuning-trajectory carries no segment";
+        return false;
+    }
+    return true;
+}
+
+//---------------------------------------------------------
+//   checkSharedStatesAcrossParts
+//---------------------------------------------------------
+
+bool JimsImportContext::checkSharedStatesAcrossParts(MusicXmlLogger* logger) const
+{
+    // Timeline signature per part: the ordered (tick, staff number, state) list.
+    const std::vector<BufferedState>* reference = nullptr;
+    String referenceId;
+    for (const auto& entry : m_states) {
+        const String& partId = entry.first;
+        const std::vector<BufferedState>& states = entry.second;
+        if (!reference) {
+            reference = &states;
+            referenceId = partId;
+            continue;
+        }
+        bool same = states.size() == reference->size();
+        for (size_t i = 0; same && i < states.size(); ++i) {
+            const BufferedState& a = (*reference)[i];
+            const BufferedState& b = states[i];
+            same = a.tick == b.tick && a.staffNumber == b.staffNumber && a.json == b.json;
+        }
+        if (!same) {
+            jimsFatal(logger, String(u"JiMS parts %1 and %2 carry different jims:staff-state timelines; "
+                                     u"every JiMS part of a document must share one state timeline")
+                      .arg(referenceId, partId));
+            return false;
+        }
+    }
+    return true;
+}
 }

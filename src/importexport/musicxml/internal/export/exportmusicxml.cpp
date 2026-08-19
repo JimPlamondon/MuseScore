@@ -442,6 +442,7 @@ private:
     JimsExportPlan m_jimsPlan;
     bool buildJimsExportPlan();
     void writeJimsAttributes(const Measure* const m, const int partIndex);
+    void writeJimsTrajectories(const Measure* const m, const int partIndex);
     void writeJimsPitch(const Note* const note);
 
     Score* m_score = nullptr;
@@ -1329,6 +1330,20 @@ void ExportMusicXml::calcDivisions()
             }
             // move to end of measure (in case of incomplete last voice)
             calcDivMoveToTick(m->endTick(), stretch(m_score, etrack - 1, m->tick()));
+        }
+    }
+
+    // JiMS tuning trajectories: their offsets and segment durations must be
+    // representable in the chosen divisions too.
+    for (const Staff* staff : m_score->staves()) {
+        for (const jims::TuningTrajectory& t : staff->jimsTuningTrajectories()) {
+            const Measure* m = m_score->tick2measure(t.tick);
+            if (m) {
+                addFraction(t.tick - m->tick());
+            }
+            for (const jims::TrajectorySegment& seg : t.segments) {
+                addFraction(seg.duration);
+            }
         }
     }
 
@@ -7309,6 +7324,30 @@ void ExportMusicXml::identification(XmlWriter& xml, Score const* const score)
         metaTagNames.emplace(u"source");
     }
 
+    // JiMS provenance rides in identification before miscellaneous
+    // (urn:jims:musicxml:3); transported verbatim, only when the document
+    // is JiMS (the namespace is declared only then).
+    if (m_jimsPlan.present && !score->jimsProvenance().empty()) {
+        const jims::Provenance& prov = score->jimsProvenance();
+        XmlWriter::Attributes pattrs;
+        if (prov.strictFallback) {
+            pattrs.push_back({ "fallback-profile", "strict" });
+        }
+        xml.startElement("jims:provenance", pattrs);
+        for (const jims::ProvenanceResource& r : prov.resources) {
+            XmlWriter::Attributes rattrs = { { "role", r.role }, { "uri", r.uri }, { "media-type", r.mediaType } };
+            if (!r.sha256.isEmpty()) {
+                rattrs.push_back({ "sha-256", r.sha256 });
+            }
+            if (r.text.isEmpty()) {
+                xml.tag("jims:resource", rattrs);
+            } else {
+                xml.tag("jims:resource", rattrs, r.text);
+            }
+        }
+        xml.endElement();
+    }
+
     if (!MScore::debugMode) {
         // do not write miscellaneous in debug mode
         metaTagNames.insert({ u"workTitle", u"workNumber", u"movementTitle", u"movementNumber", u"originalFormat" });
@@ -8720,6 +8759,8 @@ void ExportMusicXml::writeMeasure(const Measure* const m,
     // JiMS states (base at tick 0, later sections at their carriers) with
     // their Kernel-written change events — a separate attributes block.
     writeJimsAttributes(m, partIndex);
+    // JiMS tuning trajectories starting in this measure (transported carriers).
+    writeJimsTrajectories(m, partIndex);
 
     // write data in the staves
     writeMeasureStaves(m, partIndex, track2staff(strack), staves, part->instrument()->useDrumset(), fbMap, spannersStopped);
@@ -8963,6 +9004,33 @@ bool ExportMusicXml::buildJimsExportPlan()
     if (!m_jimsPlan.present) {
         return true;
     }
+    // Owner rule 2026-08-19 (multi-part documents): several JiMS parts and
+    // mixed JiMS + stock parts are allowed, but every JiMS part must carry the
+    // same state timeline; a document that would export differing timelines
+    // is refused (fail closed, like every other JiMS export refusal).
+    {
+        std::vector<std::pair<int, String> > referenceTimeline;   // (tick, stateXml)
+        int referencePart = -1;
+        std::map<int, std::vector<std::pair<int, String> > > timelines;   // partIndex -> (tick, stateXml)*
+        for (const auto& entry : m_jimsPlan.byPartTick) {
+            for (const JimsFragment& f : entry.second) {
+                timelines[entry.first.first].push_back({ entry.first.second, f.stateXml });
+            }
+        }
+        for (const auto& tl : timelines) {
+            if (referencePart < 0) {
+                referencePart = tl.first;
+                referenceTimeline = tl.second;
+                continue;
+            }
+            if (tl.second != referenceTimeline) {
+                m_jimsPlan.error = String(u"JiMS export: parts %1 and %2 carry different JiMS state timelines; "
+                                          u"every JiMS part of a document must share one state timeline")
+                                   .arg(referencePart + 1).arg(tl.first + 1);
+                return false;
+            }
+        }
+    }
     // Every note on a JiMS staff must carry its lattice identity.
     for (const Segment* seg = m_score->firstSegment(SegmentType::ChordRest); seg; seg = seg->next1(SegmentType::ChordRest)) {
         for (track_idx_t t = 0; t < m_score->ntracks(); ++t) {
@@ -9019,6 +9087,59 @@ void ExportMusicXml::writeJimsAttributes(const Measure* const m, const int partI
         }
     }
     m_xml.endElement();
+}
+
+void ExportMusicXml::writeJimsTrajectories(const Measure* const m, const int partIndex)
+{
+    if (!m_jimsPlan.present) {
+        return;
+    }
+    const Part* part = m_score->parts().at(partIndex);
+    const size_t nstaves = part->nstaves();
+    for (size_t partStaff = 0; partStaff < nstaves; ++partStaff) {
+        const Staff* staff = part->staff(partStaff);
+        for (const jims::TuningTrajectory& t : staff->jimsTuningTrajectories()) {
+            if (t.tick < m->tick() || t.tick >= m->endTick()) {
+                continue;
+            }
+            // <direction> at measure start with an <offset> to the trajectory's
+            // tick — MusicXML's own way to place a direction inside a measure.
+            m_attr.doAttr(m_xml, false);
+            XmlWriter::Attributes dattrs;
+            if (!t.placement.isEmpty()) {
+                dattrs.push_back({ "placement", t.placement });
+            }
+            m_xml.startElement("direction", dattrs);
+            m_xml.startElement("direction-type");
+            m_xml.startElement("jims:tuning-trajectory");
+            for (const jims::TrajectorySegment& seg : t.segments) {
+                XmlWriter::Attributes sattrs = {
+                    { "duration-divisions", calculateDurationInDivisions(seg.duration, m_div) },
+                    { "start-cents", seg.startCents }, { "end-cents", seg.endCents },
+                    { "interpolation", seg.interpolation }
+                };
+                if (seg.controls.empty()) {
+                    m_xml.tag("jims:segment", sattrs);
+                } else {
+                    m_xml.startElement("jims:segment", sattrs);
+                    for (const jims::TrajectoryControl& c : seg.controls) {
+                        m_xml.tag("jims:control", { { "time", c.time }, { "value-cents", c.valueCents } });
+                    }
+                    m_xml.endElement();
+                }
+            }
+            m_xml.endElement();   // jims:tuning-trajectory
+            m_xml.endElement();   // direction-type
+            const int offset = calculateTimeDeltaInDivisions(t.tick, m->tick(), m_div);
+            if (offset != 0) {
+                m_xml.tag("offset", offset);
+            }
+            if (nstaves > 1) {
+                m_xml.tag("staff", static_cast<int>(partStaff) + 1);
+            }
+            m_xml.endElement();   // direction
+        }
+    }
 }
 
 void ExportMusicXml::writeJimsPitch(const Note* const note)

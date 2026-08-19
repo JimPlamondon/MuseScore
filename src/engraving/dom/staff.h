@@ -34,6 +34,7 @@
 #include "keylist.h"
 #include "mscore.h"
 #include "stafftypelist.h"
+#include "../jims/jimsinterchange.h"
 
 #include "../types/types.h"
 
@@ -137,6 +138,11 @@ public:
 
     bool hideSystemBarLine() const { return m_hideSystemBarLine; }
     void setHideSystemBarLine(bool val) { m_hideSystemBarLine = val; }
+    // JiMS MusicXML interchange carriers riding on this staff (transported, never interpreted)
+    const std::vector<jims::TuningTrajectory>& jimsTuningTrajectories() const { return m_jimsTuningTrajectories; }
+    void setJimsTuningTrajectories(const std::vector<jims::TuningTrajectory>& t) { m_jimsTuningTrajectories = t; }
+    void addJimsTuningTrajectory(const jims::TuningTrajectory& t) { m_jimsTuningTrajectories.push_back(t); }
+
     AutoOnOff hideWhenEmpty() const { return m_hideWhenEmpty; }
     void setHideWhenEmpty(AutoOnOff v) { m_hideWhenEmpty = v; }
     AutoOnOff mergeMatchingRests() const { return m_mergeMatchingRests; }
@@ -297,6 +303,7 @@ private:
     bool m_hideSystemBarLine = false;       // no system barline if not preceded by staff with barline
     AutoOnOff m_mergeMatchingRests = AutoOnOff::AUTO;      // merge matching rests in multiple voices
     AutoOnOff m_hideWhenEmpty = AutoOnOff::AUTO;      // hide empty staves
+    std::vector<jims::TuningTrajectory> m_jimsTuningTrajectories;
 
     Color m_color;
     Spatium m_userDist { 0.0_sp };           ///< user edited extra distance

@@ -34,6 +34,7 @@
 
 #include "global/async/channel.h"
 #include "global/types/ret.h"
+#include "../jims/jimsinterchange.h"
 
 #include "modularity/ioc.h"
 #include "draw/iimageprovider.h"
@@ -895,6 +896,10 @@ public:
     MasterScore* masterScore() const { return m_masterScore; }
     void setMasterScore(MasterScore* s) { m_masterScore = s; }
 
+    // JiMS MusicXML interchange carrier (transported, never interpreted; see jims/jimsinterchange.h)
+    const jims::Provenance& jimsProvenance() const { return m_jimsProvenance; }
+    void setJimsProvenance(const jims::Provenance& p) { m_jimsProvenance = p; }
+
     const std::map<String, String>& metaTags() const { return m_metaTags; }
     std::map<String, String>& metaTags() { return m_metaTags; }
     void setMetaTags(const std::map<String, String>& t) { m_metaTags = t; }
@@ -1225,6 +1230,7 @@ private:
     bool m_needSetUpTempoMap = true;
 
     std::map<String, String> m_metaTags;
+    jims::Provenance m_jimsProvenance;
 
     Selection m_selection;
     SelectionFilter m_selectionFilter;
