@@ -114,6 +114,38 @@ bool VstFxProcessor::shouldProcessDuringSilence() const
     return m_params.active && muse::contains(m_params.categories, AudioFxCategory::FxGenerator);
 }
 
+void VstFxProcessor::processNoteEvents(const audio::AudioNoteEvents& events)
+{
+    if (!m_inited) {
+        return;
+    }
+
+    for (const audio::AudioNoteEvent& source : events) {
+        VstEvent event {};
+        event.busIndex = 0;
+        event.sampleOffset = static_cast<Steinberg::int32>(source.sampleOffset);
+        event.ppqPosition = 0;
+        event.flags = 0;
+        if (source.type == audio::AudioNoteEvent::Type::NoteOn) {
+            event.type = VstEvent::kNoteOnEvent;
+            event.noteOn.channel = 0;
+            event.noteOn.pitch = source.pitch;
+            event.noteOn.tuning = source.tuningCents;
+            event.noteOn.velocity = source.velocity;
+            event.noteOn.length = 0;
+            event.noteOn.noteId = source.noteId;
+        } else {
+            event.type = VstEvent::kNoteOffEvent;
+            event.noteOff.channel = 0;
+            event.noteOff.pitch = source.pitch;
+            event.noteOff.tuning = source.tuningCents;
+            event.noteOff.velocity = source.velocity;
+            event.noteOff.noteId = source.noteId;
+        }
+        m_vstAudioClient->handleEvent(event);
+    }
+}
+
 void VstFxProcessor::process(float* buffer, samples_t sampleCount, samples_t playbackPositionSamples)
 {
     if (!buffer || !m_inited) {

@@ -25,6 +25,7 @@
 #include <variant>
 #include <set>
 #include <string>
+#include <vector>
 
 #include "global/types/number.h"
 #include "global/types/secs.h"
@@ -80,6 +81,22 @@ static constexpr samples_t MINIMUM_BUFFER_SIZE = 128;
 #endif
 
 static constexpr samples_t MAXIMUM_BUFFER_SIZE = 4096;
+
+struct AudioNoteEvent {
+    enum class Type : uint8_t {
+        NoteOn,
+        NoteOff,
+    };
+
+    Type type = Type::NoteOn;
+    samples_t sampleOffset = 0;
+    int32_t noteId = -1;
+    int16_t pitch = 0;
+    float tuningCents = 0.f;
+    float velocity = 0.f;
+};
+
+using AudioNoteEvents = std::vector<AudioNoteEvent>;
 
 struct OutputSpec {
     sample_rate_t sampleRate = 0;

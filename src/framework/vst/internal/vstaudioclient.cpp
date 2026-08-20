@@ -442,10 +442,9 @@ audio::samples_t VstAudioClient::process(float* output, samples_t samplesPerChan
 
     m_needUpdateState = false;
 
+    m_inputEvents.clear();
+    m_inputParamChanges.clearQueue();
     if (m_type == AudioPluginType::Instrument) {
-        m_inputEvents.clear();
-        m_inputParamChanges.clearQueue();
-
         fillOutputBufferInstrument(samplesPerChannel, output);
     } else {
         fillOutputBufferFx(samplesPerChannel, output);
@@ -533,11 +532,22 @@ void VstAudioClient::setUpProcessData()
         m_processData.prepare(*component, m_outputSpec.samplesPerChannel, Steinberg::Vst::kSample32);
     }
 
+    BusInfo busInfo;
+
+    if (!m_eventInputBussesActivated) {
+        const int eventInputCount = component->getBusCount(BusMediaType::kEvent, BusDirection::kInput);
+        for (int busIndex = 0; busIndex < eventInputCount; ++busIndex) {
+            component->getBusInfo(BusMediaType::kEvent, BusDirection::kInput, busIndex, busInfo);
+            if (busInfo.busType == BusType::kMain && (busInfo.flags & BusInfo::kDefaultActive)) {
+                component->activateBus(BusMediaType::kEvent, BusDirection::kInput, busIndex, true);
+            }
+        }
+        m_eventInputBussesActivated = true;
+    }
+
     if (!m_activeOutputBusses.empty() && !m_activeInputBusses.empty()) {
         return;
     }
-
-    BusInfo busInfo;
 
     for (int busIndex = 0; busIndex < m_processData.numInputs; ++busIndex) {
         component->getBusInfo(BusMediaType::kAudio, BusDirection::kInput, busIndex, busInfo);

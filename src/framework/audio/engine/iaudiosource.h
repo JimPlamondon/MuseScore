@@ -47,6 +47,12 @@ public:
 
     //! move buffer forward for sampleCount samples
     virtual samples_t process(float* buffer, samples_t samplesPerChannel) = 0;
+
+    virtual const AudioNoteEvents& noteEvents() const
+    {
+        static const AudioNoteEvents empty;
+        return empty;
+    }
 };
 
 using IAudioSourcePtr = std::shared_ptr<IAudioSource>;

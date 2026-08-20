@@ -46,6 +46,8 @@ public:
 
     virtual bool shouldProcessDuringSilence() const = 0;
 
+    virtual void processNoteEvents(const AudioNoteEvents&) {}
+
     virtual void process(float* buffer, samples_t sampleCount, samples_t playbackPositionSamples = 0) = 0;
 };
 

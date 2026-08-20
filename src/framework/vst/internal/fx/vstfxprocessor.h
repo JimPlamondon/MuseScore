@@ -53,6 +53,8 @@ public:
 
     bool shouldProcessDuringSilence() const override;
 
+    void processNoteEvents(const muse::audio::AudioNoteEvents& events) override;
+
     void process(float* buffer, audio::samples_t sampleCount, audio::samples_t playbackPositionSamples = 0) override;
 
 private:

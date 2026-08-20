@@ -93,6 +93,7 @@ private:
 
     std::vector<int> m_activeOutputBusses;
     std::vector<int> m_activeInputBusses;
+    bool m_eventInputBussesActivated = false;
 
     VstEventList m_inputEvents;
     VstParameterChanges m_inputParamChanges;

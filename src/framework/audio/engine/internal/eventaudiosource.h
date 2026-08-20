@@ -50,6 +50,7 @@ public:
     unsigned int audioChannelsCount() const override;
     async::Channel<unsigned int> audioChannelsCountChanged() const override;
     samples_t process(float* buffer, samples_t samplesPerChannel) override;
+    const AudioNoteEvents& noteEvents() const override;
 
     void seek(const msecs_t newPositionMsecs, const bool flushSound = true) override;
     void flush() override;

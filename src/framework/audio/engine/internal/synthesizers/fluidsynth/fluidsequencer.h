@@ -26,12 +26,13 @@
 #include "global/async/channel.h"
 #include "midi/midievent.h"
 #include "mpe/events.h"
+#include "audio/common/audiotypes.h"
 
 #include "../../abstracteventsequencer.h"
 #include "soundmapping.h"
 
 namespace muse::audio::synth {
-class FluidSequencer : public engine::AbstractEventSequencer<midi::Event>
+class FluidSequencer : public engine::AbstractEventSequencer<midi::Event, audio::AudioNoteEvent>
 {
 public:
     void init(const mpe::PlaybackSetupData& setupData, const std::optional<midi::Program>& programOverride, bool useDynamicEvents);
@@ -73,6 +74,7 @@ private:
     mutable ChannelMap m_channels;
     bool m_useDynamicEvents = false;
     int m_lastStaff = -1;
+    uint32_t m_nextNoteId = 0;
 };
 }
 
