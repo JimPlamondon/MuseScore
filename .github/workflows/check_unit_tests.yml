@@ -1,14 +1,9 @@
 name: 'Check: Unit Tests (utest)'
 
 on:
-  # musescore-jims: we integrate by fast-forwarding jims/main (no PRs), so
-  # run on pushes to the integration branch and the agents' task branches.
-  push:
-    branches:
-      - jims/main
-      - 'claude/**'
-      - 'codex/**'
-  # musescore-jims: no pull_request trigger — the push trigger above already covers every branch a PR could come from (a PR would run this twice).
+  # musescore-jims: this full build-and-test workflow takes roughly 30 minutes
+  # per push in the fork. Keep it available for deliberate verification, but
+  # do not spend hosted-runner time automatically on integration/task pushes.
   # musescore-jims: the upstream Thursday coverage schedule is removed (needs upstream S3 secrets).
   workflow_dispatch:
     inputs:
