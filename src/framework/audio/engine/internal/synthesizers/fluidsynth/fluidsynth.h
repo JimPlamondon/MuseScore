@@ -103,8 +103,8 @@ private:
 
     void doFlushSound();
 
-    bool processSequence(const FluidSequencer::EventSequence& sequence, const samples_t sampleOffset,
-                         const samples_t samples, float* buffer);
+    bool processSequence(const FluidSequencer::EventSequence& sequence, const samples_t sampleOffset, const samples_t samples,
+                         float* buffer);
     bool handleEvent(const midi::Event& event);
 
     void toggleExpressionController();
