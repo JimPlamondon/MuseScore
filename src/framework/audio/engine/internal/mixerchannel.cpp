@@ -102,6 +102,10 @@ void MixerChannel::applyOutputParams(const AudioOutputParams& requiredParams)
             m_paramsChanges.send(m_params);
             updateShouldProcessDuringSilence();
         }, async::Asyncable::Mode::SetReplace);
+
+        fx->readyToProcessChanged().onNotify(this, [this]() {
+            m_readyToPlayChanged.notify();
+        }, async::Asyncable::Mode::SetReplace);
     }
 
     AudioOutputParams resultParams = requiredParams;
@@ -169,6 +173,22 @@ void MixerChannel::setIsActive(bool arg)
     for (IFxProcessorPtr& fx : m_fxProcessors) {
         fx->setPlaying(arg);
     }
+}
+
+bool MixerChannel::readyToPlay() const
+{
+    ONLY_AUDIO_ENGINE_THREAD;
+
+    return std::all_of(m_fxProcessors.cbegin(), m_fxProcessors.cend(), [](const IFxProcessorPtr& fx) {
+        return !fx->active() || fx->readyToProcess();
+    });
+}
+
+async::Notification MixerChannel::readyToPlayChanged() const
+{
+    ONLY_AUDIO_ENGINE_THREAD;
+
+    return m_readyToPlayChanged;
 }
 
 void MixerChannel::setOutputSpec(const OutputSpec& spec)

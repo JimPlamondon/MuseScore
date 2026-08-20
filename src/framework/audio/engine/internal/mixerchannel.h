@@ -65,6 +65,9 @@ public:
     bool isActive() const override;
     void setIsActive(bool arg) override;
 
+    bool readyToPlay() const override;
+    async::Notification readyToPlayChanged() const override;
+
     void setOutputSpec(const OutputSpec& spec) override;
     unsigned int audioChannelsCount() const override;
     async::Channel<unsigned int> audioChannelsCountChanged() const override;
@@ -87,6 +90,7 @@ private:
     bool m_isSilent = true;
     bool m_shouldProcessDuringSilence = false;
     async::Channel<bool> m_shouldProcessDuringSilenceChanged;
+    async::Notification m_readyToPlayChanged;
 
     async::Notification m_mutedChanged;
     mutable async::Channel<AudioOutputParams> m_paramsChanges;

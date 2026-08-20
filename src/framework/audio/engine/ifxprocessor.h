@@ -24,6 +24,8 @@
 
 #include <memory>
 
+#include "async/notification.h"
+
 #include "audio/common/audiotypes.h"
 
 namespace muse::audio {
@@ -45,6 +47,9 @@ public:
     virtual void setPlaying(bool playing) = 0;
 
     virtual bool shouldProcessDuringSilence() const = 0;
+
+    virtual bool readyToProcess() const { return true; }
+    virtual async::Notification readyToProcessChanged() const { return {}; }
 
     virtual void processNoteEvents(const AudioNoteEvents&) {}
 

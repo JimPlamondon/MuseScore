@@ -22,6 +22,8 @@
 
 #include "vstfxprocessor.h"
 
+#include "../vstnoteeventbridge.h"
+
 using namespace muse;
 using namespace muse::vst;
 using namespace muse::audio;
@@ -47,11 +49,14 @@ void VstFxProcessor::init(const audio::OutputSpec& spec)
 
     auto onPluginLoaded = [this]() {
         if (!m_pluginPtr->isLoaded()) {
-            return; // loadingCompleted fired for a failed load
+            m_loadFailed = true;
+            m_readyToProcessChanged.notify();
+            return;
         }
         m_pluginPtr->updatePluginConfig(m_params.configuration);
         m_vstAudioClient->setOutputSpec(m_outputSpec);
         m_inited = true;
+        m_readyToProcessChanged.notify();
     };
 
     if (m_pluginPtr->isLoaded()) {
@@ -114,6 +119,16 @@ bool VstFxProcessor::shouldProcessDuringSilence() const
     return m_params.active && muse::contains(m_params.categories, AudioFxCategory::FxGenerator);
 }
 
+bool VstFxProcessor::readyToProcess() const
+{
+    return m_inited || m_loadFailed;
+}
+
+async::Notification VstFxProcessor::readyToProcessChanged() const
+{
+    return m_readyToProcessChanged;
+}
+
 void VstFxProcessor::processNoteEvents(const audio::AudioNoteEvents& events)
 {
     if (!m_inited) {
@@ -121,28 +136,7 @@ void VstFxProcessor::processNoteEvents(const audio::AudioNoteEvents& events)
     }
 
     for (const audio::AudioNoteEvent& source : events) {
-        VstEvent event {};
-        event.busIndex = 0;
-        event.sampleOffset = static_cast<Steinberg::int32>(source.sampleOffset);
-        event.ppqPosition = 0;
-        event.flags = 0;
-        if (source.type == audio::AudioNoteEvent::Type::NoteOn) {
-            event.type = VstEvent::kNoteOnEvent;
-            event.noteOn.channel = 0;
-            event.noteOn.pitch = source.pitch;
-            event.noteOn.tuning = source.tuningCents;
-            event.noteOn.velocity = source.velocity;
-            event.noteOn.length = 0;
-            event.noteOn.noteId = source.noteId;
-        } else {
-            event.type = VstEvent::kNoteOffEvent;
-            event.noteOff.channel = 0;
-            event.noteOff.pitch = source.pitch;
-            event.noteOff.tuning = source.tuningCents;
-            event.noteOff.velocity = source.velocity;
-            event.noteOff.noteId = source.noteId;
-        }
-        m_vstAudioClient->handleEvent(event);
+        m_vstAudioClient->handleEvent(VstNoteEventBridge::toVstEvent(source));
     }
 }
 

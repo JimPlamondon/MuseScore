@@ -53,18 +53,23 @@ public:
 
     bool shouldProcessDuringSilence() const override;
 
+    bool readyToProcess() const override;
+    async::Notification readyToProcessChanged() const override;
+
     void processNoteEvents(const muse::audio::AudioNoteEvents& events) override;
 
     void process(float* buffer, audio::samples_t sampleCount, audio::samples_t playbackPositionSamples = 0) override;
 
 private:
     bool m_inited = false;
+    bool m_loadFailed = false;
 
     IVstPluginInstancePtr m_pluginPtr = nullptr;
     std::unique_ptr<VstAudioClient> m_vstAudioClient = nullptr;
 
     muse::audio::AudioFxParams m_params;
     async::Channel<muse::audio::AudioFxParams> m_paramsChanges;
+    async::Notification m_readyToProcessChanged;
 
     audio::OutputSpec m_outputSpec;
 };

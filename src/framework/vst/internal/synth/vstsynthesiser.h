@@ -30,6 +30,7 @@
 #include "mpe/events.h"
 
 #include "../vstaudioclient.h"
+#include "../vstnoteeventbridge.h"
 #include "../../ivstinstancesregister.h"
 #include "vstsequencer.h"
 #include "vsttypes.h"
@@ -76,12 +77,14 @@ public:
     unsigned int audioChannelsCount() const override;
     async::Channel<unsigned int> audioChannelsCountChanged() const override;
     muse::audio::samples_t process(float* buffer, muse::audio::samples_t samplesPerChannel) override;
+    const muse::audio::AudioNoteEvents& noteEvents() const override;
 
 private:
     void updateRenderingMode(const audio::RenderMode mode) override;
 
     void toggleVolumeGain(const bool isActive);
-    audio::samples_t processSequence(const VstSequencer::EventSequence& sequence, const audio::samples_t samples, float* buffer);
+    audio::samples_t processSequence(const VstSequencer::EventSequence& sequence, const audio::samples_t sequenceSampleOffset,
+                                     const audio::samples_t samples, float* buffer);
 
     IVstPluginInstancePtr m_pluginPtr = nullptr;
     std::unique_ptr<VstAudioClient> m_vstAudioClient = nullptr;
@@ -90,6 +93,7 @@ private:
     async::Channel<unsigned int> m_streamsCountChanged;
 
     VstSequencer m_sequencer;
+    VstNoteEventBridge m_noteEventBridge;
 
     muse::audio::TrackId m_trackId = muse::audio::INVALID_TRACK_ID;
 
