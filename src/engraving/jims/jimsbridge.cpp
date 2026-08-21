@@ -299,6 +299,37 @@ bool noteSoundingPitch(const String& stateJson, int nPer, int nGen, SoundingPitc
     return true;
 }
 
+bool vst3ProfileTransaction(const String& stateJson, uint32_t slot, uint32_t generation, uint32_t sampleOffset,
+                            mpe::DynamicTonalityProfileEvent& out, String* error)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"vst3_profile_transaction\",\"state\":%1,"
+                             "\"slot\":%2,\"generation\":%3,\"sample_offset\":%4}")
+                      .arg(stateJson)
+                      .arg(static_cast<int64_t>(slot))
+                      .arg(static_cast<int64_t>(generation))
+                      .arg(static_cast<int64_t>(sampleOffset));
+    JsonValue result;
+    if (!okResult(callBridge(envelope), result)) {
+        if (error) {
+            *error = u"Kernel rejected the VST3 tuning profile";
+        }
+        return false;
+    }
+    JsonArray points = result.toArray();
+    if (points.size() != mpe::DynamicTonalityProfileEvent::POINT_COUNT) {
+        if (error) {
+            *error = u"Kernel returned an incomplete VST3 tuning profile";
+        }
+        return false;
+    }
+    for (size_t i = 0; i < points.size(); ++i) {
+        JsonObject point = points.at(i).toObject();
+        out.points[i].paramId = static_cast<uint32_t>(point.value("param_id").toInt());
+        out.points[i].normalized = point.value("normalized").toDouble();
+    }
+    return true;
+}
+
 static void readTonicPitchLabel(const JsonObject& o, TonicPitchLabel& out);
 
 bool tonicPitchLabel(const String& stateJson, TonicPitchLabel& out)

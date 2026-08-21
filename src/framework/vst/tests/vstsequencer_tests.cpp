@@ -160,6 +160,46 @@ VstNoteExpressionCapabilities jimsynthCaps()
     c.nGenStepCount = 34;
     return c;
 }
+
+DynamicTonalityProfileEvent profileEvent(double marker)
+{
+    DynamicTonalityProfileEvent profile;
+    for (size_t i = 0; i < profile.points.size(); ++i) {
+        profile.points[i] = { 0x4A500100u + static_cast<uint32_t>(i), marker };
+    }
+    return profile;
+}
+}
+
+TEST(Vst_SequencerTests, profileChangesPrecedeNotesAndIdenticalConsecutiveProfilesAreSuppressed)
+{
+    PlaybackEventsMap events;
+    const DynamicTonalityProfileEvent firstProfile = profileEvent(0.25);
+    const DynamicTonalityProfileEvent secondProfile = profileEvent(0.75);
+    events[0].push_back(firstProfile);
+    events[0].push_back(stockNote(0, SECOND, 2400));
+    events[0].push_back(firstProfile);
+    events[SECOND].push_back(secondProfile);
+    events[SECOND].push_back(stockNote(SECOND, SECOND, 2600));
+
+    Harness h;
+    const VstSequencer::EventSequenceMap sequence = h.run(events, VstNoteExpressionCapabilities());
+    ASSERT_EQ(sequence.size(), 3u);
+
+    const auto& first = sequence.at(0);
+    ASSERT_EQ(first.size(), 2u);
+    EXPECT_TRUE(std::holds_alternative<DynamicTonalityProfileEvent>(first[0]));
+    EXPECT_TRUE(std::holds_alternative<VstEvent>(first[1]));
+    EXPECT_EQ(std::get<DynamicTonalityProfileEvent>(first[0]), firstProfile);
+    EXPECT_EQ(std::get<VstEvent>(first[1]).type, VstEvent::kNoteOnEvent);
+
+    const auto& changed = sequence.at(SECOND);
+    ASSERT_EQ(changed.size(), 3u);
+    EXPECT_TRUE(std::holds_alternative<VstEvent>(changed[0]));
+    EXPECT_TRUE(std::holds_alternative<DynamicTonalityProfileEvent>(changed[1]));
+    EXPECT_EQ(std::get<VstEvent>(changed[0]).type, VstEvent::kNoteOffEvent);
+    EXPECT_EQ(std::get<DynamicTonalityProfileEvent>(changed[1]), secondProfile);
+    EXPECT_EQ(std::get<VstEvent>(changed[2]).type, VstEvent::kNoteOnEvent);
 }
 
 // ---- unique note identity ----------------------------------------------------

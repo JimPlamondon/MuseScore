@@ -121,10 +121,17 @@ muse::audio::gain_t VstSequencer::currentGain() const
 void VstSequencer::addPlaybackEvents(EventSequenceMap& destination, const mpe::PlaybackEventsMap& events)
 {
     SostenutoTimeAndDurations sostenutoTimeAndDurations;
+    std::optional<mpe::DynamicTonalityProfileEvent> currentProfile;
 
     for (const auto& evPair : events) {
         for (const mpe::PlaybackEvent& event : evPair.second) {
-            if (std::holds_alternative<mpe::NoteEvent>(event)) {
+            if (std::holds_alternative<mpe::DynamicTonalityProfileEvent>(event)) {
+                const auto& profile = std::get<mpe::DynamicTonalityProfileEvent>(event);
+                if (!currentProfile.has_value() || !(profile == *currentProfile)) {
+                    destination[evPair.first].emplace_back(profile);
+                    currentProfile = profile;
+                }
+            } else if (std::holds_alternative<mpe::NoteEvent>(event)) {
                 addNoteEvent(destination, std::get<mpe::NoteEvent>(event), sostenutoTimeAndDurations);
             } else if (std::holds_alternative<mpe::ControllerChangeEvent>(event)) {
                 addControlChangeEvent(destination, evPair.first, std::get<mpe::ControllerChangeEvent>(event));

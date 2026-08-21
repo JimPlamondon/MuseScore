@@ -212,3 +212,24 @@ TEST(Vst_ExactPitchRpcTests, newWriterNewReaderRoundTripsExactPitchInsideNoteEve
     audio::rpc::RpcPacker::unpack(arrayOf(cut), partial);
     EXPECT_FALSE(partial.exactPitch.has_value());
 }
+
+TEST(Vst_ExactPitchRpcTests, dynamicTonalityProfileRoundTripsWithoutChangingExistingVariantIndices)
+{
+    DynamicTonalityProfileEvent profile;
+    for (size_t i = 0; i < profile.points.size(); ++i) {
+        profile.points[i] = { 0x4A500100u + static_cast<uint32_t>(i), static_cast<double>(i) / 25.0 };
+    }
+    PlaybackEventsMap events;
+    events[100].emplace_back(profile);
+
+    const ByteArray packed = audio::rpc::RpcPacker::pack(events);
+    PlaybackEventsMap unpacked;
+    audio::rpc::RpcPacker::unpack(packed, unpacked);
+
+    ASSERT_EQ(unpacked.at(100).size(), 1u);
+    ASSERT_TRUE(std::holds_alternative<DynamicTonalityProfileEvent>(unpacked.at(100).front()));
+    EXPECT_EQ(std::get<DynamicTonalityProfileEvent>(unpacked.at(100).front()), profile);
+    EXPECT_EQ(PlaybackEvent(NoteEvent()).index(), 1u);
+    EXPECT_EQ(PlaybackEvent(ControllerChangeEvent()).index(), 5u);
+    EXPECT_EQ(PlaybackEvent(profile).index(), 6u);
+}

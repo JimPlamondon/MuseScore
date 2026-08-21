@@ -215,13 +215,25 @@ void VstAudioClient::loadSupportedParams()
     }
 
     const int paramCount = controller->getParameterCount();
+    m_inputParamChanges.setMaxParameters(paramCount);
+    std::vector<PluginParamInfo> allParameterInfo;
+    allParameterInfo.reserve(static_cast<size_t>(paramCount));
     m_pluginParamInfoMap.reserve(static_cast<size_t>(paramCount));
 
     for (int i = 0; i < paramCount; ++i) {
         PluginParamInfo info;
-        controller->getParameterInfo(i, info);
+        if (controller->getParameterInfo(i, info) != Steinberg::kResultOk) {
+            continue;
+        }
+        allParameterInfo.push_back(info);
+        if (VstDynamicTonalityProfileHost::isReserved(info.id)) {
+            continue;
+        }
         m_pluginParamInfoMap.emplace(info.id, std::move(info));
     }
+
+    const PluginParamValue capability = controller->getParamNormalized(VstDynamicTonalityProfileHost::PARAM_CAPABILITY);
+    m_profileHost.discover(allParameterInfo, capability);
 }
 
 void VstAudioClient::setIsActive(const bool isActive)
@@ -229,6 +241,9 @@ void VstAudioClient::setIsActive(const bool isActive)
     flushSound();
 
     if (isActive) {
+        if (!m_profileTransactionPending && m_profileHost.hasCurrentProfile()) {
+            deliverDynamicTonalityProfile(m_profileHost.currentProfile(), true);
+        }
         ensureActivity();
     } else {
         disableActivity();
@@ -245,6 +260,12 @@ void VstAudioClient::setIsPlaying(const bool newPlaying)
 
     if (newPlaying) {
         m_processContext.state |= playingFlag;
+        if (!m_profileTransactionPending && m_profileHost.hasCurrentProfile()) {
+            // prepare(force=true) retransmits the current Kernel payload with
+            // a fresh generation and the noncurrent staging slot.
+            const auto& playbackProfile = m_profileHost.currentProfile();
+            deliverDynamicTonalityProfile(playbackProfile, true);
+        }
     } else {
         m_processContext.state &= ~playingFlag;
     }
@@ -318,9 +339,43 @@ bool VstAudioClient::handleParamChange(const ParamChangeEvent& param)
     return true;
 }
 
+bool VstAudioClient::handleDynamicTonalityProfile(const mpe::DynamicTonalityProfileEvent& profile, bool force)
+{
+    if (m_profileTransactionPending
+        && (!m_profileHost.hasCurrentProfile() || !(profile == m_profileHost.currentProfile()))) {
+        LOGE() << "Conflicting VST3 Dynamic Tonality profiles at one process position";
+        return false;
+    }
+    const bool restageCurrent = !m_profileTransactionPending && m_profileHost.hasCurrentProfile()
+                                && profile == m_profileHost.currentProfile();
+    return deliverDynamicTonalityProfile(profile, force || restageCurrent);
+}
+
+bool VstAudioClient::deliverDynamicTonalityProfile(const mpe::DynamicTonalityProfileEvent& profile, bool force)
+{
+    std::array<ParamChangeEvent, VstDynamicTonalityProfileHost::POINT_COUNT> transaction;
+    if (!m_profileHost.prepare(profile, force, transaction)) {
+        return false;
+    }
+    PluginControllerPtr controller = m_pluginPtr ? m_pluginPtr->controller() : nullptr;
+    if (!controller) {
+        return false;
+    }
+    for (const ParamChangeEvent& point : transaction) {
+        controller->setParamNormalized(point.paramId, point.value);
+        addParamChange(point);
+        EventTrace::instance().param(this, point);
+    }
+    m_profileTransactionPending = true;
+    return true;
+}
+
 void VstAudioClient::flushSound()
 {
     if (m_playingNotes.empty() && m_playingParams.empty()) {
+        m_inputEvents.clear();
+        m_inputParamChanges.clearQueue();
+        m_profileTransactionPending = false;
         return;
     }
 
@@ -328,6 +383,7 @@ void VstAudioClient::flushSound()
 
     m_inputEvents.clear();
     m_inputParamChanges.clearQueue();
+    m_profileTransactionPending = false;
 
     // Every sounding note ends under its own id (the paired Note Off).
     m_playingNotes.flush([this](const VstEvent& noteOff) {
@@ -444,6 +500,7 @@ audio::samples_t VstAudioClient::process(float* output, samples_t samplesPerChan
 
     m_inputEvents.clear();
     m_inputParamChanges.clearQueue();
+    m_profileTransactionPending = false;
     if (m_type == AudioPluginType::Instrument) {
         fillOutputBufferInstrument(samplesPerChannel, output);
     } else {
@@ -640,6 +697,11 @@ void VstAudioClient::updateProcessSetup()
     setUpProcessData();
     flushBuffers();
 
+    if (!m_profileTransactionPending && m_profileHost.hasCurrentProfile()) {
+        // setupProcessing resets the component's realtime contract. Restore
+        // the last complete profile before processing can resume.
+        deliverDynamicTonalityProfile(m_profileHost.currentProfile(), true);
+    }
     ensureActivity();
 }
 

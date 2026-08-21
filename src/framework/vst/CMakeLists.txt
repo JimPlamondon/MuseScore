@@ -46,6 +46,8 @@ target_sources(muse_vst PRIVATE
     internal/vstplugininstance.h
     internal/vstcomponenthandler.cpp
     internal/vstcomponenthandler.h
+    internal/vstdynamictonalityprofile.cpp
+    internal/vstdynamictonalityprofile.h
     internal/vstaudioclient.cpp
     internal/vstaudioclient.h
     internal/vstactivenotes.h

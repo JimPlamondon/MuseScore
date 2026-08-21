@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include <array>
 #include <optional>
 #include <variant>
 #include <vector>
@@ -36,6 +37,28 @@
 #include "playbacksetupdata.h"
 
 namespace muse::mpe {
+/// A complete Kernel-authored VST3 Dynamic Tonality profile transaction.
+/// The VST host replaces only slot/generation/commit transport values before
+/// delivery; it never derives or interprets the musical fields.
+struct DynamicTonalityProfilePoint
+{
+    uint32_t paramId = 0;
+    double normalized = 0.0;
+
+    bool operator==(const DynamicTonalityProfilePoint& other) const
+    {
+        return paramId == other.paramId && normalized == other.normalized;
+    }
+};
+
+struct DynamicTonalityProfileEvent
+{
+    static constexpr size_t POINT_COUNT = 26;
+    std::array<DynamicTonalityProfilePoint, POINT_COUNT> points {};
+
+    bool operator==(const DynamicTonalityProfileEvent& other) const { return points == other.points; }
+};
+
 struct ArrangementContext
 {
     timestamp_t nominalTimestamp = 0;
@@ -368,7 +391,8 @@ using PlaybackEvent = std::variant<std::monostate,
                                    TextArticulationEvent,
                                    SoundPresetChangeEvent,
                                    SyllableEvent,
-                                   ControllerChangeEvent>;
+                                   ControllerChangeEvent,
+                                   DynamicTonalityProfileEvent>;
 
 using PlaybackEventList = std::vector<PlaybackEvent>;
 using PlaybackEventsMap = SharedMap<timestamp_t, PlaybackEventList>;

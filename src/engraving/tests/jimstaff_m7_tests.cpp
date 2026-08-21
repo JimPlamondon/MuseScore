@@ -106,6 +106,24 @@ protected:
         return out;
     }
 
+    std::vector<DynamicTonalityProfileEvent> dynamicTonalityProfiles(Score* score)
+    {
+        PlaybackModel model(modularity::globalCtx());
+        model.profilesRepository.set(m_repositoryMock);
+        model.load(score);
+        const Part* part = score->parts().at(0);
+        const PlaybackEventsMap& events = model.resolveTrackPlaybackData(part->id(), part->instrumentId()).originEvents;
+        std::vector<DynamicTonalityProfileEvent> out;
+        for (const auto& pair : events) {
+            for (const PlaybackEvent& ev : pair.second) {
+                if (std::holds_alternative<DynamicTonalityProfileEvent>(ev)) {
+                    out.push_back(std::get<DynamicTonalityProfileEvent>(ev));
+                }
+            }
+        }
+        return out;
+    }
+
     /// The Kernel's fresh sounding-pitch answer for a JiMS note (the oracle
     /// for the exact-pitch field).
     static jims::SoundingPitch kernelSoundingPitch(const Note* note)
@@ -236,6 +254,31 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, jimsynthStockNotesCarryNoExactPitch)
     for (const auto& e : exact) {
         EXPECT_FALSE(e.has_value()) << "stock events stay byte-equivalent: no exact-pitch field";
     }
+    delete score;
+}
+
+TEST_F(Engraving_JiMStaffM7PlaybackTests, jimsingerPlaybackCarriesKernelProfileAtEveryJimsNoteAndTracksSectionChanges)
+{
+    Score* score = ScoreRW::readScore(M7_GATE);
+    ASSERT_TRUE(score);
+    score->doLayout();
+    const std::vector<DynamicTonalityProfileEvent> profiles = dynamicTonalityProfiles(score);
+    ASSERT_EQ(profiles.size(), notesOf(score).size());
+    for (const DynamicTonalityProfileEvent& profile : profiles) {
+        EXPECT_EQ(profile.points.front().paramId, 0x4A500100u);
+        EXPECT_EQ(profile.points.back().paramId, 0x4A500119u);
+    }
+    EXPECT_FALSE(profiles.front() == profiles.at(4)) << "bar 2 has a different Kernel reference profile";
+    EXPECT_TRUE(profiles.at(4) == profiles.back()) << "bar 2 and bar 3 share the same section profile";
+    delete score;
+}
+
+TEST_F(Engraving_JiMStaffM7PlaybackTests, stockPlaybackCarriesNoDynamicTonalityProfile)
+{
+    Score* score = ScoreRW::readScore(u"playback/playbackmodel_data/repeat_range/repeat_range.mscx");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    EXPECT_TRUE(dynamicTonalityProfiles(score).empty());
     delete score;
 }
 

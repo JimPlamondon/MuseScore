@@ -31,6 +31,7 @@
 #include "dom/tempo.h"
 #include "dom/staff.h"
 #include "dom/utils.h"
+#include "jims/jimsbridge.h"
 
 #include "utils/arrangementutils.h"
 
@@ -63,6 +64,23 @@ static ArticulationMap makeStandardArticulationMap(const ArticulationsProfilePtr
     articulations.preCalculateAverageData();
 
     return articulations;
+}
+
+static void appendDynamicTonalityProfile(const EngravingItem* item, PlaybackEventList& events)
+{
+    const Staff* staff = item ? item->staff() : nullptr;
+    const StaffType* staffType = staff ? staff->staffTypeForElement(item) : nullptr;
+    if (!staffType || !staffType->isJiMS() || staffType->jimsStateJson().isEmpty()) {
+        return;
+    }
+
+    DynamicTonalityProfileEvent profile;
+    String error;
+    if (jims::vst3ProfileTransaction(staffType->jimsStateJson(), 0, 0, 0, profile, &error)) {
+        events.emplace_back(std::move(profile));
+    } else {
+        LOGE() << "JiMS VST3 profile preparation failed: " << error;
+    }
 }
 
 static muse::mpe::NoteEvent buildMetronomeEvent(const TimeSigFrac& timeSig, const double bps,
@@ -334,6 +352,7 @@ void PlaybackEventsRenderer::renderNoteEvents(const Chord* chord, const int tick
 
     if (!newEvents.empty()) {
         PlaybackEventList& list = result[ctx.nominalTimestamp];
+        appendDynamicTonalityProfile(chord, list);
         list.insert(list.end(), std::make_move_iterator(newEvents.begin()), std::make_move_iterator(newEvents.end()));
     }
 }
@@ -378,5 +397,6 @@ void PlaybackEventsRenderer::renderFixedNoteEvent(const Note* note, const mpe::t
     }
 
     NominalNoteCtx noteCtx(note, ctx);
+    appendDynamicTonalityProfile(note, result);
     result.emplace_back(buildNoteEvent(noteCtx));
 }

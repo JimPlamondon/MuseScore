@@ -26,6 +26,7 @@
 #include "../ivstplugininstance.h"
 #include "../vsttypes.h"
 #include "vstactivenotes.h"
+#include "vstdynamictonalityprofile.h"
 
 #include "modularity/ioc.h"
 #include "audio/engine/itransporteventsdispatcher.h"
@@ -52,6 +53,8 @@ public:
 
     bool handleEvent(const VstEvent& event);
     bool handleParamChange(const ParamChangeEvent& param);
+    bool handleDynamicTonalityProfile(const mpe::DynamicTonalityProfileEvent& profile, bool force = false);
+    bool hasDynamicTonalityProfile() const { return m_profileHost.hasCurrentProfile(); }
 
     void flushSound();
 
@@ -85,6 +88,7 @@ private:
     void flushBuffers();
 
     void addParamChange(const ParamChangeEvent& param);
+    bool deliverDynamicTonalityProfile(const mpe::DynamicTonalityProfileEvent& profile, bool force);
 
     bool m_isActive = false;
     muse::audio::gain_t m_volumeGain = 1.f; // 0.0 - 1.0
@@ -107,6 +111,8 @@ private:
     std::vector<PluginParamId> m_playingParams;
 
     std::unordered_map<PluginParamId, PluginParamInfo> m_pluginParamInfoMap;
+    VstDynamicTonalityProfileHost m_profileHost;
+    bool m_profileTransactionPending = false;
 
     bool m_needUnprepareProcessData = false;
     bool m_needUpdateState = false;
