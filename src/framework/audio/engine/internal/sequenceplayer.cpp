@@ -256,7 +256,7 @@ void SequencePlayer::prepareAllTracksToPlay(AllTracksReadyCallback allTracksRead
 
         pair.second->inputHandler->prepareToPlay();
 
-        if (!pair.second->inputHandler->readyToPlay()) {
+        if (!pair.second->inputHandler->readyToPlay() || !pair.second->outputHandler->readyToPlay()) {
             notYetReadyToPlayTracks.push_back(pair.second);
             m_notYetReadyToPlayTrackIdSet.insert(pair.first);
         }
@@ -270,17 +270,29 @@ void SequencePlayer::prepareAllTracksToPlay(AllTracksReadyCallback allTracksRead
     for (const TrackPtr& track : notYetReadyToPlayTracks) {
         const TrackId trackId = track->id;
 
-        track->inputHandler->readyToPlayChanged().onNotify(this, [this, trackId, allTracksReadyCallback]() {
+        auto onReadyToPlayChanged = [this, trackId, allTracksReadyCallback]() {
+            const TrackPtr ptr = m_getTracks->track(trackId);
+            if (!ptr || !ptr->inputHandler || !ptr->outputHandler
+                || !ptr->inputHandler->readyToPlay() || !ptr->outputHandler->readyToPlay()) {
+                return;
+            }
+
+            if (m_notYetReadyToPlayTrackIdSet.find(trackId) == m_notYetReadyToPlayTrackIdSet.cend()) {
+                return;
+            }
+
             muse::remove(m_notYetReadyToPlayTrackIdSet, trackId);
 
             if (m_notYetReadyToPlayTrackIdSet.empty()) {
                 allTracksReadyCallback();
             }
 
-            const TrackPtr ptr = m_getTracks->track(trackId);
-            if (ptr && ptr->inputHandler) {
-                ptr->inputHandler->readyToPlayChanged().disconnect(this);
-            }
-        }, Asyncable::Mode::SetReplace);
+            ptr->inputHandler->readyToPlayChanged().disconnect(this);
+            ptr->outputHandler->readyToPlayChanged().disconnect(this);
+        };
+
+        track->inputHandler->readyToPlayChanged().onNotify(this, onReadyToPlayChanged, Asyncable::Mode::SetReplace);
+        track->outputHandler->readyToPlayChanged().onNotify(this, onReadyToPlayChanged, Asyncable::Mode::SetReplace);
+        onReadyToPlayChanged();
     }
 }

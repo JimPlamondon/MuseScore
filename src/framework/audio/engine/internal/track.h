@@ -67,6 +67,9 @@ class ITrackAudioOutput : public IAudioSource
 public:
     virtual ~ITrackAudioOutput() = default;
 
+    virtual bool readyToPlay() const { return true; }
+    virtual async::Notification readyToPlayChanged() const { return {}; }
+
     virtual const AudioOutputParams& outputParams() const = 0;
     virtual void applyOutputParams(const AudioOutputParams& requiredParams) = 0;
     virtual async::Channel<AudioOutputParams> outputParamsChanged() const = 0;
