@@ -117,6 +117,8 @@ void pack_custom(muse::msgpack::Packer& p, const muse::mpe::SyllableEvent& value
 void unpack_custom(muse::msgpack::UnPacker& p, muse::mpe::SyllableEvent& value);
 void pack_custom(muse::msgpack::Packer& p, const muse::mpe::ControllerChangeEvent& value);
 void unpack_custom(muse::msgpack::UnPacker& p, muse::mpe::ControllerChangeEvent& value);
+void pack_custom(muse::msgpack::Packer& p, const muse::mpe::DynamicTonalityProfileEvent& value);
+void unpack_custom(muse::msgpack::UnPacker& p, muse::mpe::DynamicTonalityProfileEvent& value);
 void pack_custom(muse::msgpack::Packer& p, const muse::mpe::PlaybackEvent& value);
 void unpack_custom(muse::msgpack::UnPacker& p, muse::mpe::PlaybackEvent& value);
 
@@ -564,6 +566,20 @@ inline void unpack_custom(muse::msgpack::UnPacker& p, muse::mpe::ControllerChang
     value.type = static_cast<muse::mpe::ControllerChangeEvent::Type>(type);
 }
 
+inline void pack_custom(muse::msgpack::Packer& p, const muse::mpe::DynamicTonalityProfileEvent& value)
+{
+    for (const muse::mpe::DynamicTonalityProfilePoint& point : value.points) {
+        p.process(point.paramId, point.normalized);
+    }
+}
+
+inline void unpack_custom(muse::msgpack::UnPacker& p, muse::mpe::DynamicTonalityProfileEvent& value)
+{
+    for (muse::mpe::DynamicTonalityProfilePoint& point : value.points) {
+        p.process(point.paramId, point.normalized);
+    }
+}
+
 inline void pack_custom(muse::msgpack::Packer& p, const muse::mpe::PlaybackEvent& value)
 {
     uint8_t idx = static_cast<uint8_t>(value.index());
@@ -591,6 +607,10 @@ inline void pack_custom(muse::msgpack::Packer& p, const muse::mpe::PlaybackEvent
     } break;
     case 5: {
         const muse::mpe::ControllerChangeEvent& event = std::get<muse::mpe::ControllerChangeEvent>(value);
+        p.process(event);
+    } break;
+    case 6: {
+        const muse::mpe::DynamicTonalityProfileEvent& event = std::get<muse::mpe::DynamicTonalityProfileEvent>(value);
         p.process(event);
     } break;
     default: {
@@ -630,6 +650,11 @@ inline void unpack_custom(muse::msgpack::UnPacker& p, muse::mpe::PlaybackEvent& 
     } break;
     case 5: {
         muse::mpe::ControllerChangeEvent event;
+        p.process(event);
+        value = event;
+    } break;
+    case 6: {
+        muse::mpe::DynamicTonalityProfileEvent event;
         p.process(event);
         value = event;
     } break;

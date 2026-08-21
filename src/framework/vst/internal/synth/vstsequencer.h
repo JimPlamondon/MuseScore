@@ -27,7 +27,8 @@
 #include "vsttypes.h"
 
 namespace muse::vst {
-class VstSequencer : public audio::engine::AbstractEventSequencer<VstEvent, ParamChangeEvent, muse::audio::gain_t>
+class VstSequencer : public audio::engine::AbstractEventSequencer<VstEvent, ParamChangeEvent,
+                                                                  mpe::DynamicTonalityProfileEvent, muse::audio::gain_t>
 {
 public:
     void init(ParamsMapping&& mapping, bool useDynamicEvents,

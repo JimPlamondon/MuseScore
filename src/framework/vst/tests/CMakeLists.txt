@@ -34,6 +34,7 @@ set(MODULE_TEST_SRC
     ${CMAKE_CURRENT_LIST_DIR}/vstexactpitchrpc_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/vstnoteeventbridge_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/vstpernotepitchadapter_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/vstdynamictonalityprofile_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../internal/synth/vstsequencer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../internal/synth/vstsequencer.h
     ${CMAKE_CURRENT_LIST_DIR}/../internal/vstactivenotes.h
@@ -41,6 +42,8 @@ set(MODULE_TEST_SRC
     ${CMAKE_CURRENT_LIST_DIR}/../internal/vstnoteeventbridge.h
     ${CMAKE_CURRENT_LIST_DIR}/../internal/vstpernotepitchadapter.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../internal/vstpernotepitchadapter.h
+    ${CMAKE_CURRENT_LIST_DIR}/../internal/vstdynamictonalityprofile.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../internal/vstdynamictonalityprofile.h
 )
 
 set(MODULE_TEST_LINK

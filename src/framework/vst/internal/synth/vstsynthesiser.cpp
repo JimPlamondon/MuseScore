@@ -41,6 +41,18 @@ static const std::set<Steinberg::Vst::CtrlNumber> SUPPORTED_CONTROLLERS = {
     Steinberg::Vst::kPitchBend,
 };
 
+static const mpe::DynamicTonalityProfileEvent* firstDynamicTonalityProfile(const mpe::PlaybackData& data)
+{
+    for (const auto& [_, events] : data.originEvents) {
+        for (const mpe::PlaybackEvent& event : events) {
+            if (std::holds_alternative<mpe::DynamicTonalityProfileEvent>(event)) {
+                return &std::get<mpe::DynamicTonalityProfileEvent>(event);
+            }
+        }
+    }
+    return nullptr;
+}
+
 VstSynthesiser::VstSynthesiser(const TrackId trackId, const muse::audio::AudioInputParams& params,
                                const modularity::ContextPtr& iocCtx)
     : AbstractSynthesizer(params, iocCtx),
@@ -80,8 +92,11 @@ void VstSynthesiser::init(const OutputSpec& spec)
             m_readyToPlayChanged.notify();
             return;
         }
-        m_vstAudioClient->setOutputSpec(m_outputSpec);
         m_vstAudioClient->loadSupportedParams();
+        if (const auto* profile = firstDynamicTonalityProfile(m_sequencer.playbackData())) {
+            m_vstAudioClient->handleDynamicTonalityProfile(*profile);
+        }
+        m_vstAudioClient->setOutputSpec(m_outputSpec);
         const VstNoteExpressionCapabilities noteExpressionCapabilities = m_vstAudioClient->noteExpressionCapabilities();
         m_sequencer.init(m_vstAudioClient->paramsMapping(SUPPORTED_CONTROLLERS), m_useDynamicEvents,
                          noteExpressionCapabilities);
@@ -191,6 +206,11 @@ void VstSynthesiser::setupSound(const mpe::PlaybackSetupData& setupData)
 void VstSynthesiser::setupEvents(const mpe::PlaybackData& playbackData)
 {
     m_sequencer.load(playbackData);
+    if (m_inited) {
+        if (const auto* profile = firstDynamicTonalityProfile(playbackData)) {
+            m_vstAudioClient->handleDynamicTonalityProfile(*profile);
+        }
+    }
 }
 
 const mpe::PlaybackData& VstSynthesiser::playbackData() const
@@ -332,7 +352,9 @@ samples_t VstSynthesiser::processSequence(const VstSequencer::EventSequence& seq
                                           const samples_t samples, float* buffer)
 {
     for (const VstSequencer::EventType& event : sequence) {
-        if (std::holds_alternative<VstEvent>(event)) {
+        if (std::holds_alternative<mpe::DynamicTonalityProfileEvent>(event)) {
+            m_vstAudioClient->handleDynamicTonalityProfile(std::get<mpe::DynamicTonalityProfileEvent>(event));
+        } else if (std::holds_alternative<VstEvent>(event)) {
             const VstEvent& vstEvent = std::get<VstEvent>(event);
             const VstPerNotePitchOutput adapted = m_perNotePitchAdapter.adapt(vstEvent);
             bool accepted = false;

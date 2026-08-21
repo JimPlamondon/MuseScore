@@ -13,6 +13,7 @@
 
 #include <vector>
 
+#include "mpe/events.h"
 #include "types/string.h"
 
 namespace mu::engraving::jims {
@@ -124,6 +125,12 @@ struct SoundingPitch {
     muse::String anchor;         // "explicit-reference" | "inferred-re0-d4"
 };
 bool noteSoundingPitch(const muse::String& stateJson, int nPer, int nGen, SoundingPitch& out, muse::String* error = nullptr);
+
+/// The Kernel's complete VST3 Dynamic Tonality profile transaction. Slot,
+/// generation, and offset are host transport choices; all musical values and
+/// their digest are authored by the Kernel.
+bool vst3ProfileTransaction(const muse::String& stateJson, uint32_t slot, uint32_t generation, uint32_t sampleOffset,
+                            muse::mpe::DynamicTonalityProfileEvent& out, muse::String* error = nullptr);
 
 /// Native MusicXML export (2026-08-17): the Kernel's COMPLETE self-tagged
 /// jims:staff-state element (numbered with the extension's `number`

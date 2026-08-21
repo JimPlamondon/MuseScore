@@ -166,8 +166,8 @@ struct VstNoteExpressionCapabilities {
     }
 };
 
-static constexpr Steinberg::Vst::NoteExpressionTypeID JIMS_NOTE_EXPRESSION_NPER = 0x4A531001u;
-static constexpr Steinberg::Vst::NoteExpressionTypeID JIMS_NOTE_EXPRESSION_NGEN = 0x4A531002u;
+static constexpr Steinberg::Vst::NoteExpressionTypeID JIMS_NOTE_EXPRESSION_NPER = 100000u;
+static constexpr Steinberg::Vst::NoteExpressionTypeID JIMS_NOTE_EXPRESSION_NGEN = 100001u;
 }
 
 template<>
