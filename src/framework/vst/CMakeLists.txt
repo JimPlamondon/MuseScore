@@ -57,6 +57,8 @@ target_sources(muse_vst PRIVATE
     internal/vstpluginmetareader.h
     internal/vstnoteeventbridge.cpp
     internal/vstnoteeventbridge.h
+    internal/vstpernotepitchadapter.cpp
+    internal/vstpernotepitchadapter.h
 
     internal/synth/vstsynthesiser.cpp
     internal/synth/vstsynthesiser.h

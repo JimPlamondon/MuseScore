@@ -331,8 +331,12 @@ void VstSequencer::addTuningExpressionCurve(EventSequenceMap& destination, const
     auto nextIt = std::next(currIt);
     auto endIt = noteEvent.pitchCtx().pitchCurve.cend();
 
-    auto tuningNormalized = [](const mpe::pitch_level_t pitchLevelOffset) {
-        const double cents = (pitchLevelOffset / static_cast<double>(mpe::PITCH_LEVEL_STEP)) * 100.0;
+    const std::optional<mpe::ExactPitch>& exact = noteEvent.pitchCtx().exactPitch;
+    const int32_t noteIdx = exact.has_value() ? std::clamp(exact->midiKey, 0, 127)
+                            : noteIndex(noteEvent.pitchCtx().nominalPitchLevel);
+    const double baseCents = exact.has_value() ? exact->centsOffset : noteTuning(noteEvent, noteIdx);
+    auto tuningNormalized = [baseCents](const mpe::pitch_level_t pitchLevelOffset) {
+        const double cents = baseCents + (pitchLevelOffset / static_cast<double>(mpe::PITCH_LEVEL_STEP)) * 100.0;
         return 0.5 + cents / 24000.0;
     };
 

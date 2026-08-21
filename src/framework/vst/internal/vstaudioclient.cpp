@@ -492,6 +492,26 @@ ParamsMapping VstAudioClient::paramsMapping(const std::set<Steinberg::Vst::CtrlN
     return result;
 }
 
+PluginParamId VstAudioClient::midiControllerParam(const Steinberg::Vst::CtrlNumber controller, const int16_t channel) const
+{
+    if (!m_pluginPtr) {
+        return Steinberg::Vst::kNoParamId;
+    }
+
+    PluginMidiMappingPtr midiMapping = m_pluginPtr->midiMapping();
+    if (!midiMapping) {
+        return Steinberg::Vst::kNoParamId;
+    }
+
+    for (const int busIdx : m_activeInputBusses) {
+        PluginParamId id = Steinberg::Vst::kNoParamId;
+        if (midiMapping->getMidiControllerAssignment(busIdx, channel, controller, id) == Steinberg::kResultOk) {
+            return id;
+        }
+    }
+    return Steinberg::Vst::kNoParamId;
+}
+
 IAudioProcessorPtr VstAudioClient::pluginProcessor() const
 {
     return static_cast<IAudioProcessorPtr>(pluginComponent());

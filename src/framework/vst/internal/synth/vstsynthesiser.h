@@ -31,6 +31,7 @@
 
 #include "../vstaudioclient.h"
 #include "../vstnoteeventbridge.h"
+#include "../vstpernotepitchadapter.h"
 #include "../../ivstinstancesregister.h"
 #include "vstsequencer.h"
 #include "vsttypes.h"
@@ -83,6 +84,7 @@ private:
     void updateRenderingMode(const audio::RenderMode mode) override;
 
     void toggleVolumeGain(const bool isActive);
+    void configureMpeInput();
     audio::samples_t processSequence(const VstSequencer::EventSequence& sequence, const audio::samples_t sequenceSampleOffset,
                                      const audio::samples_t samples, float* buffer);
 
@@ -94,12 +96,14 @@ private:
 
     VstSequencer m_sequencer;
     VstNoteEventBridge m_noteEventBridge;
+    VstPerNotePitchAdapter m_perNotePitchAdapter;
 
     muse::audio::TrackId m_trackId = muse::audio::INVALID_TRACK_ID;
 
     bool m_inited = false;
     bool m_loadFailed = false;
     bool m_useDynamicEvents = false;
+    double m_mpePitchBendRangeSemitones = 0.0;
 
     audio::samples_t m_currentPositionSamples = 0;
 };

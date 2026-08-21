@@ -31,6 +31,8 @@ using namespace muse::audio::synth;
 using namespace muse::audio;
 using namespace muse::audioplugins;
 
+static constexpr std::string_view JIMS_MPE_PITCH_BEND_RANGE_KEY = "jimsMpePitchBendRangeSemitones";
+
 static const std::set<Steinberg::Vst::CtrlNumber> SUPPORTED_CONTROLLERS = {
     Steinberg::Vst::kCtrlVolume,
     Steinberg::Vst::kCtrlExpression,
@@ -80,8 +82,26 @@ void VstSynthesiser::init(const OutputSpec& spec)
         }
         m_vstAudioClient->setOutputSpec(m_outputSpec);
         m_vstAudioClient->loadSupportedParams();
+        const VstNoteExpressionCapabilities noteExpressionCapabilities = m_vstAudioClient->noteExpressionCapabilities();
         m_sequencer.init(m_vstAudioClient->paramsMapping(SUPPORTED_CONTROLLERS), m_useDynamicEvents,
-                         m_vstAudioClient->noteExpressionCapabilities());
+                         noteExpressionCapabilities);
+        VstPerNotePitchConfig pitchConfig;
+        pitchConfig.tuningExpression = noteExpressionCapabilities.tuning;
+        const auto range = m_params.configuration.find(JIMS_MPE_PITCH_BEND_RANGE_KEY.data());
+        if (range != m_params.configuration.end()) {
+            try {
+                pitchConfig.mpePitchBendRangeSemitones = std::stod(range->second);
+            } catch (...) {
+                LOGW() << "Invalid JiMS MPE pitch-bend range for " << m_params.resourceMeta.id;
+            }
+        }
+        m_mpePitchBendRangeSemitones = pitchConfig.mpePitchBendRangeSemitones;
+        if (pitchConfig.mpePitchBendRangeSemitones > 0.0) {
+            for (int16_t channel = 1; channel < 16; ++channel) {
+                pitchConfig.pitchBendParams[channel] = m_vstAudioClient->midiControllerParam(Steinberg::Vst::kPitchBend, channel);
+            }
+        }
+        m_perNotePitchAdapter.configure(pitchConfig);
         m_inited = true;
         m_readyToPlayChanged.notify();
     };
@@ -159,6 +179,7 @@ std::string VstSynthesiser::name() const
 void VstSynthesiser::flushSound()
 {
     m_sequencer.flushOffstream();
+    m_perNotePitchAdapter.reset();
     m_vstAudioClient->flushSound();
 }
 
@@ -192,6 +213,39 @@ void VstSynthesiser::setIsActive(const bool isActive)
     toggleVolumeGain(isActive);
     m_vstAudioClient->setIsPlaying(isActive);
     m_vstAudioClient->setIsActive(isActive);
+    if (isActive) {
+        configureMpeInput();
+    }
+}
+
+void VstSynthesiser::configureMpeInput()
+{
+    if (m_mpePitchBendRangeSemitones <= 0.0) {
+        return;
+    }
+
+    const auto sendController = [this](const int16_t channel, const Steinberg::Vst::CtrlNumber controller,
+                                       const double sevenBitValue) {
+        const PluginParamId param = m_vstAudioClient->midiControllerParam(controller, channel);
+        if (param != Steinberg::Vst::kNoParamId) {
+            m_vstAudioClient->handleParamChange(ParamChangeEvent { param, sevenBitValue / 127.0 });
+        }
+    };
+
+    // MIDI Polyphonic Expression lower zone: manager channel 1 (zero-based
+    // channel 0), member channels 2-16. Registered Parameter Number 6/0
+    // enables all 15 members. Registered Parameter Number 0/0 sets the
+    // member pitch-bend range. These are ordinary controller assignments
+    // exposed by the unmodified VST3 controller through IMidiMapping.
+    sendController(0, Steinberg::Vst::kCtrlRPNSelectLSB, 6.0);
+    sendController(0, Steinberg::Vst::kCtrlRPNSelectMSB, 0.0);
+    sendController(0, Steinberg::Vst::kCtrlDataEntryMSB, 15.0);
+    for (int16_t channel = 1; channel < 16; ++channel) {
+        sendController(channel, Steinberg::Vst::kCtrlRPNSelectLSB, 0.0);
+        sendController(channel, Steinberg::Vst::kCtrlRPNSelectMSB, 0.0);
+        sendController(channel, Steinberg::Vst::kCtrlDataEntryMSB,
+                       std::clamp(m_mpePitchBendRangeSemitones, 0.0, 127.0));
+    }
 }
 
 muse::audio::msecs_t VstSynthesiser::playbackPosition() const
@@ -280,7 +334,24 @@ samples_t VstSynthesiser::processSequence(const VstSequencer::EventSequence& seq
     for (const VstSequencer::EventType& event : sequence) {
         if (std::holds_alternative<VstEvent>(event)) {
             const VstEvent& vstEvent = std::get<VstEvent>(event);
-            if (m_vstAudioClient->handleEvent(vstEvent)) {
+            const VstPerNotePitchOutput adapted = m_perNotePitchAdapter.adapt(vstEvent);
+            bool accepted = false;
+            if (adapted.paramsBeforeEvents) {
+                for (size_t i = 0; i < adapted.paramCount; ++i) {
+                    m_vstAudioClient->handleParamChange(adapted.params[i]);
+                }
+            }
+            for (size_t i = 0; i < adapted.eventCount; ++i) {
+                accepted = m_vstAudioClient->handleEvent(adapted.events[i]) || accepted;
+            }
+            if (!adapted.paramsBeforeEvents) {
+                for (size_t i = 0; i < adapted.paramCount; ++i) {
+                    m_vstAudioClient->handleParamChange(adapted.params[i]);
+                }
+            }
+            if (accepted) {
+                // Effects receive MuseScore's canonical note, including its
+                // exact JiMS tuning, not the instrument-specific adaptation.
                 m_noteEventBridge.capture(vstEvent, sequenceSampleOffset);
             }
         } else if (std::holds_alternative<ParamChangeEvent>(event)) {
