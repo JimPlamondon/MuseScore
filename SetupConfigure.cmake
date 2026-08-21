@@ -288,7 +288,9 @@ if(BUILD_CONFIGURATION STREQUAL "UTEST")
     set(MUSE_MODULE_NETWORK OFF)
     set(MUSE_MODULE_SHORTCUTS OFF)
     set(MUSE_MODULE_TOURS OFF)
-    set(MUSE_MODULE_VST OFF)
+    # Keep the VST3 module enabled in the unit-test configuration so its
+    # source/event bridge tests are built and exercised by CI.
+    set(MUSE_MODULE_VST ON)
     set(MUSE_MODULE_WORKSPACE OFF)
 
     set(MUE_BUILD_APPSHELL_MODULE OFF)

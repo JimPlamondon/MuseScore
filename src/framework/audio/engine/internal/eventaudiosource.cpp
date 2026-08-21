@@ -124,6 +124,12 @@ samples_t EventAudioSource::process(float* buffer, samples_t samplesPerChannel)
     return m_synth->process(buffer, samplesPerChannel);
 }
 
+const AudioNoteEvents& EventAudioSource::noteEvents() const
+{
+    static const AudioNoteEvents empty;
+    return m_synth ? m_synth->noteEvents() : empty;
+}
+
 void EventAudioSource::seek(const msecs_t newPositionMsecs, const bool flushSound)
 {
     ONLY_AUDIO_ENGINE_THREAD;

@@ -65,6 +65,7 @@ public:
 
     unsigned int audioChannelsCount() const override;
     samples_t process(float* buffer, samples_t samplesPerChannel) override;
+    const AudioNoteEvents& noteEvents() const override;
     async::Channel<unsigned int> audioChannelsCountChanged() const override;
     void setOutputSpec(const OutputSpec& spec) override;
 
@@ -102,7 +103,8 @@ private:
 
     void doFlushSound();
 
-    bool processSequence(const FluidSequencer::EventSequence& sequence, const samples_t samples, float* buffer);
+    bool processSequence(const FluidSequencer::EventSequence& sequence, const samples_t sampleOffset, const samples_t samples,
+                         float* buffer);
     bool handleEvent(const midi::Event& event);
 
     void toggleExpressionController();
@@ -123,6 +125,7 @@ private:
     std::optional<midi::Program> m_preset;
 
     KeyTuning m_tuning;
+    AudioNoteEvents m_noteEvents;
 
     bool m_flushSoundRequested = false;
 };

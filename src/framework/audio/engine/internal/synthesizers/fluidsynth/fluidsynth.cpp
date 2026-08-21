@@ -67,6 +67,7 @@ FluidSynth::FluidSynth(const AudioSourceParams& params, const modularity::Contex
 {
     m_fluid = std::make_shared<Fluid>();
     m_midiOutPort = midiOutPort();
+    m_noteEvents.reserve(4096);
 }
 
 bool FluidSynth::isValid() const
@@ -416,6 +417,7 @@ samples_t FluidSynth::process(float* buffer, samples_t samplesPerChannel)
         m_flushSoundRequested = false;
     }
 
+    m_noteEvents.clear();
     const msecs_t nextMsecs = samplesToMsecs(samplesPerChannel, m_outputSpec.sampleRate);
     const FluidSequencer::EventSequenceMap sequences = m_sequencer.movePlaybackForward(nextMsecs);
     samples_t sampleOffset = 0;
@@ -433,7 +435,7 @@ samples_t FluidSynth::process(float* buffer, samples_t samplesPerChannel)
             break;
         }
 
-        if (!processSequence(it->second, durationInSamples, buffer + sampleOffset * FLUID_AUDIO_CHANNELS_COUNT)) {
+        if (!processSequence(it->second, sampleOffset, durationInSamples, buffer + sampleOffset * FLUID_AUDIO_CHANNELS_COUNT)) {
             return 0;
         }
 
@@ -443,14 +445,21 @@ samples_t FluidSynth::process(float* buffer, samples_t samplesPerChannel)
     return samplesPerChannel;
 }
 
-bool FluidSynth::processSequence(const FluidSequencer::EventSequence& sequence, const samples_t samples, float* buffer)
+bool FluidSynth::processSequence(const FluidSequencer::EventSequence& sequence, const samples_t sampleOffset,
+                                 const samples_t samples, float* buffer)
 {
     if (!sequence.empty()) {
         m_tuning.reset();
     }
 
     for (const FluidSequencer::EventType& event : sequence) {
-        handleEvent(std::get<midi::Event>(event));
+        if (std::holds_alternative<midi::Event>(event)) {
+            handleEvent(std::get<midi::Event>(event));
+        } else if (m_noteEvents.size() < m_noteEvents.capacity()) {
+            AudioNoteEvent noteEvent = std::get<AudioNoteEvent>(event);
+            noteEvent.sampleOffset = sampleOffset;
+            m_noteEvents.push_back(noteEvent);
+        }
     }
 
     fluid_synth_tune_notes(m_fluid->synth, 0, 0, m_tuning.size(), m_tuning.keys.data(), m_tuning.pitches.data(), true);
@@ -464,6 +473,11 @@ bool FluidSynth::processSequence(const FluidSequencer::EventSequence& sequence, 
                                          buffer, 1, FLUID_AUDIO_CHANNELS_COUNT);
 
     return result == FLUID_OK;
+}
+
+const AudioNoteEvents& FluidSynth::noteEvents() const
+{
+    return m_noteEvents;
 }
 
 async::Channel<unsigned int> FluidSynth::audioChannelsCountChanged() const

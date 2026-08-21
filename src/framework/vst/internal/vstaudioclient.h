@@ -58,6 +58,7 @@ public:
     audio::samples_t process(float* output, audio::samples_t samplesPerChannel, audio::samples_t playbackPositionSamples = 0);
 
     ParamsMapping paramsMapping(const std::set<Steinberg::Vst::CtrlNumber>& controllers) const;
+    PluginParamId midiControllerParam(Steinberg::Vst::CtrlNumber controller, int16_t channel) const;
 
     //! JiMSynth VST3 workstream: what the plug-in advertises through
     //! INoteExpressionController on event bus 0 / channel 0 (standard
@@ -93,6 +94,7 @@ private:
 
     std::vector<int> m_activeOutputBusses;
     std::vector<int> m_activeInputBusses;
+    bool m_eventInputBussesActivated = false;
 
     VstEventList m_inputEvents;
     VstParameterChanges m_inputParamChanges;

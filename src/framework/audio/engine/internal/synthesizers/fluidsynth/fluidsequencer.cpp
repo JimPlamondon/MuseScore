@@ -140,6 +140,7 @@ void FluidSequencer::addNoteEvent(EventSequenceMap& destination, const mpe::Note
     const note_idx_t noteIdx = noteIndex(noteEvent.pitchCtx().nominalPitchLevel);
     const velocity_t velocity = noteVelocity(noteEvent);
     const tuning_t tuning = noteTuning(noteEvent, noteIdx);
+    const int32_t noteId = static_cast<int32_t>(m_nextNoteId++ & 0x7FFF'FFFFu);
 
     // Assumption: 1:1 mapping between staff and instrument and FluidSynth and FluidSequencer instances.
     // So staffLayerIndex is constant. It changes only when moving staffs.
@@ -153,6 +154,14 @@ void FluidSequencer::addNoteEvent(EventSequenceMap& destination, const mpe::Note
         noteOn.setPitchNote(noteIdx, tuning);
 
         destination[arrangementCtx.actualTimestamp].emplace_back(std::move(noteOn));
+        destination[arrangementCtx.actualTimestamp].emplace_back(audio::AudioNoteEvent {
+            audio::AudioNoteEvent::Type::NoteOn,
+            0,
+            noteId,
+            static_cast<int16_t>(noteIdx),
+            tuning * 100.f,
+            static_cast<float>(velocity) / 65535.f,
+        });
     }
 
     if (arrangementCtx.hasEnd()) {
@@ -163,6 +172,14 @@ void FluidSequencer::addNoteEvent(EventSequenceMap& destination, const mpe::Note
 
         const timestamp_t timestampTo = arrangementCtx.actualTimestamp + noteEvent.arrangementCtx().actualDuration;
         destination[timestampTo].emplace_back(std::move(noteOff));
+        destination[timestampTo].emplace_back(audio::AudioNoteEvent {
+            audio::AudioNoteEvent::Type::NoteOff,
+            0,
+            noteId,
+            static_cast<int16_t>(noteIdx),
+            tuning * 100.f,
+            0.f,
+        });
     }
 
     for (const auto& artPair : noteEvent.expressionCtx().articulations) {

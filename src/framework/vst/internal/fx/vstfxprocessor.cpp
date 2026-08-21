@@ -22,6 +22,8 @@
 
 #include "vstfxprocessor.h"
 
+#include "../vstnoteeventbridge.h"
+
 using namespace muse;
 using namespace muse::vst;
 using namespace muse::audio;
@@ -47,11 +49,14 @@ void VstFxProcessor::init(const audio::OutputSpec& spec)
 
     auto onPluginLoaded = [this]() {
         if (!m_pluginPtr->isLoaded()) {
-            return; // loadingCompleted fired for a failed load
+            m_loadFailed = true;
+            m_readyToProcessChanged.notify();
+            return;
         }
         m_pluginPtr->updatePluginConfig(m_params.configuration);
         m_vstAudioClient->setOutputSpec(m_outputSpec);
         m_inited = true;
+        m_readyToProcessChanged.notify();
     };
 
     if (m_pluginPtr->isLoaded()) {
@@ -112,6 +117,27 @@ void VstFxProcessor::setPlaying(bool playing)
 bool VstFxProcessor::shouldProcessDuringSilence() const
 {
     return m_params.active && muse::contains(m_params.categories, AudioFxCategory::FxGenerator);
+}
+
+bool VstFxProcessor::readyToProcess() const
+{
+    return m_inited || m_loadFailed;
+}
+
+async::Notification VstFxProcessor::readyToProcessChanged() const
+{
+    return m_readyToProcessChanged;
+}
+
+void VstFxProcessor::processNoteEvents(const audio::AudioNoteEvents& events)
+{
+    if (!m_inited) {
+        return;
+    }
+
+    for (const audio::AudioNoteEvent& source : events) {
+        m_vstAudioClient->handleEvent(VstNoteEventBridge::toVstEvent(source));
+    }
 }
 
 void VstFxProcessor::process(float* buffer, samples_t sampleCount, samples_t playbackPositionSamples)
