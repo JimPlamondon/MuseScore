@@ -1102,3 +1102,80 @@ TEST(Engraving_JiMStaffM9SATBTests, m9EveryNotesPitchIsTheKernelsProjectionOfIts
         delete score;
     }
 }
+
+namespace {
+// The scale array as written, e.g. ["M2","m2",...] — the collection itself,
+// independent of which degree is currently the tonic.
+muse::String collectionOf(const muse::String& stateJson)
+{
+    const size_t at = stateJson.indexOf(u"\"scale\"");
+    const size_t end = stateJson.indexOf(u']', at);
+    if (at == muse::nidx || end == muse::nidx) {
+        return muse::String();
+    }
+    return stateJson.mid(at, end + 1 - at);
+}
+}
+
+// Movable Do with a La-based minor is the design this milestone must not
+// quietly break. Going to the relative minor moves the TONIC to La over the
+// same collection; it does not re-anchor Do onto the minor tonic, and it does
+// not touch the key. So after the change: Do is still C, the collection is
+// still the same seven, only mode_rotation moves — and it moves for every
+// part at once, because the score-wide path is what M9 added.
+//
+// If anyone ever "simplifies" a check by assuming Do is C, or by treating the
+// mode as decoration, this test is what fails.
+TEST(Engraving_JiMStaffM9SATBTests, m9RelativeMinorMovesTheTonicToLaAndLeavesDoWhereItIs)
+{
+    MasterScore* score = openShippedTemplate();
+    ASSERT_TRUE(score);
+    score->doLayout();
+    Measure* m2 = measureNo(score, 2);
+    ASSERT_TRUE(m2);
+
+    // The template is in C, Do-mode: Do is the tonic and Do is C.
+    jims::StateChangeOptions before;
+    ASSERT_TRUE(jims::changeOptions(score, 0, m2, before));
+    ASSERT_GE(before.tonics.size(), 6u);
+    EXPECT_EQ(before.tonics[0].label, muse::String(u"Do"));
+    EXPECT_TRUE(before.tonics[0].current) << "the template must start with Do as the tonic";
+    EXPECT_EQ(before.tonics[5].label, muse::String(u"La")) << "La must be offered as a tonic";
+
+    muse::String collectionBefore[4];
+    for (staff_idx_t i = 0; i < 4; ++i) {
+        const muse::String s = stateAt(score, i, m2);
+        EXPECT_TRUE(s.contains(u"\"mode_rotation\":0")) << "staff " << i;
+        EXPECT_TRUE(s.contains(u"\"key_number\":62")) << "staff " << i << " states no key";
+        collectionBefore[i] = collectionOf(s);
+        ASSERT_FALSE(collectionBefore[i].empty()) << "staff " << i;
+    }
+
+    // Take every part to the relative minor at once.
+    muse::String error;
+    ASSERT_TRUE(jims::applyChangeToAllJimsParts(score, m2, { before.tonics[5].id }, error)) << error.toStdString();
+    score->doLayout();
+
+    for (staff_idx_t i = 0; i < 4; ++i) {
+        const muse::String s = stateAt(score, i, m2);
+        // The tonic is now La...
+        EXPECT_TRUE(s.contains(u"\"mode_rotation\":5")) << "staff " << i << " did not move its tonic to La";
+        // ...the key did not move: Do is still C.
+        EXPECT_TRUE(s.contains(u"\"key_number\":62")) << "staff " << i << " changed key when only the mode should move";
+        // ...and it is the same seven notes, not a different collection.
+        EXPECT_EQ(collectionOf(s), collectionBefore[i])
+            << "staff " << i << " changed collection; the relative minor is the same notes";
+        EXPECT_TRUE(s.contains(u"\"collection_rotation\":0")) << "staff " << i;
+    }
+
+    // The Kernel now reports La as the tonic, for every part.
+    for (staff_idx_t i = 0; i < 4; ++i) {
+        jims::StateChangeOptions after;
+        ASSERT_TRUE(jims::changeOptions(score, i, m2, after));
+        ASSERT_GE(after.tonics.size(), 6u);
+        EXPECT_TRUE(after.tonics[5].current) << "staff " << i << ": La is not reported as the tonic";
+        EXPECT_FALSE(after.tonics[0].current) << "staff " << i << ": Do is still reported as the tonic";
+    }
+
+    delete score;
+}
