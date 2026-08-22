@@ -23,7 +23,7 @@
   "pages_checked": [
     {
       "page": "hymn-2-p1.png",
-      "final_barline_x": 948,
+      "frames_found": 4,
       "staff_frames": [
         [
           128,
@@ -31,15 +31,15 @@
         ],
         [
           348,
-          450
+          447
         ],
         [
-          571,
-          670
+          567,
+          666
         ],
         [
-          792,
-          923
+          787,
+          919
         ]
       ],
       "systems": [
@@ -52,15 +52,15 @@
             ],
             [
               348,
-              450
+              447
             ],
             [
-              571,
-              670
+              567,
+              666
             ],
             [
-              792,
-              923
+              787,
+              919
             ]
           ],
           "inter_staff_gaps": [
@@ -69,12 +69,12 @@
               347
             ],
             [
-              451,
-              570
+              448,
+              566
             ],
             [
-              671,
-              791
+              667,
+              786
             ]
           ],
           "system_edge_columns": [
@@ -87,9 +87,10 @@
           "system_edge_spans_gaps": true,
           "spanning_barline_columns": [],
           "measure_barline_columns": [
-            490,
-            640,
-            790,
+            470,
+            627,
+            783,
+            784,
             940,
             945,
             946,
@@ -102,7 +103,7 @@
           "ok": true,
           "staff_span_y": [
             128,
-            923
+            919
           ]
         }
       ],
@@ -111,7 +112,7 @@
     },
     {
       "page": "hymn-p1.png",
-      "final_barline_x": 948,
+      "frames_found": 4,
       "staff_frames": [
         [
           128,
@@ -119,15 +120,15 @@
         ],
         [
           348,
-          450
+          447
         ],
         [
-          571,
-          670
+          567,
+          666
         ],
         [
-          792,
-          923
+          787,
+          919
         ]
       ],
       "systems": [
@@ -140,15 +141,15 @@
             ],
             [
               348,
-              450
+              447
             ],
             [
-              571,
-              670
+              567,
+              666
             ],
             [
-              792,
-              923
+              787,
+              919
             ]
           ],
           "inter_staff_gaps": [
@@ -157,12 +158,12 @@
               347
             ],
             [
-              451,
-              570
+              448,
+              566
             ],
             [
-              671,
-              791
+              667,
+              786
             ]
           ],
           "system_edge_columns": [
@@ -175,9 +176,10 @@
           "system_edge_spans_gaps": true,
           "spanning_barline_columns": [],
           "measure_barline_columns": [
-            490,
-            640,
-            790,
+            470,
+            627,
+            783,
+            784,
             940,
             945,
             946,
@@ -190,7 +192,7 @@
           "ok": true,
           "staff_span_y": [
             128,
-            923
+            919
           ]
         }
       ],
@@ -199,7 +201,7 @@
     },
     {
       "page": "template-2-p1.png",
-      "final_barline_x": 948,
+      "frames_found": 4,
       "staff_frames": [
         [
           212,
@@ -287,7 +289,7 @@
     },
     {
       "page": "template-2-p2.png",
-      "final_barline_x": 948,
+      "frames_found": 8,
       "staff_frames": [
         [
           129,
@@ -455,7 +457,7 @@
     },
     {
       "page": "template-p1.png",
-      "final_barline_x": 948,
+      "frames_found": 4,
       "staff_frames": [
         [
           212,
@@ -543,7 +545,7 @@
     },
     {
       "page": "template-p2.png",
-      "final_barline_x": 948,
+      "frames_found": 8,
       "staff_frames": [
         [
           129,

@@ -52,8 +52,13 @@ INK_MAX = 100
 # Vertical ink runs shorter than this are note heads, stems, text — not a
 # barline stroke through a staff. A JiMStaff frame at 120 dpi is ~100 px.
 MIN_STROKE = 40
-# Runs separated by no more than this are one stroke (anti-aliasing).
-RUN_JOIN = 2
+# Runs this close together are one stroke. A JiMStaff draws its coloured staff
+# lines OVER the barline, so a barline is interrupted wherever a line crosses
+# it: measured at 2 replaced pixels (the red Do line, RGB 195,41,41, at
+# y=173-174 of hymn-p1.png), which is a 3-pixel step between run ends. Four is
+# the smallest value that reads such a barline as the single stroke it is,
+# and it is far below the ~120-pixel gaps between staves.
+RUN_JOIN = 4
 # A barline column must be inked over at least this much of each staff frame.
 BARLINE_FILL = 0.80
 # Voices per system in an SATB open score.
@@ -77,22 +82,54 @@ def runs_in_column(ink, x, min_len):
     return [(a, b) for a, b in out if b - a + 1 >= min_len]
 
 
-def staff_frames(ink):
-    """Each staff frame on the page, from the page's final barline column.
+# A staff frame must be corroborated by barline strokes at at least this many
+# DISTINCT places across the page. Counting raw columns is not enough: a note
+# stem is tall and two or three pixels wide, so it would vote for itself.
+FRAME_SUPPORT = 3
+# Ink columns further apart than this are different strokes.
+STROKE_GAP = 10
+# Run edges within this many pixels are the same frame (anti-aliasing, and the
+# double barline's two strokes).
+FRAME_TOL = 4
 
-    The final barline is drawn in every staff of every system, so its strokes
-    are exactly the staff frames — no colour heuristics, no guessing at how
-    tightly the page packed the systems.
+
+def staff_frames(ink):
+    """Each staff frame on the page, by consensus across every barline.
+
+    A barline stroke runs the height of its staff and nothing else does, so the
+    staff frames are the vertical runs that recur — once per barline — at the
+    same y. Taking the consensus rather than one chosen column keeps this
+    working whatever the melody-derived frame heights turn out to be, and
+    whatever spacing the page settles on.
     """
-    width = ink.shape[1]
-    best, best_runs = None, []
-    for x in range(width - 1, -1, -1):
-        rs = runs_in_column(ink, x, MIN_STROKE)
-        if len(rs) > len(best_runs):
-            best, best_runs = x, rs
-        if best_runs and x < width * 0.5:
-            break
-    return best, best_runs
+    seen = {}
+    for x in range(ink.shape[1]):
+        for top, bottom in runs_in_column(ink, x, MIN_STROKE):
+            key = (round(top / FRAME_TOL), round(bottom / FRAME_TOL))
+            slot = seen.setdefault(key, [[], top, bottom])
+            slot[0].append(x)
+            slot[1] = min(slot[1], top)
+            slot[2] = max(slot[2], bottom)
+
+    def distinct_strokes(xs):
+        n, last = 0, None
+        for x in sorted(xs):
+            if last is None or x - last > STROKE_GAP:
+                n += 1
+            last = x
+        return n
+
+    frames = sorted((top, bottom) for xs, top, bottom in seen.values()
+                    if distinct_strokes(xs) >= FRAME_SUPPORT)
+    # Keep only the innermost runs. The system's leading edge is a single run
+    # spanning its whole system — it CONTAINS the staff frames rather than
+    # being one — so anything that contains another run is discarded.
+    kept = []
+    for top, bottom in frames:
+        if any(top <= t and b <= bottom for t, b in frames if (t, b) != (top, bottom)):
+            continue
+        kept.append((top, bottom))
+    return (len(kept), kept)
 
 
 def group_systems(frames):
@@ -114,8 +151,8 @@ def group_systems(frames):
 
 def check_page(path):
     ink = ink_of(path)
-    final_x, frames = staff_frames(ink)
-    result = {"page": path.name, "final_barline_x": final_x,
+    frame_count, frames = staff_frames(ink)
+    result = {"page": path.name, "frames_found": frame_count,
               "staff_frames": [list(f) for f in frames], "systems": [], "failures": []}
     if not frames:
         result["ok"] = False

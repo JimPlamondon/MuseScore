@@ -13,6 +13,8 @@ Visual rendering is the whole sensory dimension of M9 — there is no audio dime
 
 ## Fixtures of record
 
+Both fixtures are in **C, Do-mode**: diatonic scale, collection rotation 0, `mode_rotation` 0 so Do is the tonic, and a reference pitch of D4 which puts Do on C. Each file states its own key and mode, so nothing about which absolute pitch a JiMS note sounds is left to a fallback guess.
+
 - **`template`** — the shipped empty template `share/templates/02-Choral/12-SATB_(JiMStaff)/12-SATB_(JiMStaff).mscx` (sha256 `41ec94f6e3872e7899b3def22febeb33cfe92401d208b2e8280b15d8eafd7729`): four JiMStaff staves in open score, 18 bars of measure rests, constellation extents `lower_do_register` 4/4/3/3 with `period_count` 1.
 - **`hymn`** — `src/engraving/tests/jimstaff_data/m9-satb-hymn.mscx` (sha256 `b7e7762b0b1b43e33a0dc5844d86e26f5549ffb9b1042e6a12700e7019ef7a7c`): the first phrase of the **Old Hundredth**, four bars of 4/4, entered in all four parts, with lyrics on the Soprano and one dynamic.
 
@@ -63,9 +65,18 @@ Two things are deliberately excluded, both on principle rather than convenience.
 - On the empty template, the Kernel's tonic row labels read `C4:` on Soprano and Alto and `C3:` on Tenor and Bass — the constellation, realised in the v1 extent encoding as registers 4/4/3/3.
 - On the hymn, each written staff shows its own melody-derived frame, so the four frames differ — correct behaviour, not a defect.
 - Lyrics sit below the Soprano staff; the dynamic sits above it (the vocal-above rule).
+- **Every note head on the hymn is a plain oval.** This is the check that matters most here and it is easy to read at a glance: a JiMS note head's SHAPE carries its accidental class, so a piece with no accidentals must show no shaped heads. Triangles or diamonds in a diatonic hymn mean the written notes and their lattice identities disagree.
 - The lyric line clears the whole-period frame rather than hugging the note heads. This is the accepted cosmetic consequence of owner decision 3b and is recorded, not fixed, under this milestone.
 - No obvious collisions.
 
 **Range colouring is absent from these renders by design, not by omission.** MuseScore colours out-of-range note heads only when `!isPrinting`, so it is a screen-only affordance that can never appear in a printed page render. The seam's inputs are asserted instead by `Engraving_JiMStaffM9SATBTests.m9SweepRangeColouringInputsAreCorrectOnJimsVocalStaves`.
+
+## Correction, 2026-08-22
+
+The first version of the hymn fixture was wrong and its renders were committed before anyone noticed. Its notes' lattice identities had been written against the wrong anchor, so every note's written identity sat a whole tone away from the pitch it claimed to sound. Eight of its thirty-two notes came out as accidentals — four F sharps in the Alto alone — in a hymn that has none, and those wrong shapes were plainly visible in the committed pictures. Jim spotted them; the automated checks did not, because nothing compared a note's identity against its sounding pitch.
+
+Three things changed as a result. The hymn was rewritten with correct identities and now shows no accidentals. Both the hymn and the shipped template now state their key as well as their mode, instead of leaving the key to a fallback guess. And a new test, `m9EveryNotesPitchIsTheKernelsProjectionOfItsIdentity`, asks the Kernel what pitch each note's identity sounds at under that staff's own state and requires the note to agree — it asks the Kernel rather than applying a formula, because a formula would fix the anchor for every score and JiMS is movable-Do. Re-introducing the original mistake makes that test fail with the offending note named.
+
+The renders in this folder are the corrected ones. Any earlier copy should be discarded.
 
 **Manual acceptance: pending Jim.**

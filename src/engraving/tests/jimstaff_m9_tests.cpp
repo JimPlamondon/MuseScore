@@ -708,23 +708,26 @@ TEST(Engraving_JiMStaffM9SATBTests, m9BindStaysStaffWideAndIsNeverPropagatedAcro
     muse::String othersBefore[4];
     for (staff_idx_t i = 0; i < 4; ++i) {
         othersBefore[i] = score->staff(i)->staffType(Fraction(0, 1))->jimsStateJson();
-        EXPECT_TRUE(othersBefore[i].contains(u"\"reference\":\"none\"")) << "staff " << i;
+        // The template states its KEY as well as its mode: Re0 pinned to D4,
+        // so Do is C, and mode_rotation 0 makes Do the tonic. Nothing about
+        // which pitch a JiMS note sounds is left to inference.
+        EXPECT_TRUE(othersBefore[i].contains(u"\"key_number\":62")) << "staff " << i << " states no key";
+        EXPECT_TRUE(othersBefore[i].contains(u"\"mode_rotation\":0")) << "staff " << i << " states no mode";
     }
 
-    // Binding the Soprano's reference edits the Soprano's BASE type (staff-wide)
-    // and reaches no other part.
+    // A staff that already states its key keeps it: `bind:` binds an UNBOUND
+    // state and leaves a bound one alone (M6 rule, unchanged by M9). Either
+    // way it is applied to one staff and never reaches another part.
     muse::String error;
-    ASSERT_TRUE(jims::applyChange(score, 0, m2, u"bind:reference-pitch:62", error)) << error.toStdString();
+    ASSERT_TRUE(jims::applyChange(score, 0, m2, u"bind:reference-pitch:64", error)) << error.toStdString();
     score->doLayout();
-    EXPECT_TRUE(score->staff(0)->staffType(Fraction(0, 1))->jimsStateJson().contains(u"\"key_number\":62"))
-        << "bind must remain staff-wide: it edits the bound staff's base type";
-    for (staff_idx_t i = 1; i < 4; ++i) {
+    for (staff_idx_t i = 0; i < 4; ++i) {
         EXPECT_EQ(score->staff(i)->staffType(Fraction(0, 1))->jimsStateJson(), othersBefore[i])
-            << "bind must not propagate to part " << i;
+            << "a binding applied to the Soprano changed part " << i;
     }
 
     // And the score-wide seam refuses a binding outright rather than widening it.
-    EXPECT_FALSE(jims::applyChangeToAllJimsParts(score, m2, { u"bind:reference-pitch:64" }, error));
+    EXPECT_FALSE(jims::applyChangeToAllJimsParts(score, m2, { u"bind:reference-pitch:65" }, error));
     EXPECT_FALSE(error.empty());
     for (staff_idx_t i = 1; i < 4; ++i) {
         EXPECT_EQ(score->staff(i)->staffType(Fraction(0, 1))->jimsStateJson(), othersBefore[i])
@@ -1035,4 +1038,67 @@ TEST(Engraving_JiMStaffM9SATBTests, m9SweepHideEmptyStavesWorksOnAFourJimsStaffM
         EXPECT_TRUE(score->systems().front()->staff(i)->show()) << "staff " << i << " must reappear";
     }
     delete score;
+}
+
+// A JiMS note carries two things that must agree: its lattice identity, and the
+// compatibility pitch MuseScore plays and reports. Nothing enforced that, and
+// the M9 fixtures shipped with identities a whole tone away from their pitches
+// — invisible to every other assertion, but visible on the page as accidental
+// note-head shapes in music that has no accidentals.
+//
+// The agreement is asked of the KERNEL, per staff state, never computed here.
+// A constant like "62 + cents/100" would hard-code Re0 to D4 and make every
+// score fixed-Do; JiMS is movable-Do, so the anchor is whatever that staff's
+// reference resolves to, and only the Kernel knows it.
+TEST(Engraving_JiMStaffM9SATBTests, m9EveryNotesPitchIsTheKernelsProjectionOfItsIdentity)
+{
+    const char16_t* fixtures[] = {
+        u"jimstaff_data/m9-satb-hymn.mscx",
+        u"jimstaff_data/m9-satb-mixed.mscx",
+        u"jimstaff_data/m9-dense-voices.mscx",
+    };
+    for (const char16_t* f : fixtures) {
+        MasterScore* score = ScoreRW::readScore(muse::String(f));
+        ASSERT_TRUE(score) << muse::String(f).toStdString();
+        score->doLayout();
+
+        size_t checked = 0;
+        for (staff_idx_t s = 0; s < score->nstaves(); ++s) {
+            for (Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
+                const StaffType* st = score->staff(s)->staffType(m->tick());
+                if (!st || !st->isJiMS()) {
+                    continue;
+                }
+                for (Segment* seg = m->first(SegmentType::ChordRest); seg; seg = seg->next(SegmentType::ChordRest)) {
+                    for (voice_idx_t v = 0; v < VOICES; ++v) {
+                        EngravingItem* e = seg->element(s * VOICES + v);
+                        if (!e || !e->isChord()) {
+                            continue;
+                        }
+                        for (Note* n : toChord(e)->notes()) {
+                            if (!n->hasJimsPitch()) {
+                                continue;
+                            }
+                            jims::SoundingPitch sounding;
+                            muse::String err;
+                            ASSERT_TRUE(jims::noteSoundingPitch(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(),
+                                                                sounding, &err))
+                                << muse::String(f).toStdString() << ": " << err.toStdString();
+                            EXPECT_EQ(n->pitch(), sounding.midiKey)
+                                << muse::String(f).toStdString() << " staff " << s
+                                << " measure " << m->no() + 1
+                                << ": identity (" << n->jimsNPer() << "," << n->jimsNGen()
+                                << ") sounds at MIDI " << sounding.midiKey
+                                << " under Re0=" << sounding.referenceKeyNumber
+                                << " (" << sounding.anchor.toStdString() << "), but the note carries pitch "
+                                << n->pitch();
+                            ++checked;
+                        }
+                    }
+                }
+            }
+        }
+        EXPECT_GT(checked, 0u) << muse::String(f).toStdString() << " carried no JiMS notes to check";
+        delete score;
+    }
 }

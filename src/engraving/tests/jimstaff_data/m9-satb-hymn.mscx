@@ -39,7 +39,7 @@
           <lines>13</lines>
           <clef>0</clef>
           <jims>1</jims>
-          <jimsStateJson>{&quot;scale&quot;:[&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;],&quot;collection_rotation&quot;:0,&quot;mode_rotation&quot;:0,&quot;generator_cents&quot;:700.0,&quot;period_cents&quot;:1200.0,&quot;embedding&quot;:{&quot;large_steps&quot;:5,&quot;small_steps&quot;:2},&quot;extent&quot;:{&quot;lower_do_register&quot;:4,&quot;period_count&quot;:1},&quot;reference&quot;:&quot;none&quot;,&quot;tonic_ambit&quot;:&quot;tonic-bounded&quot;}</jimsStateJson>
+          <jimsStateJson>{&quot;scale&quot;:[&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;],&quot;collection_rotation&quot;:0,&quot;mode_rotation&quot;:0,&quot;generator_cents&quot;:700.0,&quot;period_cents&quot;:1200.0,&quot;embedding&quot;:{&quot;large_steps&quot;:5,&quot;small_steps&quot;:2},&quot;extent&quot;:{&quot;lower_do_register&quot;:4,&quot;period_count&quot;:1},&quot;reference&quot;:{&quot;reference-pitch&quot;:{&quot;key_number&quot;:62}},&quot;tonic_ambit&quot;:&quot;tonic-bounded&quot;}</jimsStateJson>
           <jimsJiLines>1</jimsJiLines>
           <keysig>0</keysig>
           <ledgerlines>0</ledgerlines>
@@ -68,7 +68,7 @@
           <lines>13</lines>
           <clef>0</clef>
           <jims>1</jims>
-          <jimsStateJson>{&quot;scale&quot;:[&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;],&quot;collection_rotation&quot;:0,&quot;mode_rotation&quot;:0,&quot;generator_cents&quot;:700.0,&quot;period_cents&quot;:1200.0,&quot;embedding&quot;:{&quot;large_steps&quot;:5,&quot;small_steps&quot;:2},&quot;extent&quot;:{&quot;lower_do_register&quot;:4,&quot;period_count&quot;:1},&quot;reference&quot;:&quot;none&quot;,&quot;tonic_ambit&quot;:&quot;tonic-bounded&quot;}</jimsStateJson>
+          <jimsStateJson>{&quot;scale&quot;:[&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;],&quot;collection_rotation&quot;:0,&quot;mode_rotation&quot;:0,&quot;generator_cents&quot;:700.0,&quot;period_cents&quot;:1200.0,&quot;embedding&quot;:{&quot;large_steps&quot;:5,&quot;small_steps&quot;:2},&quot;extent&quot;:{&quot;lower_do_register&quot;:4,&quot;period_count&quot;:1},&quot;reference&quot;:{&quot;reference-pitch&quot;:{&quot;key_number&quot;:62}},&quot;tonic_ambit&quot;:&quot;tonic-bounded&quot;}</jimsStateJson>
           <jimsJiLines>1</jimsJiLines>
           <keysig>0</keysig>
           <ledgerlines>0</ledgerlines>
@@ -96,7 +96,7 @@
           <lines>13</lines>
           <clef>0</clef>
           <jims>1</jims>
-          <jimsStateJson>{&quot;scale&quot;:[&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;],&quot;collection_rotation&quot;:0,&quot;mode_rotation&quot;:0,&quot;generator_cents&quot;:700.0,&quot;period_cents&quot;:1200.0,&quot;embedding&quot;:{&quot;large_steps&quot;:5,&quot;small_steps&quot;:2},&quot;extent&quot;:{&quot;lower_do_register&quot;:3,&quot;period_count&quot;:1},&quot;reference&quot;:&quot;none&quot;,&quot;tonic_ambit&quot;:&quot;tonic-bounded&quot;}</jimsStateJson>
+          <jimsStateJson>{&quot;scale&quot;:[&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;],&quot;collection_rotation&quot;:0,&quot;mode_rotation&quot;:0,&quot;generator_cents&quot;:700.0,&quot;period_cents&quot;:1200.0,&quot;embedding&quot;:{&quot;large_steps&quot;:5,&quot;small_steps&quot;:2},&quot;extent&quot;:{&quot;lower_do_register&quot;:3,&quot;period_count&quot;:1},&quot;reference&quot;:{&quot;reference-pitch&quot;:{&quot;key_number&quot;:62}},&quot;tonic_ambit&quot;:&quot;tonic-bounded&quot;}</jimsStateJson>
           <jimsJiLines>1</jimsJiLines>
           <keysig>0</keysig>
           <ledgerlines>0</ledgerlines>
@@ -126,7 +126,7 @@
           <lines>13</lines>
           <clef>0</clef>
           <jims>1</jims>
-          <jimsStateJson>{&quot;scale&quot;:[&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;],&quot;collection_rotation&quot;:0,&quot;mode_rotation&quot;:0,&quot;generator_cents&quot;:700.0,&quot;period_cents&quot;:1200.0,&quot;embedding&quot;:{&quot;large_steps&quot;:5,&quot;small_steps&quot;:2},&quot;extent&quot;:{&quot;lower_do_register&quot;:3,&quot;period_count&quot;:1},&quot;reference&quot;:&quot;none&quot;,&quot;tonic_ambit&quot;:&quot;tonic-bounded&quot;}</jimsStateJson>
+          <jimsStateJson>{&quot;scale&quot;:[&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;],&quot;collection_rotation&quot;:0,&quot;mode_rotation&quot;:0,&quot;generator_cents&quot;:700.0,&quot;period_cents&quot;:1200.0,&quot;embedding&quot;:{&quot;large_steps&quot;:5,&quot;small_steps&quot;:2},&quot;extent&quot;:{&quot;lower_do_register&quot;:3,&quot;period_count&quot;:1},&quot;reference&quot;:{&quot;reference-pitch&quot;:{&quot;key_number&quot;:62}},&quot;tonic_ambit&quot;:&quot;tonic-bounded&quot;}</jimsStateJson>
           <jimsJiLines>1</jimsJiLines>
           <keysig>0</keysig>
           <ledgerlines>0</ledgerlines>
@@ -169,8 +169,8 @@
             <Note>
               <pitch>72</pitch>
               <tpc>14</tpc>
-              <jimsNPer>1</jimsNPer>
-              <jimsNGen>0</jimsNGen>
+              <jimsNPer>2</jimsNPer>
+              <jimsNGen>-2</jimsNGen>
               </Note>
             </Chord>
           <Chord>
@@ -183,8 +183,8 @@
             <Note>
               <pitch>72</pitch>
               <tpc>14</tpc>
-              <jimsNPer>1</jimsNPer>
-              <jimsNGen>0</jimsNGen>
+              <jimsNPer>2</jimsNPer>
+              <jimsNGen>-2</jimsNGen>
               </Note>
             </Chord>
           </voice>
@@ -201,8 +201,8 @@
             <Note>
               <pitch>71</pitch>
               <tpc>19</tpc>
-              <jimsNPer>-2</jimsNPer>
-              <jimsNGen>5</jimsNGen>
+              <jimsNPer>-1</jimsNPer>
+              <jimsNGen>3</jimsNGen>
               </Note>
             </Chord>
           <Chord>
@@ -215,8 +215,8 @@
             <Note>
               <pitch>69</pitch>
               <tpc>17</tpc>
-              <jimsNPer>-1</jimsNPer>
-              <jimsNGen>3</jimsNGen>
+              <jimsNPer>0</jimsNPer>
+              <jimsNGen>1</jimsNGen>
               </Note>
             </Chord>
           </voice>
@@ -233,8 +233,8 @@
             <Note>
               <pitch>67</pitch>
               <tpc>15</tpc>
-              <jimsNPer>0</jimsNPer>
-              <jimsNGen>1</jimsNGen>
+              <jimsNPer>1</jimsNPer>
+              <jimsNGen>-1</jimsNGen>
               </Note>
             </Chord>
           <Chord>
@@ -247,8 +247,8 @@
             <Note>
               <pitch>72</pitch>
               <tpc>14</tpc>
-              <jimsNPer>1</jimsNPer>
-              <jimsNGen>0</jimsNGen>
+              <jimsNPer>2</jimsNPer>
+              <jimsNGen>-2</jimsNGen>
               </Note>
             </Chord>
           </voice>
@@ -265,8 +265,8 @@
             <Note>
               <pitch>74</pitch>
               <tpc>16</tpc>
-              <jimsNPer>0</jimsNPer>
-              <jimsNGen>2</jimsNGen>
+              <jimsNPer>1</jimsNPer>
+              <jimsNGen>0</jimsNGen>
               </Note>
             </Chord>
           <Chord>
@@ -279,8 +279,8 @@
             <Note>
               <pitch>76</pitch>
               <tpc>18</tpc>
-              <jimsNPer>-1</jimsNPer>
-              <jimsNGen>4</jimsNGen>
+              <jimsNPer>0</jimsNPer>
+              <jimsNGen>2</jimsNGen>
               </Note>
             </Chord>
           </voice>
@@ -298,8 +298,8 @@
             <Note>
               <pitch>64</pitch>
               <tpc>18</tpc>
-              <jimsNPer>-2</jimsNPer>
-              <jimsNGen>4</jimsNGen>
+              <jimsNPer>-1</jimsNPer>
+              <jimsNGen>2</jimsNGen>
               </Note>
             </Chord>
           <Chord>
@@ -307,8 +307,8 @@
             <Note>
               <pitch>64</pitch>
               <tpc>18</tpc>
-              <jimsNPer>-2</jimsNPer>
-              <jimsNGen>4</jimsNGen>
+              <jimsNPer>-1</jimsNPer>
+              <jimsNGen>2</jimsNGen>
               </Note>
             </Chord>
           </voice>
@@ -320,8 +320,8 @@
             <Note>
               <pitch>67</pitch>
               <tpc>15</tpc>
-              <jimsNPer>0</jimsNPer>
-              <jimsNGen>1</jimsNGen>
+              <jimsNPer>1</jimsNPer>
+              <jimsNGen>-1</jimsNGen>
               </Note>
             </Chord>
           <Chord>
@@ -329,8 +329,8 @@
             <Note>
               <pitch>64</pitch>
               <tpc>18</tpc>
-              <jimsNPer>-2</jimsNPer>
-              <jimsNGen>4</jimsNGen>
+              <jimsNPer>-1</jimsNPer>
+              <jimsNGen>2</jimsNGen>
               </Note>
             </Chord>
           </voice>
@@ -342,8 +342,8 @@
             <Note>
               <pitch>62</pitch>
               <tpc>16</tpc>
-              <jimsNPer>-1</jimsNPer>
-              <jimsNGen>2</jimsNGen>
+              <jimsNPer>0</jimsNPer>
+              <jimsNGen>0</jimsNGen>
               </Note>
             </Chord>
           <Chord>
@@ -351,8 +351,8 @@
             <Note>
               <pitch>64</pitch>
               <tpc>18</tpc>
-              <jimsNPer>-2</jimsNPer>
-              <jimsNGen>4</jimsNGen>
+              <jimsNPer>-1</jimsNPer>
+              <jimsNGen>2</jimsNGen>
               </Note>
             </Chord>
           </voice>
@@ -364,8 +364,8 @@
             <Note>
               <pitch>67</pitch>
               <tpc>15</tpc>
-              <jimsNPer>0</jimsNPer>
-              <jimsNGen>1</jimsNGen>
+              <jimsNPer>1</jimsNPer>
+              <jimsNGen>-1</jimsNGen>
               </Note>
             </Chord>
           <Chord>
@@ -373,8 +373,8 @@
             <Note>
               <pitch>67</pitch>
               <tpc>15</tpc>
-              <jimsNPer>0</jimsNPer>
-              <jimsNGen>1</jimsNGen>
+              <jimsNPer>1</jimsNPer>
+              <jimsNGen>-1</jimsNGen>
               </Note>
             </Chord>
           </voice>
@@ -392,8 +392,8 @@
             <Note>
               <pitch>60</pitch>
               <tpc>14</tpc>
-              <jimsNPer>0</jimsNPer>
-              <jimsNGen>0</jimsNGen>
+              <jimsNPer>1</jimsNPer>
+              <jimsNGen>-2</jimsNGen>
               </Note>
             </Chord>
           <Chord>
@@ -401,8 +401,8 @@
             <Note>
               <pitch>60</pitch>
               <tpc>14</tpc>
-              <jimsNPer>0</jimsNPer>
-              <jimsNGen>0</jimsNGen>
+              <jimsNPer>1</jimsNPer>
+              <jimsNGen>-2</jimsNGen>
               </Note>
             </Chord>
           </voice>
@@ -414,8 +414,8 @@
             <Note>
               <pitch>62</pitch>
               <tpc>16</tpc>
-              <jimsNPer>-1</jimsNPer>
-              <jimsNGen>2</jimsNGen>
+              <jimsNPer>0</jimsNPer>
+              <jimsNGen>0</jimsNGen>
               </Note>
             </Chord>
           <Chord>
@@ -423,8 +423,8 @@
             <Note>
               <pitch>60</pitch>
               <tpc>14</tpc>
-              <jimsNPer>0</jimsNPer>
-              <jimsNGen>0</jimsNGen>
+              <jimsNPer>1</jimsNPer>
+              <jimsNGen>-2</jimsNGen>
               </Note>
             </Chord>
           </voice>
@@ -436,8 +436,8 @@
             <Note>
               <pitch>59</pitch>
               <tpc>19</tpc>
-              <jimsNPer>-3</jimsNPer>
-              <jimsNGen>5</jimsNGen>
+              <jimsNPer>-2</jimsNPer>
+              <jimsNGen>3</jimsNGen>
               </Note>
             </Chord>
           <Chord>
@@ -445,8 +445,8 @@
             <Note>
               <pitch>55</pitch>
               <tpc>15</tpc>
-              <jimsNPer>-1</jimsNPer>
-              <jimsNGen>1</jimsNGen>
+              <jimsNPer>0</jimsNPer>
+              <jimsNGen>-1</jimsNGen>
               </Note>
             </Chord>
           </voice>
@@ -458,8 +458,8 @@
             <Note>
               <pitch>59</pitch>
               <tpc>19</tpc>
-              <jimsNPer>-3</jimsNPer>
-              <jimsNGen>5</jimsNGen>
+              <jimsNPer>-2</jimsNPer>
+              <jimsNGen>3</jimsNGen>
               </Note>
             </Chord>
           <Chord>
@@ -467,8 +467,8 @@
             <Note>
               <pitch>60</pitch>
               <tpc>14</tpc>
-              <jimsNPer>0</jimsNPer>
-              <jimsNGen>0</jimsNGen>
+              <jimsNPer>1</jimsNPer>
+              <jimsNGen>-2</jimsNGen>
               </Note>
             </Chord>
           </voice>
@@ -486,8 +486,8 @@
             <Note>
               <pitch>48</pitch>
               <tpc>14</tpc>
-              <jimsNPer>-1</jimsNPer>
-              <jimsNGen>0</jimsNGen>
+              <jimsNPer>0</jimsNPer>
+              <jimsNGen>-2</jimsNGen>
               </Note>
             </Chord>
           <Chord>
@@ -495,8 +495,8 @@
             <Note>
               <pitch>48</pitch>
               <tpc>14</tpc>
-              <jimsNPer>-1</jimsNPer>
-              <jimsNGen>0</jimsNGen>
+              <jimsNPer>0</jimsNPer>
+              <jimsNGen>-2</jimsNGen>
               </Note>
             </Chord>
           </voice>
@@ -508,8 +508,8 @@
             <Note>
               <pitch>55</pitch>
               <tpc>15</tpc>
-              <jimsNPer>-1</jimsNPer>
-              <jimsNGen>1</jimsNGen>
+              <jimsNPer>0</jimsNPer>
+              <jimsNGen>-1</jimsNGen>
               </Note>
             </Chord>
           <Chord>
@@ -517,8 +517,8 @@
             <Note>
               <pitch>57</pitch>
               <tpc>17</tpc>
-              <jimsNPer>-2</jimsNPer>
-              <jimsNGen>3</jimsNGen>
+              <jimsNPer>-1</jimsNPer>
+              <jimsNGen>1</jimsNGen>
               </Note>
             </Chord>
           </voice>
@@ -530,8 +530,8 @@
             <Note>
               <pitch>43</pitch>
               <tpc>15</tpc>
-              <jimsNPer>-2</jimsNPer>
-              <jimsNGen>1</jimsNGen>
+              <jimsNPer>-1</jimsNPer>
+              <jimsNGen>-1</jimsNGen>
               </Note>
             </Chord>
           <Chord>
@@ -539,8 +539,8 @@
             <Note>
               <pitch>48</pitch>
               <tpc>14</tpc>
-              <jimsNPer>-1</jimsNPer>
-              <jimsNGen>0</jimsNGen>
+              <jimsNPer>0</jimsNPer>
+              <jimsNGen>-2</jimsNGen>
               </Note>
             </Chord>
           </voice>
@@ -552,8 +552,8 @@
             <Note>
               <pitch>55</pitch>
               <tpc>15</tpc>
-              <jimsNPer>-1</jimsNPer>
-              <jimsNGen>1</jimsNGen>
+              <jimsNPer>0</jimsNPer>
+              <jimsNGen>-1</jimsNGen>
               </Note>
             </Chord>
           <Chord>
@@ -561,8 +561,8 @@
             <Note>
               <pitch>48</pitch>
               <tpc>14</tpc>
-              <jimsNPer>-1</jimsNPer>
-              <jimsNGen>0</jimsNGen>
+              <jimsNPer>0</jimsNPer>
+              <jimsNGen>-2</jimsNGen>
               </Note>
             </Chord>
           </voice>
