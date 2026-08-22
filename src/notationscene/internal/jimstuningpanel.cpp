@@ -332,13 +332,13 @@ void JimsTuningPanel::buildChangeSection(QWidget* parent, QVBoxLayout* outer)
     connect(modeApply, &QPushButton::clicked, this, [this]() {
         const int i = m_tonicCombo->currentIndex();
         if (i >= 0 && i < int(m_tonicIds.size())) {
-            applyChoice(m_tonicIds[i]);
+            applyChoices({ m_tonicIds[i] });
         }
     });
     connect(m_keyApply, &QPushButton::clicked, this, [this]() {
         const int i = m_keyClassCombo->currentIndex();
         if (i >= 0 && i < int(m_keyClassNGens.size())) {
-            applyChoice(muse::String(u"key:%1:%2").arg(m_keyOctaveSpin->value()).arg(m_keyClassNGens[i]));
+            applyChoices({ muse::String(u"key:%1:%2").arg(m_keyOctaveSpin->value()).arg(m_keyClassNGens[i]) });
         }
     });
     connect(m_bindApply, &QPushButton::clicked, this, [this]() {
@@ -347,9 +347,9 @@ void JimsTuningPanel::buildChangeSection(QWidget* parent, QVBoxLayout* outer)
     connect(scaleApply, &QPushButton::clicked, this, [this]() {
         const int i = m_scaleCombo->currentIndex();
         if (i >= 0 && i < int(m_scaleSteps.size())) {
-            for (const muse::String& id : m_scaleSteps[i]) {
-                applyChoice(id);
-            }
+            // The whole step list in one call: looping applyChoice here made
+            // one scale gesture cost several undo steps.
+            applyChoices(m_scaleSteps[i]);
         }
     });
     connect(m_removeButton, &QPushButton::clicked, this, &JimsTuningPanel::onRemoveChange);
@@ -552,6 +552,29 @@ void JimsTuningPanel::applyChoice(const muse::String& choiceId)
         return;
     }
     m_statusLabel->setText(QStringLiteral("Applied %1").arg(choiceId.toQString()));
+    if (m_refreshView) {
+        m_refreshView();
+    }
+    syncChangeSection();
+}
+
+void JimsTuningPanel::applyChoices(const std::vector<muse::String>& choiceIds)
+{
+    Measure* measure = nullptr;
+    staff_idx_t staffIdx = 0;
+    if (!changeTarget(measure, staffIdx)) {
+        return;
+    }
+    muse::String error;
+    if (!jims::applyChangeToAllJimsParts(m_score, measure, choiceIds, error)) {
+        m_statusLabel->setText(error.toQString());
+        return;
+    }
+    QStringList applied;
+    for (const muse::String& id : choiceIds) {
+        applied << id.toQString();
+    }
+    m_statusLabel->setText(QStringLiteral("Applied %1").arg(applied.join(QStringLiteral(" + "))));
     if (m_refreshView) {
         m_refreshView();
     }

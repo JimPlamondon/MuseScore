@@ -53,6 +53,7 @@ install(DIRECTORY
       02-Choral/09-Barbershop_Quartet_\(Women\)
       02-Choral/10-Liturgical_Unmetrical
       02-Choral/11-Liturgical_Unmetrical_+_Organ
+      02-Choral/12-SATB_\(JiMStaff\)
       DESTINATION ${Mscore_SHARE_NAME}${Mscore_INSTALL_NAME}templates/02-Choral
       )
 

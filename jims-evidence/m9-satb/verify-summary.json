@@ -1,0 +1,715 @@
+{
+  "ok": true,
+  "renders_dir": "jims-evidence/m9-satb/renders",
+  "failures": [],
+  "sha256_checked": 6,
+  "repeat_renders": [
+    {
+      "page": "hymn-2-p1.png",
+      "against": "hymn-p1.png",
+      "identical": true
+    },
+    {
+      "page": "template-2-p1.png",
+      "against": "template-p1.png",
+      "identical": true
+    },
+    {
+      "page": "template-2-p2.png",
+      "against": "template-p2.png",
+      "identical": true
+    }
+  ],
+  "pages_checked": [
+    {
+      "page": "hymn-2-p1.png",
+      "final_barline_x": 948,
+      "staff_frames": [
+        [
+          128,
+          227
+        ],
+        [
+          348,
+          450
+        ],
+        [
+          571,
+          670
+        ],
+        [
+          792,
+          923
+        ]
+      ],
+      "systems": [
+        {
+          "system": 1,
+          "staff_frames": [
+            [
+              128,
+              227
+            ],
+            [
+              348,
+              450
+            ],
+            [
+              571,
+              670
+            ],
+            [
+              792,
+              923
+            ]
+          ],
+          "inter_staff_gaps": [
+            [
+              228,
+              347
+            ],
+            [
+              451,
+              570
+            ],
+            [
+              671,
+              791
+            ]
+          ],
+          "system_edge_columns": [
+            280,
+            281,
+            282,
+            283,
+            288
+          ],
+          "system_edge_spans_gaps": true,
+          "spanning_barline_columns": [],
+          "measure_barline_columns": [
+            490,
+            640,
+            790,
+            940,
+            945,
+            946,
+            947,
+            948
+          ],
+          "gap_ink_in_barline_columns": [
+            0
+          ],
+          "ok": true,
+          "staff_span_y": [
+            128,
+            923
+          ]
+        }
+      ],
+      "failures": [],
+      "ok": true
+    },
+    {
+      "page": "hymn-p1.png",
+      "final_barline_x": 948,
+      "staff_frames": [
+        [
+          128,
+          227
+        ],
+        [
+          348,
+          450
+        ],
+        [
+          571,
+          670
+        ],
+        [
+          792,
+          923
+        ]
+      ],
+      "systems": [
+        {
+          "system": 1,
+          "staff_frames": [
+            [
+              128,
+              227
+            ],
+            [
+              348,
+              450
+            ],
+            [
+              571,
+              670
+            ],
+            [
+              792,
+              923
+            ]
+          ],
+          "inter_staff_gaps": [
+            [
+              228,
+              347
+            ],
+            [
+              451,
+              570
+            ],
+            [
+              671,
+              791
+            ]
+          ],
+          "system_edge_columns": [
+            280,
+            281,
+            282,
+            283,
+            288
+          ],
+          "system_edge_spans_gaps": true,
+          "spanning_barline_columns": [],
+          "measure_barline_columns": [
+            490,
+            640,
+            790,
+            940,
+            945,
+            946,
+            947,
+            948
+          ],
+          "gap_ink_in_barline_columns": [
+            0
+          ],
+          "ok": true,
+          "staff_span_y": [
+            128,
+            923
+          ]
+        }
+      ],
+      "failures": [],
+      "ok": true
+    },
+    {
+      "page": "template-2-p1.png",
+      "final_barline_x": 948,
+      "staff_frames": [
+        [
+          212,
+          309
+        ],
+        [
+          390,
+          487
+        ],
+        [
+          567,
+          665
+        ],
+        [
+          745,
+          842
+        ]
+      ],
+      "systems": [
+        {
+          "system": 1,
+          "staff_frames": [
+            [
+              212,
+              309
+            ],
+            [
+              390,
+              487
+            ],
+            [
+              567,
+              665
+            ],
+            [
+              745,
+              842
+            ]
+          ],
+          "inter_staff_gaps": [
+            [
+              310,
+              389
+            ],
+            [
+              488,
+              566
+            ],
+            [
+              666,
+              744
+            ]
+          ],
+          "system_edge_columns": [
+            280,
+            281,
+            282,
+            283,
+            288
+          ],
+          "system_edge_spans_gaps": true,
+          "spanning_barline_columns": [],
+          "measure_barline_columns": [
+            429,
+            430,
+            533,
+            637,
+            740,
+            741,
+            844,
+            948
+          ],
+          "gap_ink_in_barline_columns": [
+            0
+          ],
+          "ok": true,
+          "staff_span_y": [
+            212,
+            842
+          ]
+        }
+      ],
+      "failures": [],
+      "ok": true
+    },
+    {
+      "page": "template-2-p2.png",
+      "final_barline_x": 948,
+      "staff_frames": [
+        [
+          129,
+          226
+        ],
+        [
+          260,
+          357
+        ],
+        [
+          391,
+          488
+        ],
+        [
+          522,
+          619
+        ],
+        [
+          700,
+          797
+        ],
+        [
+          831,
+          928
+        ],
+        [
+          962,
+          1059
+        ],
+        [
+          1093,
+          1190
+        ]
+      ],
+      "systems": [
+        {
+          "system": 1,
+          "staff_frames": [
+            [
+              129,
+              226
+            ],
+            [
+              260,
+              357
+            ],
+            [
+              391,
+              488
+            ],
+            [
+              522,
+              619
+            ]
+          ],
+          "inter_staff_gaps": [
+            [
+              227,
+              259
+            ],
+            [
+              358,
+              390
+            ],
+            [
+              489,
+              521
+            ]
+          ],
+          "system_edge_columns": [
+            234,
+            235,
+            236,
+            241,
+            242
+          ],
+          "system_edge_spans_gaps": true,
+          "spanning_barline_columns": [],
+          "measure_barline_columns": [
+            359,
+            477,
+            595,
+            712,
+            713,
+            830,
+            948
+          ],
+          "gap_ink_in_barline_columns": [
+            0
+          ],
+          "ok": true,
+          "staff_span_y": [
+            129,
+            619
+          ]
+        },
+        {
+          "system": 2,
+          "staff_frames": [
+            [
+              700,
+              797
+            ],
+            [
+              831,
+              928
+            ],
+            [
+              962,
+              1059
+            ],
+            [
+              1093,
+              1190
+            ]
+          ],
+          "inter_staff_gaps": [
+            [
+              798,
+              830
+            ],
+            [
+              929,
+              961
+            ],
+            [
+              1060,
+              1092
+            ]
+          ],
+          "system_edge_columns": [
+            234,
+            235,
+            236,
+            241,
+            242
+          ],
+          "system_edge_spans_gaps": true,
+          "spanning_barline_columns": [],
+          "measure_barline_columns": [
+            358,
+            474,
+            475,
+            591,
+            707,
+            824,
+            940,
+            945,
+            946,
+            947,
+            948
+          ],
+          "gap_ink_in_barline_columns": [
+            0
+          ],
+          "ok": true,
+          "staff_span_y": [
+            700,
+            1190
+          ]
+        }
+      ],
+      "failures": [],
+      "ok": true
+    },
+    {
+      "page": "template-p1.png",
+      "final_barline_x": 948,
+      "staff_frames": [
+        [
+          212,
+          309
+        ],
+        [
+          390,
+          487
+        ],
+        [
+          567,
+          665
+        ],
+        [
+          745,
+          842
+        ]
+      ],
+      "systems": [
+        {
+          "system": 1,
+          "staff_frames": [
+            [
+              212,
+              309
+            ],
+            [
+              390,
+              487
+            ],
+            [
+              567,
+              665
+            ],
+            [
+              745,
+              842
+            ]
+          ],
+          "inter_staff_gaps": [
+            [
+              310,
+              389
+            ],
+            [
+              488,
+              566
+            ],
+            [
+              666,
+              744
+            ]
+          ],
+          "system_edge_columns": [
+            280,
+            281,
+            282,
+            283,
+            288
+          ],
+          "system_edge_spans_gaps": true,
+          "spanning_barline_columns": [],
+          "measure_barline_columns": [
+            429,
+            430,
+            533,
+            637,
+            740,
+            741,
+            844,
+            948
+          ],
+          "gap_ink_in_barline_columns": [
+            0
+          ],
+          "ok": true,
+          "staff_span_y": [
+            212,
+            842
+          ]
+        }
+      ],
+      "failures": [],
+      "ok": true
+    },
+    {
+      "page": "template-p2.png",
+      "final_barline_x": 948,
+      "staff_frames": [
+        [
+          129,
+          226
+        ],
+        [
+          260,
+          357
+        ],
+        [
+          391,
+          488
+        ],
+        [
+          522,
+          619
+        ],
+        [
+          700,
+          797
+        ],
+        [
+          831,
+          928
+        ],
+        [
+          962,
+          1059
+        ],
+        [
+          1093,
+          1190
+        ]
+      ],
+      "systems": [
+        {
+          "system": 1,
+          "staff_frames": [
+            [
+              129,
+              226
+            ],
+            [
+              260,
+              357
+            ],
+            [
+              391,
+              488
+            ],
+            [
+              522,
+              619
+            ]
+          ],
+          "inter_staff_gaps": [
+            [
+              227,
+              259
+            ],
+            [
+              358,
+              390
+            ],
+            [
+              489,
+              521
+            ]
+          ],
+          "system_edge_columns": [
+            234,
+            235,
+            236,
+            241,
+            242
+          ],
+          "system_edge_spans_gaps": true,
+          "spanning_barline_columns": [],
+          "measure_barline_columns": [
+            359,
+            477,
+            595,
+            712,
+            713,
+            830,
+            948
+          ],
+          "gap_ink_in_barline_columns": [
+            0
+          ],
+          "ok": true,
+          "staff_span_y": [
+            129,
+            619
+          ]
+        },
+        {
+          "system": 2,
+          "staff_frames": [
+            [
+              700,
+              797
+            ],
+            [
+              831,
+              928
+            ],
+            [
+              962,
+              1059
+            ],
+            [
+              1093,
+              1190
+            ]
+          ],
+          "inter_staff_gaps": [
+            [
+              798,
+              830
+            ],
+            [
+              929,
+              961
+            ],
+            [
+              1060,
+              1092
+            ]
+          ],
+          "system_edge_columns": [
+            234,
+            235,
+            236,
+            241,
+            242
+          ],
+          "system_edge_spans_gaps": true,
+          "spanning_barline_columns": [],
+          "measure_barline_columns": [
+            358,
+            474,
+            475,
+            591,
+            707,
+            824,
+            940,
+            945,
+            946,
+            947,
+            948
+          ],
+          "gap_ink_in_barline_columns": [
+            0
+          ],
+          "ok": true,
+          "staff_span_y": [
+            700,
+            1190
+          ]
+        }
+      ],
+      "failures": [],
+      "ok": true
+    }
+  ],
+  "systems_checked": 8,
+  "broken_barlines_confirmed": true
+}

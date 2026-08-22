@@ -49,8 +49,8 @@ class JimsTuningPanel : public QWidget, public muse::async::Asyncable
     Q_OBJECT
 
 public:
-    JimsTuningPanel(mu::engraving::Score* score,
-                    std::function<void()> refreshView, muse::async::Notification scoreChanged, QWidget* parent = nullptr);
+    JimsTuningPanel(mu::engraving::Score* score, std::function<void()> refreshView, muse::async::Notification scoreChanged,
+                    QWidget* parent = nullptr);
     ~JimsTuningPanel() override;
 
 private:
@@ -66,7 +66,13 @@ private:
     void buildChangeSection(QWidget* parent, QVBoxLayout* outer);
     void syncChangeSection();
     bool changeTarget(mu::engraving::Measure*& measure, mu::engraving::staff_idx_t& staffIdx) const;
+    /// One staff, one Kernel choice. Reference binding only (owner decision 9):
+    /// a reference names what THIS staff's Re0 is, so it stays staff-wide.
     void applyChoice(const muse::String& choiceId);
+    /// Tonic, key and scale: the whole gesture, applied to every JiMS part of
+    /// the score at the selected measure as one undo step (owner decision 2a).
+    /// A scale entry is several Kernel ids, which is why this takes a list.
+    void applyChoices(const std::vector<muse::String>& choiceIds);
     void onRemoveChange();
     bool event(QEvent* e) override;
 

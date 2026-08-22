@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<museScore version="4.70">
+  <programVersion>4.7.4</programVersion>
+  <programRevision></programRevision>
+  <Score>
+    <Division>480</Division>
+    <showInvisible>1</showInvisible>
+    <showUnprintable>1</showUnprintable>
+    <showFrames>1</showFrames>
+    <showMargins>0</showMargins>
+    <open>1</open>
+    <metaTag name="composer">JiMStaff M9 fixture</metaTag>
+    <metaTag name="workTitle">M9 SATB with one part blocked by a stock staff type change at bar 2</metaTag>
+    <Part id="1">
+      <Staff id="1">
+        <StaffType group="pitched">
+          <name>jims12tet</name>
+          <lines>13</lines>
+          <clef>0</clef>
+          <jims>1</jims>
+          <jimsStateJson>{&quot;scale&quot;:[&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;],&quot;collection_rotation&quot;:0,&quot;mode_rotation&quot;:0,&quot;generator_cents&quot;:700.0,&quot;period_cents&quot;:1200.0,&quot;embedding&quot;:{&quot;large_steps&quot;:5,&quot;small_steps&quot;:2},&quot;extent&quot;:{&quot;lower_do_register&quot;:4,&quot;period_count&quot;:1},&quot;reference&quot;:&quot;none&quot;,&quot;tonic_ambit&quot;:&quot;tonic-bounded&quot;}</jimsStateJson>
+          <jimsJiLines>1</jimsJiLines>
+          <keysig>0</keysig>
+          <ledgerlines>0</ledgerlines>
+          </StaffType>
+        <bracket type="0" span="4" col="0"/>
+        </Staff>
+      <trackName>Soprano</trackName>
+      <Instrument id="soprano">
+        <longName>Soprano</longName>
+        <trackName>Soprano</trackName>
+        <instrumentId>voice.soprano</instrumentId>
+        <Channel>
+          <program value="52"/>
+          </Channel>
+        </Instrument>
+      </Part>
+    <Part id="2">
+      <Staff id="2">
+        <StaffType group="pitched">
+          <name>jims12tet</name>
+          <lines>13</lines>
+          <clef>0</clef>
+          <jims>1</jims>
+          <jimsStateJson>{&quot;scale&quot;:[&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;],&quot;collection_rotation&quot;:0,&quot;mode_rotation&quot;:0,&quot;generator_cents&quot;:700.0,&quot;period_cents&quot;:1200.0,&quot;embedding&quot;:{&quot;large_steps&quot;:5,&quot;small_steps&quot;:2},&quot;extent&quot;:{&quot;lower_do_register&quot;:4,&quot;period_count&quot;:1},&quot;reference&quot;:&quot;none&quot;,&quot;tonic_ambit&quot;:&quot;tonic-bounded&quot;}</jimsStateJson>
+          <jimsJiLines>1</jimsJiLines>
+          <keysig>0</keysig>
+          <ledgerlines>0</ledgerlines>
+          </StaffType>
+        </Staff>
+      <trackName>Alto</trackName>
+      <Instrument id="alto">
+        <longName>Alto</longName>
+        <trackName>Alto</trackName>
+        <instrumentId>voice.alto</instrumentId>
+        <Channel>
+          <program value="52"/>
+          </Channel>
+        </Instrument>
+      </Part>
+    <Part id="3">
+      <Staff id="3">
+        <StaffType group="pitched">
+          <name>jims12tet</name>
+          <lines>13</lines>
+          <clef>0</clef>
+          <jims>1</jims>
+          <jimsStateJson>{&quot;scale&quot;:[&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;],&quot;collection_rotation&quot;:0,&quot;mode_rotation&quot;:0,&quot;generator_cents&quot;:700.0,&quot;period_cents&quot;:1200.0,&quot;embedding&quot;:{&quot;large_steps&quot;:5,&quot;small_steps&quot;:2},&quot;extent&quot;:{&quot;lower_do_register&quot;:3,&quot;period_count&quot;:1},&quot;reference&quot;:&quot;none&quot;,&quot;tonic_ambit&quot;:&quot;tonic-bounded&quot;}</jimsStateJson>
+          <jimsJiLines>1</jimsJiLines>
+          <keysig>0</keysig>
+          <ledgerlines>0</ledgerlines>
+          </StaffType>
+        </Staff>
+      <trackName>Tenor</trackName>
+      <Instrument id="tenor">
+        <longName>Tenor</longName>
+        <trackName>Tenor</trackName>
+        <instrumentId>voice.tenor</instrumentId>
+        <Channel>
+          <program value="52"/>
+          </Channel>
+        </Instrument>
+      </Part>
+    <Part id="4">
+      <Staff id="4">
+        <StaffType group="pitched">
+          <name>jims12tet</name>
+          <lines>13</lines>
+          <clef>0</clef>
+          <jims>1</jims>
+          <jimsStateJson>{&quot;scale&quot;:[&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;],&quot;collection_rotation&quot;:0,&quot;mode_rotation&quot;:0,&quot;generator_cents&quot;:700.0,&quot;period_cents&quot;:1200.0,&quot;embedding&quot;:{&quot;large_steps&quot;:5,&quot;small_steps&quot;:2},&quot;extent&quot;:{&quot;lower_do_register&quot;:3,&quot;period_count&quot;:1},&quot;reference&quot;:&quot;none&quot;,&quot;tonic_ambit&quot;:&quot;tonic-bounded&quot;}</jimsStateJson>
+          <jimsJiLines>1</jimsJiLines>
+          <keysig>0</keysig>
+          <ledgerlines>0</ledgerlines>
+          </StaffType>
+        </Staff>
+      <trackName>Bass</trackName>
+      <Instrument id="bass">
+        <longName>Bass</longName>
+        <trackName>Bass</trackName>
+        <instrumentId>voice.bass</instrumentId>
+        <Channel>
+          <program value="52"/>
+          </Channel>
+        </Instrument>
+      </Part>
+    <Staff id="1">
+      <Measure>
+        <voice>
+          <TimeSig>
+            <sigN>4</sigN>
+            <sigD>4</sigD>
+            </TimeSig>
+          <Rest>
+            <durationType>measure</durationType>
+            <duration>4/4</duration>
+            </Rest>
+          </voice>
+        </Measure>
+      <Measure>
+        <voice>
+          <Rest>
+            <durationType>measure</durationType>
+            <duration>4/4</duration>
+            </Rest>
+          </voice>
+        </Measure>
+      <Measure>
+        <voice>
+          <Rest>
+            <durationType>measure</durationType>
+            <duration>4/4</duration>
+            </Rest>
+          </voice>
+        </Measure>
+      <Measure>
+        <voice>
+          <Rest>
+            <durationType>measure</durationType>
+            <duration>4/4</duration>
+            </Rest>
+          </voice>
+        </Measure>
+      </Staff>
+    <Staff id="2">
+      <Measure>
+        <voice>
+          <TimeSig>
+            <sigN>4</sigN>
+            <sigD>4</sigD>
+            </TimeSig>
+          <Rest>
+            <durationType>measure</durationType>
+            <duration>4/4</duration>
+            </Rest>
+          </voice>
+        </Measure>
+      <Measure>
+        <voice>
+          <Rest>
+            <durationType>measure</durationType>
+            <duration>4/4</duration>
+            </Rest>
+          </voice>
+        </Measure>
+      <Measure>
+        <voice>
+          <Rest>
+            <durationType>measure</durationType>
+            <duration>4/4</duration>
+            </Rest>
+          </voice>
+        </Measure>
+      <Measure>
+        <voice>
+          <Rest>
+            <durationType>measure</durationType>
+            <duration>4/4</duration>
+            </Rest>
+          </voice>
+        </Measure>
+      </Staff>
+    <Staff id="3">
+      <Measure>
+        <voice>
+          <TimeSig>
+            <sigN>4</sigN>
+            <sigD>4</sigD>
+            </TimeSig>
+          <Rest>
+            <durationType>measure</durationType>
+            <duration>4/4</duration>
+            </Rest>
+          </voice>
+        </Measure>
+      <Measure>
+        <StaffTypeChange>
+          <StaffType group="pitched">
+            <name>stdNormal</name>
+            </StaffType>
+          </StaffTypeChange>
+        <voice>
+          <Rest>
+            <durationType>measure</durationType>
+            <duration>4/4</duration>
+            </Rest>
+          </voice>
+        </Measure>
+      <Measure>
+        <voice>
+          <Rest>
+            <durationType>measure</durationType>
+            <duration>4/4</duration>
+            </Rest>
+          </voice>
+        </Measure>
+      <Measure>
+        <voice>
+          <Rest>
+            <durationType>measure</durationType>
+            <duration>4/4</duration>
+            </Rest>
+          </voice>
+        </Measure>
+      </Staff>
+    <Staff id="4">
+      <Measure>
+        <voice>
+          <TimeSig>
+            <sigN>4</sigN>
+            <sigD>4</sigD>
+            </TimeSig>
+          <Rest>
+            <durationType>measure</durationType>
+            <duration>4/4</duration>
+            </Rest>
+          </voice>
+        </Measure>
+      <Measure>
+        <voice>
+          <Rest>
+            <durationType>measure</durationType>
+            <duration>4/4</duration>
+            </Rest>
+          </voice>
+        </Measure>
+      <Measure>
+        <voice>
+          <Rest>
+            <durationType>measure</durationType>
+            <duration>4/4</duration>
+            </Rest>
+          </voice>
+        </Measure>
+      <Measure>
+        <voice>
+          <Rest>
+            <durationType>measure</durationType>
+            <duration>4/4</duration>
+            </Rest>
+          </voice>
+        </Measure>
+      </Staff>
+    </Score>
+  </museScore>

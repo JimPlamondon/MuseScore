@@ -212,6 +212,108 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Str
     return true;
 }
 
+bool applyChangeToAllJimsParts(Score* score, Measure* measure, const std::vector<String>& choiceIds, String& error)
+{
+    // Owner decision 2a (2026-08-22). Same shape as the `bind:` branch above —
+    // prepare every edit first, then commit them all in ONE transaction — but
+    // widened from staff-wide to score-wide, and taking a LIST of choice ids
+    // so one user gesture that is several Kernel choices is still one step.
+    if (!score || !measure) {
+        error = u"no score or measure";
+        return false;
+    }
+    if (choiceIds.empty()) {
+        return true;
+    }
+    for (const String& choiceId : choiceIds) {
+        // A reference names what ONE staff's Re0 is, so it stays staff-wide
+        // (owner decision 9). Routing it here would widen it by inference.
+        if (choiceId.startsWith(u"bind:")) {
+            error = u"a reference binding is staff-wide; apply it to one staff";
+            return false;
+        }
+    }
+
+    struct Prepared {
+        Staff* staff = nullptr;
+        staff_idx_t staffIdx = 0;
+        const StaffType* effective = nullptr;
+        String next;
+        bool editInPlace = false;         // origin measure, or an existing JiMS carrier
+    };
+    std::vector<Prepared> prepared;
+
+    // PREPARE. Every JiMS part is a target, whether or not the change turns
+    // out to be a no-op for it: a part that cannot accept the change must
+    // refuse the whole operation rather than be skipped, because skipping it
+    // is precisely how the parts' timelines would drift apart.
+    for (staff_idx_t staffIdx = 0; staffIdx < score->nstaves(); ++staffIdx) {
+        Staff* staff = score->staff(staffIdx);
+        const StaffType* base = staff ? staff->staffType(Fraction(0, 1)) : nullptr;
+        if (!base || !base->isJiMS()) {
+            continue;                       // not a JiMS part: untouched
+        }
+        String reason;
+        if (!canInsertChange(score, staffIdx, measure, reason)) {
+            const StaffType* here = staff->staffType(measure->tick());
+            if (!here || !here->isJiMS()) {
+                reason = u"this measure already carries a non-JiMS staff type change on this staff";
+            }
+            error = String(u"staff %1: %2").arg(int(staffIdx) + 1).arg(reason);
+            return false;
+        }
+        String current;
+        const StaffType* effective = nullptr;
+        if (!effectiveState(score, staffIdx, measure, current, &effective)) {
+            error = String(u"staff %1: no JiMS state in force at this measure").arg(int(staffIdx) + 1);
+            return false;
+        }
+        // The Kernel applies the issued ids, in order, to THIS target's own
+        // effective state. The complete state it returns is what gets stored,
+        // so every field the change does not concern — this voice's frame
+        // extent above all — survives, and no part's state is copied onto
+        // another. The fork compares nothing and derives nothing.
+        String next = current;
+        for (const String& choiceId : choiceIds) {
+            String out;
+            String err;
+            if (!applyStateChange(next, choiceId, out, err)) {
+                error = String(u"staff %1: %2").arg(int(staffIdx) + 1).arg(err);
+                return false;
+            }
+            next = out;
+        }
+        if (next == current) {
+            continue;                       // no-op for this target: nothing to edit
+        }
+        prepared.push_back({ staff, staffIdx, effective, next,
+                             measure->tick().isZero() || changeCarrier(measure, staffIdx) != nullptr });
+    }
+
+    if (prepared.empty()) {
+        return true;                        // nothing changed anywhere
+    }
+
+    // COMMIT. One startCmd/endCmd pair for every target and every choice id,
+    // so the whole gesture is one undo step and one redo step.
+    score->startCmd(TranslatableString("undoableAction", "Insert JiMS change"));
+    for (const Prepared& p : prepared) {
+        if (p.editInPlace) {
+            score->undo(new JimsChangeStateAt(p.staff, measure->tick(), p.next));
+        } else {
+            StaffTypeChange* stc = Factory::createStaffTypeChange(measure);
+            stc->setParent(measure);
+            stc->setTrack(p.staffIdx * VOICES);
+            StaffType* st = new StaffType(*p.effective);
+            st->setJimsStateJson(p.next);
+            stc->setStaffType(st, true);
+            score->undoAddElement(stc);
+        }
+    }
+    score->endCmd();
+    return true;
+}
+
 bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, String& error)
 {
     const StaffTypeChange* stc = changeCarrier(measure, staffIdx);

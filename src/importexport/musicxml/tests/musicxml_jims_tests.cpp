@@ -41,6 +41,7 @@
 #include "engraving/dom/system.h"
 #include "engraving/dom/stafftypechange.h"
 #include "engraving/jims/jimschange.h"
+#include "engraving/jims/jimschangecontroller.h"
 #include "engraving/style/style.h"
 
 #include "importexport/musicxml/internal/import/importmusicxml.h"
@@ -907,5 +908,137 @@ TEST_F(MusicXml_JiMS_Tests, jimsPartsWithDifferentTimelinesAreRefusedOnImportAnd
     buf.open(muse::io::IODevice::WriteOnly);
     EXPECT_FALSE(saveXml(score, &buf));
     EXPECT_TRUE(buf.data().empty());
+    delete score;
+}
+
+// ---------------------------------------------------------------------------
+// Milestone 9 — the SATB (JiMStaff) template through urn:jims:musicxml:3
+// ---------------------------------------------------------------------------
+
+namespace {
+String satbTemplatePath()
+{
+    // This module's data root is src/importexport/musicxml/tests, so the fork
+    // root is four levels up (the engraving suite is three).
+    return ScoreRW::rootPath() + u"/../../../../share/templates/02-Choral/12-SATB_(JiMStaff)/12-SATB_(JiMStaff).mscx";
+}
+}
+
+// The four voices carry one shared musical timeline and four DIFFERENT frame
+// extents (4/4/3/3). Under the landed M8.9 comparison that document is
+// accepted, and every voice's own frame height survives the round trip.
+TEST_F(MusicXml_JiMS_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExtent)
+{
+    MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
+    ASSERT_TRUE(score) << "the SATB (JiMStaff) template is not shipped";
+    score->doLayout();
+    ASSERT_EQ(score->nstaves(), 4u);
+
+    const JimsSnapshot before = snapshotOf(score);
+    ASSERT_EQ(before.baseStates.size(), 4u);
+    for (const String& s : before.baseStates) {
+        EXPECT_FALSE(s.empty()) << "every SATB staff must be a JiMStaff";
+    }
+
+    const String out = exportToScratch(score, "export-m9-satb-template.musicxml");
+    const String xml = readAll(out);
+    EXPECT_EQ(xml.count(u"lower-do-register=\"4\""), 2)
+        << "the Soprano and Alto frame heights must both be exported";
+    EXPECT_EQ(xml.count(u"lower-do-register=\"3\""), 2)
+        << "the Tenor and Bass frame heights must both be exported";
+
+    auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
+        return importMusicXml(s, path.toQString(), false);
+    };
+    MasterScore* again = ScoreRW::readScore(out, true, importXml);
+    ASSERT_TRUE(again) << "a four-part document differing only in jims:extent must import";
+    again->doLayout();
+    ASSERT_EQ(again->nstaves(), 4u);
+    const JimsSnapshot after = snapshotOf(again);
+    EXPECT_EQ(after.baseStates, before.baseStates);
+    EXPECT_EQ(after.identities, before.identities);
+
+    // Re-export once more: no drift in anything JiMS owns. The one byte that
+    // does move is stock MuseScore's part-group round trip — a re-imported
+    // score re-exports <group-barline>yes even though the source omitted it —
+    // and the stock 02-Choral/01-SATB template drifts identically, so it is
+    // not a JiMS behaviour and not this milestone's to change. Recorded as an
+    // observed follow-up in the M9 final report.
+    const String out2 = exportToScratch(again, "export-m9-satb-template-2.musicxml");
+    const String xml2 = readAll(out2);
+    auto jimsLinesOf = [](const String& doc) {
+        StringList out;
+        for (const String& line : doc.split(u'\n')) {
+            if (line.contains(u"jims:")) {
+                out.push_back(line.trimmed());
+            }
+        }
+        return out;
+    };
+    EXPECT_EQ(jimsLinesOf(xml2), jimsLinesOf(xml)) << "the JiMS content must not drift across a second round trip";
+    EXPECT_EQ(xml2.count(u"lower-do-register=\"4\""), 2);
+    EXPECT_EQ(xml2.count(u"lower-do-register=\"3\""), 2);
+
+    delete again;
+    delete score;
+}
+
+// A state change applied through the decision-2a path leaves every JiMS part
+// on the same musical chronology, which is exactly what the interchange rule
+// requires — so the changed score still exports.
+TEST_F(MusicXml_JiMS_Tests, m9SATBScoreWideChangeKeepsOneSharedTimelineOnExport)
+{
+    MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
+    ASSERT_TRUE(score) << "the SATB (JiMStaff) template is not shipped";
+    score->doLayout();
+    ASSERT_EQ(score->nstaves(), 4u);
+
+    Measure* m2 = measureNo(score, 2);
+    ASSERT_TRUE(m2);
+    String error;
+    ASSERT_TRUE(jims::applyChangeToAllJimsParts(score, m2, { u"mode:1" }, error)) << error.toStdString();
+    score->doLayout();
+
+    const String out = exportToScratch(score, "export-m9-satb-mode-change.musicxml");
+    const String xml = readAll(out);
+    EXPECT_FALSE(xml.empty()) << "a score-wide change must leave the document exportable";
+    EXPECT_EQ(xml.count(u"<jims:mode-rotation>5</jims:mode-rotation>"), 4)
+        << "every one of the four parts must carry the change";
+    // The per-staff frame heights are untouched by a mode change.
+    EXPECT_EQ(xml.count(u"lower-do-register=\"4\""), 4);
+    EXPECT_EQ(xml.count(u"lower-do-register=\"3\""), 4);
+
+    delete score;
+}
+
+// The M8.9 exclusion is exactly jims:extent (plus the tonic ambit the Kernel
+// classifies with it) — a musical-field divergence is still refused, in both
+// directions.
+TEST_F(MusicXml_JiMS_Tests, m9SATBExtentOnlyDivergenceIsAcceptedAndMusicalDivergenceIsStillRefused)
+{
+    MasterScore* accepted = readJims("jims-multi-part-perstaff-differs.musicxml");
+    ASSERT_TRUE(accepted) << "parts differing only in per-staff fields must import";
+    delete accepted;
+
+    EXPECT_FALSE(readJims("jims-multi-part-divergent-invalid.musicxml"))
+        << "a musical-field divergence must still be refused on import";
+
+    MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
+    ASSERT_TRUE(score) << "the SATB (JiMStaff) template is not shipped";
+    score->doLayout();
+    ASSERT_EQ(score->nstaves(), 4u);
+    // Diverge one voice in a MUSICAL field: export must fail closed.
+    StaffType* tenor = score->staff(2)->staffType(Fraction(0, 1));
+    String json = tenor->jimsStateJson();
+    ASSERT_TRUE(json.contains(u"\"generator_cents\":700.0"));
+    json.replace(u"\"generator_cents\":700.0", u"\"generator_cents\":696.578");
+    tenor->setJimsStateJson(json);
+    score->setLayoutAll();
+    score->doLayout();
+    muse::io::Buffer buf;
+    buf.open(muse::io::IODevice::WriteOnly);
+    EXPECT_FALSE(saveXml(score, &buf)) << "a tuning divergence across parts must be refused on export";
+    EXPECT_TRUE(buf.data().empty());
+
     delete score;
 }
