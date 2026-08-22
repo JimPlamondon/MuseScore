@@ -250,6 +250,12 @@ bool musicxmlStaffStateV3Xml(const String& stateJson, int staffNumber, String& o
     return stringResult(callBridge(envelope), out, error);
 }
 
+bool musicxmlSharedStateV3Xml(const String& stateJson, String& out, String* error)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"musicxml_shared_state_v3_xml\",\"state\":%1}").arg(stateJson);
+    return stringResult(callBridge(envelope), out, error);
+}
+
 bool musicxmlChangeEventV3Xml(const String& oldStateJson, const String& newStateJson, String& out, String* error)
 {
     String envelope = String(u"{\"abi\":2,\"op\":\"musicxml_change_event_v3_xml\",\"old_state\":%1,\"new_state\":%2}")

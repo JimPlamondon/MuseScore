@@ -137,6 +137,15 @@ bool vst3ProfileTransaction(const muse::String& stateJson, uint32_t slot, uint32
 /// attribute when staffNumber > 0) and jims:change element (empty string
 /// when nothing changed). The fork inserts them verbatim, never edits them.
 bool musicxmlStaffStateV3Xml(const muse::String& stateJson, int staffNumber, muse::String& out, muse::String* error = nullptr);
+
+/// The Kernel's cross-part comparable projection of one state (owner ruling
+/// 2026-08-22): the staff-state element with the per-staff fields omitted.
+/// Every JiMS part of a document must agree on this; the fields it drops
+/// (frame extent, tonic-ambit) describe one staff and may legitimately differ
+/// between parts, which is what a four-voice SATB score needs. The Kernel owns
+/// which fields those are — the fork compares what it is handed and never
+/// decides field-by-field itself. Comparison form only: never serialized.
+bool musicxmlSharedStateV3Xml(const muse::String& stateJson, muse::String& out, muse::String* error = nullptr);
 bool musicxmlChangeEventV3Xml(const muse::String& oldStateJson, const muse::String& newStateJson, muse::String& out,
                               muse::String* error = nullptr);
 

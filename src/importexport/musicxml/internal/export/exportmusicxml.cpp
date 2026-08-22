@@ -432,6 +432,7 @@ private:
     // present. The fork composes no JiMS element text.
     struct JimsFragment {
         String stateXml;
+        String sharedStateXml;   // Kernel's cross-part comparable projection (owner ruling 2026-08-22)
         String changeXml;   // empty when the section carries no classified change
     };
     struct JimsExportPlan {
@@ -8964,7 +8965,8 @@ bool ExportMusicXml::buildJimsExportPlan()
                 m_jimsPlan.present = true;
                 JimsFragment f;
                 String err;
-                if (!jims::musicxmlStaffStateV3Xml(base->jimsStateJson(), staffNumber, f.stateXml, &err)) {
+                if (!jims::musicxmlStaffStateV3Xml(base->jimsStateJson(), staffNumber, f.stateXml, &err)
+                    || !jims::musicxmlSharedStateV3Xml(base->jimsStateJson(), f.sharedStateXml, &err)) {
                     m_jimsPlan.error
                         = String(u"JiMS export: Kernel refused the base state of staff %1: %2").arg(int(staffIdx) + 1).arg(err);
                     return false;
@@ -8986,7 +8988,8 @@ bool ExportMusicXml::buildJimsExportPlan()
                 const String state = staff->staffType(m->tick())->jimsStateJson();
                 JimsFragment f;
                 String err;
-                if (!jims::musicxmlStaffStateV3Xml(state, staffNumber, f.stateXml, &err)) {
+                if (!jims::musicxmlStaffStateV3Xml(state, staffNumber, f.stateXml, &err)
+                    || !jims::musicxmlSharedStateV3Xml(state, f.sharedStateXml, &err)) {
                     m_jimsPlan.error = String(u"JiMS export: Kernel refused the state at measure %1, staff %2: %3").arg(m->no() + 1).arg(
                         int(staffIdx) + 1).arg(err);
                     return false;
@@ -9008,13 +9011,20 @@ bool ExportMusicXml::buildJimsExportPlan()
     // mixed JiMS + stock parts are allowed, but every JiMS part must carry the
     // same state timeline; a document that would export differing timelines
     // is refused (fail closed, like every other JiMS export refusal).
+    //
+    // Narrowed by owner ruling 2026-08-22: parts are compared on the Kernel's
+    // shared projection, not the serialized element. The projection omits the
+    // per-staff fields (frame extent, tonic-ambit) — a four-voice SATB score
+    // legitimately differs in both, since each voice has its own frame and its
+    // own melody, while every piece-level musical fact must still agree. The
+    // Kernel owns which fields those are; the fork compares what it is handed.
     {
-        std::vector<std::pair<int, String> > referenceTimeline;   // (tick, stateXml)
+        std::vector<std::pair<int, String> > referenceTimeline;   // (tick, sharedStateXml)
         int referencePart = -1;
-        std::map<int, std::vector<std::pair<int, String> > > timelines;   // partIndex -> (tick, stateXml)*
+        std::map<int, std::vector<std::pair<int, String> > > timelines;   // partIndex -> (tick, sharedStateXml)*
         for (const auto& entry : m_jimsPlan.byPartTick) {
             for (const JimsFragment& f : entry.second) {
-                timelines[entry.first.first].push_back({ entry.first.second, f.stateXml });
+                timelines[entry.first.first].push_back({ entry.first.second, f.sharedStateXml });
             }
         }
         for (const auto& tl : timelines) {

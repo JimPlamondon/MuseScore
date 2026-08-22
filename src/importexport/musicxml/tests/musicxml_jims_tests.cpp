@@ -795,6 +795,66 @@ TEST_F(MusicXml_JiMS_Tests, severalJimsPartsSharingOneTimelineImportAndRoundTrip
     delete again;
 }
 
+// Owner ruling 2026-08-22 (M8.9): parts of one document are compared on the
+// Kernel's shared projection, which omits the per-staff fields. Four SATB
+// voices legitimately differ in frame extent and in tonic-ambit — each voice
+// has its own frame and its own melody — so a document differing ONLY in those
+// must import, round-trip, and preserve each part's own values. Before this
+// change the whole element was compared and such a document was refused.
+TEST_F(MusicXml_JiMS_Tests, partsDifferingOnlyInPerStaffFieldsImportAndRoundTrip)
+{
+    MasterScore* score = readJims("jims-multi-part-perstaff-differs.musicxml");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    ASSERT_EQ(score->nstaves(), 2u);
+    const JimsSnapshot before = snapshotOf(score);
+    ASSERT_EQ(before.baseStates.size(), 2u);
+    // The two parts really do differ — this is the condition that used to be
+    // refused outright, so importing at all is the behaviour under test.
+    EXPECT_NE(before.baseStates[0], before.baseStates[1]);
+
+    // The Kernel's shared projection is blind to BOTH per-staff fields. Asserted
+    // directly, because tonic-ambit is re-derived from each staff's melody on
+    // every layout pass and so cannot be pinned through a fixture.
+    const String centered
+        =
+            uR"({"scale":["M2","m2","M2","M2","M2","m2","M2"],"collection_rotation":0,"mode_rotation":0,"generator_cents":700.0,"period_cents":1200.0,"embedding":{"large_steps":5,"small_steps":2},"extent":{"lower_do_register":4,"period_count":1},"tonic_ambit":"tonic-centered","reference":"none"})";
+    const String bounded
+        =
+            uR"({"scale":["M2","m2","M2","M2","M2","m2","M2"],"collection_rotation":0,"mode_rotation":0,"generator_cents":700.0,"period_cents":1200.0,"embedding":{"large_steps":5,"small_steps":2},"extent":{"lower_do_register":3,"period_count":1},"tonic_ambit":"tonic-bounded","reference":"none"})";
+    String sharedCentered, sharedBounded, err;
+    ASSERT_TRUE(jims::musicxmlSharedStateV3Xml(centered, sharedCentered, &err)) << err.toStdString();
+    ASSERT_TRUE(jims::musicxmlSharedStateV3Xml(bounded, sharedBounded, &err)) << err.toStdString();
+    EXPECT_EQ(sharedCentered, sharedBounded) << "extent and tonic-ambit must not make parts disagree";
+    EXPECT_FALSE(sharedCentered.contains(u"jims:extent"));
+    EXPECT_FALSE(sharedCentered.contains(u"jims:tonic-ambit"));
+    // ...while a real musical difference still shows up as one.
+    String sharedOtherMode;
+    const String otherMode = String(centered).replace(u"\"mode_rotation\":0", u"\"mode_rotation\":5");
+    ASSERT_TRUE(jims::musicxmlSharedStateV3Xml(otherMode, sharedOtherMode, &err)) << err.toStdString();
+    EXPECT_NE(sharedOtherMode, sharedCentered);
+
+    const String out = exportToScratch(score, "export-multi-part-perstaff-differs.musicxml");
+    const String xml = readAll(out);
+    // Both per-staff values survive export verbatim: the data stays, only the
+    // comparison narrowed.
+    EXPECT_TRUE(xml.contains(u"lower-do-register=\"4\""));
+    EXPECT_TRUE(xml.contains(u"lower-do-register=\"3\""));
+    EXPECT_TRUE(xml.contains(u"<jims:tonic-ambit>"));   // the field is still written per staff
+
+    auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
+        return importMusicXml(s, path.toQString(), false);
+    };
+    MasterScore* again = ScoreRW::readScore(out, true, importXml);
+    ASSERT_TRUE(again);
+    again->doLayout();
+    const JimsSnapshot after = snapshotOf(again);
+    EXPECT_EQ(after.baseStates, before.baseStates);
+    EXPECT_EQ(after.identities, before.identities);
+    delete score;
+    delete again;
+}
+
 TEST_F(MusicXml_JiMS_Tests, aJimsPartBesideAStockPartImportsAndRoundTrips)
 {
     MasterScore* score = readJims("jims-multi-part-mixed.musicxml");

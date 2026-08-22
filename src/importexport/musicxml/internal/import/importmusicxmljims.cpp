@@ -531,6 +531,23 @@ bool JimsImportContext::parseTuningTrajectory(XmlStreamReader& e, const std::fun
 bool JimsImportContext::checkSharedStatesAcrossParts(MusicXmlLogger* logger) const
 {
     // Timeline signature per part: the ordered (tick, staff number, state) list.
+    //
+    // Narrowed by owner ruling 2026-08-22 (mirrors the export side): parts are
+    // compared on the Kernel's shared projection of each state, not the raw
+    // state JSON. The projection omits the per-staff fields (frame extent,
+    // tonic-ambit), which a four-voice SATB score legitimately differs in —
+    // each voice has its own frame and its own melody — while every
+    // piece-level musical fact must still agree. The Kernel owns which fields
+    // those are; the fork compares what it is handed.
+    auto sharedForm = [&logger](const BufferedState& s, String& out) {
+        String err;
+        if (!jims::musicxmlSharedStateV3Xml(s.json, out, &err)) {
+            jimsFatal(logger, String(u"JiMS import: the Kernel could not derive the shared state form: %1").arg(err));
+            return false;
+        }
+        return true;
+    };
+
     const std::vector<BufferedState>* reference = nullptr;
     String referenceId;
     for (const auto& entry : m_states) {
@@ -545,7 +562,15 @@ bool JimsImportContext::checkSharedStatesAcrossParts(MusicXmlLogger* logger) con
         for (size_t i = 0; same && i < states.size(); ++i) {
             const BufferedState& a = (*reference)[i];
             const BufferedState& b = states[i];
-            same = a.tick == b.tick && a.staffNumber == b.staffNumber && a.json == b.json;
+            if (a.tick != b.tick || a.staffNumber != b.staffNumber) {
+                same = false;
+                break;
+            }
+            String sharedA, sharedB;
+            if (!sharedForm(a, sharedA) || !sharedForm(b, sharedB)) {
+                return false;
+            }
+            same = sharedA == sharedB;
         }
         if (!same) {
             jimsFatal(logger, String(u"JiMS parts %1 and %2 carry different jims:staff-state timelines; "
