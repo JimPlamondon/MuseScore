@@ -117,8 +117,11 @@ bool QueuePool::ThreadData::tryLock()
 
 void QueuePool::ThreadData::lock()
 {
-    bool expected = false;
-    while (!locked.compare_exchange_weak(expected, true)) {
+    for (;;) {
+        bool expected = false;
+        if (locked.compare_exchange_weak(expected, true)) {
+            return;
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }

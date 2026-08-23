@@ -24,6 +24,7 @@ SOFTWARE.
 #include <mutex>
 #include <thread>
 #include <chrono>
+#include <future>
 
 #include <gtest/gtest.h>
 
@@ -44,23 +45,26 @@ TEST(QueuePool_Tests, Force)
     std::vector<std::thread> threads;
     std::atomic<bool> running = true;
     for (size_t i = 0; i < 50; ++i) {
-        auto t = std::thread([qp, &store, i, &running]() {
+        auto t = std::thread([qp, &store, &running]() {
             {
                 std::scoped_lock<std::mutex> lock(store.mutex);
 
-                store.threadIds.push_back(std::this_thread::get_id());
-                if (store.threadIds.size() == 1) {
+                const std::thread::id currentThreadId = std::this_thread::get_id();
+                if (store.threadIds.empty()) {
+                    store.threadIds.push_back(currentThreadId);
                     return;
                 }
+                const std::thread::id previousThreadId = store.threadIds.back();
+                store.threadIds.push_back(currentThreadId);
                 Queue* q = new Queue();
                 store.queues.push_back(q);
 
-                qp->regPort(store.threadIds[i-1], q->port1());
-                qp->regPort(store.threadIds[i], q->port2());
+                qp->regPort(previousThreadId, q->port1());
+                qp->regPort(currentThreadId, q->port2());
             }
 
             while (running.load()) {
-                qp->processMessages(store.threadIds[i]);
+                qp->processMessages(std::this_thread::get_id());
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
         });
@@ -74,4 +78,44 @@ TEST(QueuePool_Tests, Force)
     for (auto& t : threads) {
         t.join();
     }
+}
+
+TEST(QueuePool_Tests, RegistrationWaitsForActiveProcessing)
+{
+    QueuePool* qp = QueuePool::instance();
+    Queue activeQueue;
+    Queue queueToRegister;
+    const std::thread::id targetThread = std::this_thread::get_id();
+    std::promise<void> handlerEnteredPromise;
+    std::shared_future<void> handlerEntered = handlerEnteredPromise.get_future().share();
+    std::promise<void> releaseHandlerPromise;
+    std::shared_future<void> releaseHandler = releaseHandlerPromise.get_future().share();
+    std::atomic<bool> registrationFinished = false;
+
+    activeQueue.port1()->onMessage([&handlerEnteredPromise, releaseHandler](const CallMsg&) {
+        handlerEnteredPromise.set_value();
+        releaseHandler.wait();
+    });
+    qp->regPort(targetThread, activeQueue.port1());
+    activeQueue.port2()->send(CallMsg {});
+
+    std::thread processingThread([qp, targetThread]() {
+        qp->processMessages(targetThread);
+    });
+    ASSERT_EQ(handlerEntered.wait_for(std::chrono::seconds(1)), std::future_status::ready);
+
+    std::thread registrationThread([qp, targetThread, &queueToRegister, &registrationFinished]() {
+        qp->regPort(targetThread, queueToRegister.port1());
+        registrationFinished.store(true);
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    EXPECT_FALSE(registrationFinished.load());
+
+    releaseHandlerPromise.set_value();
+    processingThread.join();
+    registrationThread.join();
+
+    qp->unregPort(targetThread, queueToRegister.port1());
+    qp->unregPort(targetThread, activeQueue.port1());
 }
