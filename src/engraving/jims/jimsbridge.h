@@ -117,9 +117,14 @@ bool tonicPitchLabelInPeriod(const muse::String& stateJson, int periodIndex, Ton
 /// (identity + the section's tuning and reference) that playback feeds
 /// through as MIDI key + cents; the fork computes none of it.
 struct SoundingPitch {
+    int nPer = 0;
+    int nGen = 0;
     double frequencyHz = 0.0;
     int midiKey = 0;             // nearest 12-TET key, 0..127
     double centsOffset = 0.0;    // residual cents in [-50, 50)
+    char step = 'C';
+    int alter = 0;
+    int octave = 4;
     int referenceKeyNumber = 0;  // Re0 after resolution (62 when unpinned)
     double referenceFrequencyHz = 0.0;
     muse::String anchor;         // "explicit-reference" | "inferred-re0-d4"
@@ -279,8 +284,14 @@ bool stateChangeOptions(const muse::String& stateJson, StateChangeOptions& optio
 /// choice, or false with `error` (unusable reference, foreign id, ...).
 bool applyStateChange(const muse::String& stateJson, const muse::String& choiceId, muse::String& newStateJson, muse::String& error);
 
-/// Kernel entry conversion: step/alter/octave to a validated identity.
-bool entryFromStandardPitch(char step, int alter, int octave, int& nPer, int& nGen);
+/// Kernel entry conversion at the effective state: step/alter/octave to one
+/// validated identity and its complete coherent projection.
+bool entryFromStandardPitch(const muse::String& stateJson, char step, int alter, int octave, SoundingPitch& out,
+                            muse::String* error = nullptr);
+
+/// Reinterpret an established full-tie frequency under a new effective state.
+/// The Kernel returns an exact identity/projection or a typed failure.
+bool noteContinuation(const muse::String& stateJson, double frequencyHz, SoundingPitch& out, muse::String* error = nullptr);
 }
 
 #endif

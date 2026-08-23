@@ -99,8 +99,10 @@ TEST(JiMStaffTests, centsPositionsFollowTheGeneratorAcrossTunings)
 // spelling, at all three tunings.
 TEST(JiMStaffTests, entryAndQuantizationRoundTrip)
 {
-    int nPer = 0, nGen = 0;
-    ASSERT_TRUE(jims::entryFromStandardPitch('C', 0, 4, nPer, nGen));
+    jims::SoundingPitch projection;
+    ASSERT_TRUE(jims::entryFromStandardPitch(jimsState(G12), 'C', 0, 4, projection));
+    const int nPer = projection.nPer;
+    const int nGen = projection.nGen;
     EXPECT_EQ(nPer, 1);
     EXPECT_EQ(nGen, -2);
 

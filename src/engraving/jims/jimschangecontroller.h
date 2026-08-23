@@ -75,6 +75,12 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const std::vector
 /// Remove the JiMS change carrier at `measure` (one undo step). False with
 /// `error` when there is none.
 bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, muse::String& error);
+
+/// Enforce the persisted JiMS authority contract after native load or import.
+/// Authoritative identity plus effective state replace contradictory ordinary
+/// pitch fields in one undoable repair command. `repairs` counts notes, while
+/// callers emit at most one document-level diagnostic.
+bool normalizeStoredPitchesAfterLoad(Score* score, size_t& repairs, muse::String& error, bool undoable = true, bool commandOpen = false);
 }
 
 #endif

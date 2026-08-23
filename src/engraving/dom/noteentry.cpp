@@ -168,10 +168,13 @@ NoteVal Score::noteValForPosition(Position pos, AccidentalType at, bool& error)
                 mu::engraving::jims::PitchHit hit;
                 if (mu::engraving::jims::nearestPitch(jimsSt->jimsStateJson(), cents,
                                                       false, 0, 0, hit)) {
-                    const int stepIndex = int(muse::String(u"CDEFGAB").indexOf(muse::Char(hit.step)));
-                    nval.pitch = std::clamp((hit.octave + 1) * 12 + step2pitch(stepIndex) + hit.alter, 0, 127);
-                    nval.tpc1 = step2tpc(stepIndex, AccidentalVal(hit.alter));
-                    nval.tpc2 = nval.tpc1;
+                    mu::engraving::jims::SoundingPitch projection;
+                    if (mu::engraving::jims::noteSoundingPitch(jimsSt->jimsStateJson(), hit.nPer, hit.nGen, projection)) {
+                        const int stepIndex = int(muse::String(u"CDEFGAB").indexOf(muse::Char(projection.step)));
+                        nval.pitch = projection.midiKey;
+                        nval.tpc1 = step2tpc(stepIndex, AccidentalVal(projection.alter));
+                        nval.tpc2 = nval.tpc1;
+                    }
                 }
                 break;
             }

@@ -263,11 +263,8 @@ bool musicxmlChangeEventV3Xml(const String& oldStateJson, const String& newState
     return stringResult(callBridge(envelope), out, error);
 }
 
-bool noteSoundingPitch(const String& stateJson, int nPer, int nGen, SoundingPitch& out, String* error)
+static bool readSoundingPitch(const String& response, SoundingPitch& out, String* error)
 {
-    String envelope = String(u"{\"abi\":2,\"op\":\"note_sounding_pitch\",\"state\":%1,\"nPer\":%2,\"nGen\":%3}")
-                      .arg(stateJson).arg(nPer).arg(nGen);
-    const String response = callBridge(envelope);
     JsonValue result;
     if (!okResult(response, result)) {
         if (error) {
@@ -280,8 +277,8 @@ bool noteSoundingPitch(const String& stateJson, int nPer, int nGen, SoundingPitc
     JsonObject o = result.toObject();
     // Every field the transport relies on must be present and well-typed;
     // a malformed answer is a failure, never a default pitch.
-    for (const char* key : { "frequency_hz", "midi_key", "cents_offset", "reference_key_number",
-                             "reference_frequency_hz", "anchor" }) {
+    for (const char* key : { "nPer", "nGen", "frequency_hz", "midi_key", "cents_offset", "step", "alter", "octave",
+                             "reference_key_number", "reference_frequency_hz", "anchor" }) {
         if (!o.contains(key)) {
             if (error) {
                 *error = String(u"note_sounding_pitch answer lacks %1").arg(String::fromAscii(key));
@@ -289,20 +286,34 @@ bool noteSoundingPitch(const String& stateJson, int nPer, int nGen, SoundingPitc
             return false;
         }
     }
+    out.nPer = o.value("nPer").toInt();
+    out.nGen = o.value("nGen").toInt();
     out.frequencyHz = o.value("frequency_hz").toDouble();
     out.midiKey = o.value("midi_key").toInt();
     out.centsOffset = o.value("cents_offset").toDouble();
+    String step = o.value("step").toString();
+    out.step = step.isEmpty() ? '\0' : step.at(0).toAscii();
+    out.alter = o.value("alter").toInt();
+    out.octave = o.value("octave").toInt();
     out.referenceKeyNumber = o.value("reference_key_number").toInt();
     out.referenceFrequencyHz = o.value("reference_frequency_hz").toDouble();
     out.anchor = o.value("anchor").toString();
     if (out.midiKey < 0 || out.midiKey > 127 || !(out.frequencyHz > 0.0)
-        || std::abs(out.centsOffset) > 50.0 + 1e-9) {
+        || std::abs(out.centsOffset) > 50.0 + 1e-9 || step.size() != 1
+        || String(u"CDEFGAB").indexOf(step.at(0)) == muse::nidx) {
         if (error) {
             *error = u"note_sounding_pitch answer out of range";
         }
         return false;
     }
     return true;
+}
+
+bool noteSoundingPitch(const String& stateJson, int nPer, int nGen, SoundingPitch& out, String* error)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"note_sounding_pitch\",\"state\":%1,\"nPer\":%2,\"nGen\":%3}")
+                      .arg(stateJson).arg(nPer).arg(nGen);
+    return readSoundingPitch(callBridge(envelope), out, error);
 }
 
 bool vst3ProfileTransaction(const String& stateJson, uint32_t slot, uint32_t generation, uint32_t sampleOffset,
@@ -654,18 +665,19 @@ bool applyStateChange(const String& stateJson, const String& choiceId, String& n
     return true;
 }
 
-bool entryFromStandardPitch(char step, int alter, int octave, int& nPer, int& nGen)
+bool entryFromStandardPitch(const String& stateJson, char step, int alter, int octave,
+                            SoundingPitch& out, String* error)
 {
-    String envelope = String(u"{\"abi\":2,\"op\":\"entry_from_standard_pitch\",\"step\":\"%1\",\"alter\":%2,\"octave\":%3}")
-                      .arg(String(muse::Char(step))).arg(alter).arg(octave);
-    JsonValue result;
-    if (!okResult(callBridge(envelope), result)) {
-        return false;
-    }
-    JsonObject o = result.toObject();
-    nPer = o.value("nPer").toInt();
-    nGen = o.value("nGen").toInt();
-    return true;
+    String envelope = String(u"{\"abi\":2,\"op\":\"entry_from_standard_pitch\",\"state\":%1,\"step\":\"%2\",\"alter\":%3,\"octave\":%4}")
+                      .arg(stateJson).arg(String(muse::Char(step))).arg(alter).arg(octave);
+    return readSoundingPitch(callBridge(envelope), out, error);
+}
+
+bool noteContinuation(const String& stateJson, double frequencyHz, SoundingPitch& out, String* error)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"note_continuation\",\"state\":%1,\"frequency_hz\":%2}")
+                      .arg(stateJson).arg(String::number(frequencyHz, 17));
+    return readSoundingPitch(callBridge(envelope), out, error);
 }
 
 bool scaleDots(const String& stateJson, std::vector<ScaleDotStack>& stacks)

@@ -1693,6 +1693,18 @@ static void pitch2xml(const Note* note, String& s, int& alter, int& octave)
 {
     const Staff* st = note->staff();
     const Fraction tick = note->tick();
+    const StaffType* staffType = st ? st->staffTypeForElement(note) : nullptr;
+    if (staffType && staffType->isJiMS() && note->hasJimsPitch()) {
+        jims::SoundingPitch projection;
+        String error;
+        if (jims::noteSoundingPitch(staffType->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), projection, &error)) {
+            s = String(Char(projection.step));
+            alter = projection.alter;
+            octave = projection.octave;
+            return;
+        }
+        LOGE() << "JiMS export projection failed after preflight: " << error;
+    }
     const Instrument* instr = st->part()->instrument(tick);
     const Interval intval = note->concertPitch() ? 0 : instr->transpose();
 
@@ -9050,11 +9062,21 @@ bool ExportMusicXml::buildJimsExportPlan()
             }
             auto check = [&](const Note* n) {
                 const StaffType* st = n->staff() ? n->staff()->staffTypeForElement(n) : nullptr;
-                if (st && st->isJiMS() && !n->hasJimsPitch()) {
-                    m_jimsPlan.error
-                        = String(u"JiMS export: a note on JiMStaff %1 at tick %2 has no lattice identity").arg(int(n->staffIdx()) + 1).arg(
-                              n->tick().ticks());
-                    return false;
+                if (st && st->isJiMS()) {
+                    if (!n->hasJimsPitch()) {
+                        m_jimsPlan.error
+                            = String(u"JiMS export: a note on JiMStaff %1 at tick %2 has no lattice identity").arg(int(n->staffIdx())
+                                                                                                                   + 1).arg(
+                                  n->tick().ticks());
+                        return false;
+                    }
+                    jims::SoundingPitch projection;
+                    String error;
+                    if (!jims::noteSoundingPitch(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(), projection, &error)) {
+                        m_jimsPlan.error = String(u"JiMS export: Kernel refused the note at tick %1 on staff %2: %3")
+                                           .arg(n->tick().ticks()).arg(int(n->staffIdx()) + 1).arg(error);
+                        return false;
+                    }
                 }
                 return true;
             };

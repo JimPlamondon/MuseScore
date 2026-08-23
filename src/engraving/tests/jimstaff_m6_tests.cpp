@@ -32,8 +32,11 @@
 #include <QMimeData>
 
 #include "engraving/internal/qmimedataadapter.h"
+#include <algorithm>
+#include <climits>
 #include <cstdlib>
 #include <fstream>
+#include <tuple>
 
 #include "engraving/dom/accidental.h"
 #include "engraving/dom/chord.h"
@@ -43,12 +46,14 @@
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/measure.h"
 #include "engraving/dom/note.h"
+#include "engraving/dom/partialtie.h"
 #include "engraving/dom/segment.h"
 #include "engraving/dom/staff.h"
 #include "engraving/dom/text.h"
 #include "engraving/dom/box.h"
 #include "engraving/dom/stafftype.h"
 #include "engraving/dom/stafftypechange.h"
+#include "engraving/dom/tie.h"
 #include "engraving/jims/jimsbridge.h"
 #include "engraving/jims/jimschange.h"
 #include "engraving/jims/jimschangecontroller.h"
@@ -85,6 +90,21 @@ std::vector<Note*> jimsNotes(Score* score, staff_idx_t staffIdx = 0)
     return out;
 }
 
+std::vector<Note*> notesInMeasure(Measure* measure, staff_idx_t staffIdx = 0)
+{
+    std::vector<Note*> out;
+    for (Segment* segment = measure->first(SegmentType::ChordRest); segment;
+         segment = segment->next(SegmentType::ChordRest)) {
+        for (voice_idx_t voice = 0; voice < VOICES; ++voice) {
+            EngravingItem* item = segment->element(staffIdx * VOICES + voice);
+            if (item && item->isChord()) {
+                out.insert(out.end(), toChord(item)->notes().begin(), toChord(item)->notes().end());
+            }
+        }
+    }
+    return out;
+}
+
 const StaffType* jimsStaffType(Score* score)
 {
     return score->staff(0)->staffType(Fraction(0, 1));
@@ -96,6 +116,56 @@ int compatPitch(const jims::PitchHit& hit)
     const int step = int(letters.indexOf(muse::Char(hit.step)));
     static const int stepPitches[7] = { 0, 2, 4, 5, 7, 9, 11 };
     return (hit.octave + 1) * 12 + stepPitches[step] + hit.alter;
+}
+
+Score* syntheticCommonToneScore()
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/jims-template.mscz");
+    if (!score) {
+        return nullptr;
+    }
+    Measure* third = measureNo(score, 3);
+    if (third) {
+        score->deleteMeasures(third, third);
+    }
+    String error;
+    if (!jims::applyChange(score, 0, measureNo(score, 1), u"bind:reference-pitch:62", error)) {
+        delete score;
+        return nullptr;
+    }
+    InputState& input = score->inputState();
+    input.setTrack(0);
+    input.setSegment(score->tick2segment(Fraction(0, 1), false, SegmentType::ChordRest));
+    input.setDuration(DurationType::V_WHOLE);
+    input.setAccidentalType(AccidentalType::NONE);
+    input.setNoteEntryMode(true);
+    for (int i = 0; i < 2; ++i) {
+        score->startCmd(TranslatableString::untranslatable("common-tone note"));
+        score->cmdAddPitch(5 * 7 + 1, false, false); // D4, the bound Re0.
+        score->endCmd();
+    }
+    input.setNoteEntryMode(false);
+    std::vector<Note*> notes = jimsNotes(score);
+    if (notes.size() != 2) {
+        delete score;
+        return nullptr;
+    }
+    Tie* tie = Factory::createTie(score->dummy());
+    tie->setStartNote(notes[0]);
+    tie->setEndNote(notes[1]);
+    tie->setTrack(notes[0]->track());
+    tie->setTick(notes[0]->tick());
+    tie->setTick2(notes[1]->tick());
+    score->startCmd(TranslatableString::untranslatable("common-tone tie"));
+    score->undoAddElement(tie);
+    score->endCmd();
+    if (!jims::applyChange(score, 0, measureNo(score, 2), u"key:-1:3", error)) {
+        delete score;
+        return nullptr;
+    }
+    score->setMetaTag(u"workTitle", u"JiMS Common-Tone Projection Acceptance");
+    score->doLayout();
+    return score;
 }
 }
 
@@ -358,6 +428,270 @@ TEST(JiMStaffTests, m6WorkedExampleAuthoredThroughTheControllerMatchesM5)
     delete score;
 }
 
+TEST(JiMStaffTests, stateChangeAtomicallyReinterpretsAFullTieAtExactFrequency)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/m5-key-up.mscx");
+    ASSERT_TRUE(score);
+    auto notes = jimsNotes(score);
+    ASSERT_GE(notes.size(), 5u);
+    Note* start = notes[3];
+    Note* continuation = notes[4];
+    start->setJimsPitch(0, 0);
+    start->setPitch(62, 16, 16);
+    continuation->setJimsPitch(0, 0);
+    continuation->setPitch(62, 16, 16);
+    Tie* tie = Factory::createTie(score->dummy());
+    tie->setStartNote(start);
+    tie->setEndNote(continuation);
+    tie->setTrack(start->track());
+    tie->setTick(start->tick());
+    tie->setTick2(continuation->tick());
+    score->startCmd(TranslatableString::untranslatable("projection tie fixture"));
+    score->undoAddElement(tie);
+    score->endCmd();
+
+    jims::SoundingPitch established;
+    const StaffType* oldState = start->staff()->staffTypeForElement(start);
+    ASSERT_TRUE(jims::noteSoundingPitch(oldState->jimsStateJson(), start->jimsNPer(), start->jimsNGen(), established));
+    const int oldNPer = continuation->jimsNPer();
+    const int oldNGen = continuation->jimsNGen();
+    const int oldPitch = continuation->pitch();
+    const int oldTpc1 = continuation->tpc1();
+    const int oldTpc2 = continuation->tpc2();
+
+    String error;
+    ASSERT_TRUE(jims::applyChange(score, 0, measureNo(score, 2), u"mode:1", error)) << error.toStdString();
+    const StaffType* newState = continuation->staff()->staffTypeForElement(continuation);
+    jims::SoundingPitch projected;
+    ASSERT_TRUE(jims::noteSoundingPitch(newState->jimsStateJson(), continuation->jimsNPer(), continuation->jimsNGen(), projected));
+    EXPECT_NEAR(projected.frequencyHz, established.frequencyHz, 1e-9);
+    EXPECT_EQ(continuation->pitch(), projected.midiKey);
+    EXPECT_NEAR(continuation->tuning(), projected.centsOffset, 1e-9);
+    EXPECT_NE(continuation->jimsNGen(), oldNGen) << "the continuation takes its new-state teaching identity";
+
+    score->undoRedo(true, nullptr);
+    EXPECT_EQ(continuation->jimsNPer(), oldNPer);
+    EXPECT_EQ(continuation->jimsNGen(), oldNGen);
+    EXPECT_EQ(continuation->pitch(), oldPitch);
+    EXPECT_EQ(continuation->tpc1(), oldTpc1);
+    EXPECT_EQ(continuation->tpc2(), oldTpc2);
+    score->undoRedo(false, nullptr);
+    EXPECT_EQ(continuation->pitch(), projected.midiKey);
+    EXPECT_EQ(continuation->jimsNPer(), projected.nPer);
+    EXPECT_EQ(continuation->jimsNGen(), projected.nGen);
+    delete score;
+}
+
+TEST(JiMStaffTests, syntheticTwoMeasureCommonTonePersistsItsExactContinuation)
+{
+    Score* score = syntheticCommonToneScore();
+    ASSERT_TRUE(score);
+    ASSERT_EQ(score->firstMeasure()->nextMeasure(), score->lastMeasure());
+    std::vector<Note*> notes = jimsNotes(score);
+    ASSERT_EQ(notes.size(), 2u);
+    ASSERT_TRUE(notes[0]->tieForNonPartial());
+    ASSERT_EQ(notes[0]->tieForNonPartial()->endNote(), notes[1]);
+    jims::SoundingPitch first;
+    jims::SoundingPitch continuation;
+    ASSERT_TRUE(jims::noteSoundingPitch(notes[0]->staff()->staffTypeForElement(notes[0])->jimsStateJson(),
+                                        notes[0]->jimsNPer(), notes[0]->jimsNGen(), first));
+    ASSERT_TRUE(jims::noteSoundingPitch(notes[1]->staff()->staffTypeForElement(notes[1])->jimsStateJson(),
+                                        notes[1]->jimsNPer(), notes[1]->jimsNGen(), continuation));
+    EXPECT_NEAR(first.frequencyHz, continuation.frequencyHz, 1e-9);
+    EXPECT_NE(notes[0]->jimsNGen(), notes[1]->jimsNGen());
+
+    const String path(u"synthetic-common-tone-roundtrip.mscx");
+    ASSERT_TRUE(ScoreRW::saveScore(score, path));
+    Score* reopened = ScoreRW::readScore(path, true);
+    ASSERT_TRUE(reopened);
+    std::vector<Note*> reopenedNotes = jimsNotes(reopened);
+    ASSERT_EQ(reopenedNotes.size(), 2u);
+    jims::SoundingPitch reopenedContinuation;
+    ASSERT_TRUE(jims::noteSoundingPitch(reopenedNotes[1]->staff()->staffTypeForElement(reopenedNotes[1])->jimsStateJson(),
+                                        reopenedNotes[1]->jimsNPer(), reopenedNotes[1]->jimsNGen(), reopenedContinuation));
+    EXPECT_NEAR(first.frequencyHz, reopenedContinuation.frequencyHz, 1e-9);
+    delete reopened;
+    delete score;
+}
+
+TEST(JiMStaffTests, writeSyntheticCommonToneAcceptanceScore)
+{
+    const char* outDir = std::getenv("JIMS_NOTE_CONFORMANCE_OUT");
+    if (!outDir) {
+        GTEST_SKIP() << "set JIMS_NOTE_CONFORMANCE_OUT to write the common-tone acceptance score";
+    }
+    Score* score = syntheticCommonToneScore();
+    ASSERT_TRUE(score);
+    const String path = String::fromUtf8(outDir) + u"/common-tone-projection.mscx";
+    ASSERT_TRUE(ScoreRW::saveScore(score, path));
+    delete score;
+}
+
+TEST(JiMStaffTests, consecutiveStateChangesKeepAMultiSegmentTieExact)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/m5-key-up.mscx");
+    ASSERT_TRUE(score);
+    std::vector<Note*> notes = jimsNotes(score);
+    ASSERT_GE(notes.size(), 9u);
+    Note* chain[] = { notes[3], notes[4], notes[8] };
+    for (Note* note : chain) {
+        note->setJimsPitch(0, 0);
+        note->setPitch(62, 16, 16);
+    }
+    score->startCmd(TranslatableString::untranslatable("multi-segment tie fixture"));
+    for (size_t i = 0; i < 2; ++i) {
+        Tie* tie = Factory::createTie(score->dummy());
+        tie->setStartNote(chain[i]);
+        tie->setEndNote(chain[i + 1]);
+        tie->setTrack(chain[i]->track());
+        tie->setTick(chain[i]->tick());
+        tie->setTick2(chain[i + 1]->tick());
+        score->undoAddElement(tie);
+    }
+    score->endCmd();
+    jims::SoundingPitch established;
+    ASSERT_TRUE(jims::noteSoundingPitch(chain[0]->staff()->staffTypeForElement(chain[0])->jimsStateJson(), 0, 0, established));
+    String error;
+    ASSERT_TRUE(jims::applyChange(score, 0, measureNo(score, 2), u"mode:1", error)) << error.toStdString();
+    jims::StateChangeOptions options;
+    ASSERT_TRUE(jims::changeOptions(score, 0, measureNo(score, 3), options));
+    bool changedAgain = false;
+    for (const jims::StateChangeOption& option : options.keyTargets) {
+        if (option.current) {
+            continue;
+        }
+        const String current = score->staff(0)->staffType(measureNo(score, 3)->tick())->jimsStateJson();
+        String candidate;
+        jims::SoundingPitch candidateProjection;
+        if (jims::applyStateChange(current, option.id, candidate, error)
+            && jims::noteContinuation(candidate, established.frequencyHz, candidateProjection, &error)
+            && (candidateProjection.nPer != chain[1]->jimsNPer() || candidateProjection.nGen != chain[1]->jimsNGen())
+            && jims::applyChange(score, 0, measureNo(score, 3), option.id, error)) {
+            changedAgain = true;
+            break;
+        }
+    }
+    ASSERT_TRUE(changedAgain) << error.toStdString();
+    for (Note* note : chain) {
+        jims::SoundingPitch projection;
+        ASSERT_TRUE(jims::noteSoundingPitch(note->staff()->staffTypeForElement(note)->jimsStateJson(),
+                                            note->jimsNPer(), note->jimsNGen(), projection));
+        EXPECT_NEAR(projection.frequencyHz, established.frequencyHz, 1e-9);
+        EXPECT_EQ(note->pitch(), projection.midiKey);
+        EXPECT_NEAR(note->tuning(), projection.centsOffset, 1e-9);
+    }
+    EXPECT_NE(chain[0]->jimsNGen(), chain[1]->jimsNGen());
+    delete score;
+}
+
+TEST(JiMStaffTests, projectionFailureRollsBackStateAndEveryStoredField)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/m5-key-up.mscx");
+    ASSERT_TRUE(score);
+    Measure* changed = measureNo(score, 2);
+    std::vector<Note*> notes = notesInMeasure(changed);
+    ASSERT_FALSE(notes.empty());
+    notes.front()->setJimsPitch(INT_MAX, INT_MAX);
+    const String stateBefore = score->staff(0)->staffType(changed->tick())->jimsStateJson();
+    const auto noteBefore = std::make_tuple(notes.front()->jimsNPer(), notes.front()->jimsNGen(), notes.front()->pitch(),
+                                            notes.front()->tpc1(), notes.front()->tpc2(), notes.front()->tuning());
+    String error;
+    EXPECT_FALSE(jims::applyChange(score, 0, changed, u"mode:1", error));
+    EXPECT_FALSE(error.isEmpty());
+    EXPECT_EQ(score->staff(0)->staffType(changed->tick())->jimsStateJson(), stateBefore);
+    EXPECT_EQ(std::make_tuple(notes.front()->jimsNPer(), notes.front()->jimsNGen(), notes.front()->pitch(),
+                              notes.front()->tpc1(), notes.front()->tpc2(), notes.front()->tuning()), noteBefore);
+    delete score;
+}
+
+TEST(JiMStaffTests, linkedNotesReceiveOneCoherentProjection)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/m5-key-up.mscx");
+    ASSERT_TRUE(score);
+    std::vector<Note*> notes = notesInMeasure(measureNo(score, 2));
+    ASSERT_GE(notes.size(), 2u);
+    notes[0]->setJimsPitch(0, 0);
+    notes[1]->setJimsPitch(0, 0);
+    notes[1]->setPitch(notes[0]->pitch(), notes[0]->tpc1(), notes[0]->tpc2());
+    notes[1]->setTuning(notes[0]->tuning());
+    notes[1]->linkTo(notes[0]);
+    String error;
+    ASSERT_TRUE(jims::applyChange(score, 0, measureNo(score, 2), u"mode:1", error)) << error.toStdString();
+    EXPECT_EQ(std::make_tuple(notes[0]->jimsNPer(), notes[0]->jimsNGen(), notes[0]->pitch(), notes[0]->tpc1(),
+                              notes[0]->tpc2(), notes[0]->tuning()),
+              std::make_tuple(notes[1]->jimsNPer(), notes[1]->jimsNGen(), notes[1]->pitch(), notes[1]->tpc1(),
+                              notes[1]->tpc2(), notes[1]->tuning()));
+    delete score;
+}
+
+TEST(JiMStaffTests, stateProjectionSpanStopsAtTheNextIndependentCarrier)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/m5-key-up.mscx");
+    ASSERT_TRUE(score);
+    Measure* m2 = measureNo(score, 2);
+    Measure* m3 = measureNo(score, 3);
+    String error;
+    ASSERT_TRUE(jims::applyChange(score, 0, m3, u"mode:1", error)) << error.toStdString();
+    std::vector<Note*> m2Notes = notesInMeasure(m2);
+    std::vector<Note*> m3Notes = notesInMeasure(m3);
+    ASSERT_FALSE(m2Notes.empty());
+    ASSERT_FALSE(m3Notes.empty());
+    std::vector<std::tuple<int, int, int, int, int, double> > laterBefore;
+    for (Note* note : m3Notes) {
+        laterBefore.emplace_back(note->jimsNPer(), note->jimsNGen(), note->pitch(), note->tpc1(), note->tpc2(), note->tuning());
+    }
+    const int affectedPitchBefore = m2Notes.front()->pitch();
+    jims::StateChangeOptions options;
+    ASSERT_TRUE(jims::changeOptions(score, 0, m2, options));
+    auto current = std::find_if(options.keyTargets.begin(), options.keyTargets.end(),
+                                [](const jims::StateChangeOption& option) { return option.current; });
+    ASSERT_NE(current, options.keyTargets.end());
+    auto target = std::min_element(options.keyTargets.begin(), options.keyTargets.end(),
+                                   [&](const jims::StateChangeOption& a, const jims::StateChangeOption& b) {
+        const int da = a.current ? INT_MAX : std::abs(a.nPer - current->nPer) + std::abs(a.nGen - current->nGen);
+        const int db = b.current ? INT_MAX : std::abs(b.nPer - current->nPer) + std::abs(b.nGen - current->nGen);
+        return da < db;
+    });
+    ASSERT_NE(target, options.keyTargets.end());
+    ASSERT_TRUE(jims::applyChange(score, 0, m2, target->id, error)) << error.toStdString();
+    EXPECT_NE(m2Notes.front()->pitch(), affectedPitchBefore);
+    for (size_t i = 0; i < m3Notes.size(); ++i) {
+        EXPECT_EQ(std::make_tuple(m3Notes[i]->jimsNPer(), m3Notes[i]->jimsNGen(), m3Notes[i]->pitch(),
+                                  m3Notes[i]->tpc1(), m3Notes[i]->tpc2(), m3Notes[i]->tuning()), laterBefore[i]);
+    }
+    delete score;
+}
+
+TEST(JiMStaffTests, ambiguousPartialTieAcrossStateBoundaryIsRefusedWithoutMutation)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/m5-key-up.mscx");
+    ASSERT_TRUE(score);
+    std::vector<Note*> notes = jimsNotes(score);
+    ASSERT_GE(notes.size(), 5u);
+    Note* start = notes[3];
+    Note* continuation = notes[4];
+    PartialTie* tie = Factory::createPartialTie(start);
+    tie->setStartNote(start);
+    tie->setEndNote(continuation);
+    tie->setTrack(start->track());
+    tie->setTick(start->tick());
+    tie->setTick2(continuation->tick());
+    score->startCmd(TranslatableString::untranslatable("partial tie fixture"));
+    score->undoAddElement(tie);
+    score->endCmd();
+    Measure* m2 = measureNo(score, 2);
+    const String stateBefore = score->staff(0)->staffType(m2->tick())->jimsStateJson();
+    const auto noteBefore = std::make_tuple(continuation->jimsNPer(), continuation->jimsNGen(), continuation->pitch(),
+                                            continuation->tpc1(), continuation->tpc2(), continuation->tuning());
+    String error;
+    EXPECT_FALSE(jims::applyChange(score, 0, m2, u"mode:1", error));
+    EXPECT_TRUE(error.contains(u"path-dependent partial tie")) << error.toStdString();
+    EXPECT_EQ(score->staff(0)->staffType(m2->tick())->jimsStateJson(), stateBefore);
+    EXPECT_EQ(std::make_tuple(continuation->jimsNPer(), continuation->jimsNGen(), continuation->pitch(),
+                              continuation->tpc1(), continuation->tpc2(), continuation->tuning()), noteBefore);
+    delete score;
+}
+
 // Binding Requirement 2 (letter entry): typing a letter (with the input
 // state's accidental) on a JiMStaff enters THAT NOTE — its identity is
 // established through the Kernel entry seam (Note::setNval), not read off
@@ -405,6 +739,37 @@ TEST(JiMStaffTests, m6LetterEntryEstablishesTheKernelIdentityOfTheNamedNote)
         EXPECT_EQ(notes[i]->jimsNPer(), entries[i].nPer) << "note " << i;
         EXPECT_EQ(notes[i]->jimsNGen(), entries[i].nGen) << "note " << i;
     }
+    delete score;
+}
+
+TEST(JiMStaffTests, conventionalEntryUsesTheEffectivePostChangeState)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/jims-template.mscx");
+    ASSERT_TRUE(score);
+    String error;
+    ASSERT_TRUE(jims::applyChange(score, 0, measureNo(score, 1), u"bind:reference-pitch:62", error)) << error.toStdString();
+    ASSERT_TRUE(jims::applyChange(score, 0, measureNo(score, 2), u"key:-1:3", error)) << error.toStdString();
+    const StaffType* state = score->staff(0)->staffType(measureNo(score, 2)->tick());
+    ASSERT_TRUE(state && state->isJiMS());
+    jims::SoundingPitch expected;
+    ASSERT_TRUE(jims::entryFromStandardPitch(state->jimsStateJson(), 'D', 0, 4, expected, &error)) << error.toStdString();
+
+    InputState& input = score->inputState();
+    input.setTrack(0);
+    input.setSegment(score->tick2segment(measureNo(score, 2)->tick(), false, SegmentType::ChordRest));
+    input.setDuration(DurationType::V_HALF);
+    input.setAccidentalType(AccidentalType::NONE);
+    input.setNoteEntryMode(true);
+    score->startCmd(TranslatableString::untranslatable("post-change conventional entry"));
+    score->cmdAddPitch(5 * 7 + 1, false, false);
+    score->endCmd();
+    input.setNoteEntryMode(false);
+    std::vector<Note*> notes = notesInMeasure(measureNo(score, 2));
+    ASSERT_EQ(notes.size(), 1u);
+    EXPECT_EQ(notes[0]->jimsNPer(), expected.nPer);
+    EXPECT_EQ(notes[0]->jimsNGen(), expected.nGen);
+    EXPECT_EQ(notes[0]->pitch(), expected.midiKey);
+    EXPECT_NEAR(notes[0]->tuning(), expected.centsOffset, 1e-9);
     delete score;
 }
 
