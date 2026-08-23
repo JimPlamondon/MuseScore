@@ -801,13 +801,34 @@ TEST_F(Audio_RpcPackerTests, MPE_PlaybackEvent)
         EXPECT_TRUE(origin == unpacked);
     }
 
+    // DynamicTonalityProfileEvent
+    {
+        mpe::DynamicTonalityProfileEvent event;
+        event.points.front() = { 100, 0.25 };
+        event.points.back() = { 125, 0.75 };
+
+        KNOWN_FIELDS(event,
+                     event.points);
+
+        mpe::PlaybackEvent origin = event;
+
+        ByteArray data = rpc::RpcPacker::pack(origin);
+
+        mpe::PlaybackEvent unpacked;
+        bool ok = rpc::RpcPacker::unpack(data, unpacked);
+
+        EXPECT_TRUE(ok);
+        EXPECT_TRUE(origin == unpacked);
+    }
+
     {
         using KnownPlaybackEvent = std::variant<std::monostate,
                                                 mpe::NoteEvent,
                                                 mpe::TextArticulationEvent,
                                                 mpe::SoundPresetChangeEvent,
                                                 mpe::SyllableEvent,
-                                                mpe::ControllerChangeEvent>;
+                                                mpe::ControllerChangeEvent,
+                                                mpe::DynamicTonalityProfileEvent>;
 
         static_assert(std::is_same<mpe::PlaybackEvent, KnownPlaybackEvent>::value);
     }
