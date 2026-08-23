@@ -31,6 +31,7 @@
 #include "engraving/dom/stafftype.h"
 #include "engraving/jims/jimsbridge.h"
 #include "engraving/jims/jimschange.h"
+#include "engraving/jims/jimspitchlabel.h"
 #include "engraving/dom/stafftypechange.h"
 #include "engraving/jims/jimstuningcontroller.h"
 
@@ -99,8 +100,10 @@ TEST(JiMStaffTests, centsPositionsFollowTheGeneratorAcrossTunings)
 // spelling, at all three tunings.
 TEST(JiMStaffTests, entryAndQuantizationRoundTrip)
 {
-    int nPer = 0, nGen = 0;
-    ASSERT_TRUE(jims::entryFromStandardPitch('C', 0, 4, nPer, nGen));
+    jims::SoundingPitch projection;
+    ASSERT_TRUE(jims::entryFromStandardPitch(jimsState(G12), 'C', 0, 4, projection));
+    const int nPer = projection.nPer;
+    const int nGen = projection.nGen;
     EXPECT_EQ(nPer, 1);
     EXPECT_EQ(nGen, -2);
 
@@ -1470,6 +1473,32 @@ Measure* m5Measure(Score* score, int measureNo)
     }
     return m;
 }
+}
+
+TEST(JiMStaffTests, tonicPitchLabelTransportPreservesMusicalAccidentalSymbols)
+{
+    const muse::String state
+        =
+            u"{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],\"collection_rotation\":0,\"mode_rotation\":0,\"generator_cents\":700.0,\"period_cents\":1200.0,\"embedding\":{\"large_steps\":5,\"small_steps\":2},\"extent\":{\"lower_do_register\":4,\"period_count\":1},\"reference\":{\"reference-pitch\":{\"key_number\":53}}}";
+    jims::TonicPitchLabel label;
+    ASSERT_TRUE(jims::tonicPitchLabel(state, label));
+    EXPECT_EQ(label.label, u"E♭3");
+}
+
+TEST(JiMStaffTests, pitchLabelRendererSelectsProperMusicSymbolsForEveryAccidental)
+{
+    const std::pair<muse::String, SymId> cases[] = {
+        { u"E♭3", SymId::accidentalFlat },
+        { u"F♯4", SymId::accidentalSharp },
+        { u"E𝄫3", SymId::accidentalDoubleFlat },
+        { u"F𝄪4", SymId::accidentalDoubleSharp },
+    };
+    for (const auto& [label, expected] : cases) {
+        const jims::PitchLabelParts parts = jims::pitchLabelParts(label + u": La");
+        EXPECT_EQ(parts.beforeAccidental, label.left(1));
+        EXPECT_EQ(parts.accidental, expected);
+        EXPECT_EQ(parts.afterAccidental, label.mid(label.size() - 1) + u": La");
+    }
 }
 
 // (a) Transport: the worked example round-trips through the fork wrapper

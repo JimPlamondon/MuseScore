@@ -1,0 +1,14 @@
+{
+  "ok": true,
+  "fixture": "src/engraving/tests/jimstaff_data/ws-jims-common-tone-projection.mscx",
+  "measures": 2,
+  "notes": 2,
+  "identities": [
+    ["0", "0"],
+    ["-1", "3"]
+  ],
+  "deterministic_render": true,
+  "render_sha256": "1517c37092b536f5802e66ef6f4aeaf2f72b13c41cf225fab0aea6a559b573aa",
+  "signal_oracle": "Engraving_JiMStaffM7PlaybackTests.syntheticCommonToneHasOneAttackAtOneExactFrequency",
+  "failures": []
+}

@@ -34,6 +34,7 @@
 #include "../dom/audio.h"
 #include "../dom/excerpt.h"
 #include "../dom/imageStore.h"
+#include "../jims/jimschangecontroller.h"
 
 #include "engraving/automation/iautomation.h"
 
@@ -222,6 +223,22 @@ Ret MscLoader::loadMscz(MasterScore* masterScore, const MscReader& mscReader, rw
     }
 
     // Read automation
+    if (ret) {
+        size_t repairCount = 0;
+        String repairError;
+        for (Score* score : masterScore->scoreList()) {
+            size_t scoreRepairs = 0;
+            if (!jims::normalizeStoredPitchesAfterLoad(score, scoreRepairs, repairError)) {
+                return make_ret(Err::FileBadFormat, repairError);
+            }
+            repairCount += scoreRepairs;
+        }
+        if (repairCount > 0) {
+            LOGW() << "Normalized " << repairCount
+                   << " contradictory JiMS stored pitch projection(s); the document is marked modified";
+        }
+    }
+
     {
         if (masterScore->automation()) {
             ByteArray ba = mscReader.readAutomationJsonFile();

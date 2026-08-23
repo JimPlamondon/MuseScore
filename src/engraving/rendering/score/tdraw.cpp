@@ -27,6 +27,7 @@
 
 #include "../../jims/jimsbridge.h"
 #include "../../jims/jimschange.h"
+#include "../../jims/jimspitchlabel.h"
 
 #include "defer.h"
 
@@ -2969,28 +2970,30 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                     // 2026-08-15: giant "Ti"/"Mi" at 720c).
                                     const double centroidY = yOf(cents);
                                     if (!leftText.isEmpty()) {
-                                        RectF tb = fm.boundingRect(leftText);
+                                        const jims::PitchLabelLayout textLayout
+                                            = jims::pitchLabelLayout(leftText, labelFont, item->score()->engravingFont());
                                         const double baseline
-                                            = centroidY - (tb.top() + tb.bottom()) / 2.0;
-                                        painter->setFont(labelFont);
+                                            = centroidY - (textLayout.bounds.top() + textLayout.bounds.bottom()) / 2.0;
                                         painter->setPen(Pen(item->curColor(opt)));
-                                        painter->drawText(PointF(dotColLeft - gap - tb.width(), baseline),
-                                                          leftText);
+                                        jims::drawPitchLabel(painter,
+                                                             PointF(dotColLeft - gap - textLayout.bounds.right(), baseline),
+                                                             labelFont, item->score()->engravingFont(), textLayout);
                                     }
                                     if (!rightText.isEmpty()) {
-                                        RectF tb = fm.boundingRect(rightText);
+                                        const jims::PitchLabelLayout textLayout
+                                            = jims::pitchLabelLayout(rightText, labelFont, item->score()->engravingFont());
                                         const double baseline
-                                            = centroidY - (tb.top() + tb.bottom()) / 2.0;
+                                            = centroidY - (textLayout.bounds.top() + textLayout.bounds.bottom()) / 2.0;
                                         const double x = dotColRight + gap;
-                                        RectF backing(x + tb.left() - inset, baseline + tb.top() - inset,
-                                                      tb.width() + 2.0 * inset, tb.height() + 2.0 * inset);
+                                        RectF backing = textLayout.bounds.translated(PointF(x, baseline));
+                                        backing.adjust(-inset, -inset, inset, inset);
                                         painter->setNoPen();
                                         painter->setBrush(Brush(Color(255, 255, 255, 191)));
                                         painter->drawRect(backing);
                                         painter->setBrush(BrushStyle::NoBrush);
-                                        painter->setFont(labelFont);
                                         painter->setPen(Pen(item->curColor(opt)));
-                                        painter->drawText(PointF(x, baseline), rightText);
+                                        jims::drawPitchLabel(painter, PointF(x, baseline), labelFont,
+                                                             item->score()->engravingFont(), textLayout);
                                     }
                                 }
                             }
@@ -3285,10 +3288,13 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                 }
                             }
                             if (!text.isEmpty()) {
-                                RectF tb = fm.boundingRect(text);
-                                painter->setFont(labelFont);
+                                const jims::PitchLabelLayout textLayout
+                                    = jims::pitchLabelLayout(text, labelFont, font);
                                 painter->setPen(Pen(item->curColor(opt)));
-                                painter->drawText(PointF(labelRight - gap - tb.width(), cy - (tb.top() + tb.bottom()) / 2.0), text);
+                                jims::drawPitchLabel(painter,
+                                                     PointF(labelRight - gap - textLayout.bounds.right(),
+                                                            cy - (textLayout.bounds.top() + textLayout.bounds.bottom()) / 2.0),
+                                                     labelFont, font, textLayout);
                             }
                             if (!rightText.isEmpty()) {
                                 RectF tb = fm.boundingRect(rightText);
@@ -3328,10 +3334,13 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                 if (isNewTonic(tp)) {
                                     text = keyLabelForRow(tp) + u": " + text;
                                 }
-                                RectF tb = fm.boundingRect(text);
-                                painter->setFont(labelFont);
+                                const jims::PitchLabelLayout textLayout
+                                    = jims::pitchLabelLayout(text, labelFont, font);
                                 painter->setPen(Pen(item->curColor(opt)));
-                                painter->drawText(PointF(labelRight - gap - tb.width(), cy - (tb.top() + tb.bottom()) / 2.0), text);
+                                jims::drawPitchLabel(painter,
+                                                     PointF(labelRight - gap - textLayout.bounds.right(),
+                                                            cy - (textLayout.bounds.top() + textLayout.bounds.bottom()) / 2.0),
+                                                     labelFont, font, textLayout);
                             }
                         }
                     }

@@ -2893,15 +2893,16 @@ void Note::verticalDrag(EditData& ed)
             if (jims::nearestPitch(jimsSt->jimsStateJson(), targetCents,
                                    true, ned->jimsStartNPer, ned->jimsStartNGen, hit)) {
                 if (hit.nPer != m_jimsNPer || hit.nGen != m_jimsNGen) {
-                    const int newPitch = std::clamp(
-                        (hit.octave + 1) * 12 + step2pitch(int(muse::String(u"CDEFGAB").indexOf(muse::Char(hit.step)))) + hit.alter,
-                        0, 127);
-                    const int newTpc = step2tpc(int(muse::String(u"CDEFGAB").indexOf(muse::Char(hit.step))),
-                                                AccidentalVal(hit.alter));
-                    for (Note* nn : tiedNotes()) {
-                        nn->setJimsPitch(hit.nPer, hit.nGen);
-                        nn->setPitch(newPitch, newTpc, newTpc);
-                        nn->triggerLayout();
+                    jims::SoundingPitch projection;
+                    if (jims::noteSoundingPitch(jimsSt->jimsStateJson(), hit.nPer, hit.nGen, projection)) {
+                        const int newTpc = step2tpc(int(muse::String(u"CDEFGAB").indexOf(muse::Char(projection.step))),
+                                                    AccidentalVal(projection.alter));
+                        for (Note* nn : tiedNotes()) {
+                            nn->setJimsPitch(projection.nPer, projection.nGen);
+                            nn->setPitch(projection.midiKey, newTpc, newTpc);
+                            nn->setTuning(projection.centsOffset);
+                            nn->triggerLayout();
+                        }
                     }
                 }
             }
@@ -3159,17 +3160,23 @@ void Note::setNval(const NoteVal& nval, Fraction tick)
     // just established above. The spelling-to-letter mapping is
     // transport; the identity itself comes from the Kernel.
     if (!hasJimsPitch() && staff() && chord()) {
-        const StaffType* jimsSt = staff()->staffTypeForElement(this);
+        // A newly-created note is not yet in the score tree, so
+        // staffTypeForElement() can resolve the base type. The caller's
+        // insertion tick is the authority for the effective section.
+        const StaffType* jimsSt = tick == Fraction(-1, 1) ? staff()->staffTypeForElement(this) : staff()->staffType(tick);
         if (jimsSt && jimsSt->isJiMS()) {
             const int tpcNow = m_tpc[0];
             if (tpcNow != Tpc::TPC_INVALID) {
                 const char letter = "CDEFGAB"[tpc2step(tpcNow)];
                 const int alter = int(tpc2alter(tpcNow));
                 const int octave = (m_pitch - alter) / 12 - 1;
-                int nPer = 0;
-                int nGen = 0;
-                if (jims::entryFromStandardPitch(letter, alter, octave, nPer, nGen)) {
-                    setJimsPitch(nPer, nGen);
+                jims::SoundingPitch projection;
+                if (jims::entryFromStandardPitch(jimsSt->jimsStateJson(), letter, alter, octave, projection)) {
+                    const int step = int(String(u"CDEFGAB").indexOf(Char(projection.step)));
+                    const int tpc = step2tpc(step, AccidentalVal(projection.alter));
+                    setJimsPitch(projection.nPer, projection.nGen);
+                    setPitch(projection.midiKey, tpc, tpc);
+                    setTuning(projection.centsOffset);
                 }
             }
         }

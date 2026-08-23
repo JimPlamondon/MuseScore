@@ -12,6 +12,7 @@
 #include "serialization/json.h"
 
 #include "jimsbridge.h"
+#include "jimschangecontroller.h"
 
 #include "../dom/chord.h"
 #include "../dom/masterscore.h"
@@ -143,6 +144,10 @@ bool TuningController::applyToSpans(double generatorCents)
     if (!staff) {
         return false;
     }
+    std::vector<Span> before;
+    if (!collectSpans(before)) {
+        return false;
+    }
     StaffType* base = staff->staffType(Fraction(0, 1));
     if (!base || !base->isJiMS()) {
         return false;
@@ -161,6 +166,12 @@ bool TuningController::applyToSpans(double generatorCents)
                 }
             }
         }
+    }
+    size_t repairs = 0;
+    String error;
+    if (!normalizeStoredPitchesAfterLoad(m_score, repairs, error, false)) {
+        restoreSpans(before);
+        return false;
     }
     invalidateAndLayout();
     return true;
@@ -235,6 +246,9 @@ void TuningController::restoreSpans(const std::vector<Span>& spans)
             }
         }
     }
+    size_t repairs = 0;
+    String error;
+    normalizeStoredPitchesAfterLoad(m_score, repairs, error, false);
     invalidateAndLayout();
 }
 
@@ -274,9 +288,22 @@ bool TuningController::commit(double generatorCents)
             states.push_back(withGeneratorCents(original[i].stateJson, generatorCents));
         }
     }
+    // Preflight the complete target projection before opening the undo
+    // transaction, then restore the original preview baseline.
+    if (!applyToSpans(generatorCents)) {
+        return false;
+    }
+    restoreSpans(original);
     const auto t0 = std::chrono::steady_clock::now();
     m_score->startCmd(TranslatableString("undoableAction", "Change JiMS tuning"));
-    m_score->undo(new JimsChangeStaffStates(staff, std::move(ticks), std::move(states)));
+    m_score->undo(new JimsChangeStaffStates(staff, ticks, states));
+    size_t repairs = 0;
+    String error;
+    if (!normalizeStoredPitchesAfterLoad(m_score, repairs, error, true, true)) {
+        m_score->endCmd();
+        m_score->undoRedo(true, nullptr);
+        return false;
+    }
     m_score->endCmd();
     invalidateAndLayout();
     m_lastApplyMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();

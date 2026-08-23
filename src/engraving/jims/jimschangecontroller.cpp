@@ -9,20 +9,165 @@
 #include "jimschangecontroller.h"
 
 #include "../dom/factory.h"
+#include "../dom/chord.h"
 #include "../dom/measure.h"
+#include "../dom/note.h"
 #include "../dom/score.h"
+#include "../dom/segment.h"
 #include "../dom/staff.h"
 #include "../dom/stafftype.h"
 #include "../dom/stafftypechange.h"
+#include "../dom/tie.h"
+#include "../dom/utils.h"
 #include "../editing/undo.h"
 #include "jimschange.h"
+#include "jimsbridge.h"
 
 #include "translation.h"
+
+#include <cmath>
+#include <set>
 
 using namespace muse;
 
 namespace mu::engraving::jims {
 namespace {
+struct StateEdit {
+    Staff* staff = nullptr;
+    staff_idx_t staffIdx = 0;
+    Fraction tick;
+    const Measure* stop = nullptr;
+    String state;
+};
+
+struct NoteEdit {
+    Note* note = nullptr;
+    SoundingPitch projection;
+    int tpc = Tpc::TPC_INVALID;
+};
+
+const Measure* nextCarrierMeasure(const Score* score, staff_idx_t staffIdx, const Fraction& tick)
+{
+    Measure* start = score->tick2measure(tick);
+    for (Measure* measure = start ? start->nextMeasure() : nullptr; measure; measure = measure->nextMeasure()) {
+        if (changeCarrier(measure, staffIdx)) {
+            return measure;
+        }
+    }
+    return nullptr;
+}
+
+const StateEdit* stateEditFor(const std::vector<StateEdit>& edits, const Note* note)
+{
+    for (const StateEdit& edit : edits) {
+        if (note->staffIdx() != edit.staffIdx || note->tick() < edit.tick) {
+            continue;
+        }
+        if (!edit.stop || note->tick() < edit.stop->tick()) {
+            return &edit;
+        }
+    }
+    return nullptr;
+}
+
+bool projectionFor(const std::vector<StateEdit>& edits, Note* note, SoundingPitch& projection, String& error)
+{
+    const StateEdit* edit = stateEditFor(edits, note);
+    const StaffType* current = note->staff() ? note->staff()->staffTypeForElement(note) : nullptr;
+    const String state = edit ? edit->state : (current ? current->jimsStateJson() : String());
+    if (state.isEmpty()) {
+        error = u"a linked JiMS note has no effective JiMS state";
+        return false;
+    }
+
+    Note* first = note;
+    while (first->tieBackNonPartial() && first->tieBackNonPartial()->startNote()) {
+        first = first->tieBackNonPartial()->startNote();
+    }
+    if (edit && first->tick() < edit->tick) {
+        SoundingPitch established;
+        const StateEdit* firstEdit = stateEditFor(edits, first);
+        const StaffType* firstCurrent = first->staff() ? first->staff()->staffTypeForElement(first) : nullptr;
+        const String firstState = firstEdit ? firstEdit->state : (firstCurrent ? firstCurrent->jimsStateJson() : String());
+        if (firstState.isEmpty()
+            || !noteSoundingPitch(firstState, first->jimsNPer(), first->jimsNGen(), established, &error)) {
+            return false;
+        }
+        return noteContinuation(state, established.frequencyHz, projection, &error);
+    }
+    return noteSoundingPitch(state, note->jimsNPer(), note->jimsNGen(), projection, &error);
+}
+
+bool sameProjection(const SoundingPitch& a, const SoundingPitch& b)
+{
+    return a.nPer == b.nPer && a.nGen == b.nGen && a.midiKey == b.midiKey
+           && a.step == b.step && a.alter == b.alter && a.octave == b.octave
+           && std::abs(a.centsOffset - b.centsOffset) < 1e-9
+           && std::abs(a.frequencyHz - b.frequencyHz) < 1e-9;
+}
+
+bool prepareNoteEdits(Score* score, const std::vector<StateEdit>& stateEdits,
+                      std::vector<NoteEdit>& noteEdits, String& error)
+{
+    std::set<Note*> seen;
+    for (const StateEdit& edit : stateEdits) {
+        Measure* start = score->tick2measure(edit.tick);
+        for (Measure* measure = start; measure && measure != edit.stop; measure = measure->nextMeasure()) {
+            for (Segment* segment = measure->first(SegmentType::ChordRest); segment;
+                 segment = segment->next(SegmentType::ChordRest)) {
+                for (voice_idx_t voice = 0; voice < VOICES; ++voice) {
+                    EngravingItem* item = segment->element(edit.staffIdx * VOICES + voice);
+                    if (!item || !item->isChord()) {
+                        continue;
+                    }
+                    for (Note* note : toChord(item)->notes()) {
+                        if (!note->hasJimsPitch() || seen.count(note)) {
+                            continue;
+                        }
+                        if (note->incomingPartialTie() || note->outgoingPartialTie()) {
+                            error = u"a path-dependent partial tie crosses the JiMS state span; the edit was not applied";
+                            return false;
+                        }
+                        SoundingPitch projection;
+                        if (!projectionFor(stateEdits, note, projection, error)) {
+                            return false;
+                        }
+                        for (EngravingObject* linkedObject : note->linkList()) {
+                            Note* linked = toNote(linkedObject);
+                            if (!linked->hasJimsPitch()) {
+                                error = u"a linked note disagrees about JiMS identity; the edit was not applied";
+                                return false;
+                            }
+                            SoundingPitch linkedProjection;
+                            if (!projectionFor(stateEdits, linked, linkedProjection, error)) {
+                                return false;
+                            }
+                            if (!sameProjection(projection, linkedProjection)) {
+                                error = u"linked notes require conflicting JiMS projections; the edit was not applied";
+                                return false;
+                            }
+                            seen.insert(linked);
+                        }
+                        const int step = int(String(u"CDEFGAB").indexOf(Char(projection.step)));
+                        noteEdits.push_back({ note, projection, step2tpc(step, AccidentalVal(projection.alter)) });
+                    }
+                }
+            }
+        }
+    }
+    return true;
+}
+
+void commitNoteEdits(Score* score, const std::vector<NoteEdit>& edits)
+{
+    for (const NoteEdit& edit : edits) {
+        edit.note->undoChangeProperty(Pid::JIMS_NPER, edit.projection.nPer);
+        edit.note->undoChangeProperty(Pid::JIMS_NGEN, edit.projection.nGen);
+        score->undoChangePitch(edit.note, edit.projection.midiKey, edit.tpc, edit.tpc);
+        edit.note->undoChangeProperty(Pid::TUNING, edit.projection.centsOffset);
+    }
+}
+
 /// Replace the JiMS state of the staff type in force at `tick` on `staff`
 /// (the base type or a carrier's copy in the staff's list) — one undoable
 /// flip, layout invalidated (the same shape the tuning controller uses).
@@ -185,12 +330,28 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Str
         if (edits.empty()) {
             return true;
         }
+        std::vector<StateEdit> stateEdits;
+        for (const auto& e : edits) {
+            stateEdits.push_back({ staff, staffIdx, e.first, nextCarrierMeasure(score, staffIdx, e.first), e.second });
+        }
+        std::vector<NoteEdit> noteEdits;
+        if (!prepareNoteEdits(score, stateEdits, noteEdits, error)) {
+            return false;
+        }
         score->startCmd(TranslatableString("undoableAction", "Bind JiMS reference"));
         for (const auto& e : edits) {
             score->undo(new JimsChangeStateAt(staff, e.first, e.second));
         }
+        commitNoteEdits(score, noteEdits);
         score->endCmd();
         return true;
+    }
+    const std::vector<StateEdit> stateEdits {
+        { staff, staffIdx, measure->tick(), nextCarrierMeasure(score, staffIdx, measure->tick()), next }
+    };
+    std::vector<NoteEdit> noteEdits;
+    if (!prepareNoteEdits(score, stateEdits, noteEdits, error)) {
+        return false;
     }
     score->startCmd(TranslatableString("undoableAction", "Insert JiMS change"));
     if (origin || hasCarrier) {
@@ -208,6 +369,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Str
         stc->setStaffType(st, true);
         score->undoAddElement(stc);
     }
+    commitNoteEdits(score, noteEdits);
     score->endCmd();
     return true;
 }
@@ -294,6 +456,16 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const std::vector
         return true;                        // nothing changed anywhere
     }
 
+    std::vector<StateEdit> stateEdits;
+    for (const Prepared& p : prepared) {
+        stateEdits.push_back({ p.staff, p.staffIdx, measure->tick(),
+                               nextCarrierMeasure(score, p.staffIdx, measure->tick()), p.next });
+    }
+    std::vector<NoteEdit> noteEdits;
+    if (!prepareNoteEdits(score, stateEdits, noteEdits, error)) {
+        return false;
+    }
+
     // COMMIT. One startCmd/endCmd pair for every target and every choice id,
     // so the whole gesture is one undo step and one redo step.
     score->startCmd(TranslatableString("undoableAction", "Insert JiMS change"));
@@ -310,6 +482,7 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const std::vector
             score->undoAddElement(stc);
         }
     }
+    commitNoteEdits(score, noteEdits);
     score->endCmd();
     return true;
 }
@@ -321,9 +494,90 @@ bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, String& 
         error = u"no JiMS change at this measure";
         return false;
     }
+    Measure* previous = measure->prevMeasure();
+    Staff* staff = score->staff(staffIdx);
+    const StaffType* previousType = staff ? staff->staffType(previous ? previous->tick() : Fraction(0, 1)) : nullptr;
+    if (!previousType || !previousType->isJiMS()) {
+        error = u"no preceding JiMS state can replace this change";
+        return false;
+    }
+    const std::vector<StateEdit> stateEdits {
+        { staff, staffIdx, measure->tick(), nextCarrierMeasure(score, staffIdx, measure->tick()), previousType->jimsStateJson() }
+    };
+    std::vector<NoteEdit> noteEdits;
+    if (!prepareNoteEdits(score, stateEdits, noteEdits, error)) {
+        return false;
+    }
     score->startCmd(TranslatableString("undoableAction", "Remove JiMS change"));
     score->undoRemoveElement(const_cast<StaffTypeChange*>(stc));
+    commitNoteEdits(score, noteEdits);
     score->endCmd();
+    return true;
+}
+
+bool normalizeStoredPitchesAfterLoad(Score* score, size_t& repairs, String& error, bool undoable, bool commandOpen)
+{
+    repairs = 0;
+    if (!score) {
+        error = u"no score to normalize";
+        return false;
+    }
+    std::vector<StateEdit> stateEdits;
+    for (staff_idx_t staffIdx = 0; staffIdx < score->nstaves(); ++staffIdx) {
+        Staff* staff = score->staff(staffIdx);
+        const StaffType* base = staff ? staff->staffType(Fraction(0, 1)) : nullptr;
+        if (!base || !base->isJiMS()) {
+            continue;
+        }
+        stateEdits.push_back({ staff, staffIdx, Fraction(0, 1),
+                               nextCarrierMeasure(score, staffIdx, Fraction(0, 1)), base->jimsStateJson() });
+        for (Measure* measure = score->firstMeasure(); measure; measure = measure->nextMeasure()) {
+            const StaffTypeChange* carrier = changeCarrier(measure, staffIdx);
+            if (!carrier || !carrier->staffType() || !carrier->staffType()->isJiMS()) {
+                continue;
+            }
+            stateEdits.push_back({ staff, staffIdx, measure->tick(),
+                                   nextCarrierMeasure(score, staffIdx, measure->tick()),
+                                   carrier->staffType()->jimsStateJson() });
+        }
+    }
+    std::vector<NoteEdit> projected;
+    if (!prepareNoteEdits(score, stateEdits, projected, error)) {
+        return false;
+    }
+    std::vector<NoteEdit> repairsNeeded;
+    for (const NoteEdit& edit : projected) {
+        if (edit.note->jimsNPer() != edit.projection.nPer
+            || edit.note->jimsNGen() != edit.projection.nGen
+            || edit.note->pitch() != edit.projection.midiKey
+            || edit.note->tpc1() != edit.tpc || edit.note->tpc2() != edit.tpc
+            || std::abs(edit.note->tuning() - edit.projection.centsOffset) >= 1e-9) {
+            repairsNeeded.push_back(edit);
+        }
+    }
+    repairs = repairsNeeded.size();
+    if (repairsNeeded.empty()) {
+        return true;
+    }
+    if (undoable) {
+        if (!commandOpen) {
+            score->startCmd(TranslatableString("undoableAction", "Normalize JiMS stored pitches"));
+        }
+        commitNoteEdits(score, repairsNeeded);
+        if (!commandOpen) {
+            score->endCmd();
+        }
+    } else {
+        for (const NoteEdit& edit : repairsNeeded) {
+            for (EngravingObject* linkedObject : edit.note->linkList()) {
+                Note* linked = toNote(linkedObject);
+                linked->setJimsPitch(edit.projection.nPer, edit.projection.nGen);
+                linked->setPitch(edit.projection.midiKey, edit.tpc, edit.tpc);
+                linked->setTuning(edit.projection.centsOffset);
+            }
+        }
+    }
+    score->setLayoutAll();
     return true;
 }
 }

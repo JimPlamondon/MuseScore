@@ -89,6 +89,7 @@
 #include "engraving/dom/volta.h"
 #include "engraving/editing/transpose.h"
 #include "engraving/engravingerrors.h"
+#include "engraving/jims/jimschangecontroller.h"
 
 #include "importmusicxmllogger.h"
 #include "importmusicxmlnoteduration.h"
@@ -2449,6 +2450,15 @@ void MusicXmlParserPass2::part()
         auto staffIndexForNumber = [&jimsPart](int number) { return jimsPart.staffNumberToIndex(number); };
         if (!m_jims.applyToPart(m_score, part, id, staffIndexForNumber, m_logger)) {
             m_jimsError = Err::FileBadFormat;
+        } else {
+            size_t repairs = 0;
+            String repairError;
+            if (!jims::normalizeStoredPitchesAfterLoad(m_score, repairs, repairError, false)) {
+                m_logger->logError(String(u"the JiMS Kernel could not normalize imported note projections: %1").arg(repairError), &m_e);
+                m_jimsError = Err::FileBadFormat;
+            } else if (repairs > 0) {
+                m_logger->logDebugInfo(String(u"normalized %1 contradictory JiMS compatibility pitch projection(s)").arg(repairs), &m_e);
+            }
         }
     }
 

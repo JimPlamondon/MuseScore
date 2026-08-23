@@ -287,6 +287,25 @@ TEST_F(MusicXml_JiMS_Tests, allSixAcceptedPiecesImportWithTheirChangeCarrier)
     }
 }
 
+TEST_F(MusicXml_JiMS_Tests, authoritativeJimsIdentityNormalizesContradictoryStandardPitchOnImport)
+{
+    MasterScore* score = readJims("jims-v3-m5-key-down.musicxml");
+    ASSERT_TRUE(score);
+    int disagreements = 0;
+    for (const Note* note : notesInOrder(score)) {
+        ASSERT_TRUE(note->hasJimsPitch());
+        const StaffType* state = note->staff()->staffTypeForElement(note);
+        ASSERT_TRUE(state && state->isJiMS());
+        jims::SoundingPitch projected;
+        String error;
+        ASSERT_TRUE(jims::noteSoundingPitch(state->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), projected, &error))
+            << error.toStdString();
+        disagreements += note->pitch() != projected.midiKey;
+    }
+    EXPECT_EQ(disagreements, 0) << "jims:pitch is authoritative; adjacent standard pitch must be normalized";
+    delete score;
+}
+
 // ---------------------------------------------------------------------------
 // Interchange hardening — native JiMS MusicXML EXPORT (converged FINAL 96%,
 // 2026-08-17). The Kernel writes every jims:staff-state / jims:change element

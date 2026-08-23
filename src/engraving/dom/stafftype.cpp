@@ -30,6 +30,7 @@
 #include "../iengravingfont.h"
 #include "../jims/jimsbridge.h"
 #include "../jims/jimschange.h"
+#include "../jims/jimspitchlabel.h"
 #include "../jims/jimsstrings.h"
 
 #include "rw/xmlreader.h"
@@ -849,6 +850,7 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
     Font labelFont(u"Edwin", Font::Type::Text);
     labelFont.setPointSizeF(9.0 * spatium / defaultSpatium);
     FontMetrics fm(labelFont);
+    const IEngravingFontPtr engravingFont = m_score ? m_score->engravingFont() : nullptr;
     const double gap = 0.25 * spatium;
     std::vector<jims::LabeledDotStack> stacks;
     const bool haveLabels = jims::scaleDotLabels(m_jimsStateJson, stacks);
@@ -856,13 +858,14 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
     // 2026-08-17): reserve its advance (plus one space) in the left bands.
     jims::TonicPitchLabel key;
     double keyAdvance = jims::tonicPitchLabel(m_jimsStateJson, key)
-                        ? fm.horizontalAdvance(key.label + u": ") : 0.0;
+                        ? jims::pitchLabelLayout(key.label + u": ", labelFont, engravingFont).advance : 0.0;
     if (view && keyAdvance > 0.0) {
         // Milestone 8: reserve for the widest band label of this system (the
         // whole-piece view is one band carrying its own row's label).
         for (const JimsFrameBand& band : view->bands) {
             if (!band.tonicLabel.isEmpty()) {
-                keyAdvance = std::max(keyAdvance, fm.horizontalAdvance(band.tonicLabel + u": "));
+                keyAdvance = std::max(keyAdvance,
+                                      jims::pitchLabelLayout(band.tonicLabel + u": ", labelFont, engravingFont).advance);
             }
         }
     }

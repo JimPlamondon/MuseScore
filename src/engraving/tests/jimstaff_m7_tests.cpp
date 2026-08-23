@@ -28,11 +28,13 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+#include <algorithm>
 #include <cmath>
 #include <optional>
 #include <set>
 
 #include "engraving/dom/chord.h"
+#include "engraving/dom/factory.h"
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/measure.h"
 #include "engraving/dom/note.h"
@@ -40,7 +42,9 @@
 #include "engraving/dom/segment.h"
 #include "engraving/dom/staff.h"
 #include "engraving/dom/stafftype.h"
+#include "engraving/dom/tie.h"
 #include "engraving/jims/jimsbridge.h"
+#include "engraving/jims/jimschangecontroller.h"
 #include "engraving/jims/jimstuningcontroller.h"
 #include "engraving/playback/playbackmodel.h"
 #include "engraving/playback/utils/pitchutils.h"
@@ -169,6 +173,7 @@ protected:
 
 const String M7_GATE(u"jimstaff_data/m7-gate.mscz");
 const String M7_DEFAULT(u"jimstaff_data/collision.mscx");
+const String COMMON_TONE(u"jimstaff_data/ws-jims-common-tone-projection.mscx");
 }
 
 // The MIDI-key → pitch-level conversion (owner decision 1a): raw MIDI
@@ -207,9 +212,10 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, m7PlaybackUsesKernelPitchForDefaultAnd
     for (size_t i = 0; i < notes.size(); ++i) {
         EXPECT_EQ(levels[i], kernelPitchLevel(notes[i])) << "note " << i;
     }
-    // Falsification anchor: bar 2's C-identity note (C5 spelling) must NOT
-    // play its 12-TET compatibility pitch under reference 53.
-    EXPECT_NE(levels[4], notePitchLevel(notes[4]->tpc(), notes[4]->octave(), notes[4]->tuning()));
+    // Stored compatibility fields are the Kernel projection too, while the
+    // same lattice identity still changes pitch across reference sections.
+    EXPECT_EQ(levels[4], notePitchLevel(notes[4]->tpc(), notes[4]->octave(), notes[4]->tuning()));
+    EXPECT_NE(levels[5], levels[1]) << "the same D identity differs between reference 62 and 53";
     delete score;
 }
 
@@ -358,6 +364,7 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, m7PlaybackTracksTuningPreviewCommitCan
     EXPECT_EQ(nominalPitchLevels(score), before);
     ASSERT_TRUE(tc.beginPreview());
     ASSERT_TRUE(tc.commit(710.0));
+    notes = notesOf(score);
     std::vector<pitch_level_t> committed = nominalPitchLevels(score);
     for (size_t i = 0; i < notes.size(); ++i) {
         EXPECT_EQ(committed[i], kernelPitchLevel(notes[i])) << "commit note " << i;
@@ -454,6 +461,64 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, m7ImportedAndAcceptedPiecesUseEffectiv
         delete score;
     }
     EXPECT_GT(checked, 0);
+}
+
+TEST_F(Engraving_JiMStaffM7PlaybackTests, fullTieAcrossStateChangeHasOneAttackAtLatchedFrequency)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/m5-key-up.mscx");
+    ASSERT_TRUE(score);
+    std::vector<Note*> notes = notesOf(score);
+    ASSERT_GE(notes.size(), 5u);
+    Note* start = notes[3];
+    Note* continuation = notes[4];
+    start->setJimsPitch(0, 0);
+    start->setPitch(62, 16, 16);
+    continuation->setJimsPitch(0, 0);
+    continuation->setPitch(62, 16, 16);
+    Tie* tie = Factory::createTie(score->dummy());
+    tie->setStartNote(start);
+    tie->setEndNote(continuation);
+    tie->setTrack(start->track());
+    tie->setTick(start->tick());
+    tie->setTick2(continuation->tick());
+    score->startCmd(TranslatableString::untranslatable("playback tie fixture"));
+    score->undoAddElement(tie);
+    score->endCmd();
+    Measure* change = score->firstMeasure()->nextMeasure();
+    String error;
+    ASSERT_TRUE(jims::applyChange(score, 0, change, u"mode:1", error)) << error.toStdString();
+
+    jims::SoundingPitch startProjection = kernelSoundingPitch(start);
+    jims::SoundingPitch continuationProjection = kernelSoundingPitch(continuation);
+    EXPECT_NEAR(continuationProjection.frequencyHz, startProjection.frequencyHz, 1e-9);
+    const std::vector<pitch_level_t> events = nominalPitchLevels(score);
+    EXPECT_EQ(events.size(), notes.size() - 1) << "the tied continuation must not create a second attack";
+    EXPECT_EQ(std::count(events.begin(), events.end(), jimsPitchLevelFromMidi(startProjection.midiKey,
+                                                                              startProjection.centsOffset)), 1);
+    delete score;
+}
+
+TEST_F(Engraving_JiMStaffM7PlaybackTests, syntheticCommonToneHasOneAttackAtOneExactFrequency)
+{
+    Score* score = ScoreRW::readScore(COMMON_TONE);
+    ASSERT_TRUE(score);
+    score->doLayout();
+    const std::vector<Note*> notes = notesOf(score);
+    ASSERT_EQ(notes.size(), 2u);
+    ASSERT_TRUE(notes[0]->tieForNonPartial());
+    EXPECT_NE(std::make_pair(notes[0]->jimsNPer(), notes[0]->jimsNGen()),
+              std::make_pair(notes[1]->jimsNPer(), notes[1]->jimsNGen()));
+    const jims::SoundingPitch first = kernelSoundingPitch(notes[0]);
+    const jims::SoundingPitch continuation = kernelSoundingPitch(notes[1]);
+    EXPECT_NEAR(first.frequencyHz, continuation.frequencyHz, 1e-9);
+    const std::vector<pitch_level_t> events = nominalPitchLevels(score);
+    ASSERT_EQ(events.size(), 1u);
+    EXPECT_EQ(events.front(), jimsPitchLevelFromMidi(first.midiKey, first.centsOffset));
+    const std::vector<std::optional<ExactPitch> > exact = exactPitches(score);
+    ASSERT_EQ(exact.size(), 1u);
+    ASSERT_TRUE(exact.front().has_value());
+    EXPECT_DOUBLE_EQ(exact.front()->frequencyHz, first.frequencyHz);
+    delete score;
 }
 
 // Negative control: a stock (non-JiMS) score's pitch levels are exactly

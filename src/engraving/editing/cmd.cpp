@@ -2036,10 +2036,13 @@ void Score::upDown(bool up, UpDownMode mode)
                 jims::PitchHit hit;
                 if (jims::stepPitch(jimsSt->jimsStateJson(), oNote->jimsNPer(), oNote->jimsNGen(),
                                     up, domain, hit)) {
+                    jims::SoundingPitch projection;
+                    if (!jims::noteSoundingPitch(jimsSt->jimsStateJson(), hit.nPer, hit.nGen, projection)) {
+                        continue;
+                    }
                     static const String letters(u"CDEFGAB");
-                    const int stepIndex = int(letters.indexOf(Char(hit.step)));
-                    const int jimsPitch = std::clamp((hit.octave + 1) * 12 + step2pitch(stepIndex) + hit.alter, 0, 127);
-                    const int jimsTpc = step2tpc(stepIndex, AccidentalVal(hit.alter));
+                    const int stepIndex = int(letters.indexOf(Char(projection.step)));
+                    const int jimsTpc = step2tpc(stepIndex, AccidentalVal(projection.alter));
                     for (Note* nn : oNote->tiedNotes()) {
                         for (EngravingObject* e : nn->linkList()) {
                             Note* ln = toNote(e);
@@ -2047,9 +2050,10 @@ void Score::upDown(bool up, UpDownMode mode)
                                 doUndoRemoveElement(ln->accidental());
                             }
                         }
-                        nn->undoChangeProperty(Pid::JIMS_NPER, hit.nPer);
-                        nn->undoChangeProperty(Pid::JIMS_NGEN, hit.nGen);
-                        undoChangePitch(nn, jimsPitch, jimsTpc, jimsTpc);
+                        nn->undoChangeProperty(Pid::JIMS_NPER, projection.nPer);
+                        nn->undoChangeProperty(Pid::JIMS_NGEN, projection.nGen);
+                        undoChangePitch(nn, projection.midiKey, jimsTpc, jimsTpc);
+                        nn->undoChangeProperty(Pid::TUNING, projection.centsOffset);
                     }
                     setPlayNote(true);
                 }

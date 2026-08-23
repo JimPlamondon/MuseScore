@@ -48,6 +48,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cstdlib>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -61,8 +62,11 @@
 #include "engraving/dom/staff.h"
 #include "engraving/dom/stafftype.h"
 #include "engraving/jims/jimsbridge.h"
+#include "engraving/rw/mscsaver.h"
+#include "engraving/infrastructure/mscwriter.h"
 
 #include "io/dir.h"
+#include "io/file.h"
 #include "io/fileinfo.h"
 
 #include "utils/scorerw.h"
@@ -216,16 +220,14 @@ TEST(Engraving_JiMStaffFixtureIntegrity, everyJimsNoteSoundsAtThePitchItsFileCla
         ADD_FAILURE() << m.describe();
     }
 
-    // Pin the known defect: it must not grow, and it must not silently vanish
-    // either (if it is fixed, this number drops and the guard says so).
+    // Every retained JiMS note must agree with the Kernel projection. A
+    // historical exact-count exception would turn known contradictions into
+    // an oracle and allow stale conventional fields to remain live.
     for (const Mismatch& m : staleAfterKeyChange) {
         RecordProperty("stale_after_key_change", m.describe());
     }
-    EXPECT_EQ(staleAfterKeyChange.size(), 32u)
-        << "the count of notes whose stored pitch is stale after a key change changed. "
-        << "It was 32, across m5-key-down, m5-key-up, m5-key-mode and m7-gate. "
-        << "If it grew, new fixtures inherited an open defect; if it shrank, the defect was "
-        << "fixed and this pin should come down.";
+    EXPECT_TRUE(staleAfterKeyChange.empty())
+        << staleAfterKeyChange.size() << " JiMS notes retain stale conventional pitch fields after a state change";
 
     EXPECT_TRUE(bad.empty())
         << bad.size() << " of " << checked << " JiMS notes disagree with the pitch their file claims. "
@@ -236,4 +238,79 @@ TEST(Engraving_JiMStaffFixtureIntegrity, everyJimsNoteSoundsAtThePitchItsFileCla
     EXPECT_GT(checked, 100u) << "only " << checked << " notes were checked across "
                              << fixtures.size() << " files — the walk is not reaching the notes";
     EXPECT_GT(withNotes, 5u) << "only " << withNotes << " files carried JiMS notes";
+}
+
+TEST(Engraving_JiMStaffFixtureIntegrity, writeKernelNormalizedProjectionFixtures)
+{
+    const char* output = std::getenv("JIMS_NORMALIZED_FIXTURE_OUT");
+    if (!output) {
+        GTEST_SKIP() << "set JIMS_NORMALIZED_FIXTURE_OUT to generate corrected fixtures";
+    }
+    const String outputDir = String::fromUtf8(output);
+    ASSERT_TRUE(muse::io::Dir::mkpath(outputDir));
+    for (const char* name : { "m5-key-up.mscx", "m5-key-down.mscx", "m5-key-mode.mscx", "m7-gate.mscz" }) {
+        const String source = ScoreRW::rootPath() + u"/jimstaff_data/" + String::fromUtf8(name);
+        MasterScore* score = ScoreRW::readScore(source, true);
+        ASSERT_TRUE(score) << name;
+        const String destination = outputDir + u"/" + String::fromUtf8(name);
+        if (destination.endsWith(u".mscx")) {
+            ASSERT_TRUE(ScoreRW::saveScore(score, destination)) << name;
+        } else {
+            muse::io::File file(destination);
+            ASSERT_TRUE(file.open(muse::io::IODevice::WriteOnly)) << name;
+            MscWriter::Params params;
+            params.device = &file;
+            params.filePath = destination;
+            params.mode = MscIoMode::Zip;
+            MscWriter writer(params);
+            ASSERT_TRUE(writer.open()) << name;
+            MscSaver saver(score->iocContext());
+            ASSERT_TRUE(saver.writeMscz(score, writer, false)) << name;
+            writer.close();
+            file.close();
+        }
+        delete score;
+    }
+}
+
+TEST(Engraving_JiMStaffFixtureIntegrity, contradictoryNativeLoadRepairsOnceAndMarksDocumentModified)
+{
+    const String scratchDir = ScoreRW::rootPath() + u"/../../../build.release/jims-projection-scratch";
+    ASSERT_TRUE(muse::io::Dir::mkpath(scratchDir));
+    const String contradictoryPath = scratchDir + u"/contradictory.mscx";
+    const String normalizedPath = scratchDir + u"/normalized.mscx";
+    MasterScore* source = ScoreRW::readScore(u"jimstaff_data/m5-key-up.mscx");
+    ASSERT_TRUE(source);
+    Note* corrupted = nullptr;
+    for (Segment* segment = source->firstSegment(SegmentType::ChordRest); segment && !corrupted;
+         segment = segment->next1(SegmentType::ChordRest)) {
+        EngravingItem* item = segment->element(0);
+        if (item && item->isChord() && !toChord(item)->notes().empty()) {
+            corrupted = toChord(item)->notes().front();
+        }
+    }
+    ASSERT_TRUE(corrupted);
+    corrupted->setPitch(corrupted->pitch() + 1);
+    ASSERT_TRUE(ScoreRW::saveScore(source, contradictoryPath));
+    delete source;
+
+    MasterScore* repaired = ScoreRW::readScore(contradictoryPath, true);
+    ASSERT_TRUE(repaired);
+    EXPECT_TRUE(repaired->dirty()) << "a disclosed load repair must mark the document modified";
+    Note* note = toChord(repaired->firstSegment(SegmentType::ChordRest)->element(0))->notes().front();
+    const StaffType* state = note->staff()->staffTypeForElement(note);
+    jims::SoundingPitch expected;
+    ASSERT_TRUE(jims::noteSoundingPitch(state->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), expected));
+    EXPECT_EQ(note->pitch(), expected.midiKey);
+    repaired->undoRedo(true, nullptr);
+    EXPECT_NE(note->pitch(), expected.midiKey) << "the complete repair is one undo step";
+    repaired->undoRedo(false, nullptr);
+    EXPECT_EQ(note->pitch(), expected.midiKey);
+    ASSERT_TRUE(ScoreRW::saveScore(repaired, normalizedPath));
+    delete repaired;
+
+    MasterScore* clean = ScoreRW::readScore(normalizedPath, true);
+    ASSERT_TRUE(clean);
+    EXPECT_FALSE(clean->dirty()) << "the normalized resave must not repair again";
+    delete clean;
 }
