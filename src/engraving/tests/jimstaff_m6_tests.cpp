@@ -458,6 +458,7 @@ TEST(JiMStaffTests, stateChangeAtomicallyReinterpretsAFullTieAtExactFrequency)
     const int oldPitch = continuation->pitch();
     const int oldTpc1 = continuation->tpc1();
     const int oldTpc2 = continuation->tpc2();
+    const double oldTuning = continuation->tuning();
 
     String error;
     ASSERT_TRUE(jims::applyChange(score, 0, measureNo(score, 2), u"mode:1", error)) << error.toStdString();
@@ -475,10 +476,16 @@ TEST(JiMStaffTests, stateChangeAtomicallyReinterpretsAFullTieAtExactFrequency)
     EXPECT_EQ(continuation->pitch(), oldPitch);
     EXPECT_EQ(continuation->tpc1(), oldTpc1);
     EXPECT_EQ(continuation->tpc2(), oldTpc2);
+    EXPECT_NEAR(continuation->tuning(), oldTuning, 1e-9);
     score->undoRedo(false, nullptr);
-    EXPECT_EQ(continuation->pitch(), projected.midiKey);
     EXPECT_EQ(continuation->jimsNPer(), projected.nPer);
     EXPECT_EQ(continuation->jimsNGen(), projected.nGen);
+    EXPECT_EQ(continuation->pitch(), projected.midiKey);
+    EXPECT_EQ(tpc2step(continuation->tpc1()), int(String(u"CDEFGAB").indexOf(Char(projected.step))));
+    EXPECT_EQ(int(tpc2alter(continuation->tpc1())), projected.alter);
+    EXPECT_EQ(continuation->tpc2(), continuation->tpc1());
+    EXPECT_EQ((continuation->pitch() - projected.alter) / 12 - 1, projected.octave);
+    EXPECT_NEAR(continuation->tuning(), projected.centsOffset, 1e-9);
     delete score;
 }
 
