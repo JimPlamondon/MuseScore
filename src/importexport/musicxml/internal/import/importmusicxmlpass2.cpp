@@ -7959,8 +7959,16 @@ void MusicXmlParserPass2::harmony(const String& partId, Measure* measure, const 
 
     const Color color = Color::fromString(m_e.asciiAttribute("color").ascii());
     const String fontFamily = m_e.attribute("font-family");
+    bool hasFontSize = false;
+    const double fontSize = m_e.asciiAttribute("font-size").toDouble(&hasFontSize);
+    const String fontStyle = m_e.attribute("font-style");
+    const String fontWeight = m_e.attribute("font-weight");
     const String placement = m_e.attribute("placement");
     const bool printObject = m_e.asciiAttribute("print-object") != "no";
+    const bool hasRelativeX = m_e.hasAttribute("relative-x");
+    const bool hasRelativeY = m_e.hasAttribute("relative-y");
+    const double relativeX = m_e.doubleAttribute("relative-x") * 0.1 * m_score->style().spatium();
+    const double relativeY = m_e.doubleAttribute("relative-y") * -0.1 * m_score->style().spatium();
 
     String kind, kindText, functionText, inversionText, symbols, parens, jimsChordName;
     bool hasConventionalHarmonyChord = false;
@@ -8194,6 +8202,22 @@ void MusicXmlParserPass2::harmony(const String& partId, Measure* measure, const 
     if (!fontFamily.empty()) {
         ha->setFamily(fontFamily);
         ha->setPropertyFlags(Pid::FONT_FACE, PropertyFlags::UNSTYLED);
+    }
+    if (hasFontSize && fontSize > 0.0) {
+        ha->setSize(fontSize);
+        ha->setPropertyFlags(Pid::FONT_SIZE, PropertyFlags::UNSTYLED);
+    }
+    if (!fontWeight.empty()) {
+        ha->setBold(fontWeight == u"bold");
+        ha->setPropertyFlags(Pid::FONT_STYLE, PropertyFlags::UNSTYLED);
+    }
+    if (!fontStyle.empty()) {
+        ha->setItalic(fontStyle == u"italic");
+        ha->setPropertyFlags(Pid::FONT_STYLE, PropertyFlags::UNSTYLED);
+    }
+    if (hasRelativeX || hasRelativeY) {
+        ha->setOffset(PointF(hasRelativeX ? relativeX : 0.0, hasRelativeY ? relativeY : 0.0));
+        ha->setPropertyFlags(Pid::OFFSET, PropertyFlags::UNSTYLED);
     }
 
     const HarmonyDesc newHarmonyDesc(track, ha, fd);

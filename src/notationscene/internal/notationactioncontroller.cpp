@@ -359,6 +359,7 @@ void NotationActionController::init()
     registerAction("fingering-text", [this]() { addText(TextStyleType::FINGERING); });
     registerAction("sticking-text", [this]() { addText(TextStyleType::STICKING); });
     registerAction("chord-text", [this]() { addText(TextStyleType::HARMONY_A); });
+    registerAction("jims-chord-name-text", [this]() { addHarmony(engraving::HarmonyType::JIMS); });
     registerAction("roman-numeral-text", [this]() { addText(TextStyleType::HARMONY_ROMAN); });
     registerAction("nashville-number-text", [this]() { addText(TextStyleType::HARMONY_NASHVILLE); });
     registerAction("lyrics", [this]() { addText(TextStyleType::LYRICS_ODD); });
@@ -1479,6 +1480,24 @@ void NotationActionController::addText(TextStyleType type)
     interaction->addTextToItem(type, item);
 }
 
+void NotationActionController::addHarmony(engraving::HarmonyType type)
+{
+    auto interaction = currentNotationInteraction();
+    if (!interaction) {
+        return;
+    }
+
+    EngravingItem* item = nullptr;
+    const INotationSelectionPtr sel = interaction->selection();
+    if (sel->isRange()) {
+        const INotationSelectionRangePtr range = sel->range();
+        item = range->rangeStartSegment()->firstElementForNavigation(range->startStaffIndex());
+    } else {
+        item = interaction->contextItem();
+    }
+    interaction->addHarmonyToItem(type, item);
+}
+
 void NotationActionController::addImage()
 {
     auto interaction = currentNotationInteraction();
@@ -2499,8 +2518,8 @@ void NotationActionController::registerAction(const ActionCode& code,
 }
 
 void NotationActionController::registerAction(const ActionCode& code,
-                                              void (NotationActionController::* handler)(MoveDirection,
-                                                                                         bool), MoveDirection direction, bool quickly,
+                                              void (NotationActionController::* handler)(MoveDirection, bool), MoveDirection direction,
+                                              bool quickly,
                                               bool (NotationActionController::* enabler)() const)
 {
     registerAction(code, [this, handler, direction, quickly]() { (this->*handler)(direction, quickly); }, enabler);

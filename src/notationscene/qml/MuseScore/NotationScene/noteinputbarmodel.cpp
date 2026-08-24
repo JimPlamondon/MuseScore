@@ -719,6 +719,7 @@ MenuItemList NoteInputBarModel::makeTextItems()
         makeSeparator(),
         makeMenuItem("sticking-text"),
         makeMenuItem("chord-text"),
+        makeMenuItem("jims-chord-name-text"),
         makeMenuItem("roman-numeral-text"),
         makeMenuItem("nashville-number-text"),
         makeMenuItem("lyrics"),
@@ -747,6 +748,7 @@ MenuItemList NoteInputBarModel::makeChordAndFretboardDiagramsItems()
 {
     MenuItemList items {
         makeMenuItem("chord-text"),
+        makeMenuItem("jims-chord-name-text"),
         makeMenuItem("add-fretboard-diagram"),
         makeSeparator(),
         makeMenuItem("insert-fretframe", TranslatableString("notation", "Fretboard diagram legend"))

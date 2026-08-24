@@ -114,6 +114,7 @@ class Excerpt;
 class FiguredBass;
 class Hairpin;
 class Harmony;
+enum class HarmonyType : unsigned char;
 class InstrumentTemplate;
 class InputState;
 class KeyList;
@@ -573,6 +574,7 @@ public:
 
     Slur* addSlur(ChordRest* firstChordRest, ChordRest* secondChordRest, const Slur* slurTemplate);
     TextBase* addText(TextStyleType type, EngravingItem* destinationElement = nullptr);
+    Harmony* addHarmony(HarmonyType type, EngravingItem* destinationElement);
 
     void deleteItem(EngravingItem*);
     void deleteMeasures(MeasureBase* firstMeasure, MeasureBase* lastMeasure, bool preserveTies = false);
