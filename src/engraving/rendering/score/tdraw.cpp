@@ -2759,10 +2759,10 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
         }
 
         // System-head header (owner rulings 2026-08-14): scale-dot
-        // column, tonic indicator, and one crescent clef PER STAVE
-        // SEGMENT — whole segments get the full variant-3 crescent,
-        // partial segments get the patent's sliced crescent: the glyph
-        // clipped at the cut and closed by a new horizontal line there.
+        // column, tonic indicator, and the continuous series of crescent
+        // clefs through every visible stave segment. Partial periods get
+        // the patent's sliced crescent: the glyph clipped at the cut and
+        // closed by a new horizontal line there.
         // All ordinates come from the Kernel (frame cache + render
         // geometry); drawing is the only thing happening here.
         const Staff* jimsStaff = item->staff();
@@ -3012,47 +3012,48 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             }
 
             // Crescents, drawn last so their white bodies occlude the
-            // support lines. A segment's crescent belongs to its period:
-            // whole -> full crescent; partial -> the full-period crescent
-            // CLIPPED to the segment band and closed by a horizontal
-            // line at each cut edge (the patent mechanism, J4.001).
+            // support lines. Draw every Do-to-Do crescent whose period
+            // intersects the segment. Each crescent is clipped to the
+            // segment band and closed by a horizontal line wherever a
+            // segment edge cuts through it (the patent mechanism, J4.001).
             for (const StaffType::JimsFrameBand& band : view.bands) {
                 for (const StaffType::JimsSegment& segment : band.segments) {
                     double periodFloor = origins.doCentsAboveExtentLower
                                          + std::floor((segment.lowerCents - origins.doCentsAboveExtentLower)
                                                       / periodCents + epsilon) * periodCents;
-                    double periodTopY = yOf(periodFloor + periodCents);
-                    double segTopY = yOf(segment.upperCents);
-                    double segBottomY = yOf(segment.lowerCents);
+                    const double segTopY = yOf(segment.upperCents);
+                    const double segBottomY = yOf(segment.lowerCents);
                     painter->save();
                     painter->setClipRect(RectF(clefLeft - _spatium, segTopY - item->lw(),
                                                clefRx + 2.0 * _spatium,
                                                segBottomY - segTopY + 2.0 * item->lw()));
-                    PainterPath crescent;
-                    crescent.moveTo(clefRight, periodTopY);
-                    crescent.arcTo(RectF(clefRight - clefRx, periodTopY, 2.0 * clefRx, 2.0 * clefRy),
-                                   90.0, 180.0);
-                    crescent.arcTo(RectF(clefRight - clefRy, periodTopY, 2.0 * clefRy, 2.0 * clefRy),
-                                   270.0, -180.0);
-                    crescent.closeSubpath();
-                    painter->setPen(Pen(item->curColor(opt), item->lw() * 1.5, PenStyle::SolidLine));
-                    painter->setBrush(Brush(Color::WHITE));
-                    painter->drawPath(crescent);
-                    painter->setBrush(BrushStyle::NoBrush);
-                    if (!segment.whole) {
-                        // Closure lines at the cut edges that are not period
-                        // boundaries: the horizontal line that closes the
-                        // sliced glyph.
-                        auto isBoundary = [&](double cents) {
-                            double nearest = std::round(cents / periodCents) * periodCents;
-                            return std::abs(cents - nearest) < epsilon;
-                        };
-                        painter->setPen(Pen(item->curColor(opt), item->lw() * 1.5,
-                                            PenStyle::SolidLine, PenCapStyle::FlatCap));
-                        // The closure spans the GLYPH at the cut height —
+                    for (; periodFloor < segment.upperCents - epsilon; periodFloor += periodCents) {
+                        const double periodCeiling = periodFloor + periodCents;
+                        // Extend this segment's affine cents-to-y mapping to
+                        // the full period. The global view mapping compresses
+                        // gaps between hollow-stack bands and would deform a
+                        // crescent whose hidden portion crosses such a gap.
+                        const double periodTopY
+                            = segTopY + (segment.upperCents - periodCeiling)
+                              / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * dist;
+                        PainterPath crescent;
+                        crescent.moveTo(clefRight, periodTopY);
+                        crescent.arcTo(RectF(clefRight - clefRx, periodTopY, 2.0 * clefRx, 2.0 * clefRy),
+                                       90.0, 180.0);
+                        crescent.arcTo(RectF(clefRight - clefRy, periodTopY, 2.0 * clefRy, 2.0 * clefRy),
+                                       270.0, -180.0);
+                        crescent.closeSubpath();
+                        painter->setPen(Pen(item->curColor(opt), item->lw() * 1.5, PenStyle::SolidLine));
+                        painter->setBrush(Brush(Color::WHITE));
+                        painter->drawPath(crescent);
+                        painter->setBrush(BrushStyle::NoBrush);
+
+                        // The closure spans the glyph at the cut height —
                         // outer arc to inner arc — never the bounding box
                         // (owner correction 2026-08-14). Both arcs share the
                         // vertical semi-axis clefRy about the period middle.
+                        painter->setPen(Pen(item->curColor(opt), item->lw() * 1.5,
+                                            PenStyle::SolidLine, PenCapStyle::FlatCap));
                         const double arcCenterY = periodTopY + clefRy;
                         auto closeGlyph = [&](double yCut) {
                             double t = (yCut - arcCenterY) / clefRy;
@@ -3060,10 +3061,12 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                             painter->drawLine(LineF(clefRight - clefRx * s, yCut,
                                                     clefRight - clefRy * s, yCut));
                         };
-                        if (!isBoundary(segment.upperCents)) {
+                        if (segment.upperCents > periodFloor + epsilon
+                            && segment.upperCents < periodCeiling - epsilon) {
                             closeGlyph(segTopY);
                         }
-                        if (!isBoundary(segment.lowerCents)) {
+                        if (segment.lowerCents > periodFloor + epsilon
+                            && segment.lowerCents < periodCeiling - epsilon) {
                             closeGlyph(segBottomY);
                         }
                     }

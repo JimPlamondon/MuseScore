@@ -829,8 +829,10 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8OctaveLabelsNameTheirRowEverywher
 //   (a) every solid red guide line is a Do row (cents = 0 mod period), every
 //       Do row inside a drawn segment has one, and no dashed scaffold line
 //       lies on a Do row — in every measure, head or not;
-//   (b) at every system head, every crescent horn is a Do row and every drawn
-//       red line has a crescent horn on it (the clef points at the Do line);
+//   (b) at every system head, every segment draws every Do-to-Do crescent
+//       period that intersects it; every crescent horn is a Do row and every
+//       red line carries every adjoining horn (two for an interior Do in one
+//       segment; more where multiple visible segments share that Do row);
 //   (c) the Kernel's Do dot stack sits at 0 cents and its glyph is drawn on
 //       the red line of every period drawn.
 TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsAndDoDots)
@@ -839,6 +841,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
     struct HeadPaint {
         std::vector<double> redYs;                        // solid red polylines
         std::vector<std::pair<double, double> > horns;    // crescent top / bottom
+        std::vector<double> closureYs;                    // clipped-crescent horizontal closures
         std::vector<PointF> glyphs;                       // single-codepoint (music-font) glyph origins
     };
     auto paintOf = [&](const StaffLines* lines) {
@@ -858,6 +861,13 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                         && state.pen.style() == PenStyle::SolidLine && state.pen.color() == RED
                         && std::abs(poly.polygon[0].y() - poly.polygon[1].y()) < EPS) {
                         out.redYs.push_back(poly.polygon[0].y());
+                    } else if (poly.mode == PolygonMode::Polyline && poly.polygon.size() == 2
+                               && state.pen.style() == PenStyle::SolidLine
+                               && state.pen.color() == Color::BLACK
+                               && state.pen.capStyle() == PenCapStyle::FlatCap
+                               && std::abs(state.pen.widthF() - lines->lw() * 1.5) < EPS
+                               && std::abs(poly.polygon[0].y() - poly.polygon[1].y()) < EPS) {
+                        out.closureYs.push_back(poly.polygon[0].y());
                     }
                 }
                 for (const DrawPath& path : d.paths) {
@@ -990,37 +1000,69 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                 // (b) horns are Do rows; every red line has a horn on it.
                 const HeadPaint paint = paintOf(lines);
                 EXPECT_EQ(paint.redYs.size(), redYs.size()) << what;
-                size_t segments = 0;
+                std::vector<std::pair<double, double> > expectedHorns;
+                std::vector<double> expectedClosureYs;
                 for (const StaffType::JimsFrameBand& band : v.bands) {
-                    segments += band.segments.size();
-                }
-                EXPECT_EQ(paint.horns.size(), segments) << what << " one crescent per segment";
-                auto isSegmentEdge = [&](double cents) {
-                    for (const StaffType::JimsFrameBand& band : v.bands) {
-                        for (const StaffType::JimsSegment& segment : band.segments) {
-                            if (std::abs(cents - segment.lowerCents) < 1e-3
-                                || std::abs(cents - segment.upperCents) < 1e-3) {
-                                return true;
+                    for (const StaffType::JimsSegment& segment : band.segments) {
+                        const double segmentTopY
+                            = topY + v.yLdFromCents(segment.upperCents) * ldSp;
+                        double periodFloor = origins.doCentsAboveExtentLower
+                                             + std::floor((segment.lowerCents
+                                                           - origins.doCentsAboveExtentLower)
+                                                          / period + 1e-6) * period;
+                        for (; periodFloor < segment.upperCents - 1e-6; periodFloor += period) {
+                            const double periodTopY
+                                = segmentTopY + (segment.upperCents - (periodFloor + period))
+                                  / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * ldSp;
+                            expectedHorns.push_back({ periodTopY,
+                                                      periodTopY + period
+                                                      / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * ldSp });
+                            const double periodCeiling = periodFloor + period;
+                            if (segment.upperCents > periodFloor + 1e-6
+                                && segment.upperCents < periodCeiling - 1e-6) {
+                                expectedClosureYs.push_back(segmentTopY);
+                            }
+                            if (segment.lowerCents > periodFloor + 1e-6
+                                && segment.lowerCents < periodCeiling - 1e-6) {
+                                expectedClosureYs.push_back(topY + v.yLdFromCents(segment.lowerCents) * ldSp);
                             }
                         }
                     }
-                    return false;
-                };
-                for (const auto& h : paint.horns) {
-                    const double upper = centsOfY(h.first);
-                    const double lower = centsOfY(h.second);
-                    EXPECT_TRUE(isDoRow(upper, period, origins.doCentsAboveExtentLower) || isSegmentEdge(upper))
-                        << what << " upper horn is neither Do nor a clipped segment edge";
-                    EXPECT_TRUE(isDoRow(lower, period, origins.doCentsAboveExtentLower) || isSegmentEdge(lower))
-                        << what << " lower horn is neither Do nor a clipped segment edge";
+                }
+                EXPECT_EQ(paint.horns.size(), expectedHorns.size())
+                    << what << " every crescent period intersecting each segment";
+                std::vector<std::pair<double, double> > actualHorns = paint.horns;
+                std::sort(expectedHorns.begin(), expectedHorns.end());
+                std::sort(actualHorns.begin(), actualHorns.end());
+                for (size_t i = 0; i < std::min(actualHorns.size(), expectedHorns.size()); ++i) {
+                    EXPECT_NEAR(actualHorns[i].first, expectedHorns[i].first, 1e-6)
+                        << what << " crescent " << i << " upper Do horn";
+                    EXPECT_NEAR(actualHorns[i].second, expectedHorns[i].second, 1e-6)
+                        << what << " crescent " << i << " lower Do horn";
+                }
+                std::vector<double> actualClosureYs = paint.closureYs;
+                std::sort(expectedClosureYs.begin(), expectedClosureYs.end());
+                std::sort(actualClosureYs.begin(), actualClosureYs.end());
+                ASSERT_EQ(actualClosureYs.size(), expectedClosureYs.size())
+                    << what << " every clipped crescent edge must be closed";
+                for (size_t i = 0; i < expectedClosureYs.size(); ++i) {
+                    EXPECT_NEAR(actualClosureYs[i], expectedClosureYs[i], 1e-6)
+                        << what << " clipped crescent closure " << i;
                 }
                 for (double y : redYs) {
-                    bool hornOnLine = false;
-                    for (const auto& h : paint.horns) {
-                        hornOnLine = hornOnLine || std::abs(h.first - y) < 1e-6 || std::abs(h.second - y) < 1e-6;
+                    const double redCents = centsOfY(y);
+                    int expectedHornsOnLine = 0;
+                    for (const auto& h : expectedHorns) {
+                        expectedHornsOnLine += std::abs(h.first - y) < 1e-6 ? 1 : 0;
+                        expectedHornsOnLine += std::abs(h.second - y) < 1e-6 ? 1 : 0;
                     }
-                    EXPECT_TRUE(hornOnLine) << what << " no crescent horn on the Do line at "
-                                            << centsOfY(y) << " cents";
+                    int hornsOnLine = 0;
+                    for (const auto& h : paint.horns) {
+                        hornsOnLine += std::abs(h.first - y) < 1e-6 ? 1 : 0;
+                        hornsOnLine += std::abs(h.second - y) < 1e-6 ? 1 : 0;
+                    }
+                    EXPECT_EQ(hornsOnLine, expectedHornsOnLine)
+                        << what << " Do line must carry every adjoining crescent horn at " << redCents << " cents";
                 }
                 // (c) the Do glyph sits on every drawn red line.
                 SymId doSym = SymId::noSym;

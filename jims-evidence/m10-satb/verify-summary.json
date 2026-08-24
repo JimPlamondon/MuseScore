@@ -721,25 +721,41 @@
               "voice": "soprano",
               "actual_y": 236,
               "expected_y": 235.75,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 46,
+              "lower_horn_ink": 42,
+              "top_closure_run": 16,
+              "bottom_closure_run": 16
             },
             {
               "voice": "alto",
               "actual_y": 471,
               "expected_y": 471.5,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 41,
+              "lower_horn_ink": 48,
+              "top_closure_run": 14,
+              "bottom_closure_run": 14
             },
             {
               "voice": "tenor",
               "actual_y": 608,
               "expected_y": 607.8333333333334,
-              "tolerance": 5.88
+              "tolerance": 5.88,
+              "upper_horn_ink": 45,
+              "lower_horn_ink": 45,
+              "top_closure_run": 17,
+              "bottom_closure_run": 17
             },
             {
               "voice": "bass",
               "actual_y": 810,
               "expected_y": 810.0,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 42,
+              "lower_horn_ink": 48,
+              "top_closure_run": 17,
+              "bottom_closure_run": 16
             }
           ]
         }
@@ -757,25 +773,41 @@
               "voice": "soprano",
               "actual_y": 153,
               "expected_y": 152.75,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 43,
+              "lower_horn_ink": 49,
+              "top_closure_run": 15,
+              "bottom_closure_run": 16
             },
             {
               "voice": "alto",
               "actual_y": 342,
               "expected_y": 341.5,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 49,
+              "lower_horn_ink": 45,
+              "top_closure_run": 14,
+              "bottom_closure_run": 14
             },
             {
               "voice": "tenor",
               "actual_y": 431,
               "expected_y": 431.25,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 46,
+              "lower_horn_ink": 49,
+              "top_closure_run": 17,
+              "bottom_closure_run": 17
             },
             {
               "voice": "bass",
               "actual_y": 587,
               "expected_y": 587.0,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 47,
+              "lower_horn_ink": 43,
+              "top_closure_run": 16,
+              "bottom_closure_run": 17
             }
           ]
         },
@@ -786,25 +818,41 @@
               "voice": "soprano",
               "actual_y": 724,
               "expected_y": 723.75,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 47,
+              "lower_horn_ink": 45,
+              "top_closure_run": 15,
+              "bottom_closure_run": 15
             },
             {
               "voice": "alto",
               "actual_y": 913,
               "expected_y": 912.5,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 46,
+              "lower_horn_ink": 39,
+              "top_closure_run": 14,
+              "bottom_closure_run": 14
             },
             {
               "voice": "tenor",
               "actual_y": 1002,
               "expected_y": 1002.25,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 43,
+              "lower_horn_ink": 49,
+              "top_closure_run": 17,
+              "bottom_closure_run": 17
             },
             {
               "voice": "bass",
               "actual_y": 1158,
               "expected_y": 1158.0,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 49,
+              "lower_horn_ink": 44,
+              "top_closure_run": 17,
+              "bottom_closure_run": 16
             }
           ]
         }
@@ -822,25 +870,41 @@
               "voice": "soprano",
               "actual_y": 236,
               "expected_y": 235.75,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 46,
+              "lower_horn_ink": 42,
+              "top_closure_run": 16,
+              "bottom_closure_run": 16
             },
             {
               "voice": "alto",
               "actual_y": 471,
               "expected_y": 471.5,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 41,
+              "lower_horn_ink": 48,
+              "top_closure_run": 14,
+              "bottom_closure_run": 14
             },
             {
               "voice": "tenor",
               "actual_y": 608,
               "expected_y": 607.8333333333334,
-              "tolerance": 5.88
+              "tolerance": 5.88,
+              "upper_horn_ink": 45,
+              "lower_horn_ink": 45,
+              "top_closure_run": 17,
+              "bottom_closure_run": 17
             },
             {
               "voice": "bass",
               "actual_y": 810,
               "expected_y": 810.0,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 42,
+              "lower_horn_ink": 48,
+              "top_closure_run": 17,
+              "bottom_closure_run": 16
             }
           ]
         }
@@ -858,25 +922,41 @@
               "voice": "soprano",
               "actual_y": 153,
               "expected_y": 152.75,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 43,
+              "lower_horn_ink": 49,
+              "top_closure_run": 15,
+              "bottom_closure_run": 16
             },
             {
               "voice": "alto",
               "actual_y": 342,
               "expected_y": 341.5,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 49,
+              "lower_horn_ink": 45,
+              "top_closure_run": 14,
+              "bottom_closure_run": 14
             },
             {
               "voice": "tenor",
               "actual_y": 431,
               "expected_y": 431.25,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 46,
+              "lower_horn_ink": 49,
+              "top_closure_run": 17,
+              "bottom_closure_run": 17
             },
             {
               "voice": "bass",
               "actual_y": 587,
               "expected_y": 587.0,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 47,
+              "lower_horn_ink": 43,
+              "top_closure_run": 16,
+              "bottom_closure_run": 17
             }
           ]
         },
@@ -887,25 +967,41 @@
               "voice": "soprano",
               "actual_y": 724,
               "expected_y": 723.75,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 47,
+              "lower_horn_ink": 45,
+              "top_closure_run": 15,
+              "bottom_closure_run": 15
             },
             {
               "voice": "alto",
               "actual_y": 913,
               "expected_y": 912.5,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 46,
+              "lower_horn_ink": 39,
+              "top_closure_run": 14,
+              "bottom_closure_run": 14
             },
             {
               "voice": "tenor",
               "actual_y": 1002,
               "expected_y": 1002.25,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 43,
+              "lower_horn_ink": 49,
+              "top_closure_run": 17,
+              "bottom_closure_run": 17
             },
             {
               "voice": "bass",
               "actual_y": 1158,
               "expected_y": 1158.0,
-              "tolerance": 5.9399999999999995
+              "tolerance": 5.9399999999999995,
+              "upper_horn_ink": 49,
+              "lower_horn_ink": 44,
+              "top_closure_run": 17,
+              "bottom_closure_run": 16
             }
           ]
         }
