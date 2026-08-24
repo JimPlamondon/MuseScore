@@ -5,9 +5,9 @@
  * JiMStaff Milestone 3 — the shared continuous-tuning controller. One
  * semantic seam for every tuning-control surface (panel slider, numeric
  * field, scripted evidence sweeps): it replaces ONLY generator_cents
- * across every JiMS state span of one staff (the base StaffType and
- * every measure-boundary StaffTypeChange), invalidates the derived
- * caches, and relays out — the Kernel re-derives every musical fact.
+ * across every state span of every JiMS staff in the score (each base
+ * StaffType and every measure-boundary StaffTypeChange), invalidates the
+ * derived caches, and relays out — the Kernel re-derives every musical fact.
  *
  * Undo semantics (binding, 2026-08-14): previews are transient and
  * create no undo entries; commit lands exactly one undoable edit;
@@ -23,7 +23,6 @@
 namespace mu::engraving {
 class Score;
 class Staff;
-class StaffTypeChange;
 }
 
 namespace mu::engraving::jims {
@@ -32,10 +31,10 @@ class TuningController
 public:
     TuningController(Score* score, staff_idx_t staffIdx);
 
-    /// The staff's current generator width, read through the Kernel.
+    /// The selected staff's current generator width, read through the Kernel.
     double currentGeneratorCents() const;
 
-    /// Capture the pre-drag spans. True if the staff is a JiMS staff.
+    /// Capture the pre-drag score-wide JiMS spans. True if the selected staff is JiMS.
     bool beginPreview();
 
     /// Transient per-tick update: every span's generator_cents replaced,
@@ -56,7 +55,8 @@ public:
 
 private:
     struct Span {
-        StaffTypeChange* change = nullptr;   // null = the base StaffType
+        Staff* staff = nullptr;
+        Fraction tick;
         muse::String stateJson;
     };
 

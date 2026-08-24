@@ -7,6 +7,8 @@
 
 #include <gtest/gtest.h>
 
+#include <functional>
+
 #include "engraving/dom/chord.h"
 #include "engraving/dom/instrument.h"
 #include "engraving/dom/masterscore.h"
@@ -16,15 +18,23 @@
 #include "engraving/dom/score.h"
 #include "engraving/dom/segment.h"
 #include "engraving/dom/staff.h"
+#include "engraving/dom/stafflines.h"
 #include "engraving/dom/stafftype.h"
+#include "engraving/dom/system.h"
 #include "engraving/editing/editscoreproperties.h"
 #include "engraving/jims/jimsbridge.h"
 #include "engraving/jims/jimschange.h"
 #include "engraving/jims/jimschangecontroller.h"
+#include "engraving/jims/jimstuningcontroller.h"
+#include "draw/bufferedpaintprovider.h"
+#include "draw/painter.h"
 
 #include "utils/scorerw.h"
 
 using namespace mu::engraving;
+using namespace mu::engraving::rendering;
+using namespace muse;
+using namespace muse::draw;
 
 namespace {
 muse::String forkRoot()
@@ -78,6 +88,142 @@ muse::String extentXml(const muse::String& state)
     const size_t end = begin == muse::nidx ? muse::nidx : xml.indexOf(u"/>", begin);
     return begin == muse::nidx || end == muse::nidx ? muse::String() : xml.mid(begin, end + 2 - begin);
 }
+
+double generatorCents(const StaffType* type)
+{
+    double generator = 0.0;
+    double period = 0.0;
+    return type && jims::staffMetrics(type->jimsStateJson(), generator, period) ? generator : -1.0;
+}
+
+std::vector<String> textsOf(const StaffLines* lines)
+{
+    std::shared_ptr<BufferedPaintProvider> provider = std::make_shared<BufferedPaintProvider>();
+    Painter painter(provider, "m10");
+    painter.setViewport(RectF(0, 0, 4000, 4000));
+    PaintOptions options;
+    lines->renderer()->drawItem(lines, &painter, options);
+    painter.endDraw();
+    std::vector<String> texts;
+    std::function<void(const DrawData::Item&)> walk = [&](const DrawData::Item& item) {
+        for (const DrawData::Data& data : item.datas) {
+            for (const DrawText& text : data.texts) {
+                texts.push_back(text.text);
+            }
+        }
+        for (const DrawData::Item& child : item.chilren) {
+            walk(child);
+        }
+    };
+    walk(provider->drawData()->item);
+    return texts;
+}
+
+size_t tuningLabelCount(const StaffLines* lines)
+{
+    size_t count = 0;
+    for (const String& text : textsOf(lines)) {
+        count += text.startsWith(u"M5=") ? 1 : 0;
+    }
+    return count;
+}
+}
+
+TEST(Engraving_JiMStaffM10SATBTests, tuningFromAnyVoiceIsSharedAndOneUndoStepPreservesEveryExtent)
+{
+    MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
+    ASSERT_TRUE(score);
+    ASSERT_EQ(score->nstaves(), 4u);
+    Measure* second = score->firstMeasure()->nextMeasure();
+    ASSERT_TRUE(second);
+    String error;
+    ASSERT_TRUE(jims::applyChangeToAllJimsParts(score, second, { u"mode:1" }, error)) << error.toStdString();
+    String originalStates[4][2];
+    String originalExtents[4][2];
+    for (staff_idx_t i = 0; i < 4; ++i) {
+        const Fraction ticks[2] = { Fraction(0, 1), second->tick() };
+        for (size_t span = 0; span < 2; ++span) {
+            const StaffType* type = score->staff(i)->staffType(ticks[span]);
+            ASSERT_TRUE(type && type->isJiMS());
+            originalStates[i][span] = type->jimsStateJson();
+            originalExtents[i][span] = extentXml(originalStates[i][span]);
+            EXPECT_DOUBLE_EQ(generatorCents(type), 700.0);
+        }
+    }
+    const size_t undoBefore = score->undoStack()->currentIndex();
+
+    jims::TuningController controller(score, 3);
+    ASSERT_TRUE(controller.beginPreview());
+    ASSERT_TRUE(controller.preview(690.0));
+    for (staff_idx_t i = 0; i < 4; ++i) {
+        const Fraction ticks[2] = { Fraction(0, 1), second->tick() };
+        for (size_t span = 0; span < 2; ++span) {
+            const StaffType* type = score->staff(i)->staffType(ticks[span]);
+            EXPECT_DOUBLE_EQ(generatorCents(type), 690.0) << "preview missed staff " << i << " span " << span;
+            EXPECT_EQ(extentXml(type->jimsStateJson()), originalExtents[i][span])
+                << "preview changed staff " << i << " extent span " << span;
+        }
+    }
+    EXPECT_EQ(score->undoStack()->currentIndex(), undoBefore);
+
+    controller.cancel();
+    for (staff_idx_t i = 0; i < 4; ++i) {
+        EXPECT_EQ(score->staff(i)->staffType(Fraction(0, 1))->jimsStateJson(), originalStates[i][0]);
+        EXPECT_EQ(score->staff(i)->staffType(second->tick())->jimsStateJson(), originalStates[i][1]);
+    }
+
+    ASSERT_TRUE(controller.beginPreview());
+    ASSERT_TRUE(controller.preview(690.0));
+    ASSERT_TRUE(controller.commit(690.0));
+    EXPECT_EQ(score->undoStack()->currentIndex(), undoBefore + 1);
+    for (staff_idx_t i = 0; i < 4; ++i) {
+        const Fraction ticks[2] = { Fraction(0, 1), second->tick() };
+        for (size_t span = 0; span < 2; ++span) {
+            const StaffType* type = score->staff(i)->staffType(ticks[span]);
+            EXPECT_DOUBLE_EQ(generatorCents(type), 690.0) << "commit missed staff " << i << " span " << span;
+            EXPECT_EQ(extentXml(type->jimsStateJson()), originalExtents[i][span])
+                << "commit changed staff " << i << " extent span " << span;
+        }
+    }
+    score->undoRedo(true, nullptr);
+    for (staff_idx_t i = 0; i < 4; ++i) {
+        EXPECT_EQ(score->staff(i)->staffType(Fraction(0, 1))->jimsStateJson(), originalStates[i][0]);
+        EXPECT_EQ(score->staff(i)->staffType(second->tick())->jimsStateJson(), originalStates[i][1]);
+    }
+    score->undoRedo(false, nullptr);
+    for (staff_idx_t i = 0; i < 4; ++i) {
+        EXPECT_DOUBLE_EQ(generatorCents(score->staff(i)->staffType(Fraction(0, 1))), 690.0);
+        EXPECT_DOUBLE_EQ(generatorCents(score->staff(i)->staffType(second->tick())), 690.0);
+    }
+    delete score;
+}
+
+TEST(Engraving_JiMStaffM10SATBTests, tuningIndicatorAppearsOnlyOnTheTopVisibleJimsStaff)
+{
+    MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
+    ASSERT_TRUE(score);
+    score->doLayout();
+    ASSERT_FALSE(score->systems().empty());
+    System* system = nullptr;
+    for (System* candidate : score->systems()) {
+        if (candidate->firstMeasure()) {
+            system = candidate;
+            break;
+        }
+    }
+    ASSERT_TRUE(system);
+
+    const size_t expectedWithSoprano[4] = { 1, 0, 0, 0 };
+    for (staff_idx_t i = 0; i < 4; ++i) {
+        EXPECT_EQ(tuningLabelCount(system->firstMeasure()->staffLines(i)), expectedWithSoprano[i]) << "staff " << i;
+    }
+
+    system->staff(0)->setShow(false);
+    const size_t expectedWithSopranoElided[4] = { 0, 1, 0, 0 };
+    for (staff_idx_t i = 0; i < 4; ++i) {
+        EXPECT_EQ(tuningLabelCount(system->firstMeasure()->staffLines(i)), expectedWithSopranoElided[i]) << "staff " << i;
+    }
+    delete score;
 }
 
 TEST(Engraving_JiMStaffM10SATBTests, everyEmptyVocalStaffUsesItsKernelRangeCentre)
