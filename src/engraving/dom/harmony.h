@@ -41,7 +41,8 @@ class Score;
 enum class HarmonyType : unsigned char {
     STANDARD,
     ROMAN,
-    NASHVILLE
+    NASHVILLE,
+    JIMS
 };
 
 enum class HarmonyRenderItemType : unsigned char {

@@ -7962,7 +7962,8 @@ void MusicXmlParserPass2::harmony(const String& partId, Measure* measure, const 
     const String placement = m_e.attribute("placement");
     const bool printObject = m_e.asciiAttribute("print-object") != "no";
 
-    String kind, kindText, functionText, inversionText, symbols, parens;
+    String kind, kindText, functionText, inversionText, symbols, parens, jimsChordName;
+    bool hasConventionalHarmonyChord = false;
     std::vector<HDegree> degreeList;
 
     FretDiagram* fd = nullptr;
@@ -7975,7 +7976,26 @@ void MusicXmlParserPass2::harmony(const String& partId, Measure* measure, const 
         ha->resetProperty(Pid::OFFSET);
     }
     while (m_e.readNextStartElement()) {
-        if (m_e.name() == "root") {
+        if (m_jims.isJimsElement(m_e.name(), "chord-name")) {
+            const String name = m_e.readText();
+            bool containsWhitespace = false;
+            for (size_t i = 0; i < name.size(); ++i) {
+                if (name.at(i).isSpace()) {
+                    containsWhitespace = true;
+                    break;
+                }
+            }
+            if (!jimsChordName.isEmpty() || name.isEmpty() || containsWhitespace || name.contains(u'~') || m_jims.version() < 4) {
+                m_logger->logError(
+                    u"invalid or duplicate jims:chord-name; V4 requires one nonempty whitespace-free canonical name and rejects the superseded '~' marker",
+                    &m_e);
+                m_jimsError = Err::FileBadFormat;
+            } else {
+                jimsChordName = name;
+                ha->setHarmonyType(HarmonyType::JIMS);
+            }
+        } else if (m_e.name() == "root") {
+            hasConventionalHarmonyChord = true;
             if (info->rootTpc() != Tpc::TPC_INVALID) {
                 const ChordDescription* d = harmonyFromXml(info, m_score, kind, kindText, symbols, parens, degreeList);
                 info->setId(d->id);
@@ -8010,6 +8030,7 @@ void MusicXmlParserPass2::harmony(const String& partId, Measure* measure, const 
                 info->setRootTpc(step2tpc(step, AccidentalVal(alter)));
             }
         } else if (m_e.name() == "function") {
+            hasConventionalHarmonyChord = true;
             // deprecated in MusicXML 4.0
             // attributes: print-style
             info->setRootTpc(Tpc::TPC_INVALID);
@@ -8017,6 +8038,7 @@ void MusicXmlParserPass2::harmony(const String& partId, Measure* measure, const 
             functionText = m_e.readText();
             ha->setHarmonyType(HarmonyType::ROMAN);
         } else if (m_e.name() == "numeral") {
+            hasConventionalHarmonyChord = true;
             info->setRootTpc(Tpc::TPC_INVALID);
             info->setBassTpc(Tpc::TPC_INVALID);
             while (m_e.readNextStartElement()) {
@@ -8046,6 +8068,7 @@ void MusicXmlParserPass2::harmony(const String& partId, Measure* measure, const 
                 }
             }
         } else if (m_e.name() == "kind") {
+            hasConventionalHarmonyChord = true;
             // attributes: use-symbols  yes-no
             //             text, stack-degrees, parentheses-degree, bracket-degrees,
             //             print-style, halign, valign
@@ -8057,6 +8080,7 @@ void MusicXmlParserPass2::harmony(const String& partId, Measure* measure, const 
                 info->setRootTpc(Tpc::TPC_INVALID);
             }
         } else if (m_e.name() == "inversion") {
+            hasConventionalHarmonyChord = true;
             const int inversion = m_e.readText().toInt();
             switch (inversion) {
             case 1: inversionText = u"6";
@@ -8068,6 +8092,7 @@ void MusicXmlParserPass2::harmony(const String& partId, Measure* measure, const 
                 break;
             }
         } else if (m_e.name() == "bass") {
+            hasConventionalHarmonyChord = true;
             String step;
             int alter = 0;
             while (m_e.readNextStartElement()) {
@@ -8084,6 +8109,7 @@ void MusicXmlParserPass2::harmony(const String& partId, Measure* measure, const 
             }
             info->setBassTpc(step2tpc(step, AccidentalVal(alter)));
         } else if (m_e.name() == "degree") {
+            hasConventionalHarmonyChord = true;
             int degreeValue = 0;
             int degreeAlter = 0;
             String degreeType;
@@ -8133,14 +8159,26 @@ void MusicXmlParserPass2::harmony(const String& partId, Measure* measure, const 
         }
     }
 
+    if (!jimsChordName.isEmpty() && hasConventionalHarmonyChord) {
+        m_logger->logError(
+            u"jims:chord-name replaces the conventional harmony-chord group and cannot be mixed with it in one harmony event", &m_e);
+        m_jimsError = Err::FileBadFormat;
+        ha->setHarmonyType(HarmonyType::JIMS);
+    }
+
     const ChordDescription* d = nullptr;
-    if (info->rootTpc() != Tpc::TPC_INVALID || ha->harmonyType() == HarmonyType::NASHVILLE) {
+    if (ha->harmonyType() == HarmonyType::JIMS) {
+        info->setId(-1);
+        info->setRootTpc(Tpc::TPC_INVALID);
+        info->setBassTpc(Tpc::TPC_INVALID);
+        info->setTextName(jimsChordName);
+    } else if (info->rootTpc() != Tpc::TPC_INVALID || ha->harmonyType() == HarmonyType::NASHVILLE) {
         d = harmonyFromXml(info, m_score, kind, kindText, symbols, parens, degreeList);
     }
     if (d) {
         info->setId(d->id);
         info->setTextName(d->names.front());
-    } else {
+    } else if (ha->harmonyType() != HarmonyType::JIMS) {
         info->setId(-1);
         String textName = functionText + kindText + inversionText;
         info->setTextName(textName);

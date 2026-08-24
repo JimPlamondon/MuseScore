@@ -223,7 +223,7 @@ String Harmony::harmonyName() const
 
         if (!info->textName().empty()) {
             e = info->textName();
-            if (m_harmonyType != HarmonyType::ROMAN) {
+            if (m_harmonyType == HarmonyType::STANDARD || m_harmonyType == HarmonyType::NASHVILLE) {
                 e.remove(u'=');
             }
         } else if (!m_degreeList.empty()) {
@@ -267,6 +267,9 @@ String Harmony::harmonyName() const
 
 bool Harmony::isRealizable() const
 {
+    if (m_harmonyType == HarmonyType::JIMS) {
+        return false;
+    }
     if (m_chords.empty()) {
         return false;
     }
@@ -750,6 +753,11 @@ bool Harmony::edit(EditData& ed)
     // check spelling
     String str = xmlText();
 
+    if (m_harmonyType == HarmonyType::JIMS) {
+        m_isMisspelled = false;
+        return rv;
+    }
+
     std::vector<const ChordDescription*> descriptions = parseHarmony(str, true);
     bool descriptionsValid = true;
     for (const ChordDescription* cd : descriptions) {
@@ -786,7 +794,7 @@ void Harmony::endEdit(EditData& ed)
 
     // if user explicitly added symbols to the text,
     // convert them back to their respective replacement texts
-    if (harmonyType() != HarmonyType::ROMAN) {
+    if (harmonyType() == HarmonyType::STANDARD || harmonyType() == HarmonyType::NASHVILLE) {
         s.replace(u"\u1d12b", u"bb");     // double-flat
         s.replace(u"\u266d",  u"b");      // flat
         s.replace(u"\ue260",  u"b");      // flat
@@ -828,7 +836,8 @@ void Harmony::endEdit(EditData& ed)
             // at this point chord will already have been rendered in same key as original
             // (as a result of TextBase::endEdit() calling setText() for linked elements)
             // we may now need to change the TPC's and the text, and re-render
-            if (style().styleB(Sid::concertPitch) != h->style().styleB(Sid::concertPitch)) {
+            if (harmonyType() != HarmonyType::JIMS
+                && style().styleB(Sid::concertPitch) != h->style().styleB(Sid::concertPitch)) {
                 Staff* staffDest = h->staff();
                 Segment* segment = getParentSeg();
                 Fraction tick = segment ? segment->tick() : Fraction(-1, 1);
@@ -855,7 +864,7 @@ void Harmony::endEdit(EditData& ed)
 
 bool Harmony::isPlayable() const
 {
-    return !isInFretBox();
+    return m_harmonyType != HarmonyType::JIMS && !isInFretBox();
 }
 
 //---------------------------------------------------------
@@ -865,6 +874,28 @@ bool Harmony::isPlayable() const
 void Harmony::setHarmony(const String& s)
 {
     m_realizedHarmony.setDirty(true);
+
+    if (m_harmonyType == HarmonyType::JIMS) {
+        bool containsWhitespace = false;
+        for (size_t i = 0; i < s.size(); ++i) {
+            if (s.at(i).isSpace()) {
+                containsWhitespace = true;
+                break;
+            }
+        }
+        if (s.isEmpty() || containsWhitespace || s.contains(u'~')) {
+            return;
+        }
+        muse::DeleteAll(m_chords);
+        m_chords.clear();
+        HarmonyInfo* info = new HarmonyInfo(score());
+        info->setId(-1);
+        info->setRootTpc(Tpc::TPC_INVALID);
+        info->setBassTpc(Tpc::TPC_INVALID);
+        info->setTextName(s);
+        m_chords.push_back(info);
+        return;
+    }
 
     std::vector<const ChordDescription*> descriptions = parseHarmony(s);
     for (size_t i = 0; i < m_chords.size(); i++) {
@@ -1275,6 +1306,10 @@ void Harmony::setHarmonyType(HarmonyType val)
     case HarmonyType::NASHVILLE:
         initTextStyleType(TextStyleType::HARMONY_NASHVILLE);
         break;
+    case HarmonyType::JIMS:
+        initTextStyleType(TextStyleType::HARMONY_A);
+        m_play = false;
+        break;
     }
     // TODO: convert text
 }
@@ -1290,6 +1325,8 @@ TranslatableString Harmony::typeUserName() const
         return TranslatableString("engraving", "Roman numeral");
     case HarmonyType::NASHVILLE:
         return TranslatableString("engraving", "Nashville number");
+    case HarmonyType::JIMS:
+        return TranslatableString("engraving", "JiMS chord name");
     case HarmonyType::STANDARD:
         break;
     }
@@ -1320,6 +1357,9 @@ String Harmony::screenReaderInfo() const
 
 String Harmony::generateScreenReaderInfo() const
 {
+    if (m_harmonyType == HarmonyType::JIMS) {
+        return harmonyName();
+    }
     String rez;
     for (size_t i = 0; i < m_chords.size(); i++) {
         HarmonyInfo* info = m_chords.at(i);
@@ -1385,6 +1425,7 @@ String Harmony::generateScreenReaderInfo() const
             break;
         }
         case HarmonyType::STANDARD:
+        case HarmonyType::JIMS:
         default:
             rez = String(u"%1 %2").arg(rez, tpc2name(info->rootTpc(), NoteSpellingType::STANDARD, NoteCaseType::AUTO, true));
         }
@@ -1592,6 +1633,9 @@ PropertyValue Harmony::propertyDefault(Pid id) const
         case HarmonyType::NASHVILLE:
             v = TextStyleType::HARMONY_NASHVILLE;
             break;
+        case HarmonyType::JIMS:
+            v = TextStyleType::HARMONY_A;
+            break;
         }
     }
     break;
@@ -1601,7 +1645,7 @@ PropertyValue Harmony::propertyDefault(Pid id) const
     case Pid::HARMONY_DO_NOT_STACK_MODIFIERS:
         return false;
     case Pid::PLAY:
-        v = true;
+        v = m_harmonyType != HarmonyType::JIMS;
         break;
     case Pid::OFFSET: {
         const FretDiagram* fd = explicitParent() && explicitParent()->isFretDiagram() ? toFretDiagram(explicitParent()) : nullptr;
@@ -1652,6 +1696,8 @@ Sid Harmony::getPropertyStyle(Pid pid) const
             return Sid::romanNumeralPlacement;
         case HarmonyType::NASHVILLE:
             return Sid::nashvilleNumberPlacement;
+        case HarmonyType::JIMS:
+            return Sid::harmonyPlacement;
         }
     }
     return TextBase::getPropertyStyle(pid);
