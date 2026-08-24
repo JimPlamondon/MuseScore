@@ -12,7 +12,7 @@
           <zz:generator-cents>700</zz:generator-cents>
           <zz:period-cents>1200</zz:period-cents>
           <zz:embedding large-steps="5" small-steps="2"/>
-          <zz:extent lower-do-register="4" period-count="1"/>
+          <zz:extent lower-n-per="1" lower-n-gen="-2" upper-n-per="2" upper-n-gen="-2"/>
           <zz:tonic-ambit>tonic-bounded</zz:tonic-ambit>
           <zz:reference><zz:none/></zz:reference>
         </zz:staff-state>
@@ -35,7 +35,7 @@
           <zz:generator-cents>700</zz:generator-cents>
           <zz:period-cents>1200</zz:period-cents>
           <zz:embedding large-steps="5" small-steps="2"/>
-          <zz:extent lower-do-register="4" period-count="1"/>
+          <zz:extent lower-n-per="1" lower-n-gen="-2" upper-n-per="2" upper-n-gen="-2"/>
           <zz:tonic-ambit>tonic-bounded</zz:tonic-ambit>
           <zz:reference><zz:none/></zz:reference>
         </zz:staff-state>

@@ -42,6 +42,47 @@
 #include "../types/types.h"
 
 namespace mu::engraving::jims {
+/// Explicit score-wide SATB melody designation. Soprano is the native and
+/// MusicXML default; no value is inferred from part order or note content.
+enum class MelodyPart : unsigned char {
+    Soprano,
+    Alto,
+    Tenor,
+    Bass,
+};
+
+inline muse::String melodyPartToken(MelodyPart part)
+{
+    switch (part) {
+    case MelodyPart::Soprano: return u"soprano";
+    case MelodyPart::Alto: return u"alto";
+    case MelodyPart::Tenor: return u"tenor";
+    case MelodyPart::Bass: return u"bass";
+    }
+    return u"soprano";
+}
+
+inline bool melodyPartFromToken(const muse::String& token, MelodyPart& part)
+{
+    if (token == u"soprano") {
+        part = MelodyPart::Soprano;
+        return true;
+    }
+    if (token == u"alto") {
+        part = MelodyPart::Alto;
+        return true;
+    }
+    if (token == u"tenor") {
+        part = MelodyPart::Tenor;
+        return true;
+    }
+    if (token == u"bass") {
+        part = MelodyPart::Bass;
+        return true;
+    }
+    return false;
+}
+
 /// One `jims:resource` of `jims:provenance`.
 struct ProvenanceResource {
     muse::String role;        // source | master | arrangement

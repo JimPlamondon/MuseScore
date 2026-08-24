@@ -178,7 +178,8 @@ bool JimsImportContext::parseStaffState(XmlStreamReader& e, String& json, int& s
 
     std::vector<String> steps;
     bool haveScale = false, haveColl = false, haveMode = false, haveGen = false, havePer = false, haveEmb = false, haveExt = false;
-    int collectionRotation = 0, modeRotation = 0, largeSteps = 0, smallSteps = 0, lowerDoRegister = 0, periodCount = 0;
+    int collectionRotation = 0, modeRotation = 0, largeSteps = 0, smallSteps = 0;
+    int lowerNPer = 0, lowerNGen = 0, upperNPer = 0, upperNGen = 0;
     String generatorCents, periodCents, tonicAmbit, reference;
 
     while (e.readNextStartElement()) {
@@ -211,8 +212,10 @@ bool JimsImportContext::parseStaffState(XmlStreamReader& e, String& json, int& s
                       && integer(e.attribute("small-steps"), "embedding/small-steps", smallSteps);
             e.skipCurrentElement();
         } else if (tag == u"extent") {
-            haveExt = integer(e.attribute("lower-do-register"), "extent/lower-do-register", lowerDoRegister)
-                      && integer(e.attribute("period-count"), "extent/period-count", periodCount);
+            haveExt = integer(e.attribute("lower-n-per"), "extent/lower-n-per", lowerNPer)
+                      && integer(e.attribute("lower-n-gen"), "extent/lower-n-gen", lowerNGen)
+                      && integer(e.attribute("upper-n-per"), "extent/upper-n-per", upperNPer)
+                      && integer(e.attribute("upper-n-gen"), "extent/upper-n-gen", upperNGen);
             e.skipCurrentElement();
         } else if (tag == u"tonic-ambit" || tag == u"tonic-extent") {   // owner rename 2026-08-19; the legacy spelling is still read
             tonicAmbit = e.readText().trimmed();
@@ -290,8 +293,9 @@ bool JimsImportContext::parseStaffState(XmlStreamReader& e, String& json, int& s
            + u",\"period_cents\":" + periodCents
            + u",\"embedding\":{\"large_steps\":" + String::number(largeSteps)
            + u",\"small_steps\":" + String::number(smallSteps) + u"}"
-           + u",\"extent\":{\"lower_do_register\":" + String::number(lowerDoRegister)
-           + u",\"period_count\":" + String::number(periodCount) + u"}"
+           + u",\"extent\":{\"lower\":{\"nPer\":" + String::number(lowerNPer)
+           + u",\"nGen\":" + String::number(lowerNGen) + u"},\"upper\":{\"nPer\":" + String::number(upperNPer)
+           + u",\"nGen\":" + String::number(upperNGen) + u"}}"
            + u",\"reference\":" + reference;
     if (!tonicAmbit.empty()) {
         json += String(u",\"tonic_ambit\":\"%1\"").arg(tonicAmbit);
@@ -319,30 +323,11 @@ const std::vector<JimsImportContext::BufferedState>* JimsImportContext::statesFo
 //   applyToPart
 //---------------------------------------------------------
 
-static int periodCountOf(const String& json)
-{
-    // The state's own declared period count (transcribed above; read back
-    // here so the presentation line count follows the state verbatim).
-    static const String key(u"\"period_count\":");
-    const size_t at = json.indexOf(key);
-    if (at == muse::nidx) {
-        return 1;
-    }
-    size_t end = at + key.size();
-    while (end < json.size() && (json.at(end).isDigit() || json.at(end) == u'-')) {
-        ++end;
-    }
-    bool ok = false;
-    const int n = json.mid(at + key.size(), end - at - key.size()).toInt(&ok);
-    return ok && n > 0 ? n : 1;
-}
-
 static StaffType jimsStaffTypeFor(const String& json)
 {
     // The fork's JiMS preset (jims12tet: clef/key signature/ledger lines
     // suppressed, JI lines on) with THIS state and its presentation line count.
     StaffType st = *StaffType::preset(StaffTypes::JIMS_12TET);
-    st.setLines(JimsImportContext::linesForPeriodCount(periodCountOf(json)));
     st.setJiMS(true);
     st.setJimsJiLines(true);
     st.setJimsStateJson(json);
@@ -534,11 +519,10 @@ bool JimsImportContext::checkSharedStatesAcrossParts(MusicXmlLogger* logger) con
     //
     // Narrowed by owner ruling 2026-08-22 (mirrors the export side): parts are
     // compared on the Kernel's shared projection of each state, not the raw
-    // state JSON. The projection omits the per-staff fields (frame extent,
-    // tonic-ambit), which a four-voice SATB score legitimately differs in —
-    // each voice has its own frame and its own melody — while every
-    // piece-level musical fact must still agree. The Kernel owns which fields
-    // those are; the fork compares what it is handed.
+    // state JSON. The projection omits only the per-staff extent; tonic-ambit
+    // remains compared because it is one song-wide value repeated through
+    // transport carriers. The Kernel owns the field classification; the fork
+    // compares only the projection it is handed.
     auto sharedForm = [&logger](const BufferedState& s, String& out) {
         String err;
         if (!jims::musicxmlSharedStateV3Xml(s.json, out, &err)) {

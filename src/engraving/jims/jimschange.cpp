@@ -13,16 +13,49 @@
 #include "dom/measure.h"
 #include "dom/segment.h"
 #include "dom/note.h"
+#include "dom/part.h"
+#include "dom/instrument.h"
 #include "dom/chord.h"
 #include "dom/score.h"
 #include "dom/staff.h"
 #include "dom/stafftype.h"
 #include "dom/stafftypechange.h"
 #include "dom/system.h"
+#include "editing/undo.h"
 
 using namespace muse;
 
 namespace mu::engraving::jims {
+namespace {
+class ChangeJimsExtent : public UndoCommand
+{
+    OBJECT_ALLOCATOR(engraving, ChangeJimsExtent)
+
+    Staff* m_staff = nullptr;
+    Fraction m_tick;
+    String m_state;
+
+    void flip(EditData*) override
+    {
+        StaffType* st = m_staff ? m_staff->staffType(m_tick) : nullptr;
+        if (!st) {
+            return;
+        }
+        String previous = st->jimsStateJson();
+        st->setJimsStateJson(m_state);
+        m_state = previous;
+        m_staff->staffTypeListChanged(m_tick);
+        m_staff->score()->setLayoutAll();
+    }
+
+public:
+    ChangeJimsExtent(Staff* staff, const Fraction& tick, String state)
+        : m_staff(staff), m_tick(tick), m_state(std::move(state)) {}
+    UNDO_NAME("ChangeJimsExtent")
+    UNDO_CHANGED_OBJECTS({ m_staff })
+};
+}
+
 const StaffTypeChange* changeCarrier(const Measure* measure, staff_idx_t staffIdx)
 {
     if (!measure) {
@@ -261,7 +294,171 @@ std::vector<double> changeIndicatorOverflowCents(const StaffType::JimsFrameView&
     return out;
 }
 
+static bool partHasVocalRole(const Part* part, const String& role)
+{
+    if (!part) {
+        return false;
+    }
+    const String id = part->instrumentId();
+    return id == role || id == u"voice." + role;
+}
+
 int deriveTonicAmbits(Score* score)
+{
+    if (!score) {
+        return 0;
+    }
+    const String wanted = melodyPartToken(score->jimsMelodyPart());
+    Staff* melodyStaff = nullptr;
+    for (Part* part : score->parts()) {
+        if (partHasVocalRole(part, wanted) && !part->staves().empty()) {
+            melodyStaff = part->staves().front();
+            break;
+        }
+    }
+    if (!melodyStaff) {
+        return 0;
+    }
+    const staff_idx_t melodyStaffIdx = melodyStaff->idx();
+    int changed = 0;
+    // Section starts come from the explicitly designated melody staff.
+    std::vector<Fraction> starts = { Fraction(0, 1) };
+    for (const Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
+        if (changeCarrier(m, melodyStaffIdx) && m->tick() > Fraction(0, 1)) {
+            starts.push_back(m->tick());
+        }
+    }
+    for (size_t i = 0; i < starts.size(); ++i) {
+        StaffType* authority = melodyStaff->staffType(starts[i]);
+        if (!authority || !authority->isJiMS() || authority->jimsStateJson().isEmpty()) {
+            continue;
+        }
+        const bool bounded = i + 1 < starts.size();
+        const Fraction end = bounded ? starts[i + 1] : Fraction(0, 1);
+        String melody = u"{\"notes\":[";
+        bool first = true;
+        for (const Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
+             seg = seg->next1(SegmentType::ChordRest)) {
+            if (seg->tick() < starts[i]) {
+                continue;
+            }
+            if (bounded && seg->tick() >= end) {
+                break;
+            }
+            for (track_idx_t track = melodyStaffIdx * VOICES; track < (melodyStaffIdx + 1) * VOICES; ++track) {
+                const EngravingItem* el = seg->element(track);
+                if (!el || !el->isChord()) {
+                    continue;
+                }
+                for (const Note* note : toChord(el)->notes()) {
+                    if (!note->hasJimsPitch()) {
+                        continue;
+                    }
+                    if (!first) {
+                        melody += u",";
+                    }
+                    melody += String(u"{\"nPer\":%1,\"nGen\":%2}").arg(note->jimsNPer()).arg(note->jimsNGen());
+                    first = false;
+                }
+            }
+        }
+        melody += u"]}";
+        if (first) {
+            continue;
+        }
+        String token;
+        String error;
+        if (!tonicAmbitForMelody(authority->jimsStateJson(), melody, token, &error)) {
+            continue;
+        }
+        // The identical Kernel token is repeated through every staff carrier;
+        // repetition is transport, never a second authority.
+        for (staff_idx_t staffIdx = 0; staffIdx < score->nstaves(); ++staffIdx) {
+            Staff* staff = score->staff(staffIdx);
+            StaffType* st = staff ? staff->staffType(starts[i]) : nullptr;
+            if (!st || !st->isJiMS() || token == st->jimsTonicAmbit()) {
+                continue;
+            }
+            String state = st->jimsStateJson();
+            static const String key = u"\"tonic_ambit\":\"";
+            const size_t at = state.indexOf(key);
+            if (at != muse::nidx) {
+                const size_t from = at + key.size();
+                const size_t to = state.indexOf(u'"', from);
+                if (to == muse::nidx) {
+                    continue;
+                }
+                state = state.left(from) + token + state.mid(to);
+            } else {
+                const size_t close = state.lastIndexOf(u'}');
+                if (close == muse::nidx) {
+                    continue;
+                }
+                state = state.left(close) + u",\"tonic_ambit\":\"" + token + u"\"}";
+            }
+            st->setJimsStateJson(state);
+            ++changed;
+        }
+    }
+    return changed;
+}
+
+static const char* vocalRole(const Part* part)
+{
+    if (partHasVocalRole(part, u"soprano")) {
+        return "soprano";
+    }
+    if (partHasVocalRole(part, u"alto")) {
+        return "alto";
+    }
+    if (partHasVocalRole(part, u"tenor")) {
+        return "tenor";
+    }
+    if (partHasVocalRole(part, u"bass")) {
+        return "bass";
+    }
+    return nullptr;
+}
+
+bool defaultExtentForEmptyStaffSpan(const Staff* staff, const Fraction& start,
+                                    const Measure* stop, const String& state,
+                                    String& updated)
+{
+    updated = state;
+    if (!staff || !staff->score()) {
+        return false;
+    }
+    const char* role = vocalRole(staff->part());
+    if (!role) {
+        return true;
+    }
+    const staff_idx_t staffIdx = staff->idx();
+    for (const Segment* seg = staff->score()->firstSegment(SegmentType::ChordRest); seg;
+         seg = seg->next1(SegmentType::ChordRest)) {
+        if (seg->tick() < start) {
+            continue;
+        }
+        if (stop && seg->tick() >= stop->tick()) {
+            break;
+        }
+        for (track_idx_t track = staffIdx * VOICES; track < (staffIdx + 1) * VOICES; ++track) {
+            const EngravingItem* el = seg->element(track);
+            if (!el || !el->isChord()) {
+                continue;
+            }
+            for (const Note* note : toChord(el)->notes()) {
+                if (note->hasJimsPitch()) {
+                    return true;
+                }
+            }
+        }
+    }
+    const Instrument* instrument = staff->part()->instrument();
+    return instrument
+           && defaultVocalExtent(state, instrument->minPitchA(), instrument->maxPitchA(), role, updated);
+}
+
+int reconcileExtents(Score* score)
 {
     if (!score) {
         return 0;
@@ -272,7 +469,6 @@ int deriveTonicAmbits(Score* score)
         if (!staff) {
             continue;
         }
-        // Section starts: tick 0 (the base type) and every JiMS carrier.
         std::vector<Fraction> starts = { Fraction(0, 1) };
         for (const Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
             if (changeCarrier(m, staffIdx) && m->tick() > Fraction(0, 1)) {
@@ -281,17 +477,14 @@ int deriveTonicAmbits(Score* score)
         }
         for (size_t i = 0; i < starts.size(); ++i) {
             StaffType* st = staff->staffType(starts[i]);
-            if (!st || !st->isJiMS() || st->jimsStateJson().isEmpty()) {
+            if (!st || !st->isJiMS()) {
                 continue;
             }
             const bool bounded = i + 1 < starts.size();
             const Fraction end = bounded ? starts[i + 1] : Fraction(0, 1);
-            // The section's melody: every JiMS note on this staff, all voices,
-            // every chord note, in [start, end).
             String melody = u"{\"notes\":[";
             bool first = true;
-            for (const Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
-                 seg = seg->next1(SegmentType::ChordRest)) {
+            for (const Segment* seg = score->firstSegment(SegmentType::ChordRest); seg; seg = seg->next1(SegmentType::ChordRest)) {
                 if (seg->tick() < starts[i]) {
                     continue;
                 }
@@ -316,41 +509,50 @@ int deriveTonicAmbits(Score* score)
                 }
             }
             melody += u"]}";
-            if (first) {
-                continue;   // no notes: the declared token stands
-            }
-            String token;
-            String error;
-            if (!tonicAmbitForMelody(st->jimsStateJson(), melody, token, &error)) {
-                // Wider than the classifier's window (or a Kernel refusal): the
-                // declared token stands — never a third value, never a guess.
-                continue;
-            }
-            if (token == st->jimsTonicAmbit()) {
-                continue;
-            }
-            // Store: rewrite the state's tonic_ambit value (or append the field).
-            String state = st->jimsStateJson();
-            static const String key = u"\"tonic_ambit\":\"";
-            const size_t at = state.indexOf(key);
-            if (at != muse::nidx) {
-                const size_t from = at + key.size();
-                const size_t to = state.indexOf(u'"', from);
-                if (to == muse::nidx) {
-                    continue;
-                }
-                state = state.left(from) + token + state.mid(to);
+            String updated;
+            bool ok = false;
+            if (!first) {
+                ok = fitExtent(st->jimsStateJson(), melody, updated);
             } else {
-                const size_t close = state.lastIndexOf(u'}');
-                if (close == muse::nidx) {
-                    continue;
-                }
-                state = state.left(close) + u",\"tonic_ambit\":\"" + token + u"\"}";
+                ok = defaultExtentForEmptyStaffSpan(staff, starts[i], bounded ? score->tick2measure(end) : nullptr,
+                                                    st->jimsStateJson(), updated);
             }
-            st->setJimsStateJson(state);
-            ++changed;
+            if (ok && updated != st->jimsStateJson()) {
+                st->setJimsStateJson(updated);
+                ++changed;
+            }
         }
     }
     return changed;
+}
+
+bool widenExtentForNote(Note* note)
+{
+    if (!note || !note->staff() || !note->hasJimsPitch()) {
+        return false;
+    }
+    StaffType* st = note->staff()->staffType(note->tick());
+    if (!st || !st->isJiMS()) {
+        return false;
+    }
+    String updated;
+    const bool changed = widenExtent(st->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), updated)
+                         && updated != st->jimsStateJson();
+    if (changed) {
+        note->score()->undo(new ChangeJimsExtent(note->staff(), note->tick(), updated));
+    }
+    designatedMelodyNoteChanged(note);
+    return changed;
+}
+
+void designatedMelodyNoteChanged(Note* note)
+{
+    if (!note || !note->score() || !note->part()) {
+        return;
+    }
+    const String wanted = melodyPartToken(note->score()->jimsMelodyPart());
+    if (partHasVocalRole(note->part(), wanted)) {
+        deriveTonicAmbits(note->score());
+    }
 }
 }

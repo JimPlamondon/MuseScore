@@ -198,6 +198,9 @@ void Writer::write(Score* score, XmlWriter& xml, WriteContext& ctx, compat::Writ
         }
         xml.endElement();
     }
+    if (score->m_jimsMelodyPart != jims::MelodyPart::Soprano) {
+        xml.tag("jimsMelodyPart", jims::melodyPartToken(score->m_jimsMelodyPart));
+    }
 
     if (score->m_scoreOrder.isValid()) {
         ScoreOrder order = score->m_scoreOrder;

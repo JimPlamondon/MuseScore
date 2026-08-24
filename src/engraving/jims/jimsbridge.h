@@ -26,16 +26,20 @@ bool available();
 // importer computes no musical fact — the Kernel is the only gate.
 bool validateState(const muse::String& stateJson, muse::String& error);
 
-/// A note's cents above the staff's lower Do boundary, composed from the
-/// Kernel's note_placement (Do-relative ordinate + register) and the state's
-/// own period/extent values — projection only, no fact derivation.
-bool noteCentsAboveDo(const muse::String& stateJson, int nPer, int nGen, double& cents);
+/// A note's cents above the staff's explicit lower extent endpoint.
+bool noteCentsAboveExtentLower(const muse::String& stateJson, int nPer, int nGen, double& cents);
+
+/// Kernel-owned extent lifecycle operations. Each returns a complete updated
+/// state so the fork never parses, compares, or constructs lattice bounds.
+bool widenExtent(const muse::String& stateJson, int nPer, int nGen, muse::String& updatedState);
+bool fitExtent(const muse::String& stateJson, const muse::String& melodyJson, muse::String& updatedState);
+bool defaultVocalExtent(const muse::String& stateJson, int lowKey, int highKey, const char* role, muse::String& updatedState);
 
 /// The Kernel's semantic notehead-class token for a generator coordinate
 /// (e.g. "conventional", "triangle-vertex-up").
 bool noteheadToken(const muse::String& stateJson, int nGen, muse::String& token);
 
-/// One scale-dot stack: cents above the lower Do, plus member generator
+/// One scale-dot stack: cents above the lower extent endpoint, plus member generator
 /// coordinates front-to-back (Kernel collision order).
 struct ScaleDotStack {
     double cents = 0.0;
@@ -148,8 +152,9 @@ bool musicxmlStaffStateV3Xml(const muse::String& stateJson, int staffNumber, mus
 /// Every JiMS part of a document must agree on this; the fields it drops
 /// (frame extent, tonic-ambit) describe one staff and may legitimately differ
 /// between parts, which is what a four-voice SATB score needs. The Kernel owns
-/// which fields those are — the fork compares what it is handed and never
-/// decides field-by-field itself. Comparison form only: never serialized.
+/// which fields those are — currently only frame extent — and the fork
+/// compares what it is handed without deciding field-by-field itself.
+/// Comparison form only: never serialized.
 bool musicxmlSharedStateV3Xml(const muse::String& stateJson, muse::String& out, muse::String* error = nullptr);
 bool musicxmlChangeEventV3Xml(const muse::String& oldStateJson, const muse::String& newStateJson, muse::String& out,
                               muse::String* error = nullptr);
@@ -239,7 +244,7 @@ bool frameBandsForMelody(const muse::String& stateJson, const muse::String& melo
 struct PitchHit {
     int nPer = 0;
     int nGen = 0;
-    double centsAboveLowerDo = 0.0;
+    double centsAboveExtentLower = 0.0;
     char step = 'C';
     int alter = 0;
     int octave = 4;

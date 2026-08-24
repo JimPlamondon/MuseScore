@@ -39,8 +39,24 @@
 #include "../dom/tie.h"
 #include "../dom/tremolotwochord.h"
 #include "../dom/tuplet.h"
+#include "../jims/jimschange.h"
 
 using namespace mu::engraving;
+
+static void notifyDesignatedMelodyChange(EngravingItem* item)
+{
+    if (!item) {
+        return;
+    }
+    if (item->isNote()) {
+        jims::designatedMelodyNoteChanged(toNote(item));
+    } else if (item->isChord()) {
+        for (Note* note : toChord(item)->notes()) {
+            jims::designatedMelodyNoteChanged(note);
+            break; // one recomputation covers the complete chord mutation
+        }
+    }
+}
 
 //---------------------------------------------------------
 //   undoRemoveTuplet
@@ -133,6 +149,7 @@ void AddElement::undo(EditData*)
     }
 
     endUndoRedo(true);
+    notifyDesignatedMelodyChange(element);
 }
 
 //---------------------------------------------------------
@@ -152,6 +169,7 @@ void AddElement::redo(EditData*)
     }
 
     endUndoRedo(false);
+    notifyDesignatedMelodyChange(element);
 }
 
 //---------------------------------------------------------
@@ -305,6 +323,7 @@ void RemoveElement::undo(EditData*)
     } else if (element->isKeySig()) {
         score->setLayout(element->staff()->nextKeyTick(element->tick()), element->staffIdx());
     }
+    notifyDesignatedMelodyChange(element);
 }
 
 //---------------------------------------------------------
@@ -334,6 +353,7 @@ void RemoveElement::redo(EditData*)
     } else if (element->isKeySig()) {
         score->setLayout(element->staff()->nextKeyTick(element->tick()), element->staffIdx());
     }
+    notifyDesignatedMelodyChange(element);
 }
 
 //---------------------------------------------------------

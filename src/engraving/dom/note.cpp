@@ -38,6 +38,7 @@
 #include "iengravingfont.h"
 
 #include "../jims/jimsbridge.h"
+#include "../jims/jimschange.h"
 
 #include "rendering/score/horizontalspacing.h"
 
@@ -2967,6 +2968,7 @@ void Note::verticalDrag(EditData& ed)
                                                     AccidentalVal(projection.alter));
                         for (Note* nn : tiedNotes()) {
                             nn->setJimsPitch(projection.nPer, projection.nGen);
+                            jims::widenExtentForNote(nn);
                             nn->setPitch(projection.midiKey, newTpc, newTpc);
                             nn->setTuning(projection.centsOffset);
                             nn->triggerLayout();
@@ -3125,13 +3127,13 @@ void Note::updateRelLine(int absLine, bool undoable)
     // JiMStaff (Milestone 1): a note with a lattice identity on a JiMS
     // staff is placed by its Kernel-derived cents-above-Do through the
     // single StaffType seam — never by the diatonic step arithmetic
-    // above. The cents value is the Kernel's (jims::noteCentsAboveDo);
+    // above. The cents value is the Kernel's (jims::noteCentsAboveExtentLower);
     // this branch only projects it to y.
     if (st->isJiMS() && hasJimsPitch()) {
         st->jimsEnsureFrame(score(), staffIdx());
         if (!m_jimsCentsValid) {
             double cents = 0.0;
-            if (jims::noteCentsAboveDo(st->jimsStateJson(), m_jimsNPer, m_jimsNGen, cents)) {
+            if (jims::noteCentsAboveExtentLower(st->jimsStateJson(), m_jimsNPer, m_jimsNGen, cents)) {
                 setJimsCentsAboveDo(cents);
             }
         }
@@ -3243,6 +3245,7 @@ void Note::setNval(const NoteVal& nval, Fraction tick)
                     const int step = int(String(u"CDEFGAB").indexOf(Char(projection.step)));
                     const int tpc = step2tpc(step, AccidentalVal(projection.alter));
                     setJimsPitch(projection.nPer, projection.nGen);
+                    jims::widenExtentForNote(this);
                     setPitch(projection.midiKey, tpc, tpc);
                     setTuning(projection.centsOffset);
                 }

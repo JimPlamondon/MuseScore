@@ -67,11 +67,11 @@ bool validateState(const String& stateJson, String& error)
     return false;
 }
 
-bool noteCentsAboveDo(const String& stateJson, int nPer, int nGen, double& cents)
+bool noteCentsAboveExtentLower(const String& stateJson, int nPer, int nGen, double& cents)
 {
     // The staff-frame projection is Kernel-owned end to end: one op, no
     // fork-side ordinate/register/anchor arithmetic.
-    String envelope = String(u"{\"abi\":2,\"op\":\"note_cents_above_lower_do\",\"state\":%1,\"nPer\":%2,\"nGen\":%3}")
+    String envelope = String(u"{\"abi\":2,\"op\":\"note_cents_above_extent_lower\",\"state\":%1,\"nPer\":%2,\"nGen\":%3}")
                       .arg(stateJson).arg(nPer).arg(nGen);
     JsonValue result;
     if (!okResult(callBridge(envelope), result)) {
@@ -79,6 +79,37 @@ bool noteCentsAboveDo(const String& stateJson, int nPer, int nGen, double& cents
     }
     cents = result.toDouble();
     return true;
+}
+
+static bool updatedStateResult(const String& envelope, String& updatedState)
+{
+    JsonValue result;
+    if (!okResult(callBridge(envelope), result) || !result.isString()) {
+        return false;
+    }
+    updatedState = result.toString();
+    return !updatedState.isEmpty();
+}
+
+bool widenExtent(const String& stateJson, int nPer, int nGen, String& updatedState)
+{
+    return updatedStateResult(
+        String(u"{\"abi\":2,\"op\":\"widen_extent\",\"state\":%1,\"nPer\":%2,\"nGen\":%3}")
+        .arg(stateJson).arg(nPer).arg(nGen), updatedState);
+}
+
+bool fitExtent(const String& stateJson, const String& melodyJson, String& updatedState)
+{
+    return updatedStateResult(
+        String(u"{\"abi\":2,\"op\":\"fit_extent\",\"state\":%1,\"melody\":%2}")
+        .arg(stateJson).arg(melodyJson), updatedState);
+}
+
+bool defaultVocalExtent(const String& stateJson, int lowKey, int highKey, const char* role, String& updatedState)
+{
+    return updatedStateResult(
+        String(u"{\"abi\":2,\"op\":\"default_vocal_extent\",\"state\":%1,\"low_key\":%2,\"high_key\":%3,\"role\":\"%4\"}")
+        .arg(stateJson).arg(lowKey).arg(highKey).arg(String::fromAscii(role)), updatedState);
 }
 
 bool noteheadToken(const String& stateJson, int nGen, String& token)
@@ -550,7 +581,7 @@ bool nearestPitch(const String& stateJson, double targetCents,
     JsonObject o = result.toObject();
     hit.nPer = o.value("nPer").toInt();
     hit.nGen = o.value("nGen").toInt();
-    hit.centsAboveLowerDo = o.value("cents_above_lower_do").toDouble();
+    hit.centsAboveExtentLower = o.value("cents_above_extent_lower").toDouble();
     JsonObject cp = o.value("compatibility_pitch").toObject();
     muse::String step = cp.value("step").toString();
     hit.step = step.isEmpty() ? 'C' : step.at(0).toAscii();
@@ -563,7 +594,7 @@ static void readPitchHit(const JsonObject& o, PitchHit& hit)
 {
     hit.nPer = o.value("nPer").toInt();
     hit.nGen = o.value("nGen").toInt();
-    hit.centsAboveLowerDo = o.value("cents_above_lower_do").toDouble();
+    hit.centsAboveExtentLower = o.value("cents_above_extent_lower").toDouble();
     JsonObject cp = o.value("compatibility_pitch").toObject();
     muse::String step = cp.value("step").toString();
     hit.step = step.isEmpty() ? 'C' : step.at(0).toAscii();

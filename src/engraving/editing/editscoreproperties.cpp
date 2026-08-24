@@ -24,8 +24,18 @@
 
 #include "../dom/score.h"
 #include "../dom/scoreorder.h"
+#include "../jims/jimschange.h"
 
 using namespace mu::engraving;
+
+void ChangeJimsMelodyPart::flip(EditData*)
+{
+    const jims::MelodyPart old = score->jimsMelodyPart();
+    score->setJimsMelodyPart(part);
+    jims::deriveTonicAmbits(score);
+    score->setLayoutAll();
+    part = old;
+}
 
 //---------------------------------------------------------
 //   ChangeMetaTags

@@ -27,11 +27,9 @@
 // 1. The shipped "SATB (JiMStaff)" Choral template: four stock vocal Parts in
 //    open score, one JiMStaff each, following MuseScore's own choral
 //    conventions, registered in all three template-registration files.
-// 2. The constellation defaults. Each voice's default frame is positioned by
-//    an interval above the Bass staff's pitch-centre, expressed in the v1
-//    extent encoding as lower registers 4/4/3/3. Framing is TONIC-relative;
-//    the default state simply happens to put the tonic on Do, which is the
-//    Do-mode specialisation and never the general rule.
+// 2. Empty-staff defaults. The Kernel derives each frame from the Part's
+//    declared amateur range; Bass alone uses the tonic-anchored exception.
+//    Framing is tonic-relative throughout.
 // 3. Owner decision 2a: a key/mode/scale change applied anywhere in a
 //    multi-part JiMS score reaches every JiMS part at the same measure as ONE
 //    undo step, and a refusal anywhere mutates nothing.
@@ -132,7 +130,7 @@ muse::String stateAt(const Score* score, staff_idx_t staffIdx, const Measure* m)
 }
 
 // The four voices' states must agree in every field except the one the
-// constellation gives each voice its own value of. Comparing states for
+// range-derived default gives each voice its own value of. Comparing states for
 // SAMENESS is a template contract check; it classifies no musical field.
 muse::String withoutExtent(const muse::String& json)
 {
@@ -140,18 +138,35 @@ muse::String withoutExtent(const muse::String& json)
     if (at == muse::nidx) {
         return json;
     }
-    const size_t end = json.indexOf(u'}', at);
-    if (end == muse::nidx) {
+    const size_t begin = json.indexOf(u'{', at);
+    if (begin == muse::nidx) {
+        return json;
+    }
+    size_t end = begin;
+    int depth = 0;
+    for (; end < json.size(); ++end) {
+        if (json.at(end) == u'{') {
+            ++depth;
+        } else if (json.at(end) == u'}' && --depth == 0) {
+            break;
+        }
+    }
+    if (end >= json.size()) {
         return json;
     }
     muse::String out = json;
-    out.remove(at, end + 1 - at);
+    if (end + 1 < out.size() && out.at(end + 1) == u',') {
+        out.remove(at, end + 2 - at);
+    } else if (at > 0 && out.at(at - 1) == u',') {
+        out.remove(at - 1, end + 2 - at);
+    } else {
+        out.remove(at, end + 1 - at);
+    }
     return out;
 }
 
-// Layout re-derives the tonic ambit from each staff's own melody every pass
-// (owner rider, automatic since 2026-08-19), so it is not stable across a
-// same-state comparison of a written and an unwritten staff.
+// Tonic ambit is one song-wide value. This helper remains for historical
+// assertions that intentionally compare only the other song-wide fields.
 muse::String withoutAmbit(const muse::String& json)
 {
     muse::String out = json;
@@ -325,10 +340,10 @@ TEST(Engraving_JiMStaffM9SATBTests, m9TemplateIsRegisteredInAllThreeRegistration
 }
 
 // ---------------------------------------------------------------------------
-// The constellation defaults
+// The empty-staff singer-range defaults
 // ---------------------------------------------------------------------------
 
-TEST(Engraving_JiMStaffM9SATBTests, m9EveryStaffIsAJimsStaffCarryingTheConstellationDefaults)
+TEST(Engraving_JiMStaffM9SATBTests, m9EveryStaffIsAJimsStaffCarryingItsRangeDerivedDefault)
 {
     MasterScore* score = openShippedTemplate();
     ASSERT_TRUE(score);
@@ -346,7 +361,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9EveryStaffIsAJimsStaffCarryingTheConstella
         EXPECT_FALSE(st->jimsStateJson().contains(u"tonic_extent")) << "staff " << i;
     }
 
-    // Identical in every field except the one the constellation gives each
+    // Identical in every field except the per-staff extent.
     // voice its own value of.
     const muse::String s0 = score->staff(0)->staffType(Fraction(0, 1))->jimsStateJson();
     for (staff_idx_t i = 1; i < 4; ++i) {
@@ -361,7 +376,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9EveryStaffIsAJimsStaffCarryingTheConstella
     delete score;
 }
 
-TEST(Engraving_JiMStaffM9SATBTests, m9DefaultFramesAreOneKernelPeriodPositionedByTheConstellation)
+TEST(Engraving_JiMStaffM9SATBTests, m9DefaultFramesAreOneKernelPeriodPositionedByDeclaredRanges)
 {
     MasterScore* score = openShippedTemplate();
     ASSERT_TRUE(score);
@@ -369,10 +384,8 @@ TEST(Engraving_JiMStaffM9SATBTests, m9DefaultFramesAreOneKernelPeriodPositionedB
     ASSERT_EQ(score->nstaves(), 4u);
 
     // The Kernel's own answer, not the encoding string: one band, one whole
-    // period, and the tonic row the Kernel names for it. Soprano and Alto sit
-    // one period above Tenor and Bass — the octave-quantised realisation of
-    // the constellation in the default key (accepted v1 artifact).
-    const char16_t* expected[4] = { u"C4", u"C4", u"C3", u"C3" };
+    // period, and the tonic row the Kernel names for it.
+    const char16_t* expected[4] = { u"C5", u"C4", u"C4", u"C3" };
     for (staff_idx_t i = 0; i < 4; ++i) {
         const StaffType* st = score->staff(i)->staffType(Fraction(0, 1));
         ASSERT_TRUE(st && st->isJiMS());
@@ -380,8 +393,8 @@ TEST(Engraving_JiMStaffM9SATBTests, m9DefaultFramesAreOneKernelPeriodPositionedB
         ASSERT_EQ(view.bands.size(), 1u) << "staff " << i << " must draw one band";
         EXPECT_NEAR(view.bands[0].upperCents - view.bands[0].lowerCents, 1200.0, 1e-6)
             << "staff " << i << " must span exactly one period";
-        EXPECT_EQ(view.bands[0].tonicLabel, muse::String(expected[i]))
-            << "staff " << i << " sits at the wrong point of the constellation";
+        EXPECT_TRUE(view.bands[0].tonicLabel == muse::String(expected[i]))
+            << "staff " << i << " sits at the wrong Kernel-derived range default";
     }
 
     delete score;
@@ -395,7 +408,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9WrittenStavesUseTheirOwnMelodyFrameWhileUn
     ASSERT_EQ(score->nstaves(), 4u);
 
     // Staff 0 carries a melody that reaches outside its declared one-period
-    // frame; staves 1..3 are empty and keep the constellation default.
+    // frame; staves 1..3 are empty and keep their range-derived defaults.
     ASSERT_FALSE(notesOn(score, 0).empty());
     const StaffType* written = score->staff(0)->staffType(Fraction(0, 1));
     const StaffType::JimsFrameView& wv = written->jimsWholeFrameView(score, 0);
@@ -408,7 +421,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9WrittenStavesUseTheirOwnMelodyFrameWhileUn
         const StaffType::JimsFrameView& v = st->jimsWholeFrameView(score, i);
         ASSERT_EQ(v.bands.size(), 1u) << "staff " << i;
         EXPECT_NEAR(v.bands[0].upperCents - v.bands[0].lowerCents, 1200.0, 1e-6)
-            << "unwritten staff " << i << " must keep the one-period constellation default";
+            << "unwritten staff " << i << " must keep its one-period range default";
     }
 
     delete score;
@@ -558,6 +571,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9MultiChoiceScaleChangeIsOneAtomicOperation
     }
     ASSERT_GE(steps.size(), 2u) << "this test needs a genuinely multi-id scale gesture";
 
+    const char* roles[4] = { "soprano", "alto", "tenor", "bass" };
     muse::String expected[4];
     for (staff_idx_t i = 0; i < 4; ++i) {
         muse::String cur = stateAt(score, i, m2);
@@ -566,7 +580,8 @@ TEST(Engraving_JiMStaffM9SATBTests, m9MultiChoiceScaleChangeIsOneAtomicOperation
             ASSERT_TRUE(jims::applyStateChange(cur, id, out, err)) << err.toStdString();
             cur = out;
         }
-        expected[i] = cur;
+        const Instrument* instrument = score->staff(i)->part()->instrument();
+        ASSERT_TRUE(jims::defaultVocalExtent(cur, instrument->minPitchA(), instrument->maxPitchA(), roles[i], expected[i]));
     }
 
     const size_t depth = undoDepth(score);
@@ -576,7 +591,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9MultiChoiceScaleChangeIsOneAtomicOperation
     EXPECT_EQ(undoDepth(score), depth + 1)
         << "a multi-choice scale application must contribute exactly one undo step";
     for (staff_idx_t i = 0; i < 4; ++i) {
-        EXPECT_EQ(withoutAmbit(stateAt(score, i, m2)), withoutAmbit(expected[i]))
+        EXPECT_TRUE(withoutAmbit(stateAt(score, i, m2)) == withoutAmbit(expected[i]))
             << "staff " << i << " is not the Kernel's answer for the whole step list";
     }
 
@@ -604,10 +619,14 @@ TEST(Engraving_JiMStaffM9SATBTests, m9PropagationStartsFromAnyVoiceAndKeepsEachP
         // Each target's own extent survives: the Kernel returns a complete
         // replacement state per target and the fork copies no part's state
         // onto another.
+        const char* roles[4] = { "soprano", "alto", "tenor", "bass" };
         muse::String expected[4];
         for (staff_idx_t i = 0; i < 4; ++i) {
             muse::String err;
-            ASSERT_TRUE(jims::applyStateChange(stateAt(score, i, m2), u"mode:1", expected[i], err)) << err.toStdString();
+            muse::String changed;
+            ASSERT_TRUE(jims::applyStateChange(stateAt(score, i, m2), u"mode:1", changed, err)) << err.toStdString();
+            const Instrument* instrument = score->staff(i)->part()->instrument();
+            ASSERT_TRUE(jims::defaultVocalExtent(changed, instrument->minPitchA(), instrument->maxPitchA(), roles[i], expected[i]));
         }
 
         muse::String error;
@@ -615,7 +634,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9PropagationStartsFromAnyVoiceAndKeepsEachP
         score->doLayout();
 
         for (staff_idx_t i = 0; i < 4; ++i) {
-            EXPECT_EQ(withoutAmbit(stateAt(score, i, m2)), withoutAmbit(expected[i]))
+            EXPECT_TRUE(withoutAmbit(stateAt(score, i, m2)) == withoutAmbit(expected[i]))
                 << "origin " << origin << ", staff " << i << " is not the Kernel's own answer for that staff";
             EXPECT_TRUE(jims::changeCarrier(m2, i)) << "origin " << origin << ", staff " << i << " has no carrier";
         }

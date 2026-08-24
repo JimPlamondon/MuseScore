@@ -113,13 +113,23 @@ public:
 static const char* KEY_MODE_STATE_1
     = "{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],\"collection_rotation\":0,\"mode_rotation\":0,"
       "\"generator_cents\":700.0,\"period_cents\":1200.0,\"embedding\":{\"large_steps\":5,\"small_steps\":2},"
-      "\"extent\":{\"lower_do_register\":4,\"period_count\":1},\"reference\":{\"reference-pitch\":{\"key_number\":62}},"
+      "\"extent\":{\"lower\":{\"nPer\":1,\"nGen\":-2},\"upper\":{\"nPer\":2,\"nGen\":-2}},\"reference\":{\"reference-pitch\":{\"key_number\":62}},"
       "\"tonic_ambit\":\"tonic-bounded\"}";
 static const char* KEY_MODE_STATE_2
     = "{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],\"collection_rotation\":0,\"mode_rotation\":5,"
       "\"generator_cents\":700.0,\"period_cents\":1200.0,\"embedding\":{\"large_steps\":5,\"small_steps\":2},"
-      "\"extent\":{\"lower_do_register\":4,\"period_count\":1},\"reference\":{\"reference-pitch\":{\"key_number\":53}},"
+      "\"extent\":{\"lower\":{\"nPer\":1,\"nGen\":-2},\"upper\":{\"nPer\":2,\"nGen\":-2}},\"reference\":{\"reference-pitch\":{\"key_number\":53}},"
       "\"tonic_ambit\":\"tonic-bounded\"}";
+
+static String sharedState(const String& state)
+{
+    String shared;
+    String error;
+    if (!jims::musicxmlSharedStateV3Xml(state, shared, &error)) {
+        return String();
+    }
+    return shared;
+}
 
 TEST_F(MusicXml_JiMS_Tests, v3ImportBuildsTheJiMStaffLikeTheConverter)
 {
@@ -131,18 +141,9 @@ TEST_F(MusicXml_JiMS_Tests, v3ImportBuildsTheJiMStaffLikeTheConverter)
     EXPECT_TRUE(st->isJiMS());
     EXPECT_EQ(st->xmlName(), String(u"jims12tet"));
     EXPECT_EQ(st->lines(), 13);
-    // The transcription is the converter's, byte for byte, except the tonic
-    // ambit: since 2026-08-19 the fork derives and saves that token from the
-    // section's melody at layout (owner Q4 rider), so a hand-set fixture value
-    // is corrected to the Kernel's classification.
-    auto withoutAmbit = [](const String& json) {
-        String out = json;
-        for (const char16_t* tok : { u",\"tonic_ambit\":\"tonic-bounded\"", u",\"tonic_ambit\":\"tonic-centered\"" }) {
-            out.replace(String(tok), String());
-        }
-        return out;
-    };
-    EXPECT_EQ(withoutAmbit(st->jimsStateJson()), withoutAmbit(String::fromUtf8(KEY_MODE_STATE_1)));
+    // Load-time reconciliation replaces the serialized extent with the exact
+    // written-note bounds. All song-wide content remains the converter's.
+    EXPECT_EQ(sharedState(st->jimsStateJson()), sharedState(String::fromUtf8(KEY_MODE_STATE_1)));
     EXPECT_TRUE(st->jimsJiLines());
     EXPECT_TRUE(st->jimsTonicAmbit() == u"tonic-bounded" || st->jimsTonicAmbit() == u"tonic-centered");
     // The change measure carries the complete second state (never derived from jims:change).
@@ -151,7 +152,7 @@ TEST_F(MusicXml_JiMS_Tests, v3ImportBuildsTheJiMStaffLikeTheConverter)
     const StaffTypeChange* stc = jims::changeCarrier(m2, 0);
     ASSERT_TRUE(stc);
     ASSERT_TRUE(stc->staffType());
-    EXPECT_EQ(withoutAmbit(stc->staffType()->jimsStateJson()), withoutAmbit(String::fromUtf8(KEY_MODE_STATE_2)));
+    EXPECT_EQ(sharedState(stc->staffType()->jimsStateJson()), sharedState(String::fromUtf8(KEY_MODE_STATE_2)));
     EXPECT_TRUE(stc->staffType()->jimsStateJson().contains(u"\"tonic_ambit\":\"tonic-"))
         << stc->staffType()->jimsStateJson().toStdString();
     EXPECT_FALSE(jims::changeCarrier(measureNo(score, 1), 0));
@@ -796,8 +797,8 @@ TEST_F(MusicXml_JiMS_Tests, severalJimsPartsSharingOneTimelineImportAndRoundTrip
     const JimsSnapshot before = snapshotOf(score);
     EXPECT_EQ(before.identities.size(), 4u);
     EXPECT_EQ(before.carriers.size(), 2u);
-    EXPECT_EQ(before.baseStates[0], before.baseStates[1]);
-    EXPECT_EQ(before.carriers[0].second, before.carriers[1].second);
+    EXPECT_EQ(sharedState(before.baseStates[0]), sharedState(before.baseStates[1]));
+    EXPECT_EQ(sharedState(before.carriers[0].second), sharedState(before.carriers[1].second));
     const String out = exportToScratch(score, "export-multi-part-shared.musicxml");
     const String xml = readAll(out);
     EXPECT_EQ(int(xml.count(u"<jims:staff-state>")), 4);   // two parts x (base + bar 2)
@@ -816,10 +817,9 @@ TEST_F(MusicXml_JiMS_Tests, severalJimsPartsSharingOneTimelineImportAndRoundTrip
 }
 
 // Owner ruling 2026-08-22 (M8.9): parts of one document are compared on the
-// Kernel's shared projection, which omits the per-staff fields. Four SATB
-// voices legitimately differ in frame extent and in tonic-ambit — each voice
-// has its own frame and its own melody — so a document differing ONLY in those
-// must import, round-trip, and preserve each part's own values. Before this
+// Kernel's shared projection, which omits the per-staff extent. Four SATB
+// voices legitimately differ in frame extent, while tonic-ambit is one
+// song-wide value that every transport carrier must share. Before this
 // change the whole element was compared and such a document was refused.
 TEST_F(MusicXml_JiMS_Tests, partsDifferingOnlyInPerStaffFieldsImportAndRoundTrip)
 {
@@ -833,21 +833,23 @@ TEST_F(MusicXml_JiMS_Tests, partsDifferingOnlyInPerStaffFieldsImportAndRoundTrip
     // refused outright, so importing at all is the behaviour under test.
     EXPECT_NE(before.baseStates[0], before.baseStates[1]);
 
-    // The Kernel's shared projection is blind to BOTH per-staff fields. Asserted
-    // directly, because tonic-ambit is re-derived from each staff's melody on
-    // every layout pass and so cannot be pinned through a fixture.
+    // The Kernel's shared projection is blind only to extent.
     const String centered
         =
-            uR"({"scale":["M2","m2","M2","M2","M2","m2","M2"],"collection_rotation":0,"mode_rotation":0,"generator_cents":700.0,"period_cents":1200.0,"embedding":{"large_steps":5,"small_steps":2},"extent":{"lower_do_register":4,"period_count":1},"tonic_ambit":"tonic-centered","reference":"none"})";
-    const String bounded
+            uR"({"scale":["M2","m2","M2","M2","M2","m2","M2"],"collection_rotation":0,"mode_rotation":0,"generator_cents":700.0,"period_cents":1200.0,"embedding":{"large_steps":5,"small_steps":2},"extent":{"lower":{"nPer":1,"nGen":-2},"upper":{"nPer":2,"nGen":-2}},"tonic_ambit":"tonic-centered","reference":"none"})";
+    const String otherExtent
         =
-            uR"({"scale":["M2","m2","M2","M2","M2","m2","M2"],"collection_rotation":0,"mode_rotation":0,"generator_cents":700.0,"period_cents":1200.0,"embedding":{"large_steps":5,"small_steps":2},"extent":{"lower_do_register":3,"period_count":1},"tonic_ambit":"tonic-bounded","reference":"none"})";
-    String sharedCentered, sharedBounded, err;
+            uR"({"scale":["M2","m2","M2","M2","M2","m2","M2"],"collection_rotation":0,"mode_rotation":0,"generator_cents":700.0,"period_cents":1200.0,"embedding":{"large_steps":5,"small_steps":2},"extent":{"lower":{"nPer":0,"nGen":-2},"upper":{"nPer":1,"nGen":-2}},"tonic_ambit":"tonic-centered","reference":"none"})";
+    String sharedCentered, sharedOtherExtent, err;
     ASSERT_TRUE(jims::musicxmlSharedStateV3Xml(centered, sharedCentered, &err)) << err.toStdString();
-    ASSERT_TRUE(jims::musicxmlSharedStateV3Xml(bounded, sharedBounded, &err)) << err.toStdString();
-    EXPECT_EQ(sharedCentered, sharedBounded) << "extent and tonic-ambit must not make parts disagree";
+    ASSERT_TRUE(jims::musicxmlSharedStateV3Xml(otherExtent, sharedOtherExtent, &err)) << err.toStdString();
+    EXPECT_EQ(sharedCentered, sharedOtherExtent) << "extent must not make parts disagree";
     EXPECT_FALSE(sharedCentered.contains(u"jims:extent"));
-    EXPECT_FALSE(sharedCentered.contains(u"jims:tonic-ambit"));
+    EXPECT_TRUE(sharedCentered.contains(u"jims:tonic-ambit"));
+    const String otherAmbit = String(centered).replace(u"tonic-centered", u"tonic-bounded");
+    String sharedOtherAmbit;
+    ASSERT_TRUE(jims::musicxmlSharedStateV3Xml(otherAmbit, sharedOtherAmbit, &err)) << err.toStdString();
+    EXPECT_NE(sharedOtherAmbit, sharedCentered) << "tonic-ambit is song-wide and must be compared";
     // ...while a real musical difference still shows up as one.
     String sharedOtherMode;
     const String otherMode = String(centered).replace(u"\"mode_rotation\":0", u"\"mode_rotation\":5");
@@ -858,8 +860,8 @@ TEST_F(MusicXml_JiMS_Tests, partsDifferingOnlyInPerStaffFieldsImportAndRoundTrip
     const String xml = readAll(out);
     // Both per-staff values survive export verbatim: the data stays, only the
     // comparison narrowed.
-    EXPECT_TRUE(xml.contains(u"lower-do-register=\"4\""));
-    EXPECT_TRUE(xml.contains(u"lower-do-register=\"3\""));
+    EXPECT_TRUE(xml.contains(u"lower-n-per=\"0\" lower-n-gen=\"0\" upper-n-per=\"0\" upper-n-gen=\"0\""));
+    EXPECT_TRUE(xml.contains(u"lower-n-per=\"-1\" lower-n-gen=\"-1\" upper-n-per=\"-1\" upper-n-gen=\"-1\""));
     EXPECT_TRUE(xml.contains(u"<jims:tonic-ambit>"));   // the field is still written per staff
 
     auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
@@ -944,7 +946,7 @@ String satbTemplatePath()
 }
 
 // The four voices carry one shared musical timeline and four DIFFERENT frame
-// extents (4/4/3/3). Under the landed M8.9 comparison that document is
+// extents. Under the narrowed comparison that document is
 // accepted, and every voice's own frame height survives the round trip.
 TEST_F(MusicXml_JiMS_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExtent)
 {
@@ -961,10 +963,11 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
 
     const String out = exportToScratch(score, "export-m9-satb-template.musicxml");
     const String xml = readAll(out);
-    EXPECT_EQ(xml.count(u"lower-do-register=\"4\""), 2)
-        << "the Soprano and Alto frame heights must both be exported";
-    EXPECT_EQ(xml.count(u"lower-do-register=\"3\""), 2)
-        << "the Tenor and Bass frame heights must both be exported";
+    EXPECT_EQ(xml.count(u"lower-n-per=\"3\" lower-n-gen=\"-5\" upper-n-per=\"4\" upper-n-gen=\"-5\""), 1);
+    EXPECT_EQ(xml.count(u"lower-n-per=\"2\" lower-n-gen=\"-4\" upper-n-per=\"3\" upper-n-gen=\"-4\""), 1);
+    EXPECT_EQ(xml.count(u"lower-n-per=\"1\" lower-n-gen=\"-3\" upper-n-per=\"2\" upper-n-gen=\"-3\""), 1);
+    EXPECT_EQ(xml.count(u"lower-n-per=\"-4\" lower-n-gen=\"4\" upper-n-per=\"-3\" upper-n-gen=\"4\""), 1)
+        << "each SATB voice must export its own Kernel-derived empty-staff extent";
 
     auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
         return importMusicXml(s, path.toQString(), false);
@@ -995,8 +998,10 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
         return out;
     };
     EXPECT_EQ(jimsLinesOf(xml2), jimsLinesOf(xml)) << "the JiMS content must not drift across a second round trip";
-    EXPECT_EQ(xml2.count(u"lower-do-register=\"4\""), 2);
-    EXPECT_EQ(xml2.count(u"lower-do-register=\"3\""), 2);
+    EXPECT_EQ(xml2.count(u"lower-n-per=\"3\" lower-n-gen=\"-5\" upper-n-per=\"4\" upper-n-gen=\"-5\""), 1);
+    EXPECT_EQ(xml2.count(u"lower-n-per=\"2\" lower-n-gen=\"-4\" upper-n-per=\"3\" upper-n-gen=\"-4\""), 1);
+    EXPECT_EQ(xml2.count(u"lower-n-per=\"1\" lower-n-gen=\"-3\" upper-n-per=\"2\" upper-n-gen=\"-3\""), 1);
+    EXPECT_EQ(xml2.count(u"lower-n-per=\"-4\" lower-n-gen=\"4\" upper-n-per=\"-3\" upper-n-gen=\"4\""), 1);
 
     delete again;
     delete score;
@@ -1023,15 +1028,18 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBScoreWideChangeKeepsOneSharedTimelineOnExport)
     EXPECT_FALSE(xml.empty()) << "a score-wide change must leave the document exportable";
     EXPECT_EQ(xml.count(u"<jims:mode-rotation>5</jims:mode-rotation>"), 4)
         << "every one of the four parts must carry the change";
-    // The per-staff frame heights are untouched by a mode change.
-    EXPECT_EQ(xml.count(u"lower-do-register=\"4\""), 4);
-    EXPECT_EQ(xml.count(u"lower-do-register=\"3\""), 4);
+    // S/A/T retain their singer-range centres; Bass alone follows the new tonic.
+    EXPECT_EQ(xml.count(u"lower-n-per=\"3\" lower-n-gen=\"-5\" upper-n-per=\"4\" upper-n-gen=\"-5\""), 2);
+    EXPECT_EQ(xml.count(u"lower-n-per=\"2\" lower-n-gen=\"-4\" upper-n-per=\"3\" upper-n-gen=\"-4\""), 2);
+    EXPECT_EQ(xml.count(u"lower-n-per=\"1\" lower-n-gen=\"-3\" upper-n-per=\"2\" upper-n-gen=\"-3\""), 2);
+    EXPECT_EQ(xml.count(u"lower-n-per=\"-4\" lower-n-gen=\"4\" upper-n-per=\"-3\" upper-n-gen=\"4\""), 1);
+    EXPECT_EQ(xml.count(u"lower-n-per=\"1\" lower-n-gen=\"-5\" upper-n-per=\"2\" upper-n-gen=\"-5\""), 1);
 
     delete score;
 }
 
-// The M8.9 exclusion is exactly jims:extent (plus the tonic ambit the Kernel
-// classifies with it) — a musical-field divergence is still refused, in both
+// The per-staff exclusion is exactly jims:extent; every song-wide divergence,
+// including tonic-ambit, is still refused in both
 // directions.
 TEST_F(MusicXml_JiMS_Tests, m9SATBExtentOnlyDivergenceIsAcceptedAndMusicalDivergenceIsStillRefused)
 {
@@ -1060,4 +1068,53 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBExtentOnlyDivergenceIsAcceptedAndMusicalDiverg
     EXPECT_TRUE(buf.data().empty());
 
     delete score;
+}
+
+TEST_F(MusicXml_JiMS_Tests, MelodyPartDefaultsToSopranoAndDefaultIsOmittedOnExport)
+{
+    MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
+    ASSERT_TRUE(score);
+    EXPECT_EQ(score->jimsMelodyPart(), jims::MelodyPart::Soprano);
+    const String out = exportToScratch(score, "export-m10-melody-default.musicxml");
+    const String xml = readAll(out);
+    EXPECT_FALSE(xml.contains(u"<jims:melody-part>"));
+    delete score;
+
+    auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
+        return importMusicXml(s, path.toQString(), false);
+    };
+    MasterScore* reloaded = ScoreRW::readScore(out, true, importXml);
+    ASSERT_TRUE(reloaded);
+    EXPECT_EQ(reloaded->jimsMelodyPart(), jims::MelodyPart::Soprano);
+    delete reloaded;
+}
+
+TEST_F(MusicXml_JiMS_Tests, MelodyPartTenorOverrideRoundTripsAndInvalidValueIsRefused)
+{
+    MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
+    ASSERT_TRUE(score);
+    score->setJimsMelodyPart(jims::MelodyPart::Tenor);
+    const String out = exportToScratch(score, "export-m10-melody-tenor.musicxml");
+    String xml = readAll(out);
+    EXPECT_TRUE(xml.contains(u"<jims:melody-part>tenor</jims:melody-part>"));
+    delete score;
+
+    auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
+        return importMusicXml(s, path.toQString(), false);
+    };
+    MasterScore* reloaded = ScoreRW::readScore(out, true, importXml);
+    ASSERT_TRUE(reloaded);
+    EXPECT_EQ(reloaded->jimsMelodyPart(), jims::MelodyPart::Tenor);
+    delete reloaded;
+
+    xml.replace(u"<jims:melody-part>tenor</jims:melody-part>",
+                u"<jims:melody-part>descant</jims:melody-part>");
+    const String invalid = ScoreRW::rootPath() + u"/../../../../build.release/jims-export-scratch/m10-melody-invalid.musicxml";
+    muse::io::File file(invalid);
+    ASSERT_TRUE(file.open(muse::io::IODevice::WriteOnly));
+    file.write(xml.toUtf8());
+    file.close();
+    MasterScore* refused = ScoreRW::readScore(invalid, true, importXml);
+    EXPECT_FALSE(refused);
+    delete refused;
 }

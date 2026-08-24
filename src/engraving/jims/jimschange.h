@@ -17,6 +17,8 @@
 
 namespace mu::engraving {
 class Measure;
+class Note;
+class Staff;
 class StaffType;
 class StaffTypeChange;
 }
@@ -73,17 +75,25 @@ bool changeIndicatorIntoStaffType(const Score* score, staff_idx_t staffIdx, cons
 /// staff extends to include the whole indicator.
 std::vector<double> changeIndicatorOverflowCents(const StaffType::JimsFrameView& view, const ChangeIndicator& model, double periodCents);
 
-/// Owner Q4 rider (derive-and-save), made automatic 2026-08-19: for every
-/// JiMS staff-type section of the score, classify the section's melody —
-/// every JiMS note on the staff, all voices, every chord note, within the
-/// span where that state applies (MuseScore's own Ambitus definition of a
-/// staff's range) — through the Kernel's tonic-ambit analysis and store the
-/// token in the section's state when it differs from the declared one. An
-/// empty section or one wider than the classifier's window keeps its
-/// declared token (never a third value). Returns the number of states
-/// changed. Called at the start of every layout, so a saved score always
-/// carries the fact for the melody it holds.
+/// Derive one song-wide tonic ambit from the explicitly designated melody
+/// part and repeat the Kernel token through every JiMS transport carrier.
 int deriveTonicAmbits(Score* score);
+
+/// Load-time extent reconciliation: exact written-note bounds, or a
+/// Kernel-derived one-period default from the Part's declared amateur range.
+int reconcileExtents(Score* score);
+
+/// Reproject an empty vocal staff's default extent after its song state
+/// changes. Written staves and non-vocal staves are returned unchanged.
+bool defaultExtentForEmptyStaffSpan(const Staff* staff, const Fraction& start, const Measure* stop, const muse::String& state,
+                                    muse::String& updated);
+
+/// Edit-time grow-only lifecycle transition for one entered or moved note.
+bool widenExtentForNote(Note* note);
+
+/// Recompute the song-wide tonic ambit after a note in the explicitly
+/// designated melody Part changes. A note in any other Part is a no-op.
+void designatedMelodyNoteChanged(Note* note);
 }
 
 #endif
