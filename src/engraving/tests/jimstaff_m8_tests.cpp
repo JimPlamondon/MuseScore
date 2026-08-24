@@ -245,9 +245,9 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8ElisionOffMatchesPhase2Baseline)
         EXPECT_NEAR(v.bottomCents(), 0.0, EPS);
         EXPECT_NEAR(v.topCents(), 5800.0, EPS);
         Measure* m = system->firstMeasure();
-        // Every whole period draws its lower and upper Do line (shared
-        // boundaries drawn once per period, today's behaviour): 5 x 2.
-        EXPECT_EQ(redDoLineCount(m->staffLines(0)), 9);
+        // The arbitrary extent lower is not Do. The five actual Do rows
+        // inside this frame are each drawn exactly once.
+        EXPECT_EQ(redDoLineCount(m->staffLines(0)), 5);
     }
     delete score;
 }
@@ -268,7 +268,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StyleOnBandsLaterSystemsWithLabel
         const StaffType::JimsFrameView& v = viewOn(score, systems[0]);
         EXPECT_FALSE(v.banded);
         EXPECT_EQ(v.bands.size(), 1u);
-        EXPECT_EQ(redDoLineCount(systems[0]->firstMeasure()->staffLines(0)), 9);
+        EXPECT_EQ(redDoLineCount(systems[0]->firstMeasure()->staffLines(0)), 5);
     }
     const double ld = st(score)->lineDistance().val();
     const double gapLd = score->style().styleS(Sid::staffDistance).val() / ld;
@@ -293,9 +293,10 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StyleOnBandsLaterSystemsWithLabel
         EXPECT_NEAR(v.bands[0].yTopLd, 22.0 + gapLd, EPS);
         EXPECT_NEAR(v.heightLd(), 34.0 + gapLd, EPS);
         EXPECT_NEAR(v.gapLd, gapLd, EPS);
-        // Two Do lines per whole-period band (2 bands x 2), none in the gap.
+        // One actual Do row in the lower band and two in the upper band,
+        // with none in the gap.
         Measure* m = systems[i]->firstMeasure();
-        EXPECT_EQ(redDoLineCount(m->staffLines(0)), 5);
+        EXPECT_EQ(redDoLineCount(m->staffLines(0)), 3);
         // The staff lines' bbox is the drawn height (band heights + gap).
         const double spatium = score->style().spatium();
         const StaffLines* lines = systems[i]->lastMeasure()->staffLines(0);
@@ -771,14 +772,14 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8OctaveLabelsNameTheirRowEverywher
         const double topY = lines->pos().y();
         const double ld = jst->lineDistance().val();
         const double periodCents = jst->jimsPeriodCents();
-        double tonicCents = 0.0;
-        ASSERT_TRUE(jims::tonicCentsAboveDo(jst->jimsStateJson(), tonicCents));
+        jims::PeriodicOrigins origins;
+        ASSERT_TRUE(jims::periodicOrigins(jst->jimsStateJson(), origins));
         const std::vector<Labeled> labels = labelsOf(lines);
         ASSERT_GE(labels.size(), 1u) << what;
         for (const Labeled& l : labels) {
             const double yLd = (l.y - topY) / (ld * lines->spatium());
             const double cents = v.centsFromYLd(yLd);
-            const int k = int(std::lround((cents - tonicCents) / periodCents));
+            const int k = int(std::lround((cents - origins.tonicCentsAboveExtentLower) / periodCents));
             jims::TonicPitchLabel expected;
             ASSERT_TRUE(jims::tonicPitchLabelInPeriod(jst->jimsStateJson(), k, expected)) << what;
             EXPECT_EQ(l.text, expected.label) << what << " row period " << k;
@@ -879,8 +880,8 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
         walk(dd->item);
         return out;
     };
-    auto isDoRow = [](double cents, double period) {
-        return std::abs(cents - std::round(cents / period) * period) < 1e-3;
+    auto isDoRow = [](double cents, double period, double origin) {
+        return std::abs(cents - (origin + std::round((cents - origin) / period) * period)) < 1e-3;
     };
     // (c) first half: the Kernel's dot labelled "Do" (its own canonical-solfa
     // name; the lattice is centred on Re, so Do's generator coordinate is the
@@ -946,6 +947,8 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                 const StaffType::JimsFrameView& v = jst->jimsFrameView(score, 0, system);
                 ASSERT_FALSE(v.empty()) << what;
                 const double period = jst->jimsPeriodCents();
+                jims::PeriodicOrigins origins;
+                ASSERT_TRUE(jims::periodicOrigins(jst->jimsStateJson(), origins)) << what;
                 const StaffLines* lines = m->staffLines(0);
                 ASSERT_TRUE(lines) << what;
                 const double topY = lines->pos().y();
@@ -960,9 +963,11 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                     if (!g.dashed && g.rgb == 0xE03030) {
                         ++red;
                         redYs.push_back(g.line.y1());
-                        EXPECT_TRUE(isDoRow(cents, period)) << what << " red line at " << cents << " cents";
+                        EXPECT_TRUE(isDoRow(cents, period, origins.doCentsAboveExtentLower))
+                            << what << " red line at " << cents << " cents";
                     } else {
-                        EXPECT_FALSE(isDoRow(cents, period)) << what << " scaffold line on a Do row at " << cents;
+                        EXPECT_FALSE(isDoRow(cents, period, origins.doCentsAboveExtentLower))
+                            << what << " scaffold line on a Do row at " << cents;
                     }
                 }
                 for (const StaffType::JimsFrameBand& band : v.bands) {
@@ -970,7 +975,9 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                         if (!seg.whole) {
                             *sawPartial = true;
                         }
-                        const double first = std::ceil((seg.lowerCents - 1e-6) / period) * period;
+                        const double first = origins.doCentsAboveExtentLower
+                                             + std::ceil((seg.lowerCents - origins.doCentsAboveExtentLower - 1e-6)
+                                                         / period) * period;
                         for (double b = first; b <= seg.upperCents + 1e-6; b += period) {
                             ++expectedRed;
                         }
@@ -988,9 +995,24 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                     segments += band.segments.size();
                 }
                 EXPECT_EQ(paint.horns.size(), segments) << what << " one crescent per segment";
+                auto isSegmentEdge = [&](double cents) {
+                    for (const StaffType::JimsFrameBand& band : v.bands) {
+                        for (const StaffType::JimsSegment& segment : band.segments) {
+                            if (std::abs(cents - segment.lowerCents) < 1e-3
+                                || std::abs(cents - segment.upperCents) < 1e-3) {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                };
                 for (const auto& h : paint.horns) {
-                    EXPECT_TRUE(isDoRow(centsOfY(h.first), period)) << what << " upper horn off Do";
-                    EXPECT_TRUE(isDoRow(centsOfY(h.second), period)) << what << " lower horn off Do";
+                    const double upper = centsOfY(h.first);
+                    const double lower = centsOfY(h.second);
+                    EXPECT_TRUE(isDoRow(upper, period, origins.doCentsAboveExtentLower) || isSegmentEdge(upper))
+                        << what << " upper horn is neither Do nor a clipped segment edge";
+                    EXPECT_TRUE(isDoRow(lower, period, origins.doCentsAboveExtentLower) || isSegmentEdge(lower))
+                        << what << " lower horn is neither Do nor a clipped segment edge";
                 }
                 for (double y : redYs) {
                     bool hornOnLine = false;

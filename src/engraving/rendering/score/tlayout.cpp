@@ -5075,10 +5075,6 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         // shows them.
         const StaffType::JimsHeaderGeometry headerGeom
             = jimsSt->jimsHeaderGeometry(_spatium, item->score()->style().defaultSpatium(), &view);
-        const double clefRx = headerGeom.clefRx;
-        const double indicatorW = headerGeom.indicatorW;
-        const double clefRight = x1 - 0.3 * _spatium;
-        const double clefLeft = clefRight - clefRx;
         const double leftEdge = x1 - headerGeom.headerWidth;
         const double lineStartX = systemHead ? leftEdge : x1;
 
@@ -5091,6 +5087,12 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         std::vector<jims::JiLine> jiLines;
         const bool haveJi = jimsSt->jimsJiLines()
                             && jims::jiLines(jimsSt->jimsStateJson(), jiLines);
+        jims::PeriodicOrigins origins;
+        if (!jims::periodicOrigins(jimsSt->jimsStateJson(), origins)) {
+            item->setJimsGuideLines({});
+            item->setLines({});
+            return;
+        }
         auto limitColor = [](int limit) {
             switch (limit) {
             case 3: return 0x9040C0;
@@ -5108,12 +5110,16 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         // Per band, per segment (one band when elision is off).
         for (const StaffType::JimsFrameBand& band : view.bands) {
             for (const StaffType::JimsSegment& segment : band.segments) {
-                double firstBoundary = std::ceil((segment.lowerCents - epsilon) / periodCents) * periodCents;
+                double firstBoundary = origins.doCentsAboveExtentLower
+                                       + std::ceil((segment.lowerCents - origins.doCentsAboveExtentLower - epsilon)
+                                                   / periodCents) * periodCents;
                 for (double boundary = firstBoundary; boundary <= segment.upperCents + epsilon;
                      boundary += periodCents) {
                     guide(boundary, false, 0xE03030);
                 }
-                double basePeriod = std::floor(segment.lowerCents / periodCents) * periodCents;
+                double basePeriod = origins.doCentsAboveExtentLower
+                                    + std::floor((segment.lowerCents - origins.doCentsAboveExtentLower) / periodCents)
+                                    * periodCents;
                 for (double period = basePeriod; period < segment.upperCents; period += periodCents) {
                     if (haveJi) {
                         for (const jims::JiLine& ji : jiLines) {
@@ -5126,7 +5132,8 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
                             }
                         }
                     } else if (!jimsSt->jimsJiLines()) {
-                        double cents = period + periodCents / 2.0; // mid-period line
+                        double framePeriod = std::floor(segment.lowerCents / periodCents) * periodCents;
+                        double cents = framePeriod + periodCents / 2.0; // mid-frame line
                         if (cents > segment.lowerCents + epsilon && cents < segment.upperCents - epsilon) {
                             guide(cents, true, 0xE0C020);
                         }

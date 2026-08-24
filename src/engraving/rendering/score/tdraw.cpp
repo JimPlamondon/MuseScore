@@ -2732,7 +2732,7 @@ void TDraw::draw(const Spacer* item, Painter* painter, const PaintOptions& opt)
 
     auto conf = item->configuration();
 
-    Pen pen(item->selected() ? conf->selectionColor() : conf->formattingColor(), item->spatium()* 0.3);
+    Pen pen(item->selected() ? conf->selectionColor() : conf->formattingColor(), item->spatium() * 0.3);
 
     painter->setPen(pen);
     painter->setBrush(BrushStyle::NoBrush);
@@ -2826,12 +2826,18 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
 
             std::vector<jims::ScaleDotStack> stacks;
             double tonicCents = 0.0;
+            jims::PeriodicOrigins origins;
+            if (!jims::periodicOrigins(jimsSt->jimsStateJson(), origins)) {
+                return;
+            }
             const bool haveTonic = jims::tonicCentsAboveDo(jimsSt->jimsStateJson(), tonicCents);
             const double epsilon = 1e-6;
             if (font && jims::scaleDots(jimsSt->jimsStateJson(), stacks)) {
                 for (const StaffType::JimsFrameBand& band : view.bands) {
                     for (const StaffType::JimsSegment& segment : band.segments) {
-                        double basePeriod = std::floor(segment.lowerCents / periodCents) * periodCents;
+                        double basePeriod = origins.doCentsAboveExtentLower
+                                            + std::floor((segment.lowerCents - origins.doCentsAboveExtentLower)
+                                                         / periodCents) * periodCents;
                         for (double period = basePeriod; period <= segment.upperCents + epsilon;
                              period += periodCents) {
                             for (const auto& stack : stacks) {
@@ -2926,10 +2932,13 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                         // drawn tonic row and THAT row's Kernel label (owner
                         // finding 2, 2026-08-18: octave numbers correct always and
                         // everywhere) — for banded and whole-piece views alike.
-                        const double lowestPeriod = double(band.labelPeriodIndex) * periodCents;
+                        const double lowestTonicRow = double(band.labelPeriodIndex) * periodCents
+                                                      + origins.tonicCentsAboveExtentLower;
                         const muse::String keyText = band.tonicLabel.isEmpty() ? keyLabel.label : band.tonicLabel;
                         for (const StaffType::JimsSegment& segment : band.segments) {
-                            double basePeriod = std::floor(segment.lowerCents / periodCents) * periodCents;
+                            double basePeriod = origins.doCentsAboveExtentLower
+                                                + std::floor((segment.lowerCents - origins.doCentsAboveExtentLower)
+                                                             / periodCents) * periodCents;
                             for (double period = basePeriod; period <= segment.upperCents + epsilon;
                                  period += periodCents) {
                                 for (const jims::LabeledDotStack& stack : labelStacks) {
@@ -2954,7 +2963,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                     if (haveKeyLabel && std::abs(stack.cents - tonicCents) < epsilon
                                         && period + tonicCents >= segment.lowerCents - epsilon
                                         && period + tonicCents <= segment.upperCents + epsilon
-                                        && std::abs(period - lowestPeriod) < epsilon) {
+                                        && std::abs(cents - lowestTonicRow) < epsilon) {
                                         // Only the tonic indicator's own row (the
                                         // lowest Do register carries the indicator).
                                         leftText = leftText.isEmpty()
@@ -3009,7 +3018,9 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             // line at each cut edge (the patent mechanism, J4.001).
             for (const StaffType::JimsFrameBand& band : view.bands) {
                 for (const StaffType::JimsSegment& segment : band.segments) {
-                    double periodFloor = std::floor(segment.lowerCents / periodCents + epsilon) * periodCents;
+                    double periodFloor = origins.doCentsAboveExtentLower
+                                         + std::floor((segment.lowerCents - origins.doCentsAboveExtentLower)
+                                                      / periodCents + epsilon) * periodCents;
                     double periodTopY = yOf(periodFloor + periodCents);
                     double segTopY = yOf(segment.upperCents);
                     double segBottomY = yOf(segment.lowerCents);
@@ -3141,6 +3152,10 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     = changeSt->jimsFrameView(item->score(), item->staffIdx(), item->measure()->system());
                 const double periodCents = changeSt->jimsPeriodCents();
                 if (!view.empty() && periodCents > 0.0) {
+                    jims::PeriodicOrigins origins;
+                    if (!jims::periodicOrigins(changeSt->jimsStateJson(), origins)) {
+                        return;
+                    }
                     auto yOf = [&](double cents) {
                         return topY + changeSt->jimsYFromCents(cents, view) * _spatium;
                     };
@@ -3156,7 +3171,8 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     // Period 0 of the model = the anchor Do-line: the lowest Do-line
                     // of the stave stack that keeps the whole indicator inside the
                     // staff (owner ruling 2026-08-19; jims::changeAnchorPeriodCents).
-                    const double basePeriod = jims::changeAnchorPeriodCents(view, model, periodCents);
+                    const double basePeriod = jims::changeAnchorPeriodCents(
+                        view, model, periodCents, origins.doCentsAboveExtentLower);
                     auto centsOf = [&](const jims::ChangePoint& p) {
                         return basePeriod + (p.periodOffset + p.ordinate) * periodCents;
                     };
@@ -3175,7 +3191,9 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                         }
                         for (const StaffType::JimsFrameBand& band : view.bands) {
                             for (const StaffType::JimsSegment& segment : band.segments) {
-                                const double segBase = std::floor(segment.lowerCents / periodCents + eps) * periodCents;
+                                const double segBase = origins.doCentsAboveExtentLower
+                                                       + std::floor((segment.lowerCents - origins.doCentsAboveExtentLower)
+                                                                    / periodCents + eps) * periodCents;
                                 for (double period = segBase; period <= segment.upperCents + eps; period += periodCents) {
                                     const double c = period + p.ordinate * periodCents;
                                     if (c >= segment.lowerCents - eps && c <= segment.upperCents + eps) {
@@ -3200,10 +3218,10 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     // Owner finding 2 (2026-08-18): the terrain's "[PitchN]:" names
                     // the octave of the ROW it is drawn on — the Kernel label for
                     // the row's frame period (base period + the point's offset).
-                    const int basePeriodIndex = int(std::lround(basePeriod / periodCents));
                     std::map<int, muse::String> labelByPeriod;
                     auto keyLabelForRow = [&](const jims::ChangePoint& tp) -> muse::String {
-                        const int k = basePeriodIndex + tp.periodOffset;
+                        const int k = int(std::lround((centsOf(tp) - origins.tonicCentsAboveExtentLower)
+                                                      / periodCents));
                         auto found = labelByPeriod.find(k);
                         if (found != labelByPeriod.end()) {
                             return found->second;
