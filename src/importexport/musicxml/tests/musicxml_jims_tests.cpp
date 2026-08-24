@@ -1157,7 +1157,7 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
     EXPECT_EQ(xml.count(u"lower-n-per=\"3\" lower-n-gen=\"-5\" upper-n-per=\"4\" upper-n-gen=\"-5\""), 1);
     EXPECT_EQ(xml.count(u"lower-n-per=\"2\" lower-n-gen=\"-4\" upper-n-per=\"3\" upper-n-gen=\"-4\""), 1);
     EXPECT_EQ(xml.count(u"lower-n-per=\"1\" lower-n-gen=\"-3\" upper-n-per=\"2\" upper-n-gen=\"-3\""), 1);
-    EXPECT_EQ(xml.count(u"lower-n-per=\"-4\" lower-n-gen=\"4\" upper-n-per=\"-3\" upper-n-gen=\"4\""), 1)
+    EXPECT_EQ(xml.count(u"lower-n-per=\"2\" lower-n-gen=\"-6\" upper-n-per=\"3\" upper-n-gen=\"-6\""), 1)
         << "each SATB voice must export its own Kernel-derived empty-staff extent";
 
     auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
@@ -1192,7 +1192,7 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
     EXPECT_EQ(xml2.count(u"lower-n-per=\"3\" lower-n-gen=\"-5\" upper-n-per=\"4\" upper-n-gen=\"-5\""), 1);
     EXPECT_EQ(xml2.count(u"lower-n-per=\"2\" lower-n-gen=\"-4\" upper-n-per=\"3\" upper-n-gen=\"-4\""), 1);
     EXPECT_EQ(xml2.count(u"lower-n-per=\"1\" lower-n-gen=\"-3\" upper-n-per=\"2\" upper-n-gen=\"-3\""), 1);
-    EXPECT_EQ(xml2.count(u"lower-n-per=\"-4\" lower-n-gen=\"4\" upper-n-per=\"-3\" upper-n-gen=\"4\""), 1);
+    EXPECT_EQ(xml2.count(u"lower-n-per=\"2\" lower-n-gen=\"-6\" upper-n-per=\"3\" upper-n-gen=\"-6\""), 1);
 
     delete again;
     delete score;
@@ -1219,12 +1219,11 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBScoreWideChangeKeepsOneSharedTimelineOnExport)
     EXPECT_FALSE(xml.empty()) << "a score-wide change must leave the document exportable";
     EXPECT_EQ(xml.count(u"<jims:mode-rotation>5</jims:mode-rotation>"), 4)
         << "every one of the four parts must carry the change";
-    // S/A/T retain their singer-range centres; Bass alone follows the new tonic.
+    // Every empty vocal staff retains its independent singer-range centre.
     EXPECT_EQ(xml.count(u"lower-n-per=\"3\" lower-n-gen=\"-5\" upper-n-per=\"4\" upper-n-gen=\"-5\""), 2);
     EXPECT_EQ(xml.count(u"lower-n-per=\"2\" lower-n-gen=\"-4\" upper-n-per=\"3\" upper-n-gen=\"-4\""), 2);
     EXPECT_EQ(xml.count(u"lower-n-per=\"1\" lower-n-gen=\"-3\" upper-n-per=\"2\" upper-n-gen=\"-3\""), 2);
-    EXPECT_EQ(xml.count(u"lower-n-per=\"-4\" lower-n-gen=\"4\" upper-n-per=\"-3\" upper-n-gen=\"4\""), 1);
-    EXPECT_EQ(xml.count(u"lower-n-per=\"1\" lower-n-gen=\"-5\" upper-n-per=\"2\" upper-n-gen=\"-5\""), 1);
+    EXPECT_EQ(xml.count(u"lower-n-per=\"2\" lower-n-gen=\"-6\" upper-n-per=\"3\" upper-n-gen=\"-6\""), 2);
 
     delete score;
 }
