@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify M10 SATB renders and the empty-template extent centres."""
+"""Verify M10 SATB renders, extent centres, and continuous crescent clefs."""
 
 import hashlib
 import importlib.util
@@ -22,30 +22,72 @@ EXPECTED_EXTENTS = [
     {"lower": {"nPer": 2, "nGen": -6}, "upper": {"nPer": 3, "nGen": -6}},
 ]
 EXPECTED_DO_ORIGINS = [900.0, 200.0, 700.0, 400.0]
+CLOSURE_MIN_RUN = 8
+HORN_SIDE_MIN_INK = 12
+
+
+def longest_horizontal_run(row):
+    longest = current = 0
+    for inked in row:
+        if inked:
+            current += 1
+            longest = max(longest, current)
+        else:
+            current = 0
+    return longest
 
 
 def check_empty_staff_do_rows(path, m9):
     image = m9.np.asarray(m9.Image.open(path).convert("RGB"))
+    ink = image.max(2) < m9.INK_MAX
     red = ((image[:, :, 0] > 140) & (image[:, :, 1] < 110)
            & (image[:, :, 2] < 110) & (image[:, :, 0] > image[:, :, 1] * 1.5))
     _, frames = m9.staff_frames(m9.ink_of(path))
     systems = m9.group_systems(frames)
+    layout_systems = m9.check_page(path)["systems"]
     result = {"page": path.name, "systems": [], "failures": []}
     for system_index, system in enumerate(systems):
         if len(system) != 4:
             result["failures"].append(f"system {system_index + 1}: expected four staff frames")
             continue
+        edge_columns = layout_systems[system_index].get("system_edge_columns", [])
+        if not edge_columns:
+            result["failures"].append(f"system {system_index + 1}: no system edge for crescent inspection")
+            continue
+        clef_right = min(edge_columns)
         rows = []
         for voice_index, ((top, bottom), origin) in enumerate(zip(system, EXPECTED_DO_ORIGINS)):
             counts = red[top:bottom + 1].sum(axis=1)
             actual = top + int(counts.argmax())
             expected = top + (1.0 - origin / 1200.0) * (bottom - top)
             tolerance = max(4.0, 0.06 * (bottom - top))
+            closure_left = max(0, clef_right - 75)
+            closure_right = max(closure_left + 1, clef_right - 3)
+            top_closure = max(longest_horizontal_run(ink[y, closure_left:closure_right])
+                              for y in range(max(0, top - 2), min(ink.shape[0], top + 3)))
+            bottom_closure = max(longest_horizontal_run(ink[y, closure_left:closure_right])
+                                 for y in range(max(0, bottom - 2), min(ink.shape[0], bottom + 3)))
+            horn_left = max(0, clef_right - 36)
+            horn_right = max(horn_left + 1, clef_right - 3)
+            upper_horn_ink = int(ink[max(top, actual - 10):max(top, actual - 2),
+                                     horn_left:horn_right].sum())
+            lower_horn_ink = int(ink[min(bottom + 1, actual + 3):min(bottom + 1, actual + 11),
+                                     horn_left:horn_right].sum())
             rows.append({"voice": ["soprano", "alto", "tenor", "bass"][voice_index],
-                         "actual_y": actual, "expected_y": expected, "tolerance": tolerance})
+                         "actual_y": actual, "expected_y": expected, "tolerance": tolerance,
+                         "upper_horn_ink": upper_horn_ink, "lower_horn_ink": lower_horn_ink,
+                         "top_closure_run": top_closure, "bottom_closure_run": bottom_closure})
             if abs(actual - expected) > tolerance:
                 result["failures"].append(
                     f"system {system_index + 1} voice {voice_index + 1}: Do row y={actual}, expected {expected:.1f}")
+            if upper_horn_ink < HORN_SIDE_MIN_INK or lower_horn_ink < HORN_SIDE_MIN_INK:
+                result["failures"].append(
+                    f"system {system_index + 1} voice {voice_index + 1}: crescent does not join Do from both sides "
+                    f"(upper={upper_horn_ink}, lower={lower_horn_ink})")
+            if top_closure < CLOSURE_MIN_RUN or bottom_closure < CLOSURE_MIN_RUN:
+                result["failures"].append(
+                    f"system {system_index + 1} voice {voice_index + 1}: clipped crescent edge is not closed "
+                    f"(top={top_closure}, bottom={bottom_closure})")
         result["systems"].append({"system": system_index + 1, "do_rows": rows})
     result["ok"] = not result["failures"]
     return result
