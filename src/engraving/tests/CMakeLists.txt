@@ -63,6 +63,7 @@ set(MODULE_TEST_SRC
     ${CMAKE_CURRENT_LIST_DIR}/jimstaff_m6_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/jimstaff_m8_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/jimstaff_m9_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/jimstaff_m10_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/jimstaff_fixture_integrity_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/join_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/keysig_tests.cpp

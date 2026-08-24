@@ -1572,6 +1572,15 @@ void MusicXmlParserPass1::identification()
                 m_logger->logError(error, &m_e);
                 m_jimsProvenanceError = true;
             }
+        } else if (m_jims.hasJims() && m_jims.isJimsElement(m_e.name(), "melody-part")) {
+            engraving::jims::MelodyPart part = engraving::jims::MelodyPart::Soprano;
+            const String token = m_e.readText().trimmed();
+            if (engraving::jims::melodyPartFromToken(token, part)) {
+                m_score->setJimsMelodyPart(part);
+            } else {
+                m_logger->logError(String(u"invalid jims:melody-part '%1'").arg(token), &m_e);
+                m_jimsProvenanceError = true;
+            }
         } else if (m_e.name() == "miscellaneous") {
             // store all miscellaneous information
             while (m_e.readNextStartElement()) {

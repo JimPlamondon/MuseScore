@@ -48,6 +48,7 @@
 #include "dom/tie.h"
 #include "dom/tremolotwochord.h"
 #include "dom/tuplet.h"
+#include "jims/jimschange.h"
 
 #include "engravingerrors.h"
 
@@ -110,6 +111,12 @@ muse::Ret Read460::readScoreFile(Score* score, XmlReader& e, rw::ReadInOutData* 
     }
 
     ctx.clearOrphanedConnectors();
+
+    // JiMS load transition: written notes become the exact per-staff extent;
+    // empty SATB staves receive the Kernel's declared-range default. The
+    // designated melody then supplies the one song-wide tonic ambit.
+    jims::reconcileExtents(score);
+    jims::deriveTonicAmbits(score);
 
     if (data) {
         data->settingsCompat = ctx.settingCompat();
@@ -200,6 +207,11 @@ bool Read460::readScoreTag(Score* score, XmlReader& e, ReadContext& ctx)
                 }
             }
             score->setJimsProvenance(prov);
+        } else if (tag == "jimsMelodyPart") {
+            jims::MelodyPart part = jims::MelodyPart::Soprano;
+            if (jims::melodyPartFromToken(e.readText().trimmed(), part)) {
+                score->setJimsMelodyPart(part);
+            }
         } else if (tag == "Order") {
             ScoreOrder order;
             order.read(e);

@@ -7389,6 +7389,9 @@ void ExportMusicXml::identification(XmlWriter& xml, Score const* const score)
         }
         xml.endElement();
     }
+    if (m_jimsPlan.present && score->jimsMelodyPart() != jims::MelodyPart::Soprano) {
+        xml.tag("jims:melody-part", jims::melodyPartToken(score->jimsMelodyPart()));
+    }
 
     if (!MScore::debugMode) {
         // do not write miscellaneous in debug mode

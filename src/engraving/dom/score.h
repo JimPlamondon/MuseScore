@@ -899,6 +899,8 @@ public:
     // JiMS MusicXML interchange carrier (transported, never interpreted; see jims/jimsinterchange.h)
     const jims::Provenance& jimsProvenance() const { return m_jimsProvenance; }
     void setJimsProvenance(const jims::Provenance& p) { m_jimsProvenance = p; }
+    jims::MelodyPart jimsMelodyPart() const { return m_jimsMelodyPart; }
+    void setJimsMelodyPart(jims::MelodyPart part) { m_jimsMelodyPart = part; }
 
     const std::map<String, String>& metaTags() const { return m_metaTags; }
     std::map<String, String>& metaTags() { return m_metaTags; }
@@ -1231,6 +1233,7 @@ private:
 
     std::map<String, String> m_metaTags;
     jims::Provenance m_jimsProvenance;
+    jims::MelodyPart m_jimsMelodyPart = jims::MelodyPart::Soprano;
 
     Selection m_selection;
     SelectionFilter m_selectionFilter;

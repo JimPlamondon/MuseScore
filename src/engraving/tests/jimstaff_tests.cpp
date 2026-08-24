@@ -53,7 +53,7 @@ muse::String jimsState(double generatorCents, int modeRotation = 0)
         u"\"collection_rotation\":0,\"mode_rotation\":%1,"
         u"\"generator_cents\":%2,\"period_cents\":1200.0,"
         u"\"embedding\":{\"large_steps\":5,\"small_steps\":2},"
-        u"\"extent\":{\"lower_do_register\":4,\"period_count\":2},"
+        u"\"extent\":{\"lower\":{\"nPer\":1,\"nGen\":-2},\"upper\":{\"nPer\":3,\"nGen\":-2}},"
         u"\"reference\":\"none\"}")
            .arg(modeRotation)
            .arg(muse::String::number(generatorCents, 12));
@@ -83,14 +83,14 @@ TEST(JiMStaffTests, centsPositionsFollowTheGeneratorAcrossTunings)
         muse::String state = jimsState(g);
         double cents = 0.0;
         // C4 = (1,-2): the lower Do of the register-4 staff, at 0 by anchor.
-        ASSERT_TRUE(jims::noteCentsAboveDo(state, 1, -2, cents));
+        ASSERT_TRUE(jims::noteCentsAboveExtentLower(state, 1, -2, cents));
         EXPECT_NEAR(cents, 0.0, EPS);
         // G4 = (1,-1): exactly one generator up.
-        ASSERT_TRUE(jims::noteCentsAboveDo(state, 1, -1, cents));
+        ASSERT_TRUE(jims::noteCentsAboveExtentLower(state, 1, -1, cents));
         EXPECT_NEAR(cents, g, EPS);
         // E4 = (-1,2): four generators above the lower Do once the
         // anchor's own motion is counted.
-        ASSERT_TRUE(jims::noteCentsAboveDo(state, -1, 2, cents));
+        ASSERT_TRUE(jims::noteCentsAboveExtentLower(state, -1, 2, cents));
         EXPECT_NEAR(cents, 4.0 * g - 2400.0, EPS);
     }
 }
@@ -110,7 +110,7 @@ TEST(JiMStaffTests, entryAndQuantizationRoundTrip)
     for (double g : { G12, G17, G19 }) {
         muse::String state = jimsState(g);
         double cents = 0.0;
-        ASSERT_TRUE(jims::noteCentsAboveDo(state, nPer, nGen, cents));
+        ASSERT_TRUE(jims::noteCentsAboveExtentLower(state, nPer, nGen, cents));
         jims::PitchHit hit;
         ASSERT_TRUE(jims::nearestPitch(state, cents, true, nPer, nGen, hit));
         EXPECT_EQ(hit.nPer, 1);
@@ -135,11 +135,9 @@ TEST(JiMStaffTests, dragTargetsAreTuningTrueNeverTwelveTetArithmetic)
     EXPECT_EQ(hit.nGen, 2) << "19-TET: Mi at 378.95";
 }
 
-// Partial staves (patent mechanism, J4.001): the God-Rest-Ye shape —
-// La-mode, melody bounded by La instances A4..A5 — yields two partial
-// staves cut 100 cents beyond each bounding La: [800,1200] and
-// [1200,2200], in cents, Kernel-derived.
-TEST(JiMStaffTests, tonicBoundedLaModeFrameGetsPartialStaves)
+// M10: the stored two-bound extent is the minimum frame during an edit
+// session. A narrower La-mode melody cannot contract that stored frame.
+TEST(JiMStaffTests, tonicBoundedLaModeFrameKeepsStoredExtentMinimum)
 {
     muse::String state = jimsState(G12, 5); // mode_rotation 5 selects La
     muse::String melody
@@ -148,12 +146,12 @@ TEST(JiMStaffTests, tonicBoundedLaModeFrameGetsPartialStaves)
     std::vector<jims::StaveSegment> segments;
     ASSERT_TRUE(jims::frameForMelody(state, melody, u"tonic-bounded", segments));
     ASSERT_EQ(segments.size(), 2u);
-    EXPECT_FALSE(segments[0].whole);
-    EXPECT_NEAR(segments[0].lowerCents, 800.0, EPS);
+    EXPECT_TRUE(segments[0].whole);
+    EXPECT_NEAR(segments[0].lowerCents, 0.0, EPS);
     EXPECT_NEAR(segments[0].upperCents, 1200.0, EPS);
-    EXPECT_FALSE(segments[1].whole);
+    EXPECT_TRUE(segments[1].whole);
     EXPECT_NEAR(segments[1].lowerCents, 1200.0, EPS);
-    EXPECT_NEAR(segments[1].upperCents, 2200.0, EPS);
+    EXPECT_NEAR(segments[1].upperCents, 2400.0, EPS);
 }
 
 // The tuning metrics seam feeding the "M5= <cents>¢" label reports the
@@ -167,18 +165,18 @@ TEST(JiMStaffTests, staffMetricsReportTheStateWidths)
 }
 
 // Negative control: invalid state fails VISIBLY (every wrapper returns
-// false) — never a silent fall-back to 12-TET arithmetic. The scale
-// below breaks the MOS embedding contract.
+// false) — never a silent fall-back to 12-TET arithmetic. The unknown
+// field below is rejected by the strict, alias-free M10 state contract.
 TEST(JiMStaffTests, invalidStateFailsVisiblyNotSilently)
 {
     muse::String bad
         =u"{\"scale\":[\"M2\",\"M2\"],\"collection_rotation\":0,\"mode_rotation\":0,"
          u"\"generator_cents\":700.0,\"period_cents\":1200.0,"
          u"\"embedding\":{\"large_steps\":5,\"small_steps\":2},"
-         u"\"extent\":{\"lower_do_register\":4,\"period_count\":2},"
-         u"\"reference\":\"none\"}";
+         u"\"extent\":{\"lower\":{\"nPer\":1,\"nGen\":-2},\"upper\":{\"nPer\":3,\"nGen\":-2}},"
+         u"\"reference\":\"none\",\"unsupported_legacy_field\":true}";
     double cents = 0.0;
-    EXPECT_FALSE(jims::noteCentsAboveDo(bad, 1, -2, cents));
+    EXPECT_FALSE(jims::noteCentsAboveExtentLower(bad, 1, -2, cents));
     double generatorCents = 0.0, periodCents = 0.0;
     EXPECT_FALSE(jims::staffMetrics(bad, generatorCents, periodCents));
     std::vector<jims::StaveSegment> segments;
@@ -622,7 +620,7 @@ Note* highestJimsNote(Score* score)
         for (Note* n : toChord(el)->notes()) {
             double c = 0.0;
             if (n->hasJimsPitch()
-                && jims::noteCentsAboveDo(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(), c)
+                && jims::noteCentsAboveExtentLower(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(), c)
                 && c > bestCents) {
                 bestCents = c;
                 best = n;
@@ -727,7 +725,7 @@ TEST(JiMStaffTests, liveFrameGrowsShrinksAndRoundTripsThroughUndo)
     {
         const StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
         double c = 0.0;
-        ASSERT_TRUE(jims::noteCentsAboveDo(st->jimsStateJson(), top->jimsNPer(), top->jimsNGen(), c));
+        ASSERT_TRUE(jims::noteCentsAboveExtentLower(st->jimsStateJson(), top->jimsNPer(), top->jimsNGen(), c));
         EXPECT_LE(c, grown.back().upperCents + EPS);
         EXPECT_GE(c, grown.front().lowerCents - EPS);
     }
@@ -1191,7 +1189,7 @@ TEST(JiMStaffTests, noteDragAnchorsAtStartCentsAndNeverCompounds)
     const int nPer0 = top->jimsNPer();
     const int nGen0 = top->jimsNGen();
     double c0 = 0.0;
-    ASSERT_TRUE(jims::noteCentsAboveDo(st->jimsStateJson(), nPer0, nGen0, c0));
+    ASSERT_TRUE(jims::noteCentsAboveExtentLower(st->jimsStateJson(), nPer0, nGen0, c0));
 
     EditData ed(nullptr);
     EngravingItem* dragged = top;
@@ -1204,7 +1202,7 @@ TEST(JiMStaffTests, noteDragAnchorsAtStartCentsAndNeverCompounds)
     const int nPer1 = top->jimsNPer();
     const int nGen1 = top->jimsNGen();
     double c1 = 0.0;
-    ASSERT_TRUE(jims::noteCentsAboveDo(st->jimsStateJson(), nPer1, nGen1, c1));
+    ASSERT_TRUE(jims::noteCentsAboveExtentLower(st->jimsStateJson(), nPer1, nGen1, c1));
     EXPECT_NEAR(c1 - c0, 1200.0, 60.0) << "first event moves the note about one period";
 
     // Five more events with the SAME total offset and no pointer motion:
@@ -1334,7 +1332,7 @@ TEST(JiMStaffTests, wideMelodyControllerSweepKeepsFrameValidAndFast)
                 }
                 for (Note* n : toChord(el)->notes()) {
                     double c = 0.0;
-                    ASSERT_TRUE(jims::noteCentsAboveDo(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(), c));
+                    ASSERT_TRUE(jims::noteCentsAboveExtentLower(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(), c));
                     ASSERT_GE(c, frame.front().lowerCents - EPS) << piece.toStdString() << " g=" << g;
                     ASSERT_LE(c, frame.back().upperCents + EPS) << piece.toStdString() << " g=" << g;
                 }
@@ -1479,7 +1477,7 @@ TEST(JiMStaffTests, tonicPitchLabelTransportPreservesMusicalAccidentalSymbols)
 {
     const muse::String state
         =
-            u"{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],\"collection_rotation\":0,\"mode_rotation\":0,\"generator_cents\":700.0,\"period_cents\":1200.0,\"embedding\":{\"large_steps\":5,\"small_steps\":2},\"extent\":{\"lower_do_register\":4,\"period_count\":1},\"reference\":{\"reference-pitch\":{\"key_number\":53}}}";
+            u"{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],\"collection_rotation\":0,\"mode_rotation\":0,\"generator_cents\":700.0,\"period_cents\":1200.0,\"embedding\":{\"large_steps\":5,\"small_steps\":2},\"extent\":{\"lower\":{\"nPer\":1,\"nGen\":-2},\"upper\":{\"nPer\":2,\"nGen\":-2}},\"reference\":{\"reference-pitch\":{\"key_number\":53}}}";
     jims::TonicPitchLabel label;
     ASSERT_TRUE(jims::tonicPitchLabel(state, label));
     EXPECT_EQ(label.label, u"E♭3");
@@ -1507,7 +1505,7 @@ TEST(JiMStaffTests, changeIndicatorTransportCarriesTheKernelTerrainVerbatim)
 {
     const muse::String oldS
         =
-            u"{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],\"collection_rotation\":0,\"mode_rotation\":0,\"generator_cents\":700.0,\"period_cents\":1200.0,\"embedding\":{\"large_steps\":5,\"small_steps\":2},\"extent\":{\"lower_do_register\":4,\"period_count\":1},\"reference\":{\"reference-pitch\":{\"key_number\":62}}}";
+            u"{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],\"collection_rotation\":0,\"mode_rotation\":0,\"generator_cents\":700.0,\"period_cents\":1200.0,\"embedding\":{\"large_steps\":5,\"small_steps\":2},\"extent\":{\"lower\":{\"nPer\":1,\"nGen\":-2},\"upper\":{\"nPer\":2,\"nGen\":-2}},\"reference\":{\"reference-pitch\":{\"key_number\":62}}}";
     muse::String newS = oldS;
     newS.replace(u"\"mode_rotation\":0", u"\"mode_rotation\":5");
     newS.replace(u"\"key_number\":62", u"\"key_number\":53");

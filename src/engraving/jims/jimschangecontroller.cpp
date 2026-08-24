@@ -277,6 +277,11 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Str
     if (!applyStateChange(current, choiceId, next, error)) {
         return false;
     }
+    if (!defaultExtentForEmptyStaffSpan(score->staff(staffIdx), measure->tick(),
+                                        nextCarrierMeasure(score, staffIdx, measure->tick()), next, next)) {
+        error = u"the JiMS Kernel could not derive the empty vocal-staff extent";
+        return false;
+    }
     if (next == current) {
         return true;        // no-op choice: nothing to edit
     }
@@ -307,6 +312,10 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Str
             String err;
             if (!applyStateChange(st->jimsStateJson(), choiceId, bound, err)) {
                 error = err;
+                return false;
+            }
+            if (!defaultExtentForEmptyStaffSpan(staff, tick, nextCarrierMeasure(score, staffIdx, tick), bound, bound)) {
+                error = u"the JiMS Kernel could not derive the empty vocal-staff extent";
                 return false;
             }
             if (bound != st->jimsStateJson()) {
@@ -445,6 +454,12 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const std::vector
             }
             next = out;
         }
+        if (!defaultExtentForEmptyStaffSpan(staff, measure->tick(),
+                                            nextCarrierMeasure(score, staffIdx, measure->tick()), next, next)) {
+            error = String(u"staff %1: the JiMS Kernel could not derive the empty vocal-staff extent")
+                    .arg(int(staffIdx) + 1);
+            return false;
+        }
         if (next == current) {
             continue;                       // no-op for this target: nothing to edit
         }
@@ -572,6 +587,7 @@ bool normalizeStoredPitchesAfterLoad(Score* score, size_t& repairs, String& erro
             for (EngravingObject* linkedObject : edit.note->linkList()) {
                 Note* linked = toNote(linkedObject);
                 linked->setJimsPitch(edit.projection.nPer, edit.projection.nGen);
+                widenExtentForNote(linked);
                 linked->setPitch(edit.projection.midiKey, edit.tpc, edit.tpc);
                 linked->setTuning(edit.projection.centsOffset);
             }

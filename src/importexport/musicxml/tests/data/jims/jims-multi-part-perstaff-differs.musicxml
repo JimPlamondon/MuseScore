@@ -25,7 +25,7 @@
         <jims:generator-cents>700.0</jims:generator-cents>
         <jims:period-cents>1200.0</jims:period-cents>
         <jims:embedding large-steps="5" small-steps="2"/>
-        <jims:extent lower-do-register="4" period-count="1"/>
+        <jims:extent lower-n-per="1" lower-n-gen="-2" upper-n-per="2" upper-n-gen="-2"/>
         <jims:tonic-ambit>tonic-centered</jims:tonic-ambit>
       </jims:staff-state>
     </attributes>
@@ -49,7 +49,7 @@
         <jims:generator-cents>700.0</jims:generator-cents>
         <jims:period-cents>1200.0</jims:period-cents>
         <jims:embedding large-steps="5" small-steps="2"/>
-        <jims:extent lower-do-register="4" period-count="1"/>
+        <jims:extent lower-n-per="1" lower-n-gen="-2" upper-n-per="2" upper-n-gen="-2"/>
         <jims:tonic-ambit>tonic-centered</jims:tonic-ambit>
       </jims:staff-state>
     </attributes>
@@ -77,8 +77,8 @@
         <jims:generator-cents>700.0</jims:generator-cents>
         <jims:period-cents>1200.0</jims:period-cents>
         <jims:embedding large-steps="5" small-steps="2"/>
-        <jims:extent lower-do-register="3" period-count="1"/>
-        <jims:tonic-ambit>tonic-bounded</jims:tonic-ambit>
+        <jims:extent lower-n-per="0" lower-n-gen="-2" upper-n-per="1" upper-n-gen="-2"/>
+        <jims:tonic-ambit>tonic-centered</jims:tonic-ambit>
       </jims:staff-state>
     </attributes>
     <note>
@@ -101,8 +101,8 @@
         <jims:generator-cents>700.0</jims:generator-cents>
         <jims:period-cents>1200.0</jims:period-cents>
         <jims:embedding large-steps="5" small-steps="2"/>
-        <jims:extent lower-do-register="3" period-count="1"/>
-        <jims:tonic-ambit>tonic-bounded</jims:tonic-ambit>
+        <jims:extent lower-n-per="0" lower-n-gen="-2" upper-n-per="1" upper-n-gen="-2"/>
+        <jims:tonic-ambit>tonic-centered</jims:tonic-ambit>
       </jims:staff-state>
     </attributes>
     <note>

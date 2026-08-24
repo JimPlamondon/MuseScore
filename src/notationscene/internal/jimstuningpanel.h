@@ -73,6 +73,7 @@ private:
     /// the score at the selected measure as one undo step (owner decision 2a).
     /// A scale entry is several Kernel ids, which is why this takes a list.
     void applyChoices(const std::vector<muse::String>& choiceIds);
+    void onMelodyPartChanged(int index);
     void onRemoveChange();
     bool event(QEvent* e) override;
 
@@ -99,6 +100,7 @@ private:
 
     mu::engraving::Score* m_score = nullptr;
     QGroupBox* m_changeBox = nullptr;
+    QComboBox* m_melodyPartCombo = nullptr;
     QLabel* m_targetLabel = nullptr;
     QComboBox* m_tonicCombo = nullptr;
     QComboBox* m_keyClassCombo = nullptr;

@@ -42,6 +42,7 @@
 #include "engraving/jims/jimschangecontroller.h"
 #include "engraving/jims/jimstuningcontroller.h"
 #include "engraving/editing/editstaff.h"
+#include "engraving/editing/editscoreproperties.h"
 #include "engraving/style/style.h"
 
 using namespace mu::notationscene;
@@ -267,6 +268,16 @@ JimsTuningPanel::JimsTuningPanel(Score* score, std::function<void()> refreshView
 
 void JimsTuningPanel::buildChangeSection(QWidget* parent, QVBoxLayout* outer)
 {
+    auto* melodyBox = new QGroupBox(QStringLiteral("Song-wide melody"), parent);
+    auto* melodyRow = new QHBoxLayout(melodyBox);
+    melodyRow->addWidget(new QLabel(QStringLiteral("Melody part"), melodyBox));
+    m_melodyPartCombo = new QComboBox(melodyBox);
+    m_melodyPartCombo->addItems({ QStringLiteral("Soprano"), QStringLiteral("Alto"),
+                                  QStringLiteral("Tenor"), QStringLiteral("Bass") });
+    melodyRow->addWidget(m_melodyPartCombo, 1);
+    outer->addWidget(melodyBox);
+    connect(m_melodyPartCombo, &QComboBox::currentIndexChanged, this, &JimsTuningPanel::onMelodyPartChanged);
+
     m_changeBox = new QGroupBox(QStringLiteral("Change at the selected bar"), parent);
     auto* grid = new QVBoxLayout(m_changeBox);
 
@@ -376,6 +387,10 @@ bool JimsTuningPanel::changeTarget(Measure*& measure, staff_idx_t& staffIdx) con
 
 void JimsTuningPanel::syncChangeSection()
 {
+    if (m_melodyPartCombo && m_score) {
+        QSignalBlocker blocker(m_melodyPartCombo);
+        m_melodyPartCombo->setCurrentIndex(int(m_score->jimsMelodyPart()));
+    }
     if (!m_changeBox) {
         return;
     }
@@ -537,6 +552,20 @@ void JimsTuningPanel::syncChangeSection()
     if (!jims::canInsertChange(m_score, staffIdx, measure, why)) {
         m_statusLabel->setText(why.toQString());
     }
+}
+
+void JimsTuningPanel::onMelodyPartChanged(int index)
+{
+    if (!m_score || index < 0 || index > 3 || index == int(m_score->jimsMelodyPart())) {
+        return;
+    }
+    m_score->startCmd(TranslatableString("undoableAction", "Change JiMS melody part"));
+    m_score->undo(new ChangeJimsMelodyPart(m_score, jims::MelodyPart(index)));
+    m_score->endCmd();
+    if (m_refreshView) {
+        m_refreshView();
+    }
+    syncChangeSection();
 }
 
 void JimsTuningPanel::applyChoice(const muse::String& choiceId)

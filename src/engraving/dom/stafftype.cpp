@@ -770,29 +770,21 @@ double StaffType::physStringToYOffset(int strg) const
 //    JiMStaffStateV2 (Milestone 2): the tonic-ambit token is a
 //    first-class field of the Kernel-owned state JSON. When the state
 //    carries it, extract it into the token member so layout consumes
-//    one value regardless of source; the legacy <jimsTonicExtent> tag
-//    remains as read compatibility for pre-V2 files (tread runs after
-//    this setter and may overwrite the member for such files).
-//    Owner rename 2026-08-19: the key is `tonic_ambit`; a state saved
-//    with the legacy key `tonic_extent` is normalized on read (the
-//    Kernel reads both; the fork writes only the new key).
+//    one value regardless of source. M10 accepts exactly one state spelling;
+//    aliases would create a duplicate musical authority.
 //---------------------------------------------------------
 
 void StaffType::setJimsStateJson(const String& s)
 {
-    String state = s;
-    static const String legacyKey = u"\"tonic_extent\":";
-    if (state.contains(legacyKey)) {
-        state.replace(legacyKey, u"\"tonic_ambit\":");
-    }
-    m_jimsStateJson = state;
+    m_jimsStateJson = s;
+    m_jimsTonicAmbit.clear();
     static const String marker = u"\"tonic_ambit\":\"";
-    size_t at = state.indexOf(marker);
+    size_t at = s.indexOf(marker);
     if (at != muse::nidx) {
         size_t from = at + marker.size();
-        size_t end = state.indexOf(u'"', from);
+        size_t end = s.indexOf(u'"', from);
         if (end != muse::nidx) {
-            m_jimsTonicAmbit = state.mid(from, end - from);
+            m_jimsTonicAmbit = s.mid(from, end - from);
         }
     }
 }
@@ -1886,7 +1878,7 @@ void StaffType::initStaffTypes(const Color& defaultColor)
                               "\"collection_rotation\":0,\"mode_rotation\":0,"
                               "\"generator_cents\":700.0,\"period_cents\":1200.0,"
                               "\"embedding\":{\"large_steps\":5,\"small_steps\":2},"
-                              "\"extent\":{\"lower_do_register\":4,\"period_count\":1},"
+                              "\"extent\":{\"lower\":{\"nPer\":1,\"nGen\":-2},\"upper\":{\"nPer\":2,\"nGen\":-2}},"
                               "\"reference\":\"none\",\"tonic_ambit\":\"tonic-bounded\"}"));
     m_presets.push_back(jims);
 }

@@ -38,6 +38,7 @@
 #include "engraving/engravingerrors.h"
 
 #include "importmusicxml.h"
+#include "engraving/jims/jimschange.h"
 #include "importmusicxmllogger.h"
 #include "importmusicxmlpass1.h"
 #include "importmusicxmlpass2.h"
@@ -107,6 +108,15 @@ Err importMusicXmlfromBuffer(Score* score, const String& /*name*/, const ByteArr
         for (const auto& pair : part->instruments()) {
             pair.second->updateInstrumentId();
         }
+    }
+
+    if (res == Err::NoError) {
+        // JiMS load initialization must see the complete imported score and
+        // the final instrument identifiers: fit each written staff exactly,
+        // install Kernel defaults on empty vocal staves, then derive the one
+        // song-wide tonic ambit from the designated melody Part.
+        jims::reconcileExtents(score);
+        jims::deriveTonicAmbits(score);
     }
 
     // report result
