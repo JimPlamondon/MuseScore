@@ -2802,13 +2802,31 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                       - 2.0 * indicatorW + indicatorW;
             const IEngravingFontPtr font = item->score()->engravingFont();
 
-            // Tuning label (owner ruling 2026-08-14, KISS form): the
-            // generator width as "M5= <cents>¢" above the top stave at
-            // the staff's left edge — M5 is the Kernel's canonical name
-            // for the fifth, per the (P8, M5) lattice. The value comes
-            // from the Kernel's staff_metrics op (Milestone 2 Phase 5);
-            // the fork never parses the state JSON for musical facts.
-            {
+            // Tuning label (owner rulings 2026-08-14 and 2026-08-24): the
+            // generator width as "M5= <cents>¢" above the top VISIBLE JiMS
+            // staff at the system head. Tuning is score-wide, so repeating
+            // the same fact above lower SATB staves is redundant. If
+            // hide-empty-staves elides Soprano on a later system, the label
+            // follows the first JiMS staff still visible there. M5 is the
+            // Kernel's canonical name for the fifth, per the (P8, M5)
+            // lattice. The value comes from staff_metrics; the fork never
+            // parses the state JSON for musical facts.
+            bool topVisibleJimsStaff = false;
+            const System* system = item->measure()->system();
+            if (system && item->staffIdx() < system->staves().size()
+                && system->staff(item->staffIdx())->show() && jimsStaff->show()) {
+                topVisibleJimsStaff = true;
+                for (staff_idx_t staffIdx = 0; staffIdx < item->staffIdx(); ++staffIdx) {
+                    const Staff* staff = item->score()->staff(staffIdx);
+                    const StaffType* type = staff ? staff->staffType(item->measure()->tick()) : nullptr;
+                    if (type && type->isJiMS() && staff->show()
+                        && staffIdx < system->staves().size() && system->staff(staffIdx)->show()) {
+                        topVisibleJimsStaff = false;
+                        break;
+                    }
+                }
+            }
+            if (topVisibleJimsStaff) {
                 double generatorCents = 0.0;
                 double periodCents = 0.0;
                 if (jims::staffMetrics(jimsSt->jimsStateJson(), generatorCents, periodCents)) {
