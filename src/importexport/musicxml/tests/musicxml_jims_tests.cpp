@@ -110,6 +110,17 @@ public:
         return result;
     }
 
+    static std::vector<Harmony*> harmoniesOnStaff(Score* score, staff_idx_t staffIdx)
+    {
+        std::vector<Harmony*> result;
+        for (Harmony* harmony : harmoniesInOrder(score)) {
+            if (harmony->staffIdx() == staffIdx) {
+                result.push_back(harmony);
+            }
+        }
+        return result;
+    }
+
     static std::vector<const Note*> notesInOrder(Score* score, staff_idx_t staffIdx = 0)
     {
         std::vector<const Note*> out;
@@ -263,30 +274,49 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4ImportsAsOpaquePerObjectHarmonyBesideStan
 {
     MasterScore* score = readJims("jims-chord-name-v4.musicxml");
     ASSERT_TRUE(score);
+    ASSERT_EQ(score->nstaves(), 2u);
+    ASSERT_TRUE(staffTypeAtStart(score, 0));
+    ASSERT_TRUE(staffTypeAtStart(score, 1));
+    EXPECT_TRUE(staffTypeAtStart(score, 0)->isJiMS());
+    EXPECT_FALSE(staffTypeAtStart(score, 1)->isJiMS());
+    const std::vector<const Note*> jimsNotes = notesInOrder(score, 0);
+    const std::vector<const Note*> stockNotes = notesInOrder(score, 1);
+    ASSERT_EQ(jimsNotes.size(), 2u);
+    ASSERT_EQ(stockNotes.size(), 2u);
+    EXPECT_TRUE(jimsNotes[0]->hasJimsPitch());
+    EXPECT_TRUE(jimsNotes[1]->hasJimsPitch());
+    EXPECT_FALSE(stockNotes[0]->hasJimsPitch());
+    EXPECT_FALSE(stockNotes[1]->hasJimsPitch());
     score->doLayout();
     const std::vector<Harmony*> harmonies = harmoniesInOrder(score);
-    ASSERT_EQ(harmonies.size(), 3u);
-    EXPECT_EQ(harmonies[0]->harmonyType(), HarmonyType::JIMS);
-    EXPECT_EQ(harmonies[0]->harmonyName(), u"!So7/Ti");
-    EXPECT_EQ(harmonies[0]->tick(), Fraction(0, 1));
-    EXPECT_EQ(harmonies[0]->staffIdx(), 0u);
-    EXPECT_EQ(harmonies[0]->placement(), PlacementV::ABOVE);
-    EXPECT_FALSE(harmonies[0]->isPlayable());
-    EXPECT_FALSE(harmonies[0]->isRealizable());
-    ASSERT_EQ(harmonies[0]->chords().size(), 1u);
-    EXPECT_EQ(harmonies[0]->chords().front()->textName(), u"!So7/Ti");
-    EXPECT_EQ(harmonies[0]->chords().front()->rootTpc(), Tpc::TPC_INVALID);
-    EXPECT_GT(harmonies[0]->ldata()->bbox().width(), 0.0);
-    EXPECT_EQ(harmonies[0]->ldata()->renderItemList().size(), 1u);
-    EXPECT_EQ(harmonies[1]->harmonyType(), HarmonyType::JIMS);
-    EXPECT_EQ(harmonies[1]->harmonyName(), u"Do5|Fa5");
-    EXPECT_EQ(harmonies[1]->tick(), Fraction(1, 1));
-    EXPECT_EQ(harmonies[1]->staffIdx(), 0u);
-    EXPECT_EQ(harmonies[1]->placement(), PlacementV::ABOVE);
-    EXPECT_GT(harmonies[1]->ldata()->bbox().width(), 0.0);
-    EXPECT_EQ(harmonies[1]->ldata()->renderItemList().size(), 1u);
-    EXPECT_EQ(harmonies[2]->harmonyType(), HarmonyType::STANDARD);
-    EXPECT_TRUE(tpcIsValid(harmonies[2]->rootTpc()));
+    const std::vector<Harmony*> jimsHarmonies = harmoniesOnStaff(score, 0);
+    const std::vector<Harmony*> stockHarmonies = harmoniesOnStaff(score, 1);
+    ASSERT_EQ(harmonies.size(), 4u);
+    ASSERT_EQ(jimsHarmonies.size(), 2u);
+    ASSERT_EQ(stockHarmonies.size(), 2u);
+    EXPECT_EQ(jimsHarmonies[0]->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(jimsHarmonies[0]->harmonyName(), u"!So7/Ti");
+    EXPECT_EQ(jimsHarmonies[0]->tick(), Fraction(0, 1));
+    EXPECT_EQ(jimsHarmonies[0]->staffIdx(), 0u);
+    EXPECT_EQ(jimsHarmonies[0]->placement(), PlacementV::ABOVE);
+    EXPECT_FALSE(jimsHarmonies[0]->isPlayable());
+    EXPECT_FALSE(jimsHarmonies[0]->isRealizable());
+    ASSERT_EQ(jimsHarmonies[0]->chords().size(), 1u);
+    EXPECT_EQ(jimsHarmonies[0]->chords().front()->textName(), u"!So7/Ti");
+    EXPECT_EQ(jimsHarmonies[0]->chords().front()->rootTpc(), Tpc::TPC_INVALID);
+    EXPECT_GT(jimsHarmonies[0]->ldata()->bbox().width(), 0.0);
+    EXPECT_EQ(jimsHarmonies[0]->ldata()->renderItemList().size(), 1u);
+    EXPECT_EQ(jimsHarmonies[1]->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(jimsHarmonies[1]->harmonyName(), u"Do5|Fa5");
+    EXPECT_EQ(jimsHarmonies[1]->tick(), Fraction(1, 1));
+    EXPECT_EQ(jimsHarmonies[1]->staffIdx(), 0u);
+    EXPECT_EQ(jimsHarmonies[1]->placement(), PlacementV::ABOVE);
+    EXPECT_GT(jimsHarmonies[1]->ldata()->bbox().width(), 0.0);
+    EXPECT_EQ(jimsHarmonies[1]->ldata()->renderItemList().size(), 1u);
+    EXPECT_EQ(stockHarmonies[0]->harmonyType(), HarmonyType::STANDARD);
+    EXPECT_EQ(stockHarmonies[1]->harmonyType(), HarmonyType::STANDARD);
+    EXPECT_TRUE(tpcIsValid(stockHarmonies[0]->rootTpc()));
+    EXPECT_TRUE(tpcIsValid(stockHarmonies[1]->rootTpc()));
     delete score;
 }
 
@@ -294,8 +324,8 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameEditingKeepsTheWholeOpaqueStringAndRefusesT
 {
     MasterScore* score = readJims("jims-chord-name-v4.musicxml");
     ASSERT_TRUE(score);
-    const std::vector<Harmony*> harmonies = harmoniesInOrder(score);
-    ASSERT_EQ(harmonies.size(), 3u);
+    const std::vector<Harmony*> harmonies = harmoniesOnStaff(score, 0);
+    ASSERT_EQ(harmonies.size(), 2u);
     Harmony* jims = harmonies.front();
     const String names[] = { u"Do5", u"Fa5", u"Do:La7", u"!So7/Ti", u"Do5|Fa5", u"Fi@Te:M3²+La,Ti/Re" };
     for (const String& name : names) {
@@ -315,11 +345,14 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameTranspositionLeavesJiMSOpaqueAndTransposesS
 {
     MasterScore* score = readJims("jims-chord-name-v4.musicxml");
     ASSERT_TRUE(score);
-    const std::vector<Harmony*> before = harmoniesInOrder(score);
-    ASSERT_EQ(before.size(), 3u);
-    const String firstJims = before[0]->harmonyName();
-    const String secondJims = before[1]->harmonyName();
-    const int standardRoot = before[2]->rootTpc();
+    const std::vector<Harmony*> beforeJims = harmoniesOnStaff(score, 0);
+    const std::vector<Harmony*> beforeStock = harmoniesOnStaff(score, 1);
+    ASSERT_EQ(beforeJims.size(), 2u);
+    ASSERT_EQ(beforeStock.size(), 2u);
+    const String firstJims = beforeJims[0]->harmonyName();
+    const String secondJims = beforeJims[1]->harmonyName();
+    const int firstStandardRoot = beforeStock[0]->rootTpc();
+    const int secondStandardRoot = beforeStock[1]->rootTpc();
 
     score->cmdSelectAll();
     score->startCmd(TranslatableString::untranslatable("Test JiMS chord-name transposition"));
@@ -327,13 +360,16 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameTranspositionLeavesJiMSOpaqueAndTransposesS
                          true, true, true);
     score->endCmd();
 
-    const std::vector<Harmony*> after = harmoniesInOrder(score);
-    ASSERT_EQ(after.size(), 3u);
-    EXPECT_EQ(after[0]->harmonyName(), firstJims);
-    EXPECT_EQ(after[1]->harmonyName(), secondJims);
-    EXPECT_EQ(after[0]->chords().front()->rootTpc(), Tpc::TPC_INVALID);
-    EXPECT_EQ(after[1]->chords().front()->rootTpc(), Tpc::TPC_INVALID);
-    EXPECT_NE(after[2]->rootTpc(), standardRoot);
+    const std::vector<Harmony*> afterJims = harmoniesOnStaff(score, 0);
+    const std::vector<Harmony*> afterStock = harmoniesOnStaff(score, 1);
+    ASSERT_EQ(afterJims.size(), 2u);
+    ASSERT_EQ(afterStock.size(), 2u);
+    EXPECT_EQ(afterJims[0]->harmonyName(), firstJims);
+    EXPECT_EQ(afterJims[1]->harmonyName(), secondJims);
+    EXPECT_EQ(afterJims[0]->chords().front()->rootTpc(), Tpc::TPC_INVALID);
+    EXPECT_EQ(afterJims[1]->chords().front()->rootTpc(), Tpc::TPC_INVALID);
+    EXPECT_NE(afterStock[0]->rootTpc(), firstStandardRoot);
+    EXPECT_NE(afterStock[1]->rootTpc(), secondStandardRoot);
     delete score;
 }
 
@@ -347,25 +383,39 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4SurvivesNativeAndMusicXmlRoundTripsExactl
     ASSERT_TRUE(ScoreRW::saveScore(score, nativePath));
     MasterScore* native = ScoreRW::readScore(nativePath, true);
     ASSERT_TRUE(native);
-    ASSERT_EQ(harmoniesInOrder(native).size(), 3u);
-    EXPECT_EQ(harmoniesInOrder(native)[0]->harmonyType(), HarmonyType::JIMS);
-    EXPECT_EQ(harmoniesInOrder(native)[0]->harmonyName(), u"!So7/Ti");
+    ASSERT_EQ(native->nstaves(), 2u);
+    EXPECT_TRUE(staffTypeAtStart(native, 0)->isJiMS());
+    EXPECT_FALSE(staffTypeAtStart(native, 1)->isJiMS());
+    ASSERT_EQ(harmoniesInOrder(native).size(), 4u);
+    ASSERT_EQ(harmoniesOnStaff(native, 0).size(), 2u);
+    ASSERT_EQ(harmoniesOnStaff(native, 1).size(), 2u);
+    EXPECT_EQ(harmoniesOnStaff(native, 0)[0]->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(harmoniesOnStaff(native, 0)[0]->harmonyName(), u"!So7/Ti");
 
     const String out = exportToScratch(native, "jims-chord-name-roundtrip.musicxml");
     const String xml = readAll(out);
     EXPECT_TRUE(xml.contains(u"xmlns:jims=\"urn:jims:musicxml:4\""));
     EXPECT_EQ(xml.count(u"<jims:chord-name>!So7/Ti</jims:chord-name>"), 1);
+    EXPECT_EQ(xml.count(u"<jims:chord-name>Do5|Fa5</jims:chord-name>"), 1);
     auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
         return importMusicXml(s, path.toQString(), false);
     };
     MasterScore* again = ScoreRW::readScore(out, true, importXml);
     ASSERT_TRUE(again);
-    ASSERT_EQ(harmoniesInOrder(again).size(), 3u);
-    EXPECT_EQ(harmoniesInOrder(again)[0]->harmonyType(), HarmonyType::JIMS);
-    EXPECT_EQ(harmoniesInOrder(again)[0]->harmonyName(), u"!So7/Ti");
-    EXPECT_EQ(harmoniesInOrder(again)[1]->harmonyType(), HarmonyType::JIMS);
-    EXPECT_EQ(harmoniesInOrder(again)[1]->harmonyName(), u"Do5|Fa5");
-    EXPECT_EQ(harmoniesInOrder(again)[2]->harmonyType(), HarmonyType::STANDARD);
+    ASSERT_EQ(again->nstaves(), 2u);
+    EXPECT_TRUE(staffTypeAtStart(again, 0)->isJiMS());
+    EXPECT_FALSE(staffTypeAtStart(again, 1)->isJiMS());
+    const std::vector<Harmony*> againJims = harmoniesOnStaff(again, 0);
+    const std::vector<Harmony*> againStock = harmoniesOnStaff(again, 1);
+    ASSERT_EQ(harmoniesInOrder(again).size(), 4u);
+    ASSERT_EQ(againJims.size(), 2u);
+    ASSERT_EQ(againStock.size(), 2u);
+    EXPECT_EQ(againJims[0]->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(againJims[0]->harmonyName(), u"!So7/Ti");
+    EXPECT_EQ(againJims[1]->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(againJims[1]->harmonyName(), u"Do5|Fa5");
+    EXPECT_EQ(againStock[0]->harmonyType(), HarmonyType::STANDARD);
+    EXPECT_EQ(againStock[1]->harmonyType(), HarmonyType::STANDARD);
     delete score;
     delete native;
     delete again;
