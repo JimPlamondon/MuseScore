@@ -6209,6 +6209,22 @@ void NotationInteraction::addTextToItem(TextStyleType type, EngravingItem* item)
     addText(type, item);
 }
 
+void NotationInteraction::addHarmonyToItem(HarmonyType type, EngravingItem* item)
+{
+    if (!scoreHasMeasure()) {
+        LOGE() << "Need to create measure";
+        return;
+    }
+
+    if (!canAddTextToItem(TextStyleType::HARMONY_A, item)) {
+        MScore::setError(MsError::NO_NOTE_REST_SELECTED);
+        checkAndShowError();
+        return;
+    }
+
+    addHarmony(type, item);
+}
+
 void NotationInteraction::addText(TextStyleType type, EngravingItem* item)
 {
     if (m_noteInput->isNoteInputMode()) {
@@ -6244,6 +6260,24 @@ void NotationInteraction::addText(TextStyleType type, EngravingItem* item)
     if (text->isRehearsalMark() || text->isTempoText()) {
         text->cursor()->selectWord();
     }
+}
+
+void NotationInteraction::addHarmony(HarmonyType type, EngravingItem* item)
+{
+    if (m_noteInput->isNoteInputMode()) {
+        m_noteInput->endNoteInput();
+    }
+
+    startEdit(TranslatableString("undoableAction", "Add chord name"));
+    mu::engraving::Harmony* harmony = score()->addHarmony(type, item);
+    if (!harmony) {
+        rollback();
+        return;
+    }
+
+    apply();
+    showItem(harmony);
+    startEditText(harmony);
 }
 
 Ret NotationInteraction::canAddImageToItem(const EngravingItem* item) const
@@ -8042,6 +8076,10 @@ void NotationInteraction::addFretboardDiagram()
 
         for (EngravingItem* element : selectedElements) {
             if (!element || !element->isHarmony()) {
+                continue;
+            }
+
+            if (toHarmony(element)->harmonyType() == HarmonyType::JIMS) {
                 continue;
             }
 

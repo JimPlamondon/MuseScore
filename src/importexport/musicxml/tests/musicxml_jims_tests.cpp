@@ -33,6 +33,7 @@
 #include <climits>
 
 #include "engraving/dom/masterscore.h"
+#include "engraving/dom/fret.h"
 #include "engraving/dom/harmony.h"
 #include "engraving/dom/measure.h"
 #include "engraving/dom/note.h"
@@ -49,6 +50,7 @@
 
 #include "importexport/musicxml/internal/import/importmusicxml.h"
 #include "importexport/musicxml/internal/export/exportmusicxml.h"
+#include "importexport/musicxml/imusicxmlconfiguration.h"
 #include "engraving/jims/jimsbridge.h"
 #include "engraving/rw/xmlwriter.h"
 #include "engraving/rw/mscsaver.h"
@@ -379,18 +381,43 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4SurvivesNativeAndMusicXmlRoundTripsExactl
     ASSERT_TRUE(score);
     const String dir(u"jims-export-scratch");
     muse::io::Dir::mkpath(dir);
-    const String nativePath = dir + u"/jims-chord-name-native.mscx";
-    ASSERT_TRUE(ScoreRW::saveScore(score, nativePath));
-    MasterScore* native = ScoreRW::readScore(nativePath, true);
+    MasterScore* native = nullptr;
+    for (const String& extension : { String(u"mscx"), String(u"mscz") }) {
+        const String nativePath = dir + u"/jims-chord-name-native." + extension;
+        if (extension == u"mscz") {
+            muse::io::File::remove(nativePath);
+            muse::io::File file(nativePath);
+            ASSERT_TRUE(file.open(muse::io::IODevice::WriteOnly));
+            MscWriter::Params params;
+            params.device = &file;
+            params.filePath = nativePath;
+            params.mode = MscIoMode::Zip;
+            MscWriter writer(params);
+            ASSERT_TRUE(writer.open());
+            MscSaver saver(score->iocContext());
+            ASSERT_TRUE(saver.writeMscz(score, writer, false));
+            writer.close();
+            file.close();
+        } else {
+            ASSERT_TRUE(ScoreRW::saveScore(score, nativePath));
+        }
+        MasterScore* loaded = ScoreRW::readScore(nativePath, true);
+        ASSERT_TRUE(loaded) << extension.toStdString();
+        ASSERT_EQ(loaded->nstaves(), 2u) << extension.toStdString();
+        EXPECT_TRUE(staffTypeAtStart(loaded, 0)->isJiMS()) << extension.toStdString();
+        EXPECT_FALSE(staffTypeAtStart(loaded, 1)->isJiMS()) << extension.toStdString();
+        ASSERT_EQ(harmoniesInOrder(loaded).size(), 4u) << extension.toStdString();
+        ASSERT_EQ(harmoniesOnStaff(loaded, 0).size(), 2u) << extension.toStdString();
+        ASSERT_EQ(harmoniesOnStaff(loaded, 1).size(), 2u) << extension.toStdString();
+        EXPECT_EQ(harmoniesOnStaff(loaded, 0)[0]->harmonyType(), HarmonyType::JIMS) << extension.toStdString();
+        EXPECT_EQ(harmoniesOnStaff(loaded, 0)[0]->harmonyName(), u"!So7/Ti") << extension.toStdString();
+        if (extension == u"mscz") {
+            native = loaded;
+        } else {
+            delete loaded;
+        }
+    }
     ASSERT_TRUE(native);
-    ASSERT_EQ(native->nstaves(), 2u);
-    EXPECT_TRUE(staffTypeAtStart(native, 0)->isJiMS());
-    EXPECT_FALSE(staffTypeAtStart(native, 1)->isJiMS());
-    ASSERT_EQ(harmoniesInOrder(native).size(), 4u);
-    ASSERT_EQ(harmoniesOnStaff(native, 0).size(), 2u);
-    ASSERT_EQ(harmoniesOnStaff(native, 1).size(), 2u);
-    EXPECT_EQ(harmoniesOnStaff(native, 0)[0]->harmonyType(), HarmonyType::JIMS);
-    EXPECT_EQ(harmoniesOnStaff(native, 0)[0]->harmonyName(), u"!So7/Ti");
 
     const String out = exportToScratch(native, "jims-chord-name-roundtrip.musicxml");
     const String xml = readAll(out);
@@ -421,10 +448,127 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4SurvivesNativeAndMusicXmlRoundTripsExactl
     delete again;
 }
 
+TEST_F(MusicXml_JiMS_Tests, ChordNameV4PreservesOffsetStaffAndSupportedFormatting)
+{
+    MasterScore* score = readJims("jims-chord-name-offset-staff-format-v4.musicxml");
+    ASSERT_TRUE(score);
+    ASSERT_EQ(score->nstaves(), 2u);
+    const std::vector<Harmony*> imported = harmoniesInOrder(score);
+    ASSERT_EQ(imported.size(), 1u);
+    Harmony* harmony = imported.front();
+    EXPECT_EQ(harmony->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(harmony->harmonyName(), u"Fi@Te:M3²+La,Ti/Re");
+    EXPECT_EQ(harmony->tick(), Fraction(1, 4));
+    EXPECT_EQ(harmony->staffIdx(), 1u);
+    EXPECT_EQ(harmony->placement(), PlacementV::BELOW);
+    EXPECT_FALSE(harmony->visible());
+    EXPECT_EQ(harmony->color(), Color::fromString("#112233"));
+    EXPECT_EQ(harmony->family(), u"Edwin");
+    EXPECT_DOUBLE_EQ(harmony->size(), 13.0);
+    EXPECT_TRUE(harmony->fontStyle() & FontStyle::Italic);
+    EXPECT_TRUE(harmony->fontStyle() & FontStyle::Bold);
+    EXPECT_EQ(harmony->propertyFlags(Pid::OFFSET), PropertyFlags::UNSTYLED);
+    EXPECT_NEAR(harmony->offset().x() / harmony->spatium(), 2.0, 0.01);
+    EXPECT_NEAR(harmony->offset().y() / harmony->spatium(), 1.0, 0.01);
+
+    auto musicXmlConfiguration = muse::modularity::globalIoc()->resolve<IMusicXmlConfiguration>("iex_musicxml");
+    ASSERT_TRUE(musicXmlConfiguration);
+    musicXmlConfiguration->setExportLayout(true);
+    const String out = exportToScratch(score, "jims-chord-name-offset-staff-format-roundtrip.musicxml");
+    musicXmlConfiguration->setExportLayout(false);
+    const String xml = readAll(out);
+    EXPECT_TRUE(xml.contains(u"<offset>"));
+    EXPECT_TRUE(xml.contains(u"<staff>2</staff>"));
+    EXPECT_TRUE(xml.contains(u"font-family=\"Edwin\""));
+    EXPECT_TRUE(xml.contains(u"font-size=\"13\""));
+    EXPECT_TRUE(xml.contains(u"font-style=\"italic\""));
+    EXPECT_TRUE(xml.contains(u"font-weight=\"bold\""));
+    EXPECT_TRUE(xml.contains(u"relative-x=\"20"));
+    EXPECT_TRUE(xml.contains(u"relative-y=\"-10"));
+
+    auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
+        return importMusicXml(s, path.toQString(), false);
+    };
+    MasterScore* again = ScoreRW::readScore(out, true, importXml);
+    ASSERT_TRUE(again);
+    const std::vector<Harmony*> roundTripped = harmoniesInOrder(again);
+    ASSERT_EQ(roundTripped.size(), 1u);
+    const Harmony* roundTrip = roundTripped.front();
+    EXPECT_EQ(roundTrip->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(roundTrip->harmonyName(), u"Fi@Te:M3²+La,Ti/Re");
+    EXPECT_EQ(roundTrip->tick(), Fraction(1, 4));
+    EXPECT_EQ(roundTrip->staffIdx(), 1u);
+    EXPECT_EQ(roundTrip->placement(), PlacementV::BELOW);
+    EXPECT_FALSE(roundTrip->visible());
+    EXPECT_EQ(roundTrip->color(), Color::fromString("#112233"));
+    EXPECT_EQ(roundTrip->family(), u"Edwin");
+    EXPECT_DOUBLE_EQ(roundTrip->size(), 13.0);
+    EXPECT_TRUE(roundTrip->fontStyle() & FontStyle::Italic);
+    EXPECT_TRUE(roundTrip->fontStyle() & FontStyle::Bold);
+    EXPECT_NEAR(roundTrip->offset().x() / roundTrip->spatium(), 2.0, 0.01);
+    EXPECT_NEAR(roundTrip->offset().y() / roundTrip->spatium(), 1.0, 0.01);
+
+    const String nativePath = u"jims-export-scratch/jims-chord-name-offset-staff-format-roundtrip.mscz";
+    muse::io::File::remove(nativePath);
+    muse::io::File nativeFile(nativePath);
+    ASSERT_TRUE(nativeFile.open(muse::io::IODevice::WriteOnly));
+    MscWriter::Params params;
+    params.device = &nativeFile;
+    params.filePath = nativePath;
+    params.mode = MscIoMode::Zip;
+    MscWriter writer(params);
+    ASSERT_TRUE(writer.open());
+    MscSaver saver(again->iocContext());
+    ASSERT_TRUE(saver.writeMscz(again, writer, false));
+    writer.close();
+    nativeFile.close();
+
+    MasterScore* native = ScoreRW::readScore(nativePath, true);
+    ASSERT_TRUE(native);
+    const std::vector<Harmony*> nativeHarmonies = harmoniesInOrder(native);
+    ASSERT_EQ(nativeHarmonies.size(), 1u);
+    const Harmony* nativeHarmony = nativeHarmonies.front();
+    EXPECT_EQ(nativeHarmony->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(nativeHarmony->harmonyName(), u"Fi@Te:M3²+La,Ti/Re");
+    EXPECT_EQ(nativeHarmony->tick(), Fraction(1, 4));
+    EXPECT_EQ(nativeHarmony->staffIdx(), 1u);
+    EXPECT_EQ(nativeHarmony->placement(), PlacementV::BELOW);
+    EXPECT_FALSE(nativeHarmony->visible());
+    EXPECT_EQ(nativeHarmony->color(), Color::fromString("#112233"));
+    EXPECT_EQ(nativeHarmony->family(), u"Edwin");
+    EXPECT_DOUBLE_EQ(nativeHarmony->size(), 13.0);
+    EXPECT_TRUE(nativeHarmony->fontStyle() & FontStyle::Italic);
+    EXPECT_TRUE(nativeHarmony->fontStyle() & FontStyle::Bold);
+    EXPECT_NEAR(nativeHarmony->offset().x() / nativeHarmony->spatium(), 2.0, 0.01);
+    EXPECT_NEAR(nativeHarmony->offset().y() / nativeHarmony->spatium(), 1.0, 0.01);
+    delete score;
+    delete again;
+    delete native;
+}
+
 TEST_F(MusicXml_JiMS_Tests, ChordNameV4RejectsSupersededTildeMarker)
 {
     MasterScore* score = readJims("jims-chord-name-tilde-invalid.musicxml");
     EXPECT_FALSE(score);
+    delete score;
+}
+
+TEST_F(MusicXml_JiMS_Tests, ChordNameV4RefusesNestedFretDiagramCarrierOnExport)
+{
+    MasterScore* score = ScoreRW::readScore(u"../../../engraving/tests/chordsymbol_data/add-to-fret.mscz");
+    ASSERT_TRUE(score);
+    Segment* segment = score->firstMeasure()->findFirstR(SegmentType::ChordRest, Fraction(0, 1));
+    ASSERT_TRUE(segment);
+    FretDiagram* fretDiagram = toFretDiagram(segment->findAnnotation(ElementType::FRET_DIAGRAM, 0, 0));
+    ASSERT_TRUE(fretDiagram);
+    fretDiagram->setHarmony(u"!So7/Ti");
+    ASSERT_TRUE(fretDiagram->harmony());
+    fretDiagram->harmony()->setHarmonyType(HarmonyType::JIMS);
+
+    muse::io::Buffer buffer;
+    buffer.open(muse::io::IODevice::WriteOnly);
+    EXPECT_FALSE(saveXml(score, &buffer));
+    EXPECT_TRUE(buffer.data().empty());
     delete score;
 }
 

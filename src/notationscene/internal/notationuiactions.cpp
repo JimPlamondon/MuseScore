@@ -1386,6 +1386,12 @@ const UiActionList NotationUiActions::s_actions = {
              TranslatableString("action", "C&hord symbol"),
              TranslatableString("action", "Add text: chord symbol")
              ),
+    UiAction("jims-chord-name-text",
+             mu::context::UiCtxProjectOpened,
+             mu::context::CTX_NOTATION_OPENED,
+             TranslatableString("action", "JiMS chord &name"),
+             TranslatableString("action", "Add text: JiMS chord name")
+             ),
     UiAction("roman-numeral-text",
              mu::context::UiCtxProjectOpened,
              mu::context::CTX_NOTATION_OPENED,

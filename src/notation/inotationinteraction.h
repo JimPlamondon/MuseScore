@@ -241,6 +241,7 @@ public:
 
     virtual void addTextToTopFrame(TextStyleType type) = 0;
     virtual void addTextToItem(TextStyleType type, EngravingItem* item) = 0;
+    virtual void addHarmonyToItem(engraving::HarmonyType type, EngravingItem* item) = 0;
 
     virtual muse::Ret canAddImageToItem(const EngravingItem* item) const = 0;
     virtual void addImageToItem(const muse::io::path_t& imagePath, EngravingItem* item) = 0;

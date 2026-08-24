@@ -22,6 +22,9 @@
 
 #include <gtest/gtest.h>
 
+#include <QMimeData>
+
+#include "engraving/api/v1/apitypes.h"
 #include "engraving/compat/scoreaccess.h"
 #include "engraving/dom/chordrest.h"
 #include "engraving/dom/durationtype.h"
@@ -35,6 +38,7 @@
 #include "engraving/dom/segment.h"
 #include "engraving/editing/editdata.h"
 #include "engraving/editing/transpose.h"
+#include "engraving/internal/qmimedataadapter.h"
 
 #include "utils/scorerw.h"
 #include "utils/scorecomp.h"
@@ -493,5 +497,95 @@ TEST_F(Engraving_ChordSymbolTests, testAddHarmonyToFretDiagram)
 
     EXPECT_TRUE(fretDiag->harmony());
 
+    delete score;
+}
+
+TEST_F(Engraving_ChordSymbolTests, jimsHarmonyCreationIsPerObjectUndoableCloneableAndAccessible)
+{
+    MasterScore* score = test_pre(u"add-link");
+    ASSERT_TRUE(score);
+    Segment* segment = score->firstSegment(SegmentType::ChordRest);
+    ASSERT_TRUE(segment);
+    ChordRest* chordRest = segment->cr(0);
+    ASSERT_TRUE(chordRest);
+
+    score->startCmd(TranslatableString::untranslatable("Add JiMS chord name"));
+    Harmony* jims = score->addHarmony(HarmonyType::JIMS, chordRest);
+    ASSERT_TRUE(jims);
+    jims->setHarmony(u"Fi@Te:M3²+La,Ti/Re");
+    score->endCmd();
+    EXPECT_EQ(jims->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(jims->harmonyName(), u"Fi@Te:M3²+La,Ti/Re");
+    EXPECT_TRUE(jims->accessibleInfo().contains(u"JiMS chord name"));
+    EXPECT_TRUE(jims->accessibleInfo().contains(u"Fi@Te:M3²+La,Ti/Re"));
+    EXPECT_TRUE(jims->screenReaderInfo().contains(u"Fi@Te:M3²+La,Ti/Re"));
+
+    Harmony* clone = jims->clone();
+    ASSERT_TRUE(clone);
+    EXPECT_EQ(clone->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(clone->harmonyName(), u"Fi@Te:M3²+La,Ti/Re");
+    delete clone;
+
+    score->undoRedo(true, nullptr);
+    EXPECT_FALSE(segment->findAnnotation(ElementType::HARMONY, chordRest->track(), chordRest->track() + 1));
+    score->undoRedo(false, nullptr);
+    EngravingItem* restored = segment->findAnnotation(ElementType::HARMONY, chordRest->track(), chordRest->track() + 1);
+    ASSERT_TRUE(restored && restored->isHarmony());
+    EXPECT_EQ(toHarmony(restored)->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(toHarmony(restored)->harmonyName(), u"Fi@Te:M3²+La,Ti/Re");
+
+    TextBase* standardText = score->addText(TextStyleType::HARMONY_A, chordRest);
+    ASSERT_TRUE(standardText && standardText->isHarmony());
+    EXPECT_EQ(toHarmony(standardText)->harmonyType(), HarmonyType::STANDARD);
+    EXPECT_EQ(int(apiv1::enums::HarmonyType::JIMS), int(HarmonyType::JIMS));
+    delete score;
+}
+
+TEST_F(Engraving_ChordSymbolTests, jimsHarmonyRangeCopyPasteKeepsTypeAndCanonicalName)
+{
+    MasterScore* score = test_pre(u"add-link");
+    ASSERT_TRUE(score);
+    Measure* sourceMeasure = score->firstMeasure();
+    Measure* destinationMeasure = sourceMeasure ? sourceMeasure->nextMeasure()->nextMeasure() : nullptr;
+    ASSERT_TRUE(sourceMeasure && destinationMeasure);
+    ChordRest* sourceChordRest = sourceMeasure->first(SegmentType::ChordRest)->cr(0);
+    ASSERT_TRUE(sourceChordRest);
+
+    Harmony* source = score->addHarmony(HarmonyType::JIMS, sourceChordRest);
+    ASSERT_TRUE(source);
+    source->setHarmony(u"!So7/Ti");
+
+    score->select(sourceMeasure);
+    ASSERT_TRUE(score->selection().canCopy());
+    QMimeData mimeData;
+    mimeData.setData(score->selection().mimeType(), score->selection().mimeData().toQByteArray());
+
+    EngravingItem* destination = destinationMeasure->first(SegmentType::ChordRest)->element(0);
+    ASSERT_TRUE(destination);
+    score->select(destination);
+    score->startCmd(TranslatableString::untranslatable("Paste JiMS chord name"));
+    QMimeDataAdapter adapter(&mimeData);
+    score->cmdPaste(&adapter, 0);
+    score->endCmd();
+
+    Segment* destinationSegment = destinationMeasure->first(SegmentType::ChordRest);
+    EngravingItem* pastedItem = destinationSegment->findAnnotation(ElementType::HARMONY, 0, 1);
+    ASSERT_TRUE(pastedItem && pastedItem->isHarmony());
+    Harmony* pasted = toHarmony(pastedItem);
+    EXPECT_EQ(pasted->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(pasted->harmonyName(), u"!So7/Ti");
+    delete score;
+}
+
+TEST_F(Engraving_ChordSymbolTests, jimsHarmonyCannotBeCreatedInsideAFretDiagram)
+{
+    MasterScore* score = ScoreRW::readScore(CHORDSYMBOL_DATA_DIR + u"add-to-fret.mscz");
+    ASSERT_TRUE(score);
+    Segment* segment = score->firstMeasure()->findFirstR(SegmentType::ChordRest, Fraction(0, 1));
+    ASSERT_TRUE(segment);
+    FretDiagram* fretDiagram = toFretDiagram(segment->findAnnotation(ElementType::FRET_DIAGRAM, 0, 0));
+    ASSERT_TRUE(fretDiagram);
+    EXPECT_FALSE(score->addHarmony(HarmonyType::JIMS, fretDiagram));
+    EXPECT_FALSE(fretDiagram->harmony());
     delete score;
 }

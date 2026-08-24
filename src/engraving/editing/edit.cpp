@@ -1042,6 +1042,28 @@ TextBase* Score::addText(TextStyleType type, EngravingItem* destinationElement)
     return textBox;
 }
 
+Harmony* Score::addHarmony(HarmonyType type, EngravingItem* destinationElement)
+{
+    if (type == HarmonyType::JIMS && destinationElement && destinationElement->isFretDiagram()) {
+        return nullptr;
+    }
+
+    TextStyleType textStyle = TextStyleType::HARMONY_A;
+    if (type == HarmonyType::ROMAN) {
+        textStyle = TextStyleType::HARMONY_ROMAN;
+    } else if (type == HarmonyType::NASHVILLE) {
+        textStyle = TextStyleType::HARMONY_NASHVILLE;
+    }
+
+    TextBase* text = addText(textStyle, destinationElement);
+    if (!text || !text->isHarmony()) {
+        return nullptr;
+    }
+    Harmony* harmony = toHarmony(text);
+    harmony->setHarmonyType(type);
+    return harmony;
+}
+
 //---------------------------------------------------------
 //   rewriteMeasures
 //    rewrite all measures from startMeasure to endMeasure (including)
@@ -2534,15 +2556,15 @@ void Score::cmdFlip()
             flipOnce(artic, [artic]() {
                 ArticulationAnchor articAnchor = artic->anchor();
                 switch (articAnchor) {
-                    case ArticulationAnchor::TOP:
-                        articAnchor = ArticulationAnchor::BOTTOM;
-                        break;
-                    case ArticulationAnchor::BOTTOM:
-                        articAnchor = ArticulationAnchor::TOP;
-                        break;
-                    case ArticulationAnchor::AUTO:
-                        articAnchor = artic->up() ? ArticulationAnchor::BOTTOM : ArticulationAnchor::TOP;
-                        break;
+                case ArticulationAnchor::TOP:
+                    articAnchor = ArticulationAnchor::BOTTOM;
+                    break;
+                case ArticulationAnchor::BOTTOM:
+                    articAnchor = ArticulationAnchor::TOP;
+                    break;
+                case ArticulationAnchor::AUTO:
+                    articAnchor = artic->up() ? ArticulationAnchor::BOTTOM : ArticulationAnchor::TOP;
+                    break;
                 }
                 PropertyFlags pf = artic->propertyFlags(Pid::ARTICULATION_ANCHOR);
                 if (pf == PropertyFlags::STYLED) {
@@ -2581,15 +2603,15 @@ void Score::cmdFlip()
                 ArticulationAnchor articAnchor = ArticulationAnchor(ornament->getProperty(Pid::ARTICULATION_ANCHOR).toInt());
 
                 switch (articAnchor) {
-                    case ArticulationAnchor::TOP:
-                        articAnchor = ArticulationAnchor::BOTTOM;
-                        break;
-                    case ArticulationAnchor::BOTTOM:
-                        articAnchor = ArticulationAnchor::TOP;
-                        break;
-                    case ArticulationAnchor::AUTO:
-                        articAnchor = ornament->up() ? ArticulationAnchor::BOTTOM : ArticulationAnchor::TOP;
-                        break;
+                case ArticulationAnchor::TOP:
+                    articAnchor = ArticulationAnchor::BOTTOM;
+                    break;
+                case ArticulationAnchor::BOTTOM:
+                    articAnchor = ArticulationAnchor::TOP;
+                    break;
+                case ArticulationAnchor::AUTO:
+                    articAnchor = ornament->up() ? ArticulationAnchor::BOTTOM : ArticulationAnchor::TOP;
+                    break;
                 }
                 PropertyFlags pf = ornament->propertyFlags(Pid::ARTICULATION_ANCHOR);
                 if (pf == PropertyFlags::STYLED) {

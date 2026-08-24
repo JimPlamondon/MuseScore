@@ -8994,26 +8994,43 @@ static std::vector<const Jump*> findJumpElements(const Score* score)
 bool ExportMusicXml::buildJimsExportPlan()
 {
     m_jimsPlan = JimsExportPlan();
+    const auto validateJimsHarmony = [this](const Harmony* harmony, bool insideFretDiagram) {
+        if (!harmony || harmony->harmonyType() != HarmonyType::JIMS) {
+            return true;
+        }
+        if (insideFretDiagram) {
+            m_jimsPlan.error = u"JiMS export: a JiMS chord name cannot be attached to a conventional fret diagram";
+            return false;
+        }
+        const String name = harmony->harmonyName();
+        bool containsWhitespace = false;
+        for (size_t i = 0; i < name.size(); ++i) {
+            if (name.at(i).isSpace()) {
+                containsWhitespace = true;
+                break;
+            }
+        }
+        if (harmony->chords().size() != 1 || name.isEmpty() || containsWhitespace || name.contains(u'~')) {
+            m_jimsPlan.error
+                =
+                    u"JiMS export: every JiMS harmony must carry exactly one nonempty whitespace-free canonical chord name and must not contain the superseded '~' marker";
+            return false;
+        }
+        m_jimsPlan.present = true;
+        return true;
+    };
     for (const Segment* segment = m_score->firstSegment(SegmentType::ChordRest); segment;
          segment = segment->next1(SegmentType::ChordRest)) {
         for (const EngravingItem* item : segment->annotations()) {
-            if (item && item->isHarmony() && toHarmony(item)->harmonyType() == HarmonyType::JIMS) {
-                const Harmony* harmony = toHarmony(item);
-                const String name = harmony->harmonyName();
-                bool containsWhitespace = false;
-                for (size_t i = 0; i < name.size(); ++i) {
-                    if (name.at(i).isSpace()) {
-                        containsWhitespace = true;
-                        break;
-                    }
-                }
-                if (harmony->chords().size() != 1 || name.isEmpty() || containsWhitespace || name.contains(u'~')) {
-                    m_jimsPlan.error
-                        =
-                            u"JiMS export: every JiMS harmony must carry exactly one nonempty whitespace-free canonical chord name and must not contain the superseded '~' marker";
+            if (item && item->isHarmony()) {
+                if (!validateJimsHarmony(toHarmony(item), false)) {
                     return false;
                 }
-                m_jimsPlan.present = true;
+            } else if (item && item->isFretDiagram()) {
+                const Harmony* harmony = toFretDiagram(item)->harmony();
+                if (!validateJimsHarmony(harmony, true)) {
+                    return false;
+                }
             }
         }
     }
@@ -9522,6 +9539,24 @@ void ExportMusicXml::harmony(Harmony const* const h, FretDiagram const* const fd
     if (!h->isStyled(Pid::FONT_SIZE)) {
         harmonyAttrs.emplace_back(std::make_pair("font-size", h->getProperty(Pid::FONT_SIZE).toReal()));
     }
+    if (!h->isStyled(Pid::FONT_STYLE)) {
+        if (h->fontStyle() & FontStyle::Bold) {
+            harmonyAttrs.emplace_back(std::make_pair("font-weight", "bold"));
+        }
+        if (h->fontStyle() & FontStyle::Italic) {
+            harmonyAttrs.emplace_back(std::make_pair("font-style", "italic"));
+        }
+    }
+    if (configuration()->exportLayout() && h->propertyFlags(Pid::OFFSET) == PropertyFlags::UNSTYLED && h->spatium() > 0.0) {
+        const double relativeX = 10.0 * h->offset().x() / h->spatium();
+        const double relativeY = -10.0 * h->offset().y() / h->spatium();
+        if (std::abs(relativeX) > 0.1) {
+            harmonyAttrs.emplace_back(std::make_pair("relative-x", relativeX));
+        }
+        if (std::abs(relativeY) > 0.1) {
+            harmonyAttrs.emplace_back(std::make_pair("relative-y", relativeY));
+        }
+    }
     harmonyAttrs.emplace_back(std::make_pair("print-frame", h->hasFrame() ? "yes" : "no"));     // .append(relative));
     if (!h->visible()) {
         harmonyAttrs.emplace_back(std::make_pair("print-object", "no"));
@@ -9633,11 +9668,6 @@ void ExportMusicXml::harmony(Harmony const* const h, FretDiagram const* const fd
                 }
             }
         }
-        if (offset.isValid() && offset > Fraction(0, 1)) {
-            m_xml.tag("offset", calculateDurationInDivisions(offset, m_div));
-        } else {
-            LOGD("invalid offset");
-        }
         if (fd) {
             writeMusicXml(fd, m_xml);
         }
@@ -9741,6 +9771,12 @@ void ExportMusicXml::harmony(Harmony const* const h, FretDiagram const* const fd
         }
         break;
         }
+    }
+    if (offset.isValid() && offset > Fraction(0, 1)) {
+        m_xml.tag("offset", calculateDurationInDivisions(offset, m_div));
+    }
+    if (h->staff() && h->staff()->part()->nstaves() > 1) {
+        m_xml.tag("staff", static_cast<int>(h->staff()->rstaff()) + 1);
     }
     m_xml.endElement();
 }

@@ -115,6 +115,7 @@
             <fret>0</fret>
             </frame-note>
           </frame>
+        <staff>1</staff>
         </harmony>
       <note>
         <pitch>
@@ -156,6 +157,7 @@
             <fret>0</fret>
             </frame-note>
           </frame>
+        <staff>1</staff>
         </harmony>
       <harmony print-frame="no">
         <root>
@@ -186,6 +188,7 @@
             <fret>0</fret>
             </frame-note>
           </frame>
+        <staff>1</staff>
         </harmony>
       <note>
         <pitch>
@@ -238,6 +241,7 @@
             <fret>0</fret>
             </frame-note>
           </frame>
+        <staff>1</staff>
         </harmony>
       <note>
         <pitch>
@@ -316,6 +320,7 @@
             <fret>0</fret>
             </frame-note>
           </frame>
+        <staff>2</staff>
         </harmony>
       <note>
         <pitch>
@@ -382,13 +387,13 @@
             <fret>0</fret>
             </frame-note>
           </frame>
+        <staff>1</staff>
         </harmony>
       <harmony print-frame="no">
         <root>
           <root-step>F</root-step>
           </root>
         <kind>major</kind>
-        <offset>1</offset>
         <frame>
           <frame-strings>6</frame-strings>
           <frame-frets>4</frame-frets>
@@ -413,13 +418,14 @@
             <fret>0</fret>
             </frame-note>
           </frame>
+        <offset>1</offset>
+        <staff>1</staff>
         </harmony>
       <harmony print-frame="no">
         <root>
           <root-step>G</root-step>
           </root>
         <kind>major</kind>
-        <offset>2</offset>
         <frame>
           <frame-strings>6</frame-strings>
           <frame-frets>4</frame-frets>
@@ -444,13 +450,14 @@
             <fret>0</fret>
             </frame-note>
           </frame>
+        <offset>2</offset>
+        <staff>1</staff>
         </harmony>
       <harmony print-frame="no">
         <root>
           <root-step>A</root-step>
           </root>
         <kind>major</kind>
-        <offset>3</offset>
         <frame>
           <frame-strings>6</frame-strings>
           <frame-frets>4</frame-frets>
@@ -475,6 +482,8 @@
             <fret>0</fret>
             </frame-note>
           </frame>
+        <offset>3</offset>
+        <staff>1</staff>
         </harmony>
       <note>
         <rest/>
@@ -535,6 +544,7 @@
             <fret>0</fret>
             </frame-note>
           </frame>
+        <staff>1</staff>
         </harmony>
       <note>
         <pitch>
@@ -593,6 +603,7 @@
             <fret>0</fret>
             </frame-note>
           </frame>
+        <staff>1</staff>
         </harmony>
       <note>
         <pitch>
@@ -634,6 +645,7 @@
             <fret>0</fret>
             </frame-note>
           </frame>
+        <staff>1</staff>
         </harmony>
       <note>
         <pitch>

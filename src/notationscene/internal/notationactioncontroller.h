@@ -124,6 +124,7 @@ private:
     void insertClef(mu::engraving::ClefType type);
 
     void addText(TextStyleType type);
+    void addHarmony(engraving::HarmonyType type);
     void addImage();
     void addFiguredBass();
     void addGuitarBend(GuitarBendType bendType);
