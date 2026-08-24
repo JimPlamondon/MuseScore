@@ -21,7 +21,8 @@
  */
 
 // Native JiMS MusicXML import (owner decision 1a, 2026-08-16): the fork's own
-// importer reads jims:staff-state (urn:jims:musicxml:1/2/3) and jims:pitch
+// importer reads jims:staff-state (urn:jims:musicxml:1 through 4), jims:pitch,
+// and V4 opaque jims:chord-name carriers
 // and builds the JiMStaff score directly — the same DOM the fixture converter
 // tools/jims/enriched_to_jims_mscx.py produces. jims:change is never read;
 // the Kernel validate op gates every state; an unrecognised JiMS namespace
@@ -32,6 +33,7 @@
 #include <climits>
 
 #include "engraving/dom/masterscore.h"
+#include "engraving/dom/harmony.h"
 #include "engraving/dom/measure.h"
 #include "engraving/dom/note.h"
 #include "engraving/dom/part.h"
@@ -40,6 +42,7 @@
 #include "engraving/dom/stafftype.h"
 #include "engraving/dom/system.h"
 #include "engraving/dom/stafftypechange.h"
+#include "engraving/editing/transpose.h"
 #include "engraving/jims/jimschange.h"
 #include "engraving/jims/jimschangecontroller.h"
 #include "engraving/style/style.h"
@@ -62,6 +65,11 @@ using namespace mu::engraving;
 using namespace mu::iex::musicxml;
 
 static const String JIMS_DATA_DIR(u"data/jims/");
+
+namespace {
+String exportToScratch(MasterScore* score, const char* name);
+String readAll(const String& path);
+}
 
 class MusicXml_JiMS_Tests : public ::testing::Test
 {
@@ -86,6 +94,20 @@ public:
             m = m->nextMeasure();
         }
         return m;
+    }
+
+    static std::vector<Harmony*> harmoniesInOrder(Score* score)
+    {
+        std::vector<Harmony*> result;
+        for (Segment* segment = score->firstSegment(SegmentType::ChordRest); segment;
+             segment = segment->next1(SegmentType::ChordRest)) {
+            for (EngravingItem* item : segment->annotations()) {
+                if (item && item->isHarmony()) {
+                    result.push_back(toHarmony(item));
+                }
+            }
+        }
+        return result;
     }
 
     static std::vector<const Note*> notesInOrder(Score* score, staff_idx_t staffIdx = 0)
@@ -237,6 +259,125 @@ TEST_F(MusicXml_JiMS_Tests, unknownJimsNamespaceVersionIsAFatalImportError)
     delete score;
 }
 
+TEST_F(MusicXml_JiMS_Tests, ChordNameV4ImportsAsOpaquePerObjectHarmonyBesideStandardHarmony)
+{
+    MasterScore* score = readJims("jims-chord-name-v4.musicxml");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    const std::vector<Harmony*> harmonies = harmoniesInOrder(score);
+    ASSERT_EQ(harmonies.size(), 3u);
+    EXPECT_EQ(harmonies[0]->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(harmonies[0]->harmonyName(), u"!So7/Ti");
+    EXPECT_EQ(harmonies[0]->tick(), Fraction(0, 1));
+    EXPECT_EQ(harmonies[0]->staffIdx(), 0u);
+    EXPECT_EQ(harmonies[0]->placement(), PlacementV::ABOVE);
+    EXPECT_FALSE(harmonies[0]->isPlayable());
+    EXPECT_FALSE(harmonies[0]->isRealizable());
+    ASSERT_EQ(harmonies[0]->chords().size(), 1u);
+    EXPECT_EQ(harmonies[0]->chords().front()->textName(), u"!So7/Ti");
+    EXPECT_EQ(harmonies[0]->chords().front()->rootTpc(), Tpc::TPC_INVALID);
+    EXPECT_GT(harmonies[0]->ldata()->bbox().width(), 0.0);
+    EXPECT_EQ(harmonies[0]->ldata()->renderItemList().size(), 1u);
+    EXPECT_EQ(harmonies[1]->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(harmonies[1]->harmonyName(), u"Do5|Fa5");
+    EXPECT_EQ(harmonies[1]->tick(), Fraction(1, 1));
+    EXPECT_EQ(harmonies[1]->staffIdx(), 0u);
+    EXPECT_EQ(harmonies[1]->placement(), PlacementV::ABOVE);
+    EXPECT_GT(harmonies[1]->ldata()->bbox().width(), 0.0);
+    EXPECT_EQ(harmonies[1]->ldata()->renderItemList().size(), 1u);
+    EXPECT_EQ(harmonies[2]->harmonyType(), HarmonyType::STANDARD);
+    EXPECT_TRUE(tpcIsValid(harmonies[2]->rootTpc()));
+    delete score;
+}
+
+TEST_F(MusicXml_JiMS_Tests, ChordNameEditingKeepsTheWholeOpaqueStringAndRefusesTilde)
+{
+    MasterScore* score = readJims("jims-chord-name-v4.musicxml");
+    ASSERT_TRUE(score);
+    const std::vector<Harmony*> harmonies = harmoniesInOrder(score);
+    ASSERT_EQ(harmonies.size(), 3u);
+    Harmony* jims = harmonies.front();
+    const String names[] = { u"Do5", u"Fa5", u"Do:La7", u"!So7/Ti", u"Do5|Fa5", u"Fi@Te:M3²+La,Ti/Re" };
+    for (const String& name : names) {
+        jims->setHarmony(name);
+        ASSERT_EQ(jims->chords().size(), 1u) << name.toStdString();
+        EXPECT_EQ(jims->chords().front()->textName(), name) << name.toStdString();
+        EXPECT_EQ(jims->harmonyName(), name) << name.toStdString();
+        EXPECT_EQ(jims->chords().front()->rootTpc(), Tpc::TPC_INVALID) << name.toStdString();
+    }
+    const String before = jims->harmonyName();
+    jims->setHarmony(u"~So7/Ti");
+    EXPECT_EQ(jims->harmonyName(), before);
+    delete score;
+}
+
+TEST_F(MusicXml_JiMS_Tests, ChordNameTranspositionLeavesJiMSOpaqueAndTransposesStandardHarmony)
+{
+    MasterScore* score = readJims("jims-chord-name-v4.musicxml");
+    ASSERT_TRUE(score);
+    const std::vector<Harmony*> before = harmoniesInOrder(score);
+    ASSERT_EQ(before.size(), 3u);
+    const String firstJims = before[0]->harmonyName();
+    const String secondJims = before[1]->harmonyName();
+    const int standardRoot = before[2]->rootTpc();
+
+    score->cmdSelectAll();
+    score->startCmd(TranslatableString::untranslatable("Test JiMS chord-name transposition"));
+    Transpose::transpose(score, TransposeMode::BY_INTERVAL, TransposeDirection::UP, Key::C, 4,
+                         true, true, true);
+    score->endCmd();
+
+    const std::vector<Harmony*> after = harmoniesInOrder(score);
+    ASSERT_EQ(after.size(), 3u);
+    EXPECT_EQ(after[0]->harmonyName(), firstJims);
+    EXPECT_EQ(after[1]->harmonyName(), secondJims);
+    EXPECT_EQ(after[0]->chords().front()->rootTpc(), Tpc::TPC_INVALID);
+    EXPECT_EQ(after[1]->chords().front()->rootTpc(), Tpc::TPC_INVALID);
+    EXPECT_NE(after[2]->rootTpc(), standardRoot);
+    delete score;
+}
+
+TEST_F(MusicXml_JiMS_Tests, ChordNameV4SurvivesNativeAndMusicXmlRoundTripsExactly)
+{
+    MasterScore* score = readJims("jims-chord-name-v4.musicxml");
+    ASSERT_TRUE(score);
+    const String dir(u"jims-export-scratch");
+    muse::io::Dir::mkpath(dir);
+    const String nativePath = dir + u"/jims-chord-name-native.mscx";
+    ASSERT_TRUE(ScoreRW::saveScore(score, nativePath));
+    MasterScore* native = ScoreRW::readScore(nativePath, true);
+    ASSERT_TRUE(native);
+    ASSERT_EQ(harmoniesInOrder(native).size(), 3u);
+    EXPECT_EQ(harmoniesInOrder(native)[0]->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(harmoniesInOrder(native)[0]->harmonyName(), u"!So7/Ti");
+
+    const String out = exportToScratch(native, "jims-chord-name-roundtrip.musicxml");
+    const String xml = readAll(out);
+    EXPECT_TRUE(xml.contains(u"xmlns:jims=\"urn:jims:musicxml:4\""));
+    EXPECT_EQ(xml.count(u"<jims:chord-name>!So7/Ti</jims:chord-name>"), 1);
+    auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
+        return importMusicXml(s, path.toQString(), false);
+    };
+    MasterScore* again = ScoreRW::readScore(out, true, importXml);
+    ASSERT_TRUE(again);
+    ASSERT_EQ(harmoniesInOrder(again).size(), 3u);
+    EXPECT_EQ(harmoniesInOrder(again)[0]->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(harmoniesInOrder(again)[0]->harmonyName(), u"!So7/Ti");
+    EXPECT_EQ(harmoniesInOrder(again)[1]->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(harmoniesInOrder(again)[1]->harmonyName(), u"Do5|Fa5");
+    EXPECT_EQ(harmoniesInOrder(again)[2]->harmonyType(), HarmonyType::STANDARD);
+    delete score;
+    delete native;
+    delete again;
+}
+
+TEST_F(MusicXml_JiMS_Tests, ChordNameV4RejectsSupersededTildeMarker)
+{
+    MasterScore* score = readJims("jims-chord-name-tilde-invalid.musicxml");
+    EXPECT_FALSE(score);
+    delete score;
+}
+
 TEST_F(MusicXml_JiMS_Tests, numberedStatesLandOnTheirStavesAndMidScoreStatesRideChangeCarriers)
 {
     MasterScore* multi = readJims("jims-multi-staff.musicxml");
@@ -312,7 +453,7 @@ TEST_F(MusicXml_JiMS_Tests, authoritativeJimsIdentityNormalizesContradictoryStan
 // 2026-08-17). The Kernel writes every jims:staff-state / jims:change element
 // in full (bridge ops from jims PR 214); the fork places them verbatim, adds
 // jims:pitch from each JiMS note's two stored integers, declares the V3
-// namespace only when a JiMStaff is present, and fails closed.
+// V4 namespace when JiMS content is present, and fails closed.
 // ---------------------------------------------------------------------------
 namespace {
 struct JimsSnapshot {
@@ -373,7 +514,7 @@ String exportToScratch(MasterScore* score, const char* name)
     score->connectTies();
     score->masterScore()->rebuildMidiMapping();
     score->doLayout();
-    const String dir = ScoreRW::rootPath() + u"/../../../../build.release/jims-export-scratch";
+    const String dir(u"jims-export-scratch");
     muse::io::Dir::mkpath(dir);
     const String path = dir + u"/" + String::fromUtf8(name);
     muse::io::File::remove(path);
@@ -389,7 +530,7 @@ String readAll(const String& path)
 }
 }
 
-TEST_F(MusicXml_JiMS_Tests, exportWritesV3AndRoundTripsThroughTheNativeImporter)
+TEST_F(MusicXml_JiMS_Tests, exportWritesV4AndRoundTripsThroughTheNativeImporter)
 {
     const char* corpus[] = {
         "jims-v3-m5-mode.musicxml", "jims-v3-m5-key-up.musicxml", "jims-v3-m5-key-down.musicxml",
@@ -406,7 +547,7 @@ TEST_F(MusicXml_JiMS_Tests, exportWritesV3AndRoundTripsThroughTheNativeImporter)
         ASSERT_FALSE(before.identities.empty()) << file;
         const String out = exportToScratch(original, (String(u"export-") + String::fromUtf8(file)).toStdString().c_str());
         const String xml = readAll(out);
-        EXPECT_TRUE(xml.contains(u"xmlns:jims=\"urn:jims:musicxml:3\"")) << file;
+        EXPECT_TRUE(xml.contains(u"xmlns:jims=\"urn:jims:musicxml:4\"")) << file;
         EXPECT_TRUE(xml.contains(u"<jims:staff-state")) << file;
         EXPECT_TRUE(xml.contains(u"<jims:pitch ")) << file;
         // Round trip through the accepted native importer.
@@ -447,7 +588,7 @@ TEST_F(MusicXml_JiMS_Tests, exportOfANativeJiMSScoreCarriesStatesChangesAndIdent
     ASSERT_EQ(before.carriers.size(), 1u);
     const String out = exportToScratch(score, "export-m7-gate.musicxml");
     const String xml = readAll(out);
-    EXPECT_TRUE(xml.contains(u"xmlns:jims=\"urn:jims:musicxml:3\""));
+    EXPECT_TRUE(xml.contains(u"xmlns:jims=\"urn:jims:musicxml:4\""));
     // Two states (base + bar 2) and one Kernel change (key, mode) right after the later state.
     EXPECT_EQ(int(xml.count(u"<jims:staff-state>")), 2);
     EXPECT_EQ(int(xml.count(u"<jims:change>")), 1);
@@ -631,7 +772,7 @@ TEST_F(MusicXml_JiMS_Tests, provenanceIsImportedSavedAndExportedVerbatim)
     EXPECT_TRUE(again->jimsProvenance() == prov);
     delete again;
     // Score-file persistence (.mscz): survives save + reload, then exports the same.
-    const String dir = ScoreRW::rootPath() + u"/../../../../build.release/jims-export-scratch";
+    const String dir(u"jims-export-scratch");
     muse::io::Dir::mkpath(dir);
     const String mscz = dir + u"/provenance-roundtrip.mscz";
     muse::io::File::remove(mscz);
@@ -719,7 +860,7 @@ TEST_F(MusicXml_JiMS_Tests, tuningTrajectoriesAreImportedSavedAndExportedVerbati
         EXPECT_TRUE(again->staff(0)->jimsTuningTrajectories()[0] == t) << c.file;
         delete again;
         // Score-file persistence (.mscz).
-        const String dir = ScoreRW::rootPath() + u"/../../../../build.release/jims-export-scratch";
+        const String dir(u"jims-export-scratch");
         muse::io::Dir::mkpath(dir);
         const String mscz = dir + u"/" + String::fromUtf8(c.file) + u".mscz";
         muse::io::File::remove(mscz);
@@ -752,7 +893,7 @@ TEST_F(MusicXml_JiMS_Tests, malformedCarriersAreFatalImportErrors)
     // A trajectory segment without interpolation, and a provenance resource
     // without a role: a JiMS document never imports with part of its JiMS
     // content silently dropped.
-    const String dir = ScoreRW::rootPath() + u"/../../../../build.release/jims-export-scratch";
+    const String dir(u"jims-export-scratch");
     muse::io::Dir::mkpath(dir);
     struct Bad {
         const char* base;
@@ -933,7 +1074,7 @@ TEST_F(MusicXml_JiMS_Tests, jimsPartsWithDifferentTimelinesAreRefusedOnImportAnd
 }
 
 // ---------------------------------------------------------------------------
-// Milestone 9 — the SATB (JiMStaff) template through urn:jims:musicxml:3
+// Milestone 9 — the SATB (JiMStaff) template through the current JiMS namespace
 // ---------------------------------------------------------------------------
 
 namespace {
@@ -1109,7 +1250,7 @@ TEST_F(MusicXml_JiMS_Tests, MelodyPartTenorOverrideRoundTripsAndInvalidValueIsRe
 
     xml.replace(u"<jims:melody-part>tenor</jims:melody-part>",
                 u"<jims:melody-part>descant</jims:melody-part>");
-    const String invalid = ScoreRW::rootPath() + u"/../../../../build.release/jims-export-scratch/m10-melody-invalid.musicxml";
+    const String invalid(u"jims-export-scratch/m10-melody-invalid.musicxml");
     muse::io::File file(invalid);
     ASSERT_TRUE(file.open(muse::io::IODevice::WriteOnly));
     file.write(xml.toUtf8());

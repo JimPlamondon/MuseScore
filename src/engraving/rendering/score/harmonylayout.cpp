@@ -582,6 +582,11 @@ void HarmonyLayout::renderSingleHarmony(Harmony* item, Harmony::LayoutData* ldat
     const MStyle& style = ctx.conf().style();
     HarmonyInfo* info = harmonyCtx.info;
 
+    if (item->harmonyType() == HarmonyType::JIMS) {
+        doRenderSingleHarmony(item, ldata, harmonyCtx, Tpc::TPC_INVALID, Tpc::TPC_INVALID, ctx);
+        return;
+    }
+
     int rootTpc = info->rootTpc();
     int bassTpc = info->bassTpc();
 

@@ -23,7 +23,7 @@
 
 // Native JiMS MusicXML import (owner decision 1a, 2026-08-16).
 //
-// The JiMS extension (urn:jims:musicxml:1 / :2 / :3) transports the Kernel's
+// The JiMS extension (urn:jims:musicxml:1 through :4) transports the Kernel's
 // JiMStaffStateV2 as jims:staff-state (in attributes) and each note's lattice
 // identity as jims:pitch (in note). This unit is pure format transcription —
 // the same mapping the fixture converter tools/jims/enriched_to_jims_mscx.py
@@ -64,7 +64,7 @@ class JimsImportContext
 public:
     /// The JiMS namespace versions this importer understands.
     static constexpr int MIN_VERSION = 1;
-    static constexpr int MAX_VERSION = 3;
+    static constexpr int MAX_VERSION = 4;
 
     /// Resolve the JiMS prefix from the root element's attributes. Returns
     /// NoError when no JiMS namespace is declared or exactly one supported

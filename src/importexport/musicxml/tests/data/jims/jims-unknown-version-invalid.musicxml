@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<score-partwise version="4.0" xmlns:jims="urn:jims:musicxml:4">
+<score-partwise version="4.0" xmlns:jims="urn:jims:musicxml:5">
   <work><work-title>Sharp-Flat Collision and Second Cluster</work-title></work>
   <part-list><score-part id="P1"><part-name>Jimmy</part-name></score-part></part-list>
   <part id="P1">

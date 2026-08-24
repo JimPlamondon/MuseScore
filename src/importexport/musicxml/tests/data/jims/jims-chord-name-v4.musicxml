@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<score-partwise version="4.0" xmlns:jims="urn:jims:musicxml:4">
+  <part-list><score-part id="P1"><part-name>Mixed harmony</part-name></score-part></part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes><divisions>4</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+      <harmony placement="above"><jims:chord-name>!So7/Ti</jims:chord-name><staff>1</staff></harmony>
+      <note><pitch><step>D</step><octave>4</octave></pitch><duration>16</duration><type>whole</type></note>
+    </measure>
+    <measure number="2">
+      <print new-system="yes"/>
+      <harmony placement="above"><jims:chord-name>Do5|Fa5</jims:chord-name><staff>1</staff></harmony>
+      <note><pitch><step>F</step><octave>4</octave></pitch><duration>16</duration><type>whole</type></note>
+    </measure>
+    <measure number="3">
+      <harmony><root><root-step>C</root-step></root><kind>major</kind></harmony>
+      <note><pitch><step>E</step><octave>4</octave></pitch><duration>16</duration><type>whole</type></note>
+    </measure>
+  </part>
+</score-partwise>

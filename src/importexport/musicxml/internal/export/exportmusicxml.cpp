@@ -7367,7 +7367,7 @@ void ExportMusicXml::identification(XmlWriter& xml, Score const* const score)
     }
 
     // JiMS provenance rides in identification before miscellaneous
-    // (urn:jims:musicxml:3); transported verbatim, only when the document
+    // (urn:jims:musicxml:4); transported verbatim, only when the document
     // is JiMS (the namespace is declared only then).
     if (m_jimsPlan.present && !score->jimsProvenance().empty()) {
         const jims::Provenance& prov = score->jimsProvenance();
@@ -8994,6 +8994,29 @@ static std::vector<const Jump*> findJumpElements(const Score* score)
 bool ExportMusicXml::buildJimsExportPlan()
 {
     m_jimsPlan = JimsExportPlan();
+    for (const Segment* segment = m_score->firstSegment(SegmentType::ChordRest); segment;
+         segment = segment->next1(SegmentType::ChordRest)) {
+        for (const EngravingItem* item : segment->annotations()) {
+            if (item && item->isHarmony() && toHarmony(item)->harmonyType() == HarmonyType::JIMS) {
+                const Harmony* harmony = toHarmony(item);
+                const String name = harmony->harmonyName();
+                bool containsWhitespace = false;
+                for (size_t i = 0; i < name.size(); ++i) {
+                    if (name.at(i).isSpace()) {
+                        containsWhitespace = true;
+                        break;
+                    }
+                }
+                if (harmony->chords().size() != 1 || name.isEmpty() || containsWhitespace || name.contains(u'~')) {
+                    m_jimsPlan.error
+                        =
+                            u"JiMS export: every JiMS harmony must carry exactly one nonempty whitespace-free canonical chord name and must not contain the superseded '~' marker";
+                    return false;
+                }
+                m_jimsPlan.present = true;
+            }
+        }
+    }
     const std::vector<Part*>& parts = m_score->parts();
     for (size_t partIndex = 0; partIndex < parts.size(); ++partIndex) {
         const Part* part = parts.at(partIndex);
@@ -9243,9 +9266,8 @@ bool ExportMusicXml::write(muse::io::IODevice* dev)
         u"score-partwise PUBLIC \"-//Recordare//DTD MusicXML 4.0 Partwise//EN\" \"http://www.musicxml.org/dtds/partwise.dtd\"");
 
     if (m_jimsPlan.present) {
-        // urn:jims:musicxml:3 is declared only when a JiMStaff is present;
-        // stock scores export byte-identically.
-        m_xml.startElement("score-partwise", { { "version", "4.0" }, { "xmlns:jims", "urn:jims:musicxml:3" } });
+        // The V4 namespace is declared when a JiMStaff or JiMS chord name is present.
+        m_xml.startElement("score-partwise", { { "version", "4.0" }, { "xmlns:jims", "urn:jims:musicxml:4" } });
     } else {
         m_xml.startElement("score-partwise", { { "version", "4.0" } });
     }
@@ -9629,6 +9651,9 @@ void ExportMusicXml::harmony(Harmony const* const h, FretDiagram const* const fd
         const String xmlKind = harmonyXmlKind(info);
         const String textName = info->textName();
         switch (h->harmonyType()) {
+        case HarmonyType::JIMS:
+            m_xml.tag("jims:chord-name", textName);
+            break;
         case HarmonyType::NASHVILLE: {
             String alter;
             String functionText = harmonyXmlFunction(info, h);
