@@ -135,6 +135,19 @@ bool tonicCentsAboveDo(const String& stateJson, double& cents)
     return true;
 }
 
+bool periodicOrigins(const String& stateJson, PeriodicOrigins& out)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"periodic_origins\",\"state\":%1}").arg(stateJson);
+    JsonValue result;
+    if (!okResult(callBridge(envelope), result)) {
+        return false;
+    }
+    JsonObject object = result.toObject();
+    out.doCentsAboveExtentLower = object.value("do_cents_above_extent_lower").toDouble();
+    out.tonicCentsAboveExtentLower = object.value("tonic_cents_above_extent_lower").toDouble();
+    return true;
+}
+
 bool staffMetrics(const String& stateJson, double& generatorCents, double& periodCents)
 {
     String envelope = String(u"{\"abi\":2,\"op\":\"staff_metrics\",\"state\":%1}").arg(stateJson);

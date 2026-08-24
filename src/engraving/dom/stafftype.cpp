@@ -1024,8 +1024,11 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
                         band.upperCents = cached.back().upperCents;
                     }
                     provisional.bands.push_back(band);
-                    const std::vector<double> extra
-                        = jims::changeIndicatorOverflowCents(provisional, intoThis, jimsPeriodCents());
+                    jims::PeriodicOrigins origins;
+                    const std::vector<double> extra = jims::periodicOrigins(jimsStateJson(), origins)
+                                                      ? jims::changeIndicatorOverflowCents(
+                        provisional, intoThis, jimsPeriodCents(), origins.doCentsAboveExtentLower)
+                                                      : std::vector<double>();
                     if (!extra.empty()) {
                         std::vector<jims::StaveSegment> covering;
                         if (jims::frameForMelody(jimsStateJson(), melody, token, covering, extra)) {
@@ -1265,10 +1268,10 @@ const StaffType::JimsFrameView& StaffType::jimsWholeFrameView(const Score* score
             // the row and the label come from the Kernel (tonic_cents_above_do,
             // tonic_pitch_label with period_index); nothing is inferred here.
             band.labelPeriodIndex = band.lowestPeriodIndex;
-            double tonicCents = 0.0;
-            if (jims::tonicCentsAboveDo(jimsStateJson(), tonicCents)) {
+            jims::PeriodicOrigins origins;
+            if (jims::periodicOrigins(jimsStateJson(), origins)) {
                 for (int k = band.lowestPeriodIndex; k <= band.highestPeriodIndex; ++k) {
-                    const double row = double(k) * periodCents + tonicCents;
+                    const double row = double(k) * periodCents + origins.tonicCentsAboveExtentLower;
                     if (row >= band.lowerCents - 1e-6 && row <= band.upperCents + 1e-6) {
                         band.labelPeriodIndex = k;
                         break;
@@ -1443,7 +1446,11 @@ const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, sta
         LOGE() << "JiMStaff: no declared tonic-ambit token; banded frame unavailable for staff " << staffIdx;
     } else if (deriveBands({}, view)) {
         if (hasIndicator && jimsPeriodCents() > 0.0) {
-            const std::vector<double> extra = jims::changeIndicatorOverflowCents(view, intoThis, jimsPeriodCents());
+            jims::PeriodicOrigins origins;
+            const std::vector<double> extra = jims::periodicOrigins(jimsStateJson(), origins)
+                                              ? jims::changeIndicatorOverflowCents(
+                view, intoThis, jimsPeriodCents(), origins.doCentsAboveExtentLower)
+                                              : std::vector<double>();
             if (!extra.empty()) {
                 deriveBands(extra, view);
             }

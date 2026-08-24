@@ -26,20 +26,20 @@
       "frames_found": 4,
       "staff_frames": [
         [
-          212,
-          309
+          211,
+          310
         ],
         [
-          390,
-          487
+          389,
+          488
         ],
         [
           567,
           665
         ],
         [
-          745,
-          842
+          744,
+          843
         ]
       ],
       "systems": [
@@ -47,34 +47,34 @@
           "system": 1,
           "staff_frames": [
             [
-              212,
-              309
+              211,
+              310
             ],
             [
-              390,
-              487
+              389,
+              488
             ],
             [
               567,
               665
             ],
             [
-              745,
-              842
+              744,
+              843
             ]
           ],
           "inter_staff_gaps": [
             [
-              310,
-              389
+              311,
+              388
             ],
             [
-              488,
+              489,
               566
             ],
             [
               666,
-              744
+              743
             ]
           ],
           "system_edge_columns": [
@@ -101,8 +101,8 @@
           ],
           "ok": true,
           "staff_span_y": [
-            212,
-            842
+            211,
+            843
           ]
         }
       ],
@@ -114,36 +114,36 @@
       "frames_found": 8,
       "staff_frames": [
         [
-          129,
-          226
+          128,
+          227
         ],
         [
-          260,
-          357
+          259,
+          358
         ],
         [
-          391,
-          488
+          390,
+          489
         ],
         [
-          522,
-          619
+          521,
+          620
         ],
         [
-          700,
-          797
+          699,
+          798
         ],
         [
-          831,
-          928
+          830,
+          929
         ],
         [
-          962,
-          1059
+          961,
+          1060
         ],
         [
-          1093,
-          1190
+          1092,
+          1191
         ]
       ],
       "systems": [
@@ -151,34 +151,34 @@
           "system": 1,
           "staff_frames": [
             [
-              129,
-              226
+              128,
+              227
             ],
             [
-              260,
-              357
+              259,
+              358
             ],
             [
-              391,
-              488
+              390,
+              489
             ],
             [
-              522,
-              619
+              521,
+              620
             ]
           ],
           "inter_staff_gaps": [
             [
-              227,
-              259
+              228,
+              258
             ],
             [
-              358,
-              390
+              359,
+              389
             ],
             [
-              489,
-              521
+              490,
+              520
             ]
           ],
           "system_edge_columns": [
@@ -204,42 +204,42 @@
           ],
           "ok": true,
           "staff_span_y": [
-            129,
-            619
+            128,
+            620
           ]
         },
         {
           "system": 2,
           "staff_frames": [
             [
-              700,
-              797
+              699,
+              798
             ],
             [
-              831,
-              928
+              830,
+              929
             ],
             [
-              962,
-              1059
+              961,
+              1060
             ],
             [
-              1093,
-              1190
+              1092,
+              1191
             ]
           ],
           "inter_staff_gaps": [
             [
-              798,
-              830
+              799,
+              829
             ],
             [
-              929,
-              961
+              930,
+              960
             ],
             [
-              1060,
-              1092
+              1061,
+              1091
             ]
           ],
           "system_edge_columns": [
@@ -269,8 +269,8 @@
           ],
           "ok": true,
           "staff_span_y": [
-            700,
-            1190
+            699,
+            1191
           ]
         }
       ],
@@ -282,20 +282,20 @@
       "frames_found": 4,
       "staff_frames": [
         [
-          212,
-          309
+          211,
+          310
         ],
         [
-          390,
-          487
+          389,
+          488
         ],
         [
           567,
           665
         ],
         [
-          745,
-          842
+          744,
+          843
         ]
       ],
       "systems": [
@@ -303,34 +303,34 @@
           "system": 1,
           "staff_frames": [
             [
-              212,
-              309
+              211,
+              310
             ],
             [
-              390,
-              487
+              389,
+              488
             ],
             [
               567,
               665
             ],
             [
-              745,
-              842
+              744,
+              843
             ]
           ],
           "inter_staff_gaps": [
             [
-              310,
-              389
+              311,
+              388
             ],
             [
-              488,
+              489,
               566
             ],
             [
               666,
-              744
+              743
             ]
           ],
           "system_edge_columns": [
@@ -357,8 +357,8 @@
           ],
           "ok": true,
           "staff_span_y": [
-            212,
-            842
+            211,
+            843
           ]
         }
       ],
@@ -370,36 +370,36 @@
       "frames_found": 8,
       "staff_frames": [
         [
-          129,
-          226
+          128,
+          227
         ],
         [
-          260,
-          357
+          259,
+          358
         ],
         [
-          391,
-          488
+          390,
+          489
         ],
         [
-          522,
-          619
+          521,
+          620
         ],
         [
-          700,
-          797
+          699,
+          798
         ],
         [
-          831,
-          928
+          830,
+          929
         ],
         [
-          962,
-          1059
+          961,
+          1060
         ],
         [
-          1093,
-          1190
+          1092,
+          1191
         ]
       ],
       "systems": [
@@ -407,34 +407,34 @@
           "system": 1,
           "staff_frames": [
             [
-              129,
-              226
+              128,
+              227
             ],
             [
-              260,
-              357
+              259,
+              358
             ],
             [
-              391,
-              488
+              390,
+              489
             ],
             [
-              522,
-              619
+              521,
+              620
             ]
           ],
           "inter_staff_gaps": [
             [
-              227,
-              259
+              228,
+              258
             ],
             [
-              358,
-              390
+              359,
+              389
             ],
             [
-              489,
-              521
+              490,
+              520
             ]
           ],
           "system_edge_columns": [
@@ -460,42 +460,42 @@
           ],
           "ok": true,
           "staff_span_y": [
-            129,
-            619
+            128,
+            620
           ]
         },
         {
           "system": 2,
           "staff_frames": [
             [
-              700,
-              797
+              699,
+              798
             ],
             [
-              831,
-              928
+              830,
+              929
             ],
             [
-              962,
-              1059
+              961,
+              1060
             ],
             [
-              1093,
-              1190
+              1092,
+              1191
             ]
           ],
           "inter_staff_gaps": [
             [
-              798,
-              830
+              799,
+              829
             ],
             [
-              929,
-              961
+              930,
+              960
             ],
             [
-              1060,
-              1092
+              1061,
+              1091
             ]
           ],
           "system_edge_columns": [
@@ -525,8 +525,8 @@
           ],
           "ok": true,
           "staff_span_y": [
-            700,
-            1190
+            699,
+            1191
           ]
         }
       ],
@@ -551,7 +551,7 @@
         ],
         [
           787,
-          909
+          910
         ]
       ],
       "systems": [
@@ -572,7 +572,7 @@
             ],
             [
               787,
-              909
+              910
             ]
           ],
           "inter_staff_gaps": [
@@ -614,7 +614,7 @@
           "ok": true,
           "staff_span_y": [
             128,
-            909
+            910
           ]
         }
       ],
@@ -639,7 +639,7 @@
         ],
         [
           787,
-          909
+          910
         ]
       ],
       "systems": [
@@ -660,7 +660,7 @@
             ],
             [
               787,
-              909
+              910
             ]
           ],
           "inter_staff_gaps": [
@@ -702,7 +702,211 @@
           "ok": true,
           "staff_span_y": [
             128,
-            909
+            910
+          ]
+        }
+      ],
+      "failures": [],
+      "ok": true
+    }
+  ],
+  "empty_staff_do_rows": [
+    {
+      "page": "empty-template-2-p1.png",
+      "systems": [
+        {
+          "system": 1,
+          "do_rows": [
+            {
+              "voice": "soprano",
+              "actual_y": 236,
+              "expected_y": 235.75,
+              "tolerance": 5.9399999999999995
+            },
+            {
+              "voice": "alto",
+              "actual_y": 471,
+              "expected_y": 471.5,
+              "tolerance": 5.9399999999999995
+            },
+            {
+              "voice": "tenor",
+              "actual_y": 608,
+              "expected_y": 607.8333333333334,
+              "tolerance": 5.88
+            },
+            {
+              "voice": "bass",
+              "actual_y": 810,
+              "expected_y": 810.0,
+              "tolerance": 5.9399999999999995
+            }
+          ]
+        }
+      ],
+      "failures": [],
+      "ok": true
+    },
+    {
+      "page": "empty-template-2-p2.png",
+      "systems": [
+        {
+          "system": 1,
+          "do_rows": [
+            {
+              "voice": "soprano",
+              "actual_y": 153,
+              "expected_y": 152.75,
+              "tolerance": 5.9399999999999995
+            },
+            {
+              "voice": "alto",
+              "actual_y": 342,
+              "expected_y": 341.5,
+              "tolerance": 5.9399999999999995
+            },
+            {
+              "voice": "tenor",
+              "actual_y": 431,
+              "expected_y": 431.25,
+              "tolerance": 5.9399999999999995
+            },
+            {
+              "voice": "bass",
+              "actual_y": 587,
+              "expected_y": 587.0,
+              "tolerance": 5.9399999999999995
+            }
+          ]
+        },
+        {
+          "system": 2,
+          "do_rows": [
+            {
+              "voice": "soprano",
+              "actual_y": 724,
+              "expected_y": 723.75,
+              "tolerance": 5.9399999999999995
+            },
+            {
+              "voice": "alto",
+              "actual_y": 913,
+              "expected_y": 912.5,
+              "tolerance": 5.9399999999999995
+            },
+            {
+              "voice": "tenor",
+              "actual_y": 1002,
+              "expected_y": 1002.25,
+              "tolerance": 5.9399999999999995
+            },
+            {
+              "voice": "bass",
+              "actual_y": 1158,
+              "expected_y": 1158.0,
+              "tolerance": 5.9399999999999995
+            }
+          ]
+        }
+      ],
+      "failures": [],
+      "ok": true
+    },
+    {
+      "page": "empty-template-p1.png",
+      "systems": [
+        {
+          "system": 1,
+          "do_rows": [
+            {
+              "voice": "soprano",
+              "actual_y": 236,
+              "expected_y": 235.75,
+              "tolerance": 5.9399999999999995
+            },
+            {
+              "voice": "alto",
+              "actual_y": 471,
+              "expected_y": 471.5,
+              "tolerance": 5.9399999999999995
+            },
+            {
+              "voice": "tenor",
+              "actual_y": 608,
+              "expected_y": 607.8333333333334,
+              "tolerance": 5.88
+            },
+            {
+              "voice": "bass",
+              "actual_y": 810,
+              "expected_y": 810.0,
+              "tolerance": 5.9399999999999995
+            }
+          ]
+        }
+      ],
+      "failures": [],
+      "ok": true
+    },
+    {
+      "page": "empty-template-p2.png",
+      "systems": [
+        {
+          "system": 1,
+          "do_rows": [
+            {
+              "voice": "soprano",
+              "actual_y": 153,
+              "expected_y": 152.75,
+              "tolerance": 5.9399999999999995
+            },
+            {
+              "voice": "alto",
+              "actual_y": 342,
+              "expected_y": 341.5,
+              "tolerance": 5.9399999999999995
+            },
+            {
+              "voice": "tenor",
+              "actual_y": 431,
+              "expected_y": 431.25,
+              "tolerance": 5.9399999999999995
+            },
+            {
+              "voice": "bass",
+              "actual_y": 587,
+              "expected_y": 587.0,
+              "tolerance": 5.9399999999999995
+            }
+          ]
+        },
+        {
+          "system": 2,
+          "do_rows": [
+            {
+              "voice": "soprano",
+              "actual_y": 724,
+              "expected_y": 723.75,
+              "tolerance": 5.9399999999999995
+            },
+            {
+              "voice": "alto",
+              "actual_y": 913,
+              "expected_y": 912.5,
+              "tolerance": 5.9399999999999995
+            },
+            {
+              "voice": "tenor",
+              "actual_y": 1002,
+              "expected_y": 1002.25,
+              "tolerance": 5.9399999999999995
+            },
+            {
+              "voice": "bass",
+              "actual_y": 1158,
+              "expected_y": 1158.0,
+              "tolerance": 5.9399999999999995
+            }
           ]
         }
       ],
@@ -751,12 +955,12 @@
       },
       {
         "lower": {
-          "nPer": -4,
-          "nGen": 4
+          "nPer": 2,
+          "nGen": -6
         },
         "upper": {
-          "nPer": -3,
-          "nGen": 4
+          "nPer": 3,
+          "nGen": -6
         }
       }
     ],
@@ -793,12 +997,12 @@
       },
       {
         "lower": {
-          "nPer": -4,
-          "nGen": 4
+          "nPer": 2,
+          "nGen": -6
         },
         "upper": {
-          "nPer": -3,
-          "nGen": 4
+          "nPer": 3,
+          "nGen": -6
         }
       }
     ],

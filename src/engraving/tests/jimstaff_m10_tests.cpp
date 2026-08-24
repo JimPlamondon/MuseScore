@@ -80,14 +80,14 @@ muse::String extentXml(const muse::String& state)
 }
 }
 
-TEST(Engraving_JiMStaffM10SATBTests, emptyVocalStavesUseKernelRangeDefaultsAndBassTracksTheTonic)
+TEST(Engraving_JiMStaffM10SATBTests, everyEmptyVocalStaffUsesItsKernelRangeCentre)
 {
     MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
     ASSERT_TRUE(score);
     ASSERT_EQ(score->nstaves(), 4u);
     EXPECT_EQ(jims::reconcileExtents(score), 0) << "native load must already reconcile every empty vocal extent";
     const char* roles[4] = { "soprano", "alto", "tenor", "bass" };
-    muse::String beforeExtent[4];
+    const double expectedDoOrigins[4] = { 900.0, 200.0, 700.0, 400.0 };
     for (staff_idx_t i = 0; i < 4; ++i) {
         ASSERT_TRUE(notesOn(score, i).empty()) << "rests do not make a written extent";
         Staff* staff = score->staff(i);
@@ -104,8 +104,11 @@ TEST(Engraving_JiMStaffM10SATBTests, emptyVocalStavesUseKernelRangeDefaultsAndBa
             << i << " actual=" << extentXml(type->jimsStateJson()).toStdString()
             << " expected=" << extentXml(expected).toStdString()
             << " range=" << instrument->minPitchA() << ".." << instrument->maxPitchA();
-        beforeExtent[i] = extentXml(type->jimsStateJson());
-        EXPECT_FALSE(beforeExtent[i].empty());
+        EXPECT_FALSE(extentXml(type->jimsStateJson()).empty());
+        jims::PeriodicOrigins origins;
+        ASSERT_TRUE(jims::periodicOrigins(type->jimsStateJson(), origins));
+        EXPECT_DOUBLE_EQ(origins.doCentsAboveExtentLower, expectedDoOrigins[i]);
+        EXPECT_DOUBLE_EQ(origins.tonicCentsAboveExtentLower, expectedDoOrigins[i]);
     }
 
     Measure* second = score->firstMeasure()->nextMeasure();
@@ -121,9 +124,6 @@ TEST(Engraving_JiMStaffM10SATBTests, emptyVocalStavesUseKernelRangeDefaultsAndBa
                                              instrument->maxPitchA(), roles[i], expected));
         const muse::String after = extentXml(type->jimsStateJson());
         EXPECT_TRUE(after == extentXml(expected)) << "each transposed empty staff must use its Kernel default";
-        if (i == 3) {
-            EXPECT_FALSE(after == beforeExtent[i]) << "Bass uses the tonic-anchored exception";
-        }
     }
     delete score;
 }

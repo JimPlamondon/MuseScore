@@ -46,6 +46,15 @@ struct ScaleDotStack {
     std::vector<int> frontToBack;
 };
 
+/// Kernel-owned origins for terrain that repeats once per period inside a
+/// frame whose lower endpoint may be any pitch class.
+struct PeriodicOrigins {
+    double doCentsAboveExtentLower = 0.0;
+    double tonicCentsAboveExtentLower = 0.0;
+};
+
+bool periodicOrigins(const muse::String& stateJson, PeriodicOrigins& out);
+
 /// The Kernel's scale-dot stacks for one staff, in ascending order.
 bool scaleDots(const muse::String& stateJson, std::vector<ScaleDotStack>& stacks);
 

@@ -166,10 +166,12 @@ double courtesyTerrainWidth(const Measure* measure)
     return width;
 }
 
-double changeAnchorPeriodCents(const StaffType::JimsFrameView& view, const ChangeIndicator& model, double periodCents)
+double changeAnchorPeriodCents(const StaffType::JimsFrameView& view, const ChangeIndicator& model, double periodCents,
+                               double doCentsAboveExtentLower)
 {
     const double eps = 1e-6;
-    const double fallback = std::floor(view.bottomCents() / periodCents + eps) * periodCents;
+    const double fallback = doCentsAboveExtentLower
+                            + std::floor((view.bottomCents() - doCentsAboveExtentLower) / periodCents + eps) * periodCents;
     if (view.empty() || periodCents <= 0.0) {
         return fallback;
     }
@@ -190,7 +192,8 @@ double changeAnchorPeriodCents(const StaffType::JimsFrameView& view, const Chang
     std::vector<double> candidates;
     for (const StaffType::JimsFrameBand& band : view.bands) {
         for (const StaffType::JimsSegment& seg : band.segments) {
-            const double first = std::ceil((seg.lowerCents - eps) / periodCents) * periodCents;
+            const double first = doCentsAboveExtentLower
+                                 + std::ceil((seg.lowerCents - doCentsAboveExtentLower - eps) / periodCents) * periodCents;
             for (double b = first; b <= seg.upperCents + eps; b += periodCents) {
                 if (candidates.empty() || std::abs(candidates.back() - b) > eps) {
                     candidates.push_back(b);
@@ -260,14 +263,14 @@ bool changeIndicatorIntoStaffType(const Score* score, staff_idx_t staffIdx, cons
 }
 
 std::vector<double> changeIndicatorOverflowCents(const StaffType::JimsFrameView& view, const ChangeIndicator& model,
-                                                 double periodCents)
+                                                 double periodCents, double doCentsAboveExtentLower)
 {
     std::vector<double> out;
     if (view.empty() || periodCents <= 0.0) {
         return out;
     }
     const double eps = 1e-6;
-    const double anchor = changeAnchorPeriodCents(view, model, periodCents);
+    const double anchor = changeAnchorPeriodCents(view, model, periodCents, doCentsAboveExtentLower);
     auto inside = [&](double cents) {
         for (const StaffType::JimsFrameBand& band : view.bands) {
             for (const StaffType::JimsSegment& seg : band.segments) {

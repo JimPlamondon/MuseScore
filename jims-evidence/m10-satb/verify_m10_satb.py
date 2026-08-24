@@ -11,6 +11,7 @@ import xml.etree.ElementTree as ET
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 RENDERS = HERE / "renders"
+SUMMARY = HERE / "verify-summary.json"
 TEMPLATE = ROOT / "share/templates/02-Choral/12-SATB_(JiMStaff)/12-SATB_(JiMStaff).mscx"
 M9_VERIFIER = HERE.parent / "m9-satb/verify_satb_layout.py"
 
@@ -18,8 +19,36 @@ EXPECTED_EXTENTS = [
     {"lower": {"nPer": 3, "nGen": -5}, "upper": {"nPer": 4, "nGen": -5}},
     {"lower": {"nPer": 2, "nGen": -4}, "upper": {"nPer": 3, "nGen": -4}},
     {"lower": {"nPer": 1, "nGen": -3}, "upper": {"nPer": 2, "nGen": -3}},
-    {"lower": {"nPer": -4, "nGen": 4}, "upper": {"nPer": -3, "nGen": 4}},
+    {"lower": {"nPer": 2, "nGen": -6}, "upper": {"nPer": 3, "nGen": -6}},
 ]
+EXPECTED_DO_ORIGINS = [900.0, 200.0, 700.0, 400.0]
+
+
+def check_empty_staff_do_rows(path, m9):
+    image = m9.np.asarray(m9.Image.open(path).convert("RGB"))
+    red = ((image[:, :, 0] > 140) & (image[:, :, 1] < 110)
+           & (image[:, :, 2] < 110) & (image[:, :, 0] > image[:, :, 1] * 1.5))
+    _, frames = m9.staff_frames(m9.ink_of(path))
+    systems = m9.group_systems(frames)
+    result = {"page": path.name, "systems": [], "failures": []}
+    for system_index, system in enumerate(systems):
+        if len(system) != 4:
+            result["failures"].append(f"system {system_index + 1}: expected four staff frames")
+            continue
+        rows = []
+        for voice_index, ((top, bottom), origin) in enumerate(zip(system, EXPECTED_DO_ORIGINS)):
+            counts = red[top:bottom + 1].sum(axis=1)
+            actual = top + int(counts.argmax())
+            expected = top + (1.0 - origin / 1200.0) * (bottom - top)
+            tolerance = max(4.0, 0.06 * (bottom - top))
+            rows.append({"voice": ["soprano", "alto", "tenor", "bass"][voice_index],
+                         "actual_y": actual, "expected_y": expected, "tolerance": tolerance})
+            if abs(actual - expected) > tolerance:
+                result["failures"].append(
+                    f"system {system_index + 1} voice {voice_index + 1}: Do row y={actual}, expected {expected:.1f}")
+        result["systems"].append({"system": system_index + 1, "do_rows": rows})
+    result["ok"] = not result["failures"]
+    return result
 
 
 def load_m9_verifier():
@@ -65,6 +94,11 @@ def main():
     for check in page_checks:
         summary["failures"].extend(f"{check['page']}: {failure}" for failure in check["failures"])
 
+    do_row_checks = [check_empty_staff_do_rows(path, m9) for path in pages if path.name.startswith("empty-template")]
+    summary["empty_staff_do_rows"] = do_row_checks
+    for check in do_row_checks:
+        summary["failures"].extend(f"{check['page']}: {failure}" for failure in check["failures"])
+
     states = [json.loads(node.text) for node in ET.parse(TEMPLATE).findall(".//jimsStateJson")]
     actual = [state.get("extent") for state in states]
     summary["empty_staff_centres"] = {
@@ -78,7 +112,9 @@ def main():
         summary["failures"].append("empty SATB extents do not match the Kernel-pinned vocal defaults")
 
     summary["ok"] = not summary["failures"]
-    print(json.dumps(summary, indent=2))
+    rendered = json.dumps(summary, indent=2)
+    SUMMARY.write_text(rendered + "\n")
+    print(rendered)
     return 0 if summary["ok"] else 1
 
 
