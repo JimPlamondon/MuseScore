@@ -29,17 +29,17 @@
       </attributes>
       <harmony placement="above"><jims:chord-name>!So7/Ti</jims:chord-name><staff>1</staff></harmony>
       <note>
-        <pitch><step>D</step><octave>4</octave></pitch>
-        <jims:pitch n-per="0" n-gen="0"/>
+        <pitch><step>C</step><octave>4</octave></pitch>
+        <jims:pitch n-per="1" n-gen="-2"/>
         <duration>16</duration><type>whole</type>
       </note>
     </measure>
     <measure number="2">
       <print new-system="yes"/>
-      <harmony placement="above"><jims:chord-name>Do5|Fa5</jims:chord-name><staff>1</staff></harmony>
+      <harmony placement="above"><jims:chord-name>Re:So7</jims:chord-name><staff>1</staff></harmony>
       <note>
-        <pitch><step>A</step><octave>4</octave></pitch>
-        <jims:pitch n-per="0" n-gen="1"/>
+        <pitch><step>C</step><octave>5</octave></pitch>
+        <jims:pitch n-per="2" n-gen="-2"/>
         <duration>16</duration><type>whole</type>
       </note>
     </measure>

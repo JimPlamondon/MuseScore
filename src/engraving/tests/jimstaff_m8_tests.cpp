@@ -843,6 +843,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
         std::vector<std::pair<double, double> > horns;    // crescent top / bottom
         std::vector<double> closureYs;                    // clipped-crescent horizontal closures
         std::vector<PointF> glyphs;                       // single-codepoint (music-font) glyph origins
+        int strokedCrescentSeams = 0;                     // accidental close-subpath strokes
     };
     auto paintOf = [&](const StaffLines* lines) {
         std::shared_ptr<BufferedPaintProvider> prv = std::make_shared<BufferedPaintProvider>();
@@ -871,10 +872,17 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                     }
                 }
                 for (const DrawPath& path : d.paths) {
-                    // The crescent is the only white-filled stroked path.
-                    if (path.mode == DrawMode::StrokeAndFill && path.brush.color() == Color::WHITE) {
+                    bool hasCurve = false;
+                    for (size_t i = 0; i < path.path.elementCount(); ++i) {
+                        const PainterPath::Element element = path.path.elementAt(i);
+                        hasCurve = hasCurve || element.type == PainterPath::ElementType::CurveToElement;
+                    }
+                    if (hasCurve && path.mode != DrawMode::Fill) {
                         const RectF r = path.path.boundingRect();
                         out.horns.push_back({ r.top(), r.bottom() });
+                        const PainterPath::Element last = path.path.elementAt(path.path.elementCount() - 1);
+                        out.strokedCrescentSeams
+                            += last.type == PainterPath::ElementType::LineToElement ? 1 : 0;
                     }
                 }
                 for (const DrawText& t : d.texts) {
@@ -1000,6 +1008,8 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                 // (b) horns are Do rows; every red line has a horn on it.
                 const HeadPaint paint = paintOf(lines);
                 EXPECT_EQ(paint.redYs.size(), redYs.size()) << what;
+                EXPECT_EQ(paint.strokedCrescentSeams, 0)
+                    << what << " complete crescents must not stroke their fill-path closure";
                 std::vector<std::pair<double, double> > expectedHorns;
                 std::vector<double> expectedClosureYs;
                 for (const StaffType::JimsFrameBand& band : v.bands) {

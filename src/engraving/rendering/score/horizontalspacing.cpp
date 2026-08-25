@@ -1310,7 +1310,8 @@ static double jimsChangeTerrainExtra(const Segment* f, const Segment* ns)
         return jims::courtesyTerrainWidth(ns->measure());
     }
     if (f->measure() == ns->measure()) {
-        return jims::changeTerrainWidthAt(ns->measure(), ns->tick());
+        const double terrain = jims::changeTerrainWidthAt(ns->measure(), ns->tick());
+        return terrain > 0.0 ? terrain + ns->style().styleMM(Sid::barNoteDistance) : 0.0;
     }
     if (ns->tick() != ns->measure()->tick()) {
         return 0.0;

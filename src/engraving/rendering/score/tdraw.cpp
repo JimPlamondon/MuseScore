@@ -3054,17 +3054,20 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                         const double periodTopY
                             = segTopY + (segment.upperCents - periodCeiling)
                               / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * dist;
-                        PainterPath crescent;
-                        crescent.moveTo(clefRight, periodTopY);
-                        crescent.arcTo(RectF(clefRight - clefRx, periodTopY, 2.0 * clefRx, 2.0 * clefRy),
-                                       90.0, 180.0);
-                        crescent.arcTo(RectF(clefRight - clefRy, periodTopY, 2.0 * clefRy, 2.0 * clefRy),
-                                       270.0, -180.0);
-                        crescent.closeSubpath();
-                        painter->setPen(Pen(item->curColor(opt), item->lw() * 1.5, PenStyle::SolidLine));
+                        PainterPath crescentOutline;
+                        crescentOutline.moveTo(clefRight, periodTopY);
+                        crescentOutline.arcTo(RectF(clefRight - clefRx, periodTopY, 2.0 * clefRx, 2.0 * clefRy),
+                                              90.0, 180.0);
+                        crescentOutline.arcTo(RectF(clefRight - clefRy, periodTopY, 2.0 * clefRy, 2.0 * clefRy),
+                                              270.0, -180.0);
+                        PainterPath crescentFill = crescentOutline;
+                        crescentFill.closeSubpath();
+                        painter->setNoPen();
                         painter->setBrush(Brush(Color::WHITE));
-                        painter->drawPath(crescent);
+                        painter->drawPath(crescentFill);
+                        painter->setPen(Pen(item->curColor(opt), item->lw() * 1.5, PenStyle::SolidLine));
                         painter->setBrush(BrushStyle::NoBrush);
+                        painter->drawPath(crescentOutline);
 
                         // The closure spans the glyph at the cut height —
                         // outer arc to inner arc — never the bounding box
@@ -3464,7 +3467,8 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                 }
                 const double g = midBarSt->jimsHeaderGeometry(
                     item->spatium(), item->score()->style().defaultSpatium()).changeTerrainWidth;
-                paintChangeTerrain(midBar, midBarSt, jimsSt, anchor->x() - g, ChangePlacement::MID_BAR);
+                const double noteGap = item->style().styleMM(Sid::barNoteDistance);
+                paintChangeTerrain(midBar, midBarSt, jimsSt, anchor->x() - g - noteGap, ChangePlacement::MID_BAR);
             }
             jims::ChangeIndicator courtesy;
             const StaffType* courtesySt = nullptr;

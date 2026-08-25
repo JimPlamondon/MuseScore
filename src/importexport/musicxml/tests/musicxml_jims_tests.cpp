@@ -365,6 +365,11 @@ TEST_F(MusicXml_JiMS_Tests, midBarIndicatorElementsAlignWithTheirDisplayedStaffN
     walk(drawData->item);
     ASSERT_EQ(flankXs.size(), 2u);
     std::sort(flankXs.begin(), flankXs.end());
+    const Segment* anchor = measure->findSegmentR(Segment::CHORD_REST_OR_TIME_TICK_TYPE, carrier->rtick());
+    ASSERT_TRUE(anchor);
+    const double expectedNoteGap = score->style().styleMM(Sid::barNoteDistance);
+    EXPECT_GE(anchor->x() - flankXs.back(), expectedNoteGap - 1e-6)
+        << "the note after a mid-bar indicator must clear its right dashed flank";
     std::vector<double> paintedTonicYs;
     for (const RectF& bounds : pathBounds) {
         if (bounds.center().x() > flankXs.front() && bounds.center().x() < flankXs.back()
@@ -461,6 +466,12 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4ImportsAsOpaquePerObjectHarmonyBesideStan
     ASSERT_EQ(stockNotes.size(), 2u);
     EXPECT_TRUE(jimsNotes[0]->hasJimsPitch());
     EXPECT_TRUE(jimsNotes[1]->hasJimsPitch());
+    EXPECT_EQ(jimsNotes[0]->jimsNPer(), 1);
+    EXPECT_EQ(jimsNotes[0]->jimsNGen(), -2);
+    EXPECT_EQ(jimsNotes[1]->jimsNPer(), 2);
+    EXPECT_EQ(jimsNotes[1]->jimsNGen(), -2);
+    EXPECT_TRUE(staffTypeAtStart(score, 0)->jimsStateJson().contains(
+                    u"\"extent\":{\"lower\":{\"nPer\":1,\"nGen\":-2},\"upper\":{\"nPer\":2,\"nGen\":-2}}"));
     EXPECT_FALSE(stockNotes[0]->hasJimsPitch());
     EXPECT_FALSE(stockNotes[1]->hasJimsPitch());
     score->doLayout();
@@ -483,7 +494,7 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4ImportsAsOpaquePerObjectHarmonyBesideStan
     EXPECT_GT(jimsHarmonies[0]->ldata()->bbox().width(), 0.0);
     EXPECT_EQ(jimsHarmonies[0]->ldata()->renderItemList().size(), 1u);
     EXPECT_EQ(jimsHarmonies[1]->harmonyType(), HarmonyType::JIMS);
-    EXPECT_EQ(jimsHarmonies[1]->harmonyName(), u"Do5|Fa5");
+    EXPECT_EQ(jimsHarmonies[1]->harmonyName(), u"Re:So7");
     EXPECT_EQ(jimsHarmonies[1]->tick(), Fraction(1, 1));
     EXPECT_EQ(jimsHarmonies[1]->staffIdx(), 0u);
     EXPECT_EQ(jimsHarmonies[1]->placement(), PlacementV::ABOVE);
@@ -597,7 +608,7 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4SurvivesNativeAndMusicXmlRoundTripsExactl
     const String xml = readAll(out);
     EXPECT_TRUE(xml.contains(u"xmlns:jims=\"urn:jims:musicxml:4\""));
     EXPECT_EQ(xml.count(u"<jims:chord-name>!So7/Ti</jims:chord-name>"), 1);
-    EXPECT_EQ(xml.count(u"<jims:chord-name>Do5|Fa5</jims:chord-name>"), 1);
+    EXPECT_EQ(xml.count(u"<jims:chord-name>Re:So7</jims:chord-name>"), 1);
     auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
         return importMusicXml(s, path.toQString(), false);
     };
@@ -614,7 +625,7 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4SurvivesNativeAndMusicXmlRoundTripsExactl
     EXPECT_EQ(againJims[0]->harmonyType(), HarmonyType::JIMS);
     EXPECT_EQ(againJims[0]->harmonyName(), u"!So7/Ti");
     EXPECT_EQ(againJims[1]->harmonyType(), HarmonyType::JIMS);
-    EXPECT_EQ(againJims[1]->harmonyName(), u"Do5|Fa5");
+    EXPECT_EQ(againJims[1]->harmonyName(), u"Re:So7");
     EXPECT_EQ(againStock[0]->harmonyType(), HarmonyType::STANDARD);
     EXPECT_EQ(againStock[1]->harmonyType(), HarmonyType::STANDARD);
     delete score;
@@ -627,11 +638,13 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4PreservesOffsetStaffAndSupportedFormattin
     MasterScore* score = readJims("jims-chord-name-offset-staff-format-v4.musicxml");
     ASSERT_TRUE(score);
     ASSERT_EQ(score->nstaves(), 2u);
+    EXPECT_FALSE(staffTypeAtStart(score, 0)->isJiMS());
+    EXPECT_TRUE(staffTypeAtStart(score, 1)->isJiMS());
     const std::vector<Harmony*> imported = harmoniesInOrder(score);
     ASSERT_EQ(imported.size(), 1u);
     Harmony* harmony = imported.front();
     EXPECT_EQ(harmony->harmonyType(), HarmonyType::JIMS);
-    EXPECT_EQ(harmony->harmonyName(), u"Fi@Te:M3²+La,Ti/Re");
+    EXPECT_EQ(harmony->harmonyName(), u"La:So7");
     EXPECT_EQ(harmony->tick(), Fraction(1, 4));
     EXPECT_EQ(harmony->staffIdx(), 1u);
     EXPECT_EQ(harmony->placement(), PlacementV::BELOW);
@@ -669,7 +682,7 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4PreservesOffsetStaffAndSupportedFormattin
     ASSERT_EQ(roundTripped.size(), 1u);
     const Harmony* roundTrip = roundTripped.front();
     EXPECT_EQ(roundTrip->harmonyType(), HarmonyType::JIMS);
-    EXPECT_EQ(roundTrip->harmonyName(), u"Fi@Te:M3²+La,Ti/Re");
+    EXPECT_EQ(roundTrip->harmonyName(), u"La:So7");
     EXPECT_EQ(roundTrip->tick(), Fraction(1, 4));
     EXPECT_EQ(roundTrip->staffIdx(), 1u);
     EXPECT_EQ(roundTrip->placement(), PlacementV::BELOW);
@@ -703,7 +716,7 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4PreservesOffsetStaffAndSupportedFormattin
     ASSERT_EQ(nativeHarmonies.size(), 1u);
     const Harmony* nativeHarmony = nativeHarmonies.front();
     EXPECT_EQ(nativeHarmony->harmonyType(), HarmonyType::JIMS);
-    EXPECT_EQ(nativeHarmony->harmonyName(), u"Fi@Te:M3²+La,Ti/Re");
+    EXPECT_EQ(nativeHarmony->harmonyName(), u"La:So7");
     EXPECT_EQ(nativeHarmony->tick(), Fraction(1, 4));
     EXPECT_EQ(nativeHarmony->staffIdx(), 1u);
     EXPECT_EQ(nativeHarmony->placement(), PlacementV::BELOW);
