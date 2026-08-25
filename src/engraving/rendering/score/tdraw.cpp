@@ -3167,24 +3167,26 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             MID_BAR
         };
         auto paintChangeTerrain = [&](const jims::ChangeIndicator& model, const StaffType* changeSt,
-                                      double x0, ChangePlacement placement) {
+                                      const StaffType* displayedSt, double x0, ChangePlacement placement) {
             {
                 const double _spatium = item->spatium();
-                const double dist = changeSt->lineDistance().val() * _spatium;
+                const double dist = displayedSt->lineDistance().val() * _spatium;
                 const double topY = item->pos().y();
-                // Milestone 8: the change state's view for THIS system;
-                // terrain instances land only in retained bands' segments,
-                // and the closing stroke spans each band separately.
+                // The semantic state supplies the incoming labels and glyphs.
+                // Vertical placement instead uses the staff frame visibly drawn
+                // in this measure. They are the same at a bar boundary; inside
+                // a bar the measure keeps its starting frame, so using the
+                // incoming frame would detach every element from its note-line.
                 const StaffType::JimsFrameView& view
-                    = changeSt->jimsFrameView(item->score(), item->staffIdx(), item->measure()->system());
-                const double periodCents = changeSt->jimsPeriodCents();
+                    = displayedSt->jimsFrameView(item->score(), item->staffIdx(), item->measure()->system());
+                const double periodCents = displayedSt->jimsPeriodCents();
                 if (!view.empty() && periodCents > 0.0) {
                     jims::PeriodicOrigins origins;
-                    if (!jims::periodicOrigins(changeSt->jimsStateJson(), origins)) {
+                    if (!jims::periodicOrigins(displayedSt->jimsStateJson(), origins)) {
                         return;
                     }
                     auto yOf = [&](double cents) {
-                        return topY + changeSt->jimsYFromCents(cents, view) * _spatium;
+                        return topY + displayedSt->jimsYFromCents(cents, view) * _spatium;
                     };
                     const StaffType::JimsHeaderGeometry g
                         = changeSt->jimsHeaderGeometry(_spatium, item->score()->style().defaultSpatium());
@@ -3447,7 +3449,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             jims::ChangeIndicator model;
             const StaffType* changeSt = nullptr;
             if (!systemHead && jims::midSystemChangeIndicator(item->measure(), item->staffIdx(), model, &changeSt) && changeSt) {
-                paintChangeTerrain(model, changeSt, item->pos().x(), ChangePlacement::START_BAR);
+                paintChangeTerrain(model, changeSt, changeSt, item->pos().x(), ChangePlacement::START_BAR);
             }
             for (const StaffTypeChange* carrier : jims::changeCarriers(item->measure(), item->staffIdx())) {
                 jims::ChangeIndicator midBar;
@@ -3462,7 +3464,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                 }
                 const double g = midBarSt->jimsHeaderGeometry(
                     item->spatium(), item->score()->style().defaultSpatium()).changeTerrainWidth;
-                paintChangeTerrain(midBar, midBarSt, anchor->x() - g, ChangePlacement::MID_BAR);
+                paintChangeTerrain(midBar, midBarSt, jimsSt, anchor->x() - g, ChangePlacement::MID_BAR);
             }
             jims::ChangeIndicator courtesy;
             const StaffType* courtesySt = nullptr;
@@ -3471,7 +3473,8 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                 if (endBar) {
                     const double g
                         = courtesySt->jimsHeaderGeometry(item->spatium(), item->score()->style().defaultSpatium()).changeTerrainWidth;
-                    paintChangeTerrain(courtesy, courtesySt, endBar->x() - g, ChangePlacement::END_BAR_COURTESY);
+                    paintChangeTerrain(courtesy, courtesySt, courtesySt, endBar->x() - g,
+                                       ChangePlacement::END_BAR_COURTESY);
                 }
             }
         }

@@ -593,6 +593,102 @@ TEST(JiMStaffTests, midBarIndicatorHasTwoGreyDashedBarWidthFlanks)
     delete score;
 }
 
+TEST(JiMStaffTests, midBarIndicatorElementsAlignWithTheDisplayedStaffNoteLines)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+    ASSERT_TRUE(score);
+    Measure* firstMeasure = measureNo(score, 1);
+    Measure* measure = measureNo(score, 2);
+    ASSERT_TRUE(firstMeasure);
+    ASSERT_TRUE(measure);
+    const std::vector<Note*> notes = notesInMeasure(measure);
+    ASSERT_GE(notes.size(), 2u);
+    const Fraction changeTick = notes.back()->tick();
+    String error;
+    ASSERT_TRUE(jims::applyChange(score, 0, firstMeasure, u"bind:reference-pitch:62", error)) << error.toStdString();
+    ASSERT_TRUE(jims::applyChange(score, 0, measure, changeTick, u"mode:1", error)) << error.toStdString();
+    ASSERT_TRUE(jims::applyChange(score, 0, measure, changeTick, u"key:-1:3", error)) << error.toStdString();
+    score->doLayout();
+
+    const StaffLines* lines = measure->staffLines(0);
+    ASSERT_TRUE(lines);
+    const StaffType* displayedStaffType = score->staff(0)->staffType(measure->tick());
+    ASSERT_TRUE(displayedStaffType);
+    ASSERT_TRUE(displayedStaffType->isJiMS());
+    const StaffTypeChange* carrier = jims::changeCarrierAt(measure, 0, changeTick);
+    ASSERT_TRUE(carrier);
+    jims::ChangeIndicator indicator;
+    const StaffType* changedStaffType = nullptr;
+    ASSERT_TRUE(jims::midBarChangeIndicator(carrier, indicator, &changedStaffType));
+    ASSERT_TRUE(changedStaffType);
+    ASSERT_NE(changedStaffType, displayedStaffType);
+
+    const StaffType::JimsFrameView& view
+        = displayedStaffType->jimsFrameView(score, 0, measure->system());
+    ASSERT_FALSE(view.empty());
+    jims::PeriodicOrigins origins;
+    ASSERT_TRUE(jims::periodicOrigins(displayedStaffType->jimsStateJson(), origins));
+    const double periodCents = displayedStaffType->jimsPeriodCents();
+    ASSERT_GT(periodCents, 0.0);
+    const double basePeriod = jims::changeAnchorPeriodCents(
+        view, indicator, periodCents, origins.doCentsAboveExtentLower);
+    std::vector<double> expectedTonicYs;
+    for (const jims::ChangePoint& point : indicator.tonicIndicators) {
+        const double cents = basePeriod + (point.periodOffset + point.ordinate) * periodCents;
+        expectedTonicYs.push_back(lines->pos().y()
+                                  + displayedStaffType->jimsYFromCents(cents, view) * lines->spatium());
+    }
+    std::sort(expectedTonicYs.begin(), expectedTonicYs.end());
+
+    std::shared_ptr<BufferedPaintProvider> provider = std::make_shared<BufferedPaintProvider>();
+    Painter painter(provider, "midbar-lines");
+    painter.setViewport(RectF(0, 0, 4000, 4000));
+    PaintOptions options;
+    lines->renderer()->drawItem(lines, &painter, options);
+    painter.endDraw();
+
+    const DrawDataPtr drawData = provider->drawData();
+    const Color grey(128, 128, 128);
+    std::vector<double> flankXs;
+    std::vector<RectF> pathBounds;
+    std::function<void(const DrawData::Item&)> walk = [&](const DrawData::Item& item) {
+        for (const DrawData::Data& data : item.datas) {
+            const DrawData::State& state = drawData->states.at(data.state);
+            for (const DrawPolygon& polygon : data.polygons) {
+                if (polygon.mode == PolygonMode::Polyline && polygon.polygon.size() == 2
+                    && std::abs(polygon.polygon[0].x() - polygon.polygon[1].x()) < 1e-6
+                    && state.pen.style() == PenStyle::DashLine && state.pen.color() == grey) {
+                    flankXs.push_back(polygon.polygon[0].x());
+                }
+            }
+            for (const DrawPath& path : data.paths) {
+                pathBounds.push_back(path.path.boundingRect());
+            }
+        }
+        for (const DrawData::Item& child : item.chilren) {
+            walk(child);
+        }
+    };
+    walk(drawData->item);
+    ASSERT_EQ(flankXs.size(), 2u);
+    std::sort(flankXs.begin(), flankXs.end());
+    std::vector<double> paintedTonicYs;
+    for (const RectF& bounds : pathBounds) {
+        if (bounds.center().x() > flankXs.front() && bounds.center().x() < flankXs.back()
+            && std::abs(bounds.width() - bounds.height()) < 1e-6) {
+            paintedTonicYs.push_back(bounds.center().y());
+        }
+    }
+    std::sort(paintedTonicYs.begin(), paintedTonicYs.end());
+    ASSERT_EQ(paintedTonicYs.size(), expectedTonicYs.size());
+    for (size_t i = 0; i < expectedTonicYs.size(); ++i) {
+        EXPECT_NEAR(paintedTonicYs[i], expectedTonicYs[i], 1e-6)
+            << "mid-bar tonic indicator is not aligned with its displayed staff note-line";
+    }
+
+    delete score;
+}
+
 // The owner's worked example authored entirely through the controller: base
 // bound to 62 (bind at measure 1 = the base staff type), then at measure 2
 // mode Do->La and key Do0->La0 — the accepted m5-key-mode semantics
