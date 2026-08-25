@@ -494,7 +494,7 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4ImportsAsOpaquePerObjectHarmonyBesideStan
     EXPECT_GT(jimsHarmonies[0]->ldata()->bbox().width(), 0.0);
     EXPECT_EQ(jimsHarmonies[0]->ldata()->renderItemList().size(), 1u);
     EXPECT_EQ(jimsHarmonies[1]->harmonyType(), HarmonyType::JIMS);
-    EXPECT_EQ(jimsHarmonies[1]->harmonyName(), u"Do5|Fa5");
+    EXPECT_EQ(jimsHarmonies[1]->harmonyName(), u"Re:So7");
     EXPECT_EQ(jimsHarmonies[1]->tick(), Fraction(1, 1));
     EXPECT_EQ(jimsHarmonies[1]->staffIdx(), 0u);
     EXPECT_EQ(jimsHarmonies[1]->placement(), PlacementV::ABOVE);
@@ -608,7 +608,7 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4SurvivesNativeAndMusicXmlRoundTripsExactl
     const String xml = readAll(out);
     EXPECT_TRUE(xml.contains(u"xmlns:jims=\"urn:jims:musicxml:4\""));
     EXPECT_EQ(xml.count(u"<jims:chord-name>!So7/Ti</jims:chord-name>"), 1);
-    EXPECT_EQ(xml.count(u"<jims:chord-name>Do5|Fa5</jims:chord-name>"), 1);
+    EXPECT_EQ(xml.count(u"<jims:chord-name>Re:So7</jims:chord-name>"), 1);
     auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
         return importMusicXml(s, path.toQString(), false);
     };
@@ -625,7 +625,7 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4SurvivesNativeAndMusicXmlRoundTripsExactl
     EXPECT_EQ(againJims[0]->harmonyType(), HarmonyType::JIMS);
     EXPECT_EQ(againJims[0]->harmonyName(), u"!So7/Ti");
     EXPECT_EQ(againJims[1]->harmonyType(), HarmonyType::JIMS);
-    EXPECT_EQ(againJims[1]->harmonyName(), u"Do5|Fa5");
+    EXPECT_EQ(againJims[1]->harmonyName(), u"Re:So7");
     EXPECT_EQ(againStock[0]->harmonyType(), HarmonyType::STANDARD);
     EXPECT_EQ(againStock[1]->harmonyType(), HarmonyType::STANDARD);
     delete score;

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.1 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
 <score-partwise version="4.1" xmlns:jims="urn:jims:musicxml:4">
-  <work><work-title>Mid-bar tonal-state change</work-title></work>
+  <work><work-title>Mid-bar mode change</work-title></work>
   <part-list>
     <score-part id="P1"><part-name>JiMStaff</part-name></score-part>
   </part-list>
