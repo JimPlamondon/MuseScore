@@ -407,6 +407,37 @@ static bool partHasVocalRole(const Part* part, const String& role)
     return id == role || id == u"voice." + role;
 }
 
+bool hasCompleteTonicAmbits(const Score* score)
+{
+    if (!score) {
+        return false;
+    }
+    bool foundJiMS = false;
+    for (staff_idx_t staffIdx = 0; staffIdx < score->nstaves(); ++staffIdx) {
+        const Staff* staff = score->staff(staffIdx);
+        const StaffType* base = staff ? staff->staffType(Fraction(0, 1)) : nullptr;
+        if (base && base->isJiMS()) {
+            foundJiMS = true;
+            if (base->jimsTonicAmbit().empty()) {
+                return false;
+            }
+        }
+        for (const Measure* measure = score->firstMeasure(); measure; measure = measure->nextMeasure()) {
+            for (const StaffTypeChange* carrier : changeCarriers(measure, staffIdx)) {
+                const StaffType* type = carrier ? carrier->staffType() : nullptr;
+                if (!type || !type->isJiMS()) {
+                    continue;
+                }
+                foundJiMS = true;
+                if (type->jimsTonicAmbit().empty()) {
+                    return false;
+                }
+            }
+        }
+    }
+    return foundJiMS;
+}
+
 int deriveTonicAmbits(Score* score)
 {
     if (!score) {

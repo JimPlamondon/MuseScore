@@ -1297,6 +1297,11 @@ void ExportMusicXml::calcDivisions()
                                    << " tickLen " << fractionToStdString(fb->ticks());
 #endif
                             addFraction(stretch(m_score, st, m->tick()) * fb->ticks());
+                        } else if (e->track() == st && e->isHarmony()) {
+                            // A chord symbol may sit between note onsets. Its
+                            // MusicXML offset must remain exactly representable
+                            // even when note durations alone need fewer divisions.
+                            addFraction(seg->tick() - m->tick());
                         }
                     }
 
