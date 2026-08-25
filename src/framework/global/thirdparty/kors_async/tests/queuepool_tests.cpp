@@ -90,7 +90,8 @@ TEST(QueuePool_Tests, RegistrationWaitsForActiveProcessing)
     std::shared_future<void> handlerEntered = handlerEnteredPromise.get_future().share();
     std::promise<void> releaseHandlerPromise;
     std::shared_future<void> releaseHandler = releaseHandlerPromise.get_future().share();
-    std::atomic<bool> registrationFinished = false;
+    std::promise<void> registrationFinishedPromise;
+    std::future<void> registrationFinished = registrationFinishedPromise.get_future();
 
     activeQueue.port1()->onMessage([&handlerEnteredPromise, releaseHandler](const CallMsg&) {
         handlerEnteredPromise.set_value();
@@ -104,18 +105,62 @@ TEST(QueuePool_Tests, RegistrationWaitsForActiveProcessing)
     });
     ASSERT_EQ(handlerEntered.wait_for(std::chrono::seconds(1)), std::future_status::ready);
 
-    std::thread registrationThread([qp, targetThread, &queueToRegister, &registrationFinished]() {
+    std::thread registrationThread([qp, targetThread, &queueToRegister, &registrationFinishedPromise]() {
         qp->regPort(targetThread, queueToRegister.port1());
-        registrationFinished.store(true);
+        registrationFinishedPromise.set_value();
     });
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(20));
-    EXPECT_FALSE(registrationFinished.load());
+    EXPECT_EQ(registrationFinished.wait_for(std::chrono::milliseconds(20)), std::future_status::timeout);
 
     releaseHandlerPromise.set_value();
     processingThread.join();
+    EXPECT_EQ(registrationFinished.wait_for(std::chrono::seconds(1)), std::future_status::ready);
     registrationThread.join();
 
     qp->unregPort(targetThread, queueToRegister.port1());
+    qp->unregPort(targetThread, activeQueue.port1());
+}
+
+TEST(QueuePool_Tests, HandlerCanRegisterPortForItsOwnThread)
+{
+    QueuePool* qp = QueuePool::instance();
+    Queue activeQueue;
+    Queue queueToRegister;
+    const std::thread::id targetThread = std::this_thread::get_id();
+    bool handlerCompleted = false;
+
+    activeQueue.port1()->onMessage([qp, targetThread, &queueToRegister, &handlerCompleted](const CallMsg&) {
+        qp->regPort(targetThread, queueToRegister.port1());
+        handlerCompleted = true;
+    });
+    qp->regPort(targetThread, activeQueue.port1());
+    activeQueue.port2()->send(CallMsg {});
+
+    qp->processMessages(targetThread);
+
+    EXPECT_TRUE(handlerCompleted);
+    qp->unregPort(targetThread, queueToRegister.port1());
+    qp->unregPort(targetThread, activeQueue.port1());
+}
+
+TEST(QueuePool_Tests, HandlerCanUnregisterPortForItsOwnThread)
+{
+    QueuePool* qp = QueuePool::instance();
+    Queue activeQueue;
+    Queue queueToUnregister;
+    const std::thread::id targetThread = std::this_thread::get_id();
+    bool handlerCompleted = false;
+
+    activeQueue.port1()->onMessage([qp, targetThread, &queueToUnregister, &handlerCompleted](const CallMsg&) {
+        qp->unregPort(targetThread, queueToUnregister.port1());
+        handlerCompleted = true;
+    });
+    qp->regPort(targetThread, activeQueue.port1());
+    qp->regPort(targetThread, queueToUnregister.port1());
+    activeQueue.port2()->send(CallMsg {});
+
+    qp->processMessages(targetThread);
+
+    EXPECT_TRUE(handlerCompleted);
     qp->unregPort(targetThread, activeQueue.port1());
 }
