@@ -69,17 +69,15 @@ QueuePool::ThreadData* QueuePool::threadData(const std::thread::id& threadId, bo
         assert(count <= m_threads.size());
         for (size_t i = 0; i < count; ++i) {
             ThreadData* thdata = m_threads.at(i);
-            if (!thdata->tryLock()) {
+            std::unique_lock lock(thdata->mutex, std::try_to_lock);
+            if (!lock.owns_lock()) {
                 continue;
             }
 
             if (thdata->ports.empty()) {
                 thdata->threadId = threadId;
-                thdata->unlock();
                 return thdata;
             }
-
-            thdata->unlock();
         }
 
         // we didn't find ThreadData, let's try found a empty slot
@@ -104,31 +102,6 @@ QueuePool::ThreadData* QueuePool::threadData(const std::thread::id& threadId, bo
     }
 
     return nullptr;
-}
-
-bool QueuePool::ThreadData::tryLock()
-{
-    bool expected = false;
-    if (locked.compare_exchange_weak(expected, true)) {
-        return true;
-    }
-    return false;
-}
-
-void QueuePool::ThreadData::lock()
-{
-    for (;;) {
-        bool expected = false;
-        if (locked.compare_exchange_weak(expected, true)) {
-            return;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-}
-
-void QueuePool::ThreadData::unlock()
-{
-    locked.store(false);
 }
 
 void QueuePool::regPort(const std::thread::id& th, const std::shared_ptr<Port>& port)
@@ -161,13 +134,8 @@ void QueuePool::regPort(const std::thread::id& th, const std::shared_ptr<Port>& 
         return;
     }
 
-    // lock
-    thdata->lock();
-
+    std::scoped_lock lock(thdata->mutex);
     thdata->ports.push_back(port);
-
-    // unlock
-    thdata->unlock();
 }
 
 void QueuePool::unregPort(const std::thread::id& th, const std::shared_ptr<Port>& port)
@@ -183,14 +151,9 @@ void QueuePool::unregPort(const std::thread::id& th, const std::shared_ptr<Port>
         return;
     }
 
-    // lock
-    thdata->lock();
-
+    std::scoped_lock lock(thdata->mutex);
     auto& ports = thdata->ports;
     ports.erase(std::remove(ports.begin(), ports.end(), port), ports.end());
-
-    // unlock
-    thdata->unlock();
 }
 
 void QueuePool::processMessages()
@@ -208,18 +171,19 @@ void QueuePool::processMessages(const std::thread::id& th)
         return;
     }
 
-    // try lock
-    if (!thdata->tryLock()) {
+    std::unique_lock lock(thdata->mutex, std::try_to_lock);
+    if (!lock.owns_lock()) {
         // if we couldn't lock it, we just skip it
         return;
     }
 
-    for (size_t i = 0; i < thdata->ports.size(); ++i) {
-        std::shared_ptr<Port>& port = thdata->ports.at(i);
+    // A handler may synchronously register or unregister ports for this thread.
+    // The recursive lock permits that same-thread mutation while excluding other
+    // threads, and the snapshot keeps iteration and port lifetime stable.
+    const std::vector<std::shared_ptr<Port>> ports = thdata->ports;
+
+    for (const std::shared_ptr<Port>& port : ports) {
         port->process();
     }
-
-    // unlock
-    thdata->unlock();
 }
 } // kors::async
