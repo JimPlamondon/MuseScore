@@ -3154,14 +3154,20 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
         // Change indicator (Milestone 5, owner notation rulings 2026-08-16):
         // the Kernel's ready-to-paint terrain — dot stacks, tonic indicators,
         // note-class labels (left of the glyphs), arrows in their lane — is
-        // painted verbatim between a barline and one added thin stroke.
-        // Two placements: (1) mid-system, at the START of the change measure
+        // painted verbatim between its two vertical flanks. Three placements:
+        // (1) mid-system, at the START of the change measure
         // (barline left, added stroke right); (2) courtesy (owner 2026-08-16,
         // option 1a): when the change measure starts the NEXT system, at the
         // END of the last measure of this system (added stroke left, the
-        // closing barline right). Nothing is inferred here.
+        // closing barline right); and (3) inside a bar, with two dashed grey
+        // strokes. Nothing is inferred here.
+        enum class ChangePlacement {
+            START_BAR,
+            END_BAR_COURTESY,
+            MID_BAR
+        };
         auto paintChangeTerrain = [&](const jims::ChangeIndicator& model, const StaffType* changeSt,
-                                      double x0, bool addedStrokeOnLeft) {
+                                      double x0, ChangePlacement placement) {
             {
                 const double _spatium = item->spatium();
                 const double dist = changeSt->lineDistance().val() * _spatium;
@@ -3188,7 +3194,6 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     const double dotCenterX = labelRight + indicatorW;
                     const double rightLabelLeft = dotCenterX + indicatorW;                 // Grey labels start here
                     const double arrowX = rightLabelLeft + g.changeRightLabelBand + g.changeArrowLane / 2.0;
-                    const double strokeX = addedStrokeOnLeft ? x0 : x0 + g.changeTerrainWidth;
                     // Period 0 of the model = the anchor Do-line: the lowest Do-line
                     // of the stave stack that keeps the whole indicator inside the
                     // staff (owner ruling 2026-08-19; jims::changeAnchorPeriodCents).
@@ -3268,12 +3273,27 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                         return tp.nGen == keyLabel.nGen;
                     };
 
-                    // Closing stroke: thin, one continuous stroke over the whole
-                    // stack — through any band gap, like a keyboard barline
-                    // (owner ruling 3b, 2026-08-18).
-                    painter->setPen(Pen(item->curColor(opt), item->style().styleMM(
-                                            Sid::barWidth), PenStyle::SolidLine, PenCapStyle::FlatCap));
-                    painter->drawLine(LineF(strokeX, yOf(view.topCents()), strokeX, yOf(view.bottomCents())));
+                    // Flanking strokes are continuous over the whole stack,
+                    // through every band gap. Boundary placements retain one
+                    // synthetic solid flank beside the real bar line. A mid-bar
+                    // placement owns both dashed grey flanks. Every synthetic
+                    // stroke resolves the normal bar-line width from the style.
+                    const double flankWidth = item->style().styleMM(Sid::barWidth);
+                    const double top = yOf(view.topCents());
+                    const double bottom = yOf(view.bottomCents());
+                    if (placement == ChangePlacement::MID_BAR) {
+                        painter->setPen(Pen(Color(128, 128, 128), flankWidth,
+                                            PenStyle::DashLine, PenCapStyle::FlatCap));
+                        painter->drawLine(LineF(x0, top, x0, bottom));
+                        painter->drawLine(LineF(x0 + g.changeTerrainWidth, top,
+                                                x0 + g.changeTerrainWidth, bottom));
+                    } else {
+                        const double strokeX = placement == ChangePlacement::END_BAR_COURTESY
+                                               ? x0 : x0 + g.changeTerrainWidth;
+                        painter->setPen(Pen(item->curColor(opt), flankWidth,
+                                            PenStyle::SolidLine, PenCapStyle::FlatCap));
+                        painter->drawLine(LineF(strokeX, top, strokeX, bottom));
+                    }
 
                     // Dots (Kernel notehead classes); ALL labels LEFT of the dots
                     // (owner ruling 2026-08-16: the change stack must look like
@@ -3427,7 +3447,22 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             jims::ChangeIndicator model;
             const StaffType* changeSt = nullptr;
             if (!systemHead && jims::midSystemChangeIndicator(item->measure(), item->staffIdx(), model, &changeSt) && changeSt) {
-                paintChangeTerrain(model, changeSt, item->pos().x(), false);
+                paintChangeTerrain(model, changeSt, item->pos().x(), ChangePlacement::START_BAR);
+            }
+            for (const StaffTypeChange* carrier : jims::changeCarriers(item->measure(), item->staffIdx())) {
+                jims::ChangeIndicator midBar;
+                const StaffType* midBarSt = nullptr;
+                if (!jims::midBarChangeIndicator(carrier, midBar, &midBarSt) || !midBarSt) {
+                    continue;
+                }
+                const Segment* anchor = item->measure()->findSegmentR(
+                    Segment::CHORD_REST_OR_TIME_TICK_TYPE, carrier->rtick());
+                if (!anchor) {
+                    continue;
+                }
+                const double g = midBarSt->jimsHeaderGeometry(
+                    item->spatium(), item->score()->style().defaultSpatium()).changeTerrainWidth;
+                paintChangeTerrain(midBar, midBarSt, anchor->x() - g, ChangePlacement::MID_BAR);
             }
             jims::ChangeIndicator courtesy;
             const StaffType* courtesySt = nullptr;
@@ -3436,7 +3471,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                 if (endBar) {
                     const double g
                         = courtesySt->jimsHeaderGeometry(item->spatium(), item->score()->style().defaultSpatium()).changeTerrainWidth;
-                    paintChangeTerrain(courtesy, courtesySt, endBar->x() - g, true);
+                    paintChangeTerrain(courtesy, courtesySt, endBar->x() - g, ChangePlacement::END_BAR_COURTESY);
                 }
             }
         }

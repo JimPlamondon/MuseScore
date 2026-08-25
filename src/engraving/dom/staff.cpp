@@ -1251,9 +1251,21 @@ const StaffType* Staff::staffTypeForElement(const EngravingItem* e) const
         // if one staff type spans for the entire staff, optimize by omitting a call to `tick()`
         return &m_staffTypeList.staffType({ 0, 1 });
     }
-    // Handle items at the last tick of measures as StaffTypeList::staffType rounds up
+    Fraction tick = e->tick();
     const Measure* measure = e->findMeasure();
-    const Fraction tick = measure ? measure->tick() : e->tick();
+    const Segment* segment = nullptr;
+    for (const EngravingItem* item = e; item && item->explicitParent(); item = item->parentItem()) {
+        if (item->explicitParent()->isSegment()) {
+            segment = toSegment(item->explicitParent());
+            break;
+        }
+    }
+    if (measure && segment && segment->rtick() == measure->ticks()
+        && (segment->segmentType() & SegmentType::EndBarLine)) {
+        // A closing bar line belongs visually to the measure that ends here,
+        // even when a new staff type begins at the next measure's first tick.
+        tick = Fraction::fromTicks(std::max(0, tick.ticks() - 1));
+    }
     return &m_staffTypeList.staffType(tick);
 }
 

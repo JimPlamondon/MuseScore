@@ -61,16 +61,16 @@ private:
     void syncFromScore();
 
     // JiMStaff Milestone 6 (owner decision 1a, 2026-08-16): the change
-    // section — mode / key / scale changes at the selected measure, every
+    // section — mode / key / scale changes at the selected score position, every
     // choice a Kernel-issued option applied through jims::applyChange.
     void buildChangeSection(QWidget* parent, QVBoxLayout* outer);
     void syncChangeSection();
-    bool changeTarget(mu::engraving::Measure*& measure, mu::engraving::staff_idx_t& staffIdx) const;
+    bool changeTarget(mu::engraving::Measure*& measure, mu::engraving::Fraction& tick, mu::engraving::staff_idx_t& staffIdx) const;
     /// One staff, one Kernel choice. Reference binding only (owner decision 9):
     /// a reference names what THIS staff's Re0 is, so it stays staff-wide.
     void applyChoice(const muse::String& choiceId);
     /// Tonic, key and scale: the whole gesture, applied to every JiMS part of
-    /// the score at the selected measure as one undo step (owner decision 2a).
+    /// the score at the selected position as one undo step (owner decision 2a).
     /// A scale entry is several Kernel ids, which is why this takes a list.
     void applyChoices(const std::vector<muse::String>& choiceIds);
     void onMelodyPartChanged(int index);

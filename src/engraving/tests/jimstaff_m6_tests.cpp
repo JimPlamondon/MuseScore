@@ -36,6 +36,7 @@
 #include <climits>
 #include <cstdlib>
 #include <fstream>
+#include <functional>
 #include <tuple>
 
 #include "engraving/dom/accidental.h"
@@ -53,14 +54,24 @@
 #include "engraving/dom/box.h"
 #include "engraving/dom/stafftype.h"
 #include "engraving/dom/stafftypechange.h"
+#include "engraving/dom/stafflines.h"
 #include "engraving/dom/tie.h"
+#include "engraving/infrastructure/mscwriter.h"
 #include "engraving/jims/jimsbridge.h"
 #include "engraving/jims/jimschange.h"
 #include "engraving/jims/jimschangecontroller.h"
+#include "engraving/rw/mscsaver.h"
+
+#include "draw/bufferedpaintprovider.h"
+#include "draw/painter.h"
+#include "io/file.h"
 
 #include "utils/scorerw.h"
 
 using namespace mu::engraving;
+using namespace mu::engraving::rendering;
+using namespace muse;
+using namespace muse::draw;
 
 namespace {
 Measure* measureNo(Score* score, int n)
@@ -394,6 +405,191 @@ TEST(JiMStaffTests, m6ChangeControllerAuthorsCarriersFromKernelStates)
     EXPECT_TRUE(jims::changeCarrier(m2, 0)->staffType()->jimsStateJson().contains(u"\"key_number\":53"));
     // Foreign choice ids are refused without touching the score.
     EXPECT_FALSE(jims::applyChange(score, 0, m2, u"tuning:700", error));
+    delete score;
+}
+
+TEST(JiMStaffTests, midBarChangeStartsAtTheSelectedExactTick)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+    ASSERT_TRUE(score);
+    Measure* measure = measureNo(score, 2);
+    ASSERT_TRUE(measure);
+    const std::vector<Note*> notes = notesInMeasure(measure);
+    ASSERT_GE(notes.size(), 2u);
+    const Fraction changeTick = notes.back()->tick();
+    ASSERT_GT(changeTick, measure->tick());
+    ASSERT_LT(changeTick, measure->endTick());
+
+    Staff* staff = score->staff(0);
+    ASSERT_TRUE(staff);
+    const String beforeState = staff->staffType(changeTick - Fraction::fromTicks(1))->jimsStateJson();
+    String expected;
+    String error;
+    ASSERT_TRUE(jims::applyStateChange(beforeState, u"mode:1", expected, error)) << error.toStdString();
+    ASSERT_TRUE(jims::applyChange(score, 0, measure, changeTick, u"mode:1", error)) << error.toStdString();
+
+    const StaffTypeChange* carrier = jims::changeCarrierAt(measure, 0, changeTick);
+    ASSERT_TRUE(carrier);
+    EXPECT_EQ(carrier->tick(), changeTick);
+    EXPECT_EQ(carrier->rtick(), changeTick - measure->tick());
+    EXPECT_EQ(staff->staffType(changeTick - Fraction::fromTicks(1))->jimsStateJson(), beforeState);
+    EXPECT_EQ(staff->staffType(changeTick)->jimsStateJson(), expected);
+    EXPECT_EQ(staff->staffTypeForElement(notes.front())->jimsStateJson(), beforeState);
+    EXPECT_EQ(staff->staffTypeForElement(notes.back())->jimsStateJson(), expected);
+
+    auto withoutAmbit = [](const String& json) {
+        String out = json;
+        for (const char16_t* token : { u",\"tonic_ambit\":\"tonic-bounded\"", u",\"tonic_ambit\":\"tonic-centered\"" }) {
+            out.replace(String(token), String());
+        }
+        return out;
+    };
+    String expectedShared;
+    String projectionError;
+    ASSERT_TRUE(jims::musicxmlSharedStateV3Xml(withoutAmbit(expected), expectedShared, &projectionError))
+        << projectionError.toStdString();
+    for (const String& path : { String(u"midbar-change-roundtrip.mscx"), String(u"midbar-change-roundtrip.mscz") }) {
+        if (path.endsWith(u".mscz")) {
+            io::File::remove(path);
+            io::File file(path);
+            ASSERT_TRUE(file.open(io::IODevice::WriteOnly));
+            MscWriter::Params params;
+            params.device = &file;
+            params.filePath = path;
+            params.mode = MscIoMode::Zip;
+            MscWriter writer(params);
+            ASSERT_TRUE(writer.open());
+            MscSaver saver(score->iocContext());
+            ASSERT_TRUE(saver.writeMscz(score->masterScore(), writer, false));
+            writer.close();
+            file.close();
+        } else {
+            ASSERT_TRUE(ScoreRW::saveScore(score, path));
+        }
+        Score* reopened = ScoreRW::readScore(path, true);
+        ASSERT_TRUE(reopened) << path.toStdString();
+        Measure* reopenedMeasure = measureNo(reopened, 2);
+        ASSERT_TRUE(reopenedMeasure);
+        const StaffTypeChange* reopenedCarrier = jims::changeCarrierAt(reopenedMeasure, 0, changeTick);
+        ASSERT_TRUE(reopenedCarrier);
+        EXPECT_EQ(reopenedCarrier->rtick(), changeTick - measure->tick());
+        String reopenedShared;
+        ASSERT_TRUE(jims::musicxmlSharedStateV3Xml(
+                        withoutAmbit(reopened->staff(0)->staffType(changeTick)->jimsStateJson()), reopenedShared, &projectionError))
+            << projectionError.toStdString();
+        EXPECT_EQ(reopenedShared, expectedShared);
+        delete reopened;
+    }
+
+    delete score;
+}
+
+TEST(JiMStaffTests, twoMidBarChangesCanOccupyOneMeasure)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+    ASSERT_TRUE(score);
+    Measure* measure = measureNo(score, 1);
+    ASSERT_TRUE(measure);
+    const std::vector<Note*> notes = notesInMeasure(measure);
+    ASSERT_GE(notes.size(), 4u);
+    const Fraction firstTick = notes[1]->tick();
+    const Fraction secondTick = notes[2]->tick();
+    ASSERT_LT(firstTick, secondTick);
+    String error;
+    ASSERT_TRUE(jims::applyChange(score, 0, measure, firstTick, u"mode:1", error)) << error.toStdString();
+    jims::StateChangeOptions options;
+    ASSERT_TRUE(jims::changeOptions(score, 0, measure, secondTick, options));
+    const auto target = std::find_if(options.tonics.begin(), options.tonics.end(),
+                                     [](const jims::StateChangeOption& option) { return !option.current; });
+    ASSERT_NE(target, options.tonics.end());
+    ASSERT_TRUE(jims::applyChange(score, 0, measure, secondTick, target->id, error)) << error.toStdString();
+    const std::vector<const StaffTypeChange*> carriers = jims::changeCarriers(measure, 0);
+    ASSERT_EQ(carriers.size(), 2u);
+    EXPECT_EQ(carriers[0]->tick(), firstTick);
+    EXPECT_EQ(carriers[1]->tick(), secondTick);
+    EXPECT_TRUE(measure->canAddStaffTypeChange(0, notes[3]->tick() - measure->tick()));
+    EXPECT_FALSE(measure->canAddStaffTypeChange(0, firstTick - measure->tick()));
+    ASSERT_TRUE(jims::removeChange(score, 0, measure, firstTick, error)) << error.toStdString();
+    EXPECT_FALSE(jims::changeCarrierAt(measure, 0, firstTick));
+    EXPECT_TRUE(jims::changeCarrierAt(measure, 0, secondTick));
+    score->undoRedo(true, nullptr);
+    EXPECT_TRUE(jims::changeCarrierAt(measure, 0, firstTick));
+    EXPECT_TRUE(jims::changeCarrierAt(measure, 0, secondTick));
+    score->undoRedo(false, nullptr);
+    EXPECT_FALSE(jims::changeCarrierAt(measure, 0, firstTick));
+    EXPECT_TRUE(jims::changeCarrierAt(measure, 0, secondTick));
+    delete score;
+}
+
+TEST(JiMStaffTests, silentMidBarChangeCreatesATimingOnlyLayoutAnchor)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+    ASSERT_TRUE(score);
+    Measure* measure = measureNo(score, 1);
+    ASSERT_TRUE(measure);
+    const std::vector<Note*> notes = notesInMeasure(measure);
+    ASSERT_GE(notes.size(), 2u);
+    const Fraction silentTick = Fraction::fromTicks((notes[0]->tick().ticks() + notes[1]->tick().ticks()) / 2);
+    const Fraction rtick = silentTick - measure->tick();
+    ASSERT_FALSE(measure->findSegmentR(SegmentType::TimeTick, rtick));
+    String error;
+    ASSERT_TRUE(jims::applyChange(score, 0, measure, silentTick, u"mode:1", error)) << error.toStdString();
+    const StaffTypeChange* carrier = jims::changeCarrierAt(measure, 0, silentTick);
+    ASSERT_TRUE(carrier);
+    EXPECT_TRUE(measure->findSegmentR(SegmentType::TimeTick, rtick));
+    score->doLayout();
+    jims::ChangeIndicator indicator;
+    EXPECT_TRUE(jims::midBarChangeIndicator(carrier, indicator));
+    delete score;
+}
+
+TEST(JiMStaffTests, midBarIndicatorHasTwoGreyDashedBarWidthFlanks)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+    ASSERT_TRUE(score);
+    Measure* measure = measureNo(score, 2);
+    ASSERT_TRUE(measure);
+    const std::vector<Note*> notes = notesInMeasure(measure);
+    ASSERT_GE(notes.size(), 2u);
+    const Fraction changeTick = notes.back()->tick();
+    String error;
+    ASSERT_TRUE(jims::applyChange(score, 0, measure, changeTick, u"mode:1", error)) << error.toStdString();
+    score->doLayout();
+
+    const StaffLines* lines = measure->staffLines(0);
+    ASSERT_TRUE(lines);
+    std::shared_ptr<BufferedPaintProvider> provider = std::make_shared<BufferedPaintProvider>();
+    Painter painter(provider, "midbar");
+    painter.setViewport(RectF(0, 0, 4000, 4000));
+    PaintOptions options;
+    lines->renderer()->drawItem(lines, &painter, options);
+    painter.endDraw();
+
+    const DrawDataPtr drawData = provider->drawData();
+    const Color grey(128, 128, 128);
+    const double expectedWidth = score->style().styleMM(Sid::barWidth);
+    size_t dashedFlanks = 0;
+    std::function<void(const DrawData::Item&)> walk = [&](const DrawData::Item& item) {
+        for (const DrawData::Data& data : item.datas) {
+            const DrawData::State& state = drawData->states.at(data.state);
+            for (const DrawPolygon& polygon : data.polygons) {
+                if (polygon.mode == PolygonMode::Polyline && polygon.polygon.size() == 2
+                    && std::abs(polygon.polygon[0].x() - polygon.polygon[1].x()) < 1e-6
+                    && state.pen.style() == PenStyle::DashLine && state.pen.color() == grey) {
+                    ++dashedFlanks;
+                    EXPECT_NEAR(state.pen.widthF(), expectedWidth, 1e-9);
+                    EXPECT_EQ(state.pen.capStyle(), PenCapStyle::FlatCap);
+                    EXPECT_GT(std::abs(polygon.polygon[1].y() - polygon.polygon[0].y()), 0.0);
+                }
+            }
+        }
+        for (const DrawData::Item& child : item.chilren) {
+            walk(child);
+        }
+    };
+    walk(drawData->item);
+    EXPECT_EQ(dashedFlanks, 2u);
+
     delete score;
 }
 

@@ -15,6 +15,8 @@
 #include "../dom/stafftype.h"
 #include "../types/types.h"
 
+#include <vector>
+
 namespace mu::engraving {
 class Measure;
 class Note;
@@ -27,6 +29,12 @@ namespace mu::engraving::jims {
 /// The JiMS StaffTypeChange carried by `measure` for `staffIdx`, if any.
 const StaffTypeChange* changeCarrier(const Measure* measure, staff_idx_t staffIdx);
 
+/// The JiMS carrier at one exact absolute score tick, if any.
+const StaffTypeChange* changeCarrierAt(const Measure* measure, staff_idx_t staffIdx, const Fraction& tick);
+
+/// All JiMS carriers in `measure` for `staffIdx`, ordered by exact tick.
+std::vector<const StaffTypeChange*> changeCarriers(const Measure* measure, staff_idx_t staffIdx);
+
 /// The Kernel's change-indicator model for the change `measure` carries
 /// on `staffIdx`, evaluated between the staff type in effect just before
 /// the measure and the one it introduces. Returns false when the measure
@@ -35,9 +43,15 @@ const StaffTypeChange* changeCarrier(const Measure* measure, staff_idx_t staffId
 /// Kernel model is empty (tuning/extent/presentation-only differences).
 bool midSystemChangeIndicator(const Measure* measure, staff_idx_t staffIdx, ChangeIndicator& out, const StaffType** newStaffType = nullptr);
 
+/// The Kernel model for an exact carrier strictly inside its measure.
+bool midBarChangeIndicator(const StaffTypeChange* carrier, ChangeIndicator& out, const StaffType** newStaffType = nullptr);
+
 /// The terrain width to reserve at the start of `measure` (max over
 /// staves that carry a mid-system indicator), or 0.
 double changeTerrainWidth(const Measure* measure);
+
+/// Terrain width for carriers at one exact absolute score tick.
+double changeTerrainWidthAt(const Measure* measure, const Fraction& tick);
 
 /// Courtesy indicator (owner ruling 2026-08-16, option 1a): when the NEXT
 /// measure carries a JiMS change and `measure` is the last of its system,
@@ -87,7 +101,7 @@ int reconcileExtents(Score* score);
 
 /// Reproject an empty vocal staff's default extent after its song state
 /// changes. Written staves and non-vocal staves are returned unchanged.
-bool defaultExtentForEmptyStaffSpan(const Staff* staff, const Fraction& start, const Measure* stop, const muse::String& state,
+bool defaultExtentForEmptyStaffSpan(const Staff* staff, const Fraction& start, const Fraction& stop, const muse::String& state,
                                     muse::String& updated);
 
 /// Edit-time grow-only lifecycle transition for one entered or moved note.

@@ -3135,7 +3135,7 @@ void MusicXmlParserPass2::attributes(const String& partId, Measure* measure, con
         } else if (m_e.name() == "transpose") {
             m_e.skipCurrentElement();        // skip but don't log
         } else if (m_jims.isJimsElement(m_e.name(), "staff-state")) {
-            jimsStaffState(partId, measure);
+            jimsStaffState(partId, tick);
         } else if (m_jims.isJimsElement(m_e.name(), "change")) {
             m_e.skipCurrentElement();        // Kernel-written summary: the importer never reads it
         } else {
@@ -3155,7 +3155,7 @@ void MusicXmlParserPass2::attributes(const String& partId, Measure* measure, con
  overwrite the JiMS staff type. A malformed state is a fatal import error.
  */
 
-void MusicXmlParserPass2::jimsStaffState(const String& partId, Measure* measure)
+void MusicXmlParserPass2::jimsStaffState(const String& partId, const Fraction& tick)
 {
     String json;
     String error;
@@ -3166,7 +3166,7 @@ void MusicXmlParserPass2::jimsStaffState(const String& partId, Measure* measure)
         m_jimsError = Err::FileBadFormat;
         return;
     }
-    m_jims.buffer(partId, measure ? measure->tick() : Fraction(0, 1), staffNumber, json);
+    m_jims.buffer(partId, tick, staffNumber, json);
 }
 
 //---------------------------------------------------------

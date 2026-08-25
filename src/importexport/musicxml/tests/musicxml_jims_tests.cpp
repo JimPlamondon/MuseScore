@@ -208,6 +208,50 @@ TEST_F(MusicXml_JiMS_Tests, v3ImportBuildsTheJiMStaffLikeTheConverter)
     delete score;
 }
 
+TEST_F(MusicXml_JiMS_Tests, midBarStateChangeImportsAndExportsAtItsExactTick)
+{
+    MasterScore* score = readJims("jims-mid-bar-state-change.musicxml");
+    ASSERT_TRUE(score);
+    const std::vector<const Note*> notes = notesInOrder(score);
+    ASSERT_EQ(notes.size(), 4u);
+    const Fraction changeTick = notes[2]->tick();
+    Measure* measure = measureNo(score, 1);
+    ASSERT_TRUE(measure);
+    ASSERT_GT(changeTick, measure->tick());
+    ASSERT_LT(changeTick, measure->endTick());
+    const StaffTypeChange* carrier = jims::changeCarrierAt(measure, 0, changeTick);
+    ASSERT_TRUE(carrier);
+    EXPECT_EQ(carrier->rtick(), changeTick - measure->tick());
+    EXPECT_TRUE(notes[0]->staff()->staffTypeForElement(notes[0])->jimsStateJson().contains(u"\"mode_rotation\":0"));
+    EXPECT_TRUE(notes[1]->staff()->staffTypeForElement(notes[1])->jimsStateJson().contains(u"\"mode_rotation\":0"));
+    EXPECT_TRUE(notes[2]->staff()->staffTypeForElement(notes[2])->jimsStateJson().contains(u"\"mode_rotation\":5"));
+    EXPECT_TRUE(notes[3]->staff()->staffTypeForElement(notes[3])->jimsStateJson().contains(u"\"mode_rotation\":5"));
+
+    const String out = exportToScratch(score, "jims-mid-bar-state-change-roundtrip.musicxml");
+    const String xml = readAll(out);
+    EXPECT_EQ(xml.count(u"<jims:staff-state"), 2u);
+    const size_t firstNote = xml.indexOf(u"<note");
+    const size_t secondNote = xml.indexOf(u"<note", firstNote + 1);
+    const size_t thirdNote = xml.indexOf(u"<note", secondNote + 1);
+    const size_t firstState = xml.indexOf(u"<jims:staff-state");
+    const size_t secondState = xml.indexOf(u"<jims:staff-state", firstState + 1);
+    ASSERT_NE(secondState, muse::nidx);
+    EXPECT_GT(secondState, secondNote);
+    EXPECT_LT(secondState, thirdNote);
+
+    auto importXml = [](MasterScore* target, const muse::io::path_t& path) -> engraving::Err {
+        return importMusicXml(target, path.toQString(), false);
+    };
+    MasterScore* again = ScoreRW::readScore(out, true, importXml);
+    ASSERT_TRUE(again);
+    Measure* againMeasure = measureNo(again, 1);
+    ASSERT_TRUE(againMeasure);
+    EXPECT_TRUE(jims::changeCarrierAt(againMeasure, 0, changeTick));
+    EXPECT_EQ(notesInOrder(again).size(), 4u);
+    delete again;
+    delete score;
+}
+
 TEST_F(MusicXml_JiMS_Tests, everyReferenceFormTranscribesVerbatimAndOlderProfilesReadAsNone)
 {
     struct Case {

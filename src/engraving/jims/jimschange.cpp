@@ -58,13 +58,18 @@ public:
 
 const StaffTypeChange* changeCarrier(const Measure* measure, staff_idx_t staffIdx)
 {
+    return measure ? changeCarrierAt(measure, staffIdx, measure->tick()) : nullptr;
+}
+
+const StaffTypeChange* changeCarrierAt(const Measure* measure, staff_idx_t staffIdx, const Fraction& tick)
+{
     if (!measure) {
         return nullptr;
     }
     for (const EngravingItem* el : measure->el()) {
         if (el && el->isStaffTypeChange() && el->staffIdx() == staffIdx) {
             const StaffTypeChange* stc = toStaffTypeChange(el);
-            if (stc->staffType() && stc->staffType()->isJiMS()) {
+            if (stc->tick() == tick && stc->staffType() && stc->staffType()->isJiMS()) {
                 return stc;
             }
         }
@@ -72,23 +77,35 @@ const StaffTypeChange* changeCarrier(const Measure* measure, staff_idx_t staffId
     return nullptr;
 }
 
-bool midSystemChangeIndicator(const Measure* measure, staff_idx_t staffIdx,
-                              ChangeIndicator& out, const StaffType** newStaffType)
+std::vector<const StaffTypeChange*> changeCarriers(const Measure* measure, staff_idx_t staffIdx)
 {
-    const StaffTypeChange* stc = changeCarrier(measure, staffIdx);
-    if (!stc) {
+    std::vector<const StaffTypeChange*> result;
+    if (!measure) {
+        return result;
+    }
+    for (const EngravingItem* el : measure->el()) {
+        if (!el || !el->isStaffTypeChange() || el->staffIdx() != staffIdx) {
+            continue;
+        }
+        const StaffTypeChange* stc = toStaffTypeChange(el);
+        if (stc->staffType() && stc->staffType()->isJiMS()) {
+            result.push_back(stc);
+        }
+    }
+    std::sort(result.begin(), result.end(), [](const StaffTypeChange* a, const StaffTypeChange* b) {
+        return a->tick() < b->tick();
+    });
+    return result;
+}
+
+static bool indicatorForCarrier(const StaffTypeChange* stc, ChangeIndicator& out, const StaffType** newStaffType)
+{
+    if (!stc || !stc->measure() || !stc->staff()) {
         return false;
     }
-    // System head: the full header already shows the new state.
-    if (measure->system() && measure->system()->firstMeasure() == measure) {
-        return false;
-    }
-    const Staff* staff = measure->score()->staff(staffIdx);
-    if (!staff) {
-        return false;
-    }
-    const StaffType* newSt = staff->staffType(measure->tick());
-    const Fraction before = Fraction::fromTicks(std::max(0, measure->tick().ticks() - 1));
+    const Staff* staff = stc->staff();
+    const StaffType* newSt = staff->staffType(stc->tick());
+    const Fraction before = Fraction::fromTicks(std::max(0, stc->tick().ticks() - 1));
     const StaffType* oldSt = staff->staffType(before);
     if (!newSt || !oldSt || !newSt->isJiMS() || !oldSt->isJiMS() || newSt == oldSt) {
         return false;
@@ -102,6 +119,28 @@ bool midSystemChangeIndicator(const Measure* measure, staff_idx_t staffIdx,
     return !out.empty();
 }
 
+bool midSystemChangeIndicator(const Measure* measure, staff_idx_t staffIdx,
+                              ChangeIndicator& out, const StaffType** newStaffType)
+{
+    const StaffTypeChange* stc = changeCarrier(measure, staffIdx);
+    if (!stc) {
+        return false;
+    }
+    // System head: the full header already shows the new state.
+    if (measure->system() && measure->system()->firstMeasure() == measure) {
+        return false;
+    }
+    return indicatorForCarrier(stc, out, newStaffType);
+}
+
+bool midBarChangeIndicator(const StaffTypeChange* carrier, ChangeIndicator& out, const StaffType** newStaffType)
+{
+    if (!carrier || carrier->rtick().isZero()) {
+        return false;
+    }
+    return indicatorForCarrier(carrier, out, newStaffType);
+}
+
 double changeTerrainWidth(const Measure* measure)
 {
     if (!measure || !measure->score()) {
@@ -113,6 +152,25 @@ double changeTerrainWidth(const Measure* measure)
         ChangeIndicator model;
         const StaffType* st = nullptr;
         if (midSystemChangeIndicator(measure, s, model, &st) && st) {
+            const double sp = score->style().spatium();
+            width = std::max(width, st->jimsHeaderGeometry(sp, score->style().defaultSpatium()).changeTerrainWidth);
+        }
+    }
+    return width;
+}
+
+double changeTerrainWidthAt(const Measure* measure, const Fraction& tick)
+{
+    if (!measure || !measure->score()) {
+        return 0.0;
+    }
+    double width = 0.0;
+    const Score* score = measure->score();
+    for (staff_idx_t s = 0; s < score->nstaves(); ++s) {
+        const StaffTypeChange* carrier = changeCarrierAt(measure, s, tick);
+        ChangeIndicator model;
+        const StaffType* st = nullptr;
+        if (midBarChangeIndicator(carrier, model, &st) && st) {
             const double sp = score->style().spatium();
             width = std::max(width, st->jimsHeaderGeometry(sp, score->style().defaultSpatium()).changeTerrainWidth);
         }
@@ -246,18 +304,17 @@ bool changeIndicatorIntoStaffType(const Score* score, staff_idx_t staffIdx, cons
         return false;
     }
     for (const Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
-        if (!changeCarrier(m, staffIdx)) {
-            continue;
+        for (const StaffTypeChange* carrier : changeCarriers(m, staffIdx)) {
+            if (staff->staffType(carrier->tick()) != newStaffType) {
+                continue;
+            }
+            const Fraction before = Fraction::fromTicks(std::max(0, carrier->tick().ticks() - 1));
+            const StaffType* oldSt = staff->staffType(before);
+            if (!oldSt || !oldSt->isJiMS() || oldSt == newStaffType) {
+                return false;
+            }
+            return changeIndicator(oldSt->jimsStateJson(), newStaffType->jimsStateJson(), out);
         }
-        if (staff->staffType(m->tick()) != newStaffType) {
-            continue;
-        }
-        const Fraction before = Fraction::fromTicks(std::max(0, m->tick().ticks() - 1));
-        const StaffType* oldSt = staff->staffType(before);
-        if (!oldSt || !oldSt->isJiMS() || oldSt == newStaffType) {
-            return false;
-        }
-        return changeIndicator(oldSt->jimsStateJson(), newStaffType->jimsStateJson(), out);
     }
     return false;
 }
@@ -327,8 +384,10 @@ int deriveTonicAmbits(Score* score)
     // Section starts come from the explicitly designated melody staff.
     std::vector<Fraction> starts = { Fraction(0, 1) };
     for (const Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
-        if (changeCarrier(m, melodyStaffIdx) && m->tick() > Fraction(0, 1)) {
-            starts.push_back(m->tick());
+        for (const StaffTypeChange* carrier : changeCarriers(m, melodyStaffIdx)) {
+            if (carrier->tick() > Fraction(0, 1)) {
+                starts.push_back(carrier->tick());
+            }
         }
     }
     for (size_t i = 0; i < starts.size(); ++i) {
@@ -424,7 +483,7 @@ static const char* vocalRole(const Part* part)
 }
 
 bool defaultExtentForEmptyStaffSpan(const Staff* staff, const Fraction& start,
-                                    const Measure* stop, const String& state,
+                                    const Fraction& stop, const String& state,
                                     String& updated)
 {
     updated = state;
@@ -441,7 +500,7 @@ bool defaultExtentForEmptyStaffSpan(const Staff* staff, const Fraction& start,
         if (seg->tick() < start) {
             continue;
         }
-        if (stop && seg->tick() >= stop->tick()) {
+        if (!stop.negative() && seg->tick() >= stop) {
             break;
         }
         for (track_idx_t track = staffIdx * VOICES; track < (staffIdx + 1) * VOICES; ++track) {
@@ -474,8 +533,10 @@ int reconcileExtents(Score* score)
         }
         std::vector<Fraction> starts = { Fraction(0, 1) };
         for (const Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
-            if (changeCarrier(m, staffIdx) && m->tick() > Fraction(0, 1)) {
-                starts.push_back(m->tick());
+            for (const StaffTypeChange* carrier : changeCarriers(m, staffIdx)) {
+                if (carrier->tick() > Fraction(0, 1)) {
+                    starts.push_back(carrier->tick());
+                }
             }
         }
         for (size_t i = 0; i < starts.size(); ++i) {
@@ -517,7 +578,7 @@ int reconcileExtents(Score* score)
             if (!first) {
                 ok = fitExtent(st->jimsStateJson(), melody, updated);
             } else {
-                ok = defaultExtentForEmptyStaffSpan(staff, starts[i], bounded ? score->tick2measure(end) : nullptr,
+                ok = defaultExtentForEmptyStaffSpan(staff, starts[i], bounded ? end : Fraction(-1, 1),
                                                     st->jimsStateJson(), updated);
             }
             if (ok && updated != st->jimsStateJson()) {

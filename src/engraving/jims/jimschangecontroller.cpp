@@ -36,7 +36,7 @@ struct StateEdit {
     Staff* staff = nullptr;
     staff_idx_t staffIdx = 0;
     Fraction tick;
-    const Measure* stop = nullptr;
+    Fraction stop { -1, 1 };
     String state;
 };
 
@@ -46,15 +46,17 @@ struct NoteEdit {
     int tpc = Tpc::TPC_INVALID;
 };
 
-const Measure* nextCarrierMeasure(const Score* score, staff_idx_t staffIdx, const Fraction& tick)
+Fraction nextCarrierTick(const Score* score, staff_idx_t staffIdx, const Fraction& tick)
 {
     Measure* start = score->tick2measure(tick);
-    for (Measure* measure = start ? start->nextMeasure() : nullptr; measure; measure = measure->nextMeasure()) {
-        if (changeCarrier(measure, staffIdx)) {
-            return measure;
+    for (Measure* measure = start; measure; measure = measure->nextMeasure()) {
+        for (const StaffTypeChange* carrier : changeCarriers(measure, staffIdx)) {
+            if (carrier->tick() > tick) {
+                return carrier->tick();
+            }
         }
     }
-    return nullptr;
+    return Fraction(-1, 1);
 }
 
 const StateEdit* stateEditFor(const std::vector<StateEdit>& edits, const Note* note)
@@ -63,7 +65,7 @@ const StateEdit* stateEditFor(const std::vector<StateEdit>& edits, const Note* n
         if (note->staffIdx() != edit.staffIdx || note->tick() < edit.tick) {
             continue;
         }
-        if (!edit.stop || note->tick() < edit.stop->tick()) {
+        if (edit.stop.negative() || note->tick() < edit.stop) {
             return &edit;
         }
     }
@@ -112,7 +114,10 @@ bool prepareNoteEdits(Score* score, const std::vector<StateEdit>& stateEdits,
     std::set<Note*> seen;
     for (const StateEdit& edit : stateEdits) {
         Measure* start = score->tick2measure(edit.tick);
-        for (Measure* measure = start; measure && measure != edit.stop; measure = measure->nextMeasure()) {
+        for (Measure* measure = start; measure; measure = measure->nextMeasure()) {
+            if (!edit.stop.negative() && measure->tick() > edit.stop) {
+                break;
+            }
             for (Segment* segment = measure->first(SegmentType::ChordRest); segment;
                  segment = segment->next(SegmentType::ChordRest)) {
                 for (voice_idx_t voice = 0; voice < VOICES; ++voice) {
@@ -121,6 +126,9 @@ bool prepareNoteEdits(Score* score, const std::vector<StateEdit>& stateEdits,
                         continue;
                     }
                     for (Note* note : toChord(item)->notes()) {
+                        if (note->tick() < edit.tick || (!edit.stop.negative() && note->tick() >= edit.stop)) {
+                            continue;
+                        }
                         if (!note->hasJimsPitch() || seen.count(note)) {
                             continue;
                         }
@@ -199,11 +207,14 @@ public:
     UNDO_CHANGED_OBJECTS({ m_staff })
 };
 
-const StaffTypeChange* anyCarrier(const Measure* measure, staff_idx_t staffIdx)
+const StaffTypeChange* anyCarrierAt(const Measure* measure, staff_idx_t staffIdx, const Fraction& tick)
 {
     for (const EngravingItem* el : measure->el()) {
         if (el && el->isStaffTypeChange() && el->staffIdx() == staffIdx) {
-            return toStaffTypeChange(el);
+            const StaffTypeChange* carrier = toStaffTypeChange(el);
+            if (carrier->tick() == tick) {
+                return carrier;
+            }
         }
     }
     return nullptr;
@@ -213,12 +224,16 @@ const StaffTypeChange* anyCarrier(const Measure* measure, staff_idx_t staffIdx)
 bool effectiveState(const Score* score, staff_idx_t staffIdx, const Measure* measure,
                     String& stateJson, const StaffType** effective)
 {
+    return effectiveState(score, staffIdx, measure, measure ? measure->tick() : Fraction(-1, 1), stateJson, effective);
+}
+
+bool effectiveState(const Score* score, staff_idx_t staffIdx, const Measure* measure, const Fraction& tick,
+                    String& stateJson, const StaffType** effective)
+{
     if (!score || !measure || staffIdx >= score->nstaves()) {
         return false;
     }
-    // Staff::staffType(tick) already answers "the type in force at this
-    // tick" — a carrier at the measure installs its copy at measure->tick().
-    const StaffType* st = score->staff(staffIdx)->staffType(measure->tick());
+    const StaffType* st = score->staff(staffIdx)->staffType(tick);
     if (!st || !st->isJiMS()) {
         return false;
     }
@@ -232,8 +247,14 @@ bool effectiveState(const Score* score, staff_idx_t staffIdx, const Measure* mea
 bool changeOptions(const Score* score, staff_idx_t staffIdx, const Measure* measure,
                    StateChangeOptions& options)
 {
+    return changeOptions(score, staffIdx, measure, measure ? measure->tick() : Fraction(-1, 1), options);
+}
+
+bool changeOptions(const Score* score, staff_idx_t staffIdx, const Measure* measure, const Fraction& tick,
+                   StateChangeOptions& options)
+{
     String state;
-    if (!effectiveState(score, staffIdx, measure, state)) {
+    if (!effectiveState(score, staffIdx, measure, tick, state)) {
         return false;
     }
     return stateChangeOptions(state, options);
@@ -241,23 +262,28 @@ bool changeOptions(const Score* score, staff_idx_t staffIdx, const Measure* meas
 
 bool canInsertChange(const Score* score, staff_idx_t staffIdx, const Measure* measure, String& reason)
 {
+    return canInsertChange(score, staffIdx, measure, measure ? measure->tick() : Fraction(-1, 1), reason);
+}
+
+bool canInsertChange(const Score* score, staff_idx_t staffIdx, const Measure* measure, const Fraction& tick, String& reason)
+{
     String state;
-    if (!effectiveState(score, staffIdx, measure, state)) {
+    if (!effectiveState(score, staffIdx, measure, tick, state)) {
         reason = u"not a JiMStaff";
         return false;
     }
-    if (measure->tick().isZero()) {
+    if (tick.isZero()) {
         return true;        // the origin measure edits the base staff type
     }
-    if (changeCarrier(measure, staffIdx)) {
+    if (changeCarrierAt(measure, staffIdx, tick)) {
         return true;        // the JiMS carrier is updated in place
     }
-    if (anyCarrier(measure, staffIdx)) {
-        reason = u"this measure already carries a non-JiMS staff type change on this staff";
+    if (anyCarrierAt(measure, staffIdx, tick)) {
+        reason = u"this position already carries a non-JiMS staff type change on this staff";
         return false;
     }
-    if (!measure->canAddStaffTypeChange(staffIdx)) {
-        reason = u"MuseScore refuses a staff type change at this measure";
+    if (!measure->canAddStaffTypeChange(staffIdx, tick - measure->tick())) {
+        reason = u"MuseScore refuses a staff type change at this position";
         return false;
     }
     return true;
@@ -265,20 +291,26 @@ bool canInsertChange(const Score* score, staff_idx_t staffIdx, const Measure* me
 
 bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const String& choiceId, String& error)
 {
+    return applyChange(score, staffIdx, measure, measure ? measure->tick() : Fraction(-1, 1), choiceId, error);
+}
+
+bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fraction& tick,
+                 const String& choiceId, String& error)
+{
     String reason;
-    if (!canInsertChange(score, staffIdx, measure, reason)) {
+    if (!canInsertChange(score, staffIdx, measure, tick, reason)) {
         error = reason;
         return false;
     }
     String current;
     const StaffType* effective = nullptr;
-    effectiveState(score, staffIdx, measure, current, &effective);
+    effectiveState(score, staffIdx, measure, tick, current, &effective);
     String next;
     if (!applyStateChange(current, choiceId, next, error)) {
         return false;
     }
-    if (!defaultExtentForEmptyStaffSpan(score->staff(staffIdx), measure->tick(),
-                                        nextCarrierMeasure(score, staffIdx, measure->tick()), next, next)) {
+    if (!defaultExtentForEmptyStaffSpan(score->staff(staffIdx), tick,
+                                        nextCarrierTick(score, staffIdx, tick), next, next)) {
         error = u"the JiMS Kernel could not derive the empty vocal-staff extent";
         return false;
     }
@@ -286,8 +318,8 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Str
         return true;        // no-op choice: nothing to edit
     }
     Staff* staff = score->staff(staffIdx);
-    const bool origin = measure->tick().isZero();
-    const bool hasCarrier = changeCarrier(measure, staffIdx) != nullptr;
+    const bool origin = tick.isZero();
+    const bool hasCarrier = changeCarrierAt(measure, staffIdx, tick) != nullptr;
     if (choiceId.startsWith(u"bind:")) {
         // Binding Re0 names what the staff's reference IS — a staff-wide
         // fact, not a per-bar change (M6 gate finding, 2026-08-17: binding
@@ -314,7 +346,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Str
                 error = err;
                 return false;
             }
-            if (!defaultExtentForEmptyStaffSpan(staff, tick, nextCarrierMeasure(score, staffIdx, tick), bound, bound)) {
+            if (!defaultExtentForEmptyStaffSpan(staff, tick, nextCarrierTick(score, staffIdx, tick), bound, bound)) {
                 error = u"the JiMS Kernel could not derive the empty vocal-staff extent";
                 return false;
             }
@@ -327,11 +359,8 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Str
             return false;
         }
         for (const Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
-            if (m->tick().isZero()) {
-                continue;
-            }
-            if (const StaffTypeChange* c = changeCarrier(m, staffIdx)) {
-                if (!consider(c->staffType(), m->tick())) {
+            for (const StaffTypeChange* c : changeCarriers(m, staffIdx)) {
+                if (!consider(c->staffType(), c->tick())) {
                     return false;
                 }
             }
@@ -341,7 +370,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Str
         }
         std::vector<StateEdit> stateEdits;
         for (const auto& e : edits) {
-            stateEdits.push_back({ staff, staffIdx, e.first, nextCarrierMeasure(score, staffIdx, e.first), e.second });
+            stateEdits.push_back({ staff, staffIdx, e.first, nextCarrierTick(score, staffIdx, e.first), e.second });
         }
         std::vector<NoteEdit> noteEdits;
         if (!prepareNoteEdits(score, stateEdits, noteEdits, error)) {
@@ -356,7 +385,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Str
         return true;
     }
     const std::vector<StateEdit> stateEdits {
-        { staff, staffIdx, measure->tick(), nextCarrierMeasure(score, staffIdx, measure->tick()), next }
+        { staff, staffIdx, tick, nextCarrierTick(score, staffIdx, tick), next }
     };
     std::vector<NoteEdit> noteEdits;
     if (!prepareNoteEdits(score, stateEdits, noteEdits, error)) {
@@ -366,12 +395,13 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Str
     if (origin || hasCarrier) {
         // The base type (origin) or the carrier's copy in the staff list is
         // the type in force at this tick: replace its state in place.
-        score->undo(new JimsChangeStateAt(staff, measure->tick(), next));
+        score->undo(new JimsChangeStateAt(staff, tick, next));
     } else {
         // New carrier: a copy of the effective staff type carrying the new
         // state (file-read style; Measure::add installs the staff's copy).
         StaffTypeChange* stc = Factory::createStaffTypeChange(measure);
         stc->setParent(measure);
+        stc->setRtick(tick - measure->tick());
         stc->setTrack(staffIdx * VOICES);
         StaffType* st = new StaffType(*effective);
         st->setJimsStateJson(next);
@@ -384,6 +414,12 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Str
 }
 
 bool applyChangeToAllJimsParts(Score* score, Measure* measure, const std::vector<String>& choiceIds, String& error)
+{
+    return applyChangeToAllJimsParts(score, measure, measure ? measure->tick() : Fraction(-1, 1), choiceIds, error);
+}
+
+bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& tick,
+                               const std::vector<String>& choiceIds, String& error)
 {
     // Owner decision 2a (2026-08-22). Same shape as the `bind:` branch above —
     // prepare every edit first, then commit them all in ONE transaction — but
@@ -425,8 +461,8 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const std::vector
             continue;                       // not a JiMS part: untouched
         }
         String reason;
-        if (!canInsertChange(score, staffIdx, measure, reason)) {
-            const StaffType* here = staff->staffType(measure->tick());
+        if (!canInsertChange(score, staffIdx, measure, tick, reason)) {
+            const StaffType* here = staff->staffType(tick);
             if (!here || !here->isJiMS()) {
                 reason = u"this measure already carries a non-JiMS staff type change on this staff";
             }
@@ -435,8 +471,8 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const std::vector
         }
         String current;
         const StaffType* effective = nullptr;
-        if (!effectiveState(score, staffIdx, measure, current, &effective)) {
-            error = String(u"staff %1: no JiMS state in force at this measure").arg(int(staffIdx) + 1);
+        if (!effectiveState(score, staffIdx, measure, tick, current, &effective)) {
+            error = String(u"staff %1: no JiMS state in force at this position").arg(int(staffIdx) + 1);
             return false;
         }
         // The Kernel applies the issued ids, in order, to THIS target's own
@@ -454,8 +490,8 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const std::vector
             }
             next = out;
         }
-        if (!defaultExtentForEmptyStaffSpan(staff, measure->tick(),
-                                            nextCarrierMeasure(score, staffIdx, measure->tick()), next, next)) {
+        if (!defaultExtentForEmptyStaffSpan(staff, tick,
+                                            nextCarrierTick(score, staffIdx, tick), next, next)) {
             error = String(u"staff %1: the JiMS Kernel could not derive the empty vocal-staff extent")
                     .arg(int(staffIdx) + 1);
             return false;
@@ -464,7 +500,7 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const std::vector
             continue;                       // no-op for this target: nothing to edit
         }
         prepared.push_back({ staff, staffIdx, effective, next,
-                             measure->tick().isZero() || changeCarrier(measure, staffIdx) != nullptr });
+                             tick.isZero() || changeCarrierAt(measure, staffIdx, tick) != nullptr });
     }
 
     if (prepared.empty()) {
@@ -473,8 +509,8 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const std::vector
 
     std::vector<StateEdit> stateEdits;
     for (const Prepared& p : prepared) {
-        stateEdits.push_back({ p.staff, p.staffIdx, measure->tick(),
-                               nextCarrierMeasure(score, p.staffIdx, measure->tick()), p.next });
+        stateEdits.push_back({ p.staff, p.staffIdx, tick,
+                               nextCarrierTick(score, p.staffIdx, tick), p.next });
     }
     std::vector<NoteEdit> noteEdits;
     if (!prepareNoteEdits(score, stateEdits, noteEdits, error)) {
@@ -486,10 +522,11 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const std::vector
     score->startCmd(TranslatableString("undoableAction", "Insert JiMS change"));
     for (const Prepared& p : prepared) {
         if (p.editInPlace) {
-            score->undo(new JimsChangeStateAt(p.staff, measure->tick(), p.next));
+            score->undo(new JimsChangeStateAt(p.staff, tick, p.next));
         } else {
             StaffTypeChange* stc = Factory::createStaffTypeChange(measure);
             stc->setParent(measure);
+            stc->setRtick(tick - measure->tick());
             stc->setTrack(p.staffIdx * VOICES);
             StaffType* st = new StaffType(*p.effective);
             st->setJimsStateJson(p.next);
@@ -504,20 +541,25 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const std::vector
 
 bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, String& error)
 {
-    const StaffTypeChange* stc = changeCarrier(measure, staffIdx);
+    return removeChange(score, staffIdx, measure, measure ? measure->tick() : Fraction(-1, 1), error);
+}
+
+bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fraction& tick, String& error)
+{
+    const StaffTypeChange* stc = changeCarrierAt(measure, staffIdx, tick);
     if (!stc) {
-        error = u"no JiMS change at this measure";
+        error = u"no JiMS change at this position";
         return false;
     }
-    Measure* previous = measure->prevMeasure();
     Staff* staff = score->staff(staffIdx);
-    const StaffType* previousType = staff ? staff->staffType(previous ? previous->tick() : Fraction(0, 1)) : nullptr;
+    const Fraction before = Fraction::fromTicks(std::max(0, tick.ticks() - 1));
+    const StaffType* previousType = staff ? staff->staffType(before) : nullptr;
     if (!previousType || !previousType->isJiMS()) {
         error = u"no preceding JiMS state can replace this change";
         return false;
     }
     const std::vector<StateEdit> stateEdits {
-        { staff, staffIdx, measure->tick(), nextCarrierMeasure(score, staffIdx, measure->tick()), previousType->jimsStateJson() }
+        { staff, staffIdx, tick, nextCarrierTick(score, staffIdx, tick), previousType->jimsStateJson() }
     };
     std::vector<NoteEdit> noteEdits;
     if (!prepareNoteEdits(score, stateEdits, noteEdits, error)) {
@@ -545,15 +587,16 @@ bool normalizeStoredPitchesAfterLoad(Score* score, size_t& repairs, String& erro
             continue;
         }
         stateEdits.push_back({ staff, staffIdx, Fraction(0, 1),
-                               nextCarrierMeasure(score, staffIdx, Fraction(0, 1)), base->jimsStateJson() });
+                               nextCarrierTick(score, staffIdx, Fraction(0, 1)), base->jimsStateJson() });
         for (Measure* measure = score->firstMeasure(); measure; measure = measure->nextMeasure()) {
-            const StaffTypeChange* carrier = changeCarrier(measure, staffIdx);
-            if (!carrier || !carrier->staffType() || !carrier->staffType()->isJiMS()) {
-                continue;
+            for (const StaffTypeChange* carrier : changeCarriers(measure, staffIdx)) {
+                if (!carrier->staffType() || !carrier->staffType()->isJiMS()) {
+                    continue;
+                }
+                stateEdits.push_back({ staff, staffIdx, carrier->tick(),
+                                       nextCarrierTick(score, staffIdx, carrier->tick()),
+                                       carrier->staffType()->jimsStateJson() });
             }
-            stateEdits.push_back({ staff, staffIdx, measure->tick(),
-                                   nextCarrierMeasure(score, staffIdx, measure->tick()),
-                                   carrier->staffType()->jimsStateJson() });
         }
     }
     std::vector<NoteEdit> projected;
