@@ -28,6 +28,7 @@
 #include "engraving/jims/jimstuningcontroller.h"
 #include "draw/bufferedpaintprovider.h"
 #include "draw/painter.h"
+#include "io/dir.h"
 
 #include "utils/scorerw.h"
 
@@ -304,7 +305,9 @@ TEST(Engraving_JiMStaffM10SATBTests, extentGrowsOnlyUntilSaveAndContractsOnlyOnR
     const muse::String expectedMelody = melodyJson(notesOn(score, 0));
     muse::String expectedFit;
     ASSERT_TRUE(jims::fitExtent(widened, expectedMelody, expectedFit));
-    const muse::String saved = forkRoot() + u"/build.m10/m10-extent-lifecycle.mscx";
+    const muse::String outputDir = forkRoot() + u"/build.m10";
+    ASSERT_TRUE(muse::io::Dir::mkpath(outputDir));
+    const muse::String saved = outputDir + u"/m10-extent-lifecycle.mscx";
     ASSERT_TRUE(ScoreRW::saveScore(score, saved));
     EXPECT_TRUE(type->jimsStateJson() == widened) << "save must not contract";
     delete score;
@@ -359,7 +362,9 @@ TEST(Engraving_JiMStaffM10SATBTests, melodyDesignationDefaultsOverridesAndUndoRe
     EXPECT_EQ(score->jimsMelodyPart(), jims::MelodyPart::Tenor);
     EXPECT_TRUE(score->staff(0)->staffType(Fraction(0, 1))->jimsTonicAmbit() == tenorToken);
 
-    const muse::String saved = forkRoot() + u"/build.m10/m10-melody-native.mscx";
+    const muse::String outputDir = forkRoot() + u"/build.m10";
+    ASSERT_TRUE(muse::io::Dir::mkpath(outputDir));
+    const muse::String saved = outputDir + u"/m10-melody-native.mscx";
     ASSERT_TRUE(ScoreRW::saveScore(score, saved));
     delete score;
     MasterScore* reloaded = ScoreRW::readScore(saved, true);
