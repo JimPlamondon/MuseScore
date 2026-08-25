@@ -229,10 +229,27 @@ TEST_F(MusicXml_JiMS_Tests, midBarStateChangeImportsAndExportsAtItsExactTick)
     const StaffTypeChange* carrier = jims::changeCarrierAt(measure, 0, changeTick);
     ASSERT_TRUE(carrier);
     EXPECT_EQ(carrier->rtick(), changeTick - measure->tick());
-    EXPECT_TRUE(notes[0]->staff()->staffTypeForElement(notes[0])->jimsStateJson().contains(u"\"mode_rotation\":0"));
+    const StaffType* oldStaffType = notes[0]->staff()->staffTypeForElement(notes[0]);
+    const StaffType* newStaffType = notes[2]->staff()->staffTypeForElement(notes[2]);
+    ASSERT_TRUE(oldStaffType);
+    ASSERT_TRUE(newStaffType);
+    EXPECT_TRUE(oldStaffType->jimsStateJson().contains(u"\"mode_rotation\":0"));
     EXPECT_TRUE(notes[1]->staff()->staffTypeForElement(notes[1])->jimsStateJson().contains(u"\"mode_rotation\":0"));
-    EXPECT_TRUE(notes[2]->staff()->staffTypeForElement(notes[2])->jimsStateJson().contains(u"\"mode_rotation\":5"));
+    EXPECT_TRUE(newStaffType->jimsStateJson().contains(u"\"mode_rotation\":5"));
     EXPECT_TRUE(notes[3]->staff()->staffTypeForElement(notes[3])->jimsStateJson().contains(u"\"mode_rotation\":5"));
+    EXPECT_TRUE(oldStaffType->jimsStateJson().contains(u"\"reference\":\"none\""));
+    EXPECT_TRUE(newStaffType->jimsStateJson().contains(u"\"reference\":\"none\""));
+
+    jims::ChangeIndicator indicator;
+    ASSERT_TRUE(jims::midBarChangeIndicator(carrier, indicator));
+    EXPECT_EQ(indicator.kinds, std::vector<String>({ u"mode" }));
+    EXPECT_TRUE(indicator.dotStacks.empty());
+    ASSERT_EQ(indicator.tonicIndicators.size(), 2u);
+    EXPECT_EQ(indicator.tonicIndicators[0].label, u"Do");
+    EXPECT_EQ(indicator.tonicIndicators[1].label, u"La");
+    ASSERT_EQ(indicator.arrows.size(), 1u);
+    EXPECT_EQ(indicator.arrows[0].kind, u"mode");
+    EXPECT_TRUE(indicator.arrows[0].trumps.isEmpty());
 
     const String out = exportToScratch(score, "jims-mid-bar-state-change-roundtrip.musicxml");
     const String xml = readAll(out);
@@ -278,15 +295,32 @@ TEST_F(MusicXml_JiMS_Tests, midBarIndicatorElementsAlignWithTheirDisplayedStaffN
 
     const StaffLines* lines = measure->staffLines(0);
     ASSERT_TRUE(lines);
+    size_t doLineCount = 0;
+    for (const StaffLines::JimsGuideLine& guide : lines->jimsGuideLines()) {
+        if (!guide.dashed && guide.rgb == 0xE03030) {
+            ++doLineCount;
+        }
+    }
+    EXPECT_EQ(doLineCount, 2u) << "one-period tonic-bounded JiMStaff must be Do-to-Do";
     const StaffType* displayedStaffType = score->staff(0)->staffType(measure->tick());
     ASSERT_TRUE(displayedStaffType);
     ASSERT_TRUE(displayedStaffType->isJiMS());
     ASSERT_NE(changedStaffType, displayedStaffType);
+    const StaffType::JimsFrameView& wholeView = displayedStaffType->jimsFrameView(score, 0, nullptr);
+    ASSERT_FALSE(wholeView.empty());
+    EXPECT_NEAR(wholeView.bottomCents(), 0.0, 1e-6);
+    EXPECT_NEAR(wholeView.topCents(), 1200.0, 1e-6);
     const StaffType::JimsFrameView& view
         = displayedStaffType->jimsFrameView(score, 0, measure->system());
     ASSERT_FALSE(view.empty());
+    EXPECT_NEAR(view.bottomCents(), 0.0, 1e-6);
+    EXPECT_NEAR(view.topCents(), 1200.0, 1e-6);
+    ASSERT_FALSE(view.bands.front().segments.empty());
+    EXPECT_NEAR(view.bands.front().segments.front().lowerCents, 0.0, 1e-6);
+    EXPECT_NEAR(view.bands.back().segments.back().upperCents, 1200.0, 1e-6);
     jims::PeriodicOrigins origins;
     ASSERT_TRUE(jims::periodicOrigins(displayedStaffType->jimsStateJson(), origins));
+    EXPECT_NEAR(origins.doCentsAboveExtentLower, 0.0, 1e-6);
     const double periodCents = displayedStaffType->jimsPeriodCents();
     ASSERT_GT(periodCents, 0.0);
     const double basePeriod = jims::changeAnchorPeriodCents(

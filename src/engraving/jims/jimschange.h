@@ -83,6 +83,12 @@ double changeAnchorPeriodCents(const StaffType::JimsFrameView& view, const Chang
 /// (the base type) or the Kernel derives no indicator.
 bool changeIndicatorIntoStaffType(const Score* score, staff_idx_t staffIdx, const StaffType* newStaffType, ChangeIndicator& out);
 
+/// Every whole-score change indicator whose terrain draws against
+/// `staffType`: incoming changes use the new staff type, while mid-bar
+/// changes use the old displayed staff type. System-local courtesy terrain
+/// is added separately. Every tonic and arrow endpoint is retained.
+bool changeIndicatorsTouchingStaffType(const Score* score, staff_idx_t staffIdx, const StaffType* staffType, ChangeIndicator& out);
+
 /// Owner rule 2026-08-19 (7b): the cents (frame coordinates) of every
 /// indicator point that still falls outside the drawn stave after the
 /// best Do-line anchor was chosen — empty when the indicator fits. The

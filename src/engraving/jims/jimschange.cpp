@@ -319,6 +319,50 @@ bool changeIndicatorIntoStaffType(const Score* score, staff_idx_t staffIdx, cons
     return false;
 }
 
+bool changeIndicatorsTouchingStaffType(const Score* score, staff_idx_t staffIdx, const StaffType* staffType,
+                                       ChangeIndicator& out)
+{
+    out = {};
+    if (!score || !staffType || !staffType->isJiMS()) {
+        return false;
+    }
+    const Staff* staff = score->staff(staffIdx);
+    if (!staff) {
+        return false;
+    }
+    auto append = [&](const ChangeIndicator& model) {
+        for (const String& kind : model.kinds) {
+            if (std::find(out.kinds.begin(), out.kinds.end(), kind) == out.kinds.end()) {
+                out.kinds.push_back(kind);
+            }
+        }
+        out.dotStacks.insert(out.dotStacks.end(), model.dotStacks.begin(), model.dotStacks.end());
+        out.tonicIndicators.insert(out.tonicIndicators.end(), model.tonicIndicators.begin(), model.tonicIndicators.end());
+        out.arrows.insert(out.arrows.end(), model.arrows.begin(), model.arrows.end());
+    };
+    for (const Measure* measure = score->firstMeasure(); measure; measure = measure->nextMeasure()) {
+        for (const StaffTypeChange* carrier : changeCarriers(measure, staffIdx)) {
+            const StaffType* newStaffType = staff->staffType(carrier->tick());
+            const Fraction before = Fraction::fromTicks(std::max(0, carrier->tick().ticks() - 1));
+            const StaffType* oldStaffType = staff->staffType(before);
+            if (!oldStaffType || !newStaffType || oldStaffType == newStaffType) {
+                continue;
+            }
+            const bool midBar = !carrier->rtick().isZero();
+            const bool drawsAgainstStaffType = midBar ? oldStaffType == staffType : newStaffType == staffType;
+            if (!drawsAgainstStaffType) {
+                continue;
+            }
+            ChangeIndicator model;
+            if (changeIndicator(oldStaffType->jimsStateJson(), newStaffType->jimsStateJson(), model)
+                && !model.empty()) {
+                append(model);
+            }
+        }
+    }
+    return !out.empty();
+}
+
 std::vector<double> changeIndicatorOverflowCents(const StaffType::JimsFrameView& view, const ChangeIndicator& model,
                                                  double periodCents, double doCentsAboveExtentLower)
 {
