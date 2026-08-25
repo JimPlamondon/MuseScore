@@ -47,12 +47,19 @@ StaffTypeChange::StaffTypeChange(const StaffTypeChange& lb)
     : EngravingItem(lb)
 {
     m_lw = lb.m_lw;
+    m_rtick = lb.m_rtick;
     m_ownsStaffType = lb.m_ownsStaffType;
     if (lb.m_ownsStaffType && lb.m_staffType) {
         m_staffType = new StaffType(*lb.m_staffType);
     } else {
         m_staffType = lb.m_staffType;
     }
+}
+
+Fraction StaffTypeChange::tick() const
+{
+    const Measure* m = measure();
+    return m ? m->tick() + m_rtick : m_rtick;
 }
 
 StaffTypeChange::~StaffTypeChange()

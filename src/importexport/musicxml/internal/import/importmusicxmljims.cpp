@@ -29,6 +29,7 @@
 #include "engraving/dom/measure.h"
 #include "engraving/dom/part.h"
 #include "engraving/dom/score.h"
+#include "engraving/dom/segment.h"
 #include "engraving/dom/staff.h"
 #include "engraving/dom/stafftype.h"
 #include "engraving/dom/stafftypechange.h"
@@ -381,16 +382,17 @@ bool JimsImportContext::applyToPart(Score* score, Part* part, const String& part
                 first = false;
             } else {
                 if (s->tick <= lastTick) {
-                    jimsFatal(logger, u"jims:staff-state declarations must be in increasing measure order, one per measure");
+                    jimsFatal(logger, u"jims:staff-state declarations must be in strictly increasing score-time order");
                     return false;
                 }
                 Measure* measure = score->tick2measure(s->tick);
-                if (!measure || measure->tick() != s->tick) {
-                    jimsFatal(logger, u"jims:staff-state does not sit at a measure start");
+                if (!measure || s->tick < measure->tick() || s->tick >= measure->endTick()) {
+                    jimsFatal(logger, u"jims:staff-state does not sit inside a score measure");
                     return false;
                 }
-                if (!measure->canAddStaffTypeChange(staffIdx)) {
-                    jimsFatal(logger, u"cannot place a staff type change for this jims:staff-state (one per staff per measure)");
+                const Fraction rtick = s->tick - measure->tick();
+                if (!measure->canAddStaffTypeChange(staffIdx, rtick)) {
+                    jimsFatal(logger, u"cannot place a staff type change for this jims:staff-state at its exact tick");
                     return false;
                 }
                 // File-read style construction (TRead::read for StaffTypeChange):
@@ -398,7 +400,12 @@ bool JimsImportContext::applyToPart(Score* score, Part* part, const String& part
                 StaffTypeChange* stc = Factory::createStaffTypeChange(measure);
                 stc->setTrack(staffIdx * VOICES);
                 stc->setParent(measure);
+                stc->setRtick(rtick);
                 stc->setStaffType(new StaffType(jimsStaffTypeFor(s->json)), true);
+                if (rtick.isNotZero()
+                    && !measure->findSegmentR(Segment::CHORD_REST_OR_TIME_TICK_TYPE, rtick)) {
+                    measure->getSegmentR(SegmentType::TimeTick, rtick);
+                }
                 measure->add(stc);
             }
             lastTick = s->tick;

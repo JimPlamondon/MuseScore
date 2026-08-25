@@ -30,7 +30,9 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <climits>
+#include <functional>
 
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/fret.h"
@@ -40,6 +42,7 @@
 #include "engraving/dom/part.h"
 #include "engraving/dom/segment.h"
 #include "engraving/dom/staff.h"
+#include "engraving/dom/stafflines.h"
 #include "engraving/dom/stafftype.h"
 #include "engraving/dom/system.h"
 #include "engraving/dom/stafftypechange.h"
@@ -61,10 +64,14 @@
 #include "io/fileinfo.h"
 #include "io/dir.h"
 #include "engraving/tests/utils/scorerw.h"
+#include "draw/bufferedpaintprovider.h"
+#include "draw/painter.h"
 
 using namespace mu;
 using namespace mu::engraving;
+using namespace mu::engraving::rendering;
 using namespace mu::iex::musicxml;
+using namespace muse::draw;
 
 static const String JIMS_DATA_DIR(u"data/jims/");
 
@@ -205,6 +212,173 @@ TEST_F(MusicXml_JiMS_Tests, v3ImportBuildsTheJiMStaffLikeTheConverter)
     // Engraving font seam (Milestone 3).
     EXPECT_EQ(score->style().value(Sid::musicalSymbolFont).value<String>(), String(u"JiMSMusic"));
     EXPECT_FALSE(score->style().value(Sid::hideInstrumentNameIfOneInstrument).toBool());
+    delete score;
+}
+
+TEST_F(MusicXml_JiMS_Tests, midBarStateChangeImportsAndExportsAtItsExactTick)
+{
+    MasterScore* score = readJims("jims-mid-bar-state-change.musicxml");
+    ASSERT_TRUE(score);
+    const std::vector<const Note*> notes = notesInOrder(score);
+    ASSERT_EQ(notes.size(), 4u);
+    const Fraction changeTick = notes[2]->tick();
+    Measure* measure = measureNo(score, 1);
+    ASSERT_TRUE(measure);
+    ASSERT_GT(changeTick, measure->tick());
+    ASSERT_LT(changeTick, measure->endTick());
+    const StaffTypeChange* carrier = jims::changeCarrierAt(measure, 0, changeTick);
+    ASSERT_TRUE(carrier);
+    EXPECT_EQ(carrier->rtick(), changeTick - measure->tick());
+    const StaffType* oldStaffType = notes[0]->staff()->staffTypeForElement(notes[0]);
+    const StaffType* newStaffType = notes[2]->staff()->staffTypeForElement(notes[2]);
+    ASSERT_TRUE(oldStaffType);
+    ASSERT_TRUE(newStaffType);
+    EXPECT_TRUE(oldStaffType->jimsStateJson().contains(u"\"mode_rotation\":0"));
+    EXPECT_TRUE(notes[1]->staff()->staffTypeForElement(notes[1])->jimsStateJson().contains(u"\"mode_rotation\":0"));
+    EXPECT_TRUE(newStaffType->jimsStateJson().contains(u"\"mode_rotation\":5"));
+    EXPECT_TRUE(notes[3]->staff()->staffTypeForElement(notes[3])->jimsStateJson().contains(u"\"mode_rotation\":5"));
+    EXPECT_TRUE(oldStaffType->jimsStateJson().contains(u"\"reference\":\"none\""));
+    EXPECT_TRUE(newStaffType->jimsStateJson().contains(u"\"reference\":\"none\""));
+
+    jims::ChangeIndicator indicator;
+    ASSERT_TRUE(jims::midBarChangeIndicator(carrier, indicator));
+    EXPECT_EQ(indicator.kinds, std::vector<String>({ u"mode" }));
+    EXPECT_TRUE(indicator.dotStacks.empty());
+    ASSERT_EQ(indicator.tonicIndicators.size(), 2u);
+    EXPECT_EQ(indicator.tonicIndicators[0].label, u"Do");
+    EXPECT_EQ(indicator.tonicIndicators[1].label, u"La");
+    ASSERT_EQ(indicator.arrows.size(), 1u);
+    EXPECT_EQ(indicator.arrows[0].kind, u"mode");
+    EXPECT_TRUE(indicator.arrows[0].trumps.isEmpty());
+
+    const String out = exportToScratch(score, "jims-mid-bar-state-change-roundtrip.musicxml");
+    const String xml = readAll(out);
+    EXPECT_EQ(xml.count(u"<jims:staff-state"), 2u);
+    const size_t firstNote = xml.indexOf(u"<note");
+    const size_t secondNote = xml.indexOf(u"<note", firstNote + 1);
+    const size_t thirdNote = xml.indexOf(u"<note", secondNote + 1);
+    const size_t firstState = xml.indexOf(u"<jims:staff-state");
+    const size_t secondState = xml.indexOf(u"<jims:staff-state", firstState + 1);
+    ASSERT_NE(secondState, muse::nidx);
+    EXPECT_GT(secondState, secondNote);
+    EXPECT_LT(secondState, thirdNote);
+
+    auto importXml = [](MasterScore* target, const muse::io::path_t& path) -> engraving::Err {
+        return importMusicXml(target, path.toQString(), false);
+    };
+    MasterScore* again = ScoreRW::readScore(out, true, importXml);
+    ASSERT_TRUE(again);
+    Measure* againMeasure = measureNo(again, 1);
+    ASSERT_TRUE(againMeasure);
+    EXPECT_TRUE(jims::changeCarrierAt(againMeasure, 0, changeTick));
+    EXPECT_EQ(notesInOrder(again).size(), 4u);
+    delete again;
+    delete score;
+}
+
+TEST_F(MusicXml_JiMS_Tests, midBarIndicatorElementsAlignWithTheirDisplayedStaffNoteLines)
+{
+    MasterScore* score = readJims("jims-mid-bar-state-change.musicxml");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    Measure* measure = measureNo(score, 1);
+    ASSERT_TRUE(measure);
+    const std::vector<const Note*> notes = notesInOrder(score);
+    ASSERT_EQ(notes.size(), 4u);
+    const Fraction changeTick = notes[2]->tick();
+    const StaffTypeChange* carrier = jims::changeCarrierAt(measure, 0, changeTick);
+    ASSERT_TRUE(carrier);
+    jims::ChangeIndicator indicator;
+    const StaffType* changedStaffType = nullptr;
+    ASSERT_TRUE(jims::midBarChangeIndicator(carrier, indicator, &changedStaffType));
+    ASSERT_TRUE(changedStaffType);
+
+    const StaffLines* lines = measure->staffLines(0);
+    ASSERT_TRUE(lines);
+    size_t doLineCount = 0;
+    for (const StaffLines::JimsGuideLine& guide : lines->jimsGuideLines()) {
+        if (!guide.dashed && guide.rgb == 0xE03030) {
+            ++doLineCount;
+        }
+    }
+    EXPECT_EQ(doLineCount, 2u) << "one-period tonic-bounded JiMStaff must be Do-to-Do";
+    const StaffType* displayedStaffType = score->staff(0)->staffType(measure->tick());
+    ASSERT_TRUE(displayedStaffType);
+    ASSERT_TRUE(displayedStaffType->isJiMS());
+    ASSERT_NE(changedStaffType, displayedStaffType);
+    const StaffType::JimsFrameView& wholeView = displayedStaffType->jimsFrameView(score, 0, nullptr);
+    ASSERT_FALSE(wholeView.empty());
+    EXPECT_NEAR(wholeView.bottomCents(), 0.0, 1e-6);
+    EXPECT_NEAR(wholeView.topCents(), 1200.0, 1e-6);
+    const StaffType::JimsFrameView& view
+        = displayedStaffType->jimsFrameView(score, 0, measure->system());
+    ASSERT_FALSE(view.empty());
+    EXPECT_NEAR(view.bottomCents(), 0.0, 1e-6);
+    EXPECT_NEAR(view.topCents(), 1200.0, 1e-6);
+    ASSERT_FALSE(view.bands.front().segments.empty());
+    EXPECT_NEAR(view.bands.front().segments.front().lowerCents, 0.0, 1e-6);
+    EXPECT_NEAR(view.bands.back().segments.back().upperCents, 1200.0, 1e-6);
+    jims::PeriodicOrigins origins;
+    ASSERT_TRUE(jims::periodicOrigins(displayedStaffType->jimsStateJson(), origins));
+    EXPECT_NEAR(origins.doCentsAboveExtentLower, 0.0, 1e-6);
+    const double periodCents = displayedStaffType->jimsPeriodCents();
+    ASSERT_GT(periodCents, 0.0);
+    const double basePeriod = jims::changeAnchorPeriodCents(
+        view, indicator, periodCents, origins.doCentsAboveExtentLower);
+    std::vector<double> expectedTonicYs;
+    for (const jims::ChangePoint& point : indicator.tonicIndicators) {
+        const double cents = basePeriod + (point.periodOffset + point.ordinate) * periodCents;
+        expectedTonicYs.push_back(lines->pos().y()
+                                  + displayedStaffType->jimsYFromCents(cents, view) * lines->spatium());
+    }
+    std::sort(expectedTonicYs.begin(), expectedTonicYs.end());
+
+    std::shared_ptr<BufferedPaintProvider> provider = std::make_shared<BufferedPaintProvider>();
+    Painter painter(provider, "midbar-musicxml-lines");
+    painter.setViewport(RectF(0, 0, 4000, 4000));
+    PaintOptions options;
+    lines->renderer()->drawItem(lines, &painter, options);
+    painter.endDraw();
+
+    const DrawDataPtr drawData = provider->drawData();
+    const Color grey(128, 128, 128);
+    std::vector<double> flankXs;
+    std::vector<RectF> pathBounds;
+    std::function<void(const DrawData::Item&)> walk = [&](const DrawData::Item& item) {
+        for (const DrawData::Data& data : item.datas) {
+            const DrawData::State& state = drawData->states.at(data.state);
+            for (const DrawPolygon& polygon : data.polygons) {
+                if (polygon.mode == PolygonMode::Polyline && polygon.polygon.size() == 2
+                    && std::abs(polygon.polygon[0].x() - polygon.polygon[1].x()) < 1e-6
+                    && state.pen.style() == PenStyle::DashLine && state.pen.color() == grey) {
+                    flankXs.push_back(polygon.polygon[0].x());
+                }
+            }
+            for (const DrawPath& path : data.paths) {
+                pathBounds.push_back(path.path.boundingRect());
+            }
+        }
+        for (const DrawData::Item& child : item.chilren) {
+            walk(child);
+        }
+    };
+    walk(drawData->item);
+    ASSERT_EQ(flankXs.size(), 2u);
+    std::sort(flankXs.begin(), flankXs.end());
+    std::vector<double> paintedTonicYs;
+    for (const RectF& bounds : pathBounds) {
+        if (bounds.center().x() > flankXs.front() && bounds.center().x() < flankXs.back()
+            && std::abs(bounds.width() - bounds.height()) < 1e-6) {
+            paintedTonicYs.push_back(bounds.center().y());
+        }
+    }
+    std::sort(paintedTonicYs.begin(), paintedTonicYs.end());
+    ASSERT_EQ(paintedTonicYs.size(), expectedTonicYs.size());
+    for (size_t i = 0; i < expectedTonicYs.size(); ++i) {
+        EXPECT_NEAR(paintedTonicYs[i], expectedTonicYs[i], 1e-6)
+            << "mid-bar tonic indicator is not aligned with its displayed staff note-line";
+    }
+
     delete score;
 }
 

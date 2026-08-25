@@ -443,6 +443,7 @@ private:
     JimsExportPlan m_jimsPlan;
     bool buildJimsExportPlan();
     void writeJimsAttributes(const Measure* const m, const int partIndex);
+    void writeJimsAttributesAtTick(const Fraction& tick, const int partIndex);
     void writeJimsTrajectories(const Measure* const m, const int partIndex);
     void writeJimsPitch(const Note* const note);
 
@@ -8535,10 +8536,19 @@ void ExportMusicXml::writeMeasureTracks(const Measure* const m,
 {
     const auto tboxesAbove = findTextFramesToWriteAsWordsAbove(m);
     const auto tboxesBelow = findTextFramesToWriteAsWordsBelow(m);
+    const bool firstPartStaff = partRelStaffNo == 0 || partRelStaffNo == 1;
+    std::set<int> jimsWrittenTicks;
 
     track_idx_t etrack = strack + VOICES;
     for (track_idx_t track = strack; track < etrack; ++track) {
         for (Segment* seg = m->first(); seg; seg = seg->next()) {
+            const bool hasJimsEvent = m_jimsPlan.byPartTick.find({ partIndex, seg->tick().ticks() })
+                                      != m_jimsPlan.byPartTick.end();
+            if (firstPartStaff && track == strack && hasJimsEvent && seg->tick() > m->tick() && seg->tick() < m->endTick()
+                && jimsWrittenTicks.insert(seg->tick().ticks()).second) {
+                moveToTickIfNeed(seg->tick(), track, m->tick());
+                writeJimsAttributesAtTick(seg->tick(), partIndex);
+            }
             if (seg->isTimeTickType()) {
                 // Prefer to start/stop spanners on a chordrest segment where one is available
                 const Segment* crSeg = m_score->tick2leftSegment(seg->tick());
@@ -9058,33 +9068,34 @@ bool ExportMusicXml::buildJimsExportPlan()
                 m_jimsPlan.byPartTick[{ int(partIndex), 0 }].push_back(f);
             }
             for (const Measure* m = m_score->firstMeasure(); m; m = m->nextMeasure()) {
-                const StaffTypeChange* carrier = jims::changeCarrier(m, staffIdx);
-                if (!carrier || !carrier->staffType() || !carrier->staffType()->isJiMS()) {
-                    continue;
+                for (const StaffTypeChange* carrier : jims::changeCarriers(m, staffIdx)) {
+                    if (!carrier->staffType() || !carrier->staffType()->isJiMS()) {
+                        continue;
+                    }
+                    if (!baseJims) {
+                        m_jimsPlan.error = String(
+                            u"JiMS export: staff %1 carries a JiMS section at measure %2 without a JiMS base state at tick 0")
+                                           .arg(int(staffIdx) + 1).arg(m->no() + 1);
+                        return false;
+                    }
+                    m_jimsPlan.present = true;
+                    const String state = staff->staffType(carrier->tick())->jimsStateJson();
+                    JimsFragment f;
+                    String err;
+                    if (!jims::musicxmlStaffStateV3Xml(state, staffNumber, f.stateXml, &err)
+                        || !jims::musicxmlSharedStateV3Xml(state, f.sharedStateXml, &err)) {
+                        m_jimsPlan.error = String(u"JiMS export: Kernel refused the state at tick %1, staff %2: %3")
+                                           .arg(carrier->tick().ticks()).arg(int(staffIdx) + 1).arg(err);
+                        return false;
+                    }
+                    if (!jims::musicxmlChangeEventV3Xml(previousState, state, f.changeXml, &err)) {
+                        m_jimsPlan.error = String(u"JiMS export: Kernel could not classify the change at tick %1, staff %2: %3")
+                                           .arg(carrier->tick().ticks()).arg(int(staffIdx) + 1).arg(err);
+                        return false;
+                    }
+                    previousState = state;
+                    m_jimsPlan.byPartTick[{ int(partIndex), carrier->tick().ticks() }].push_back(f);
                 }
-                if (!baseJims) {
-                    m_jimsPlan.error = String(
-                        u"JiMS export: staff %1 carries a JiMS section at measure %2 without a JiMS base state at tick 0")
-                                       .arg(int(staffIdx) + 1).arg(m->no() + 1);
-                    return false;
-                }
-                m_jimsPlan.present = true;
-                const String state = staff->staffType(m->tick())->jimsStateJson();
-                JimsFragment f;
-                String err;
-                if (!jims::musicxmlStaffStateV3Xml(state, staffNumber, f.stateXml, &err)
-                    || !jims::musicxmlSharedStateV3Xml(state, f.sharedStateXml, &err)) {
-                    m_jimsPlan.error = String(u"JiMS export: Kernel refused the state at measure %1, staff %2: %3").arg(m->no() + 1).arg(
-                        int(staffIdx) + 1).arg(err);
-                    return false;
-                }
-                if (!jims::musicxmlChangeEventV3Xml(previousState, state, f.changeXml, &err)) {
-                    m_jimsPlan.error = String(u"JiMS export: Kernel could not classify the change at measure %1, staff %2: %3").arg(
-                        m->no() + 1).arg(int(staffIdx) + 1).arg(err);
-                    return false;
-                }
-                previousState = state;
-                m_jimsPlan.byPartTick[{ int(partIndex), m->tick().ticks() }].push_back(f);
             }
         }
     }
@@ -9171,10 +9182,15 @@ bool ExportMusicXml::buildJimsExportPlan()
 
 void ExportMusicXml::writeJimsAttributes(const Measure* const m, const int partIndex)
 {
+    writeJimsAttributesAtTick(m->tick(), partIndex);
+}
+
+void ExportMusicXml::writeJimsAttributesAtTick(const Fraction& tick, const int partIndex)
+{
     if (!m_jimsPlan.present) {
         return;
     }
-    const auto it = m_jimsPlan.byPartTick.find({ partIndex, m->tick().ticks() });
+    const auto it = m_jimsPlan.byPartTick.find({ partIndex, tick.ticks() });
     if (it == m_jimsPlan.byPartTick.end() || it->second.empty()) {
         return;
     }

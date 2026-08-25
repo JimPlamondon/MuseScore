@@ -48,6 +48,9 @@ public:
     double lw() const { return m_lw; }
 
     Measure* measure() const { return toMeasure(explicitParent()); }
+    Fraction tick() const override;
+    Fraction rtick() const override { return m_rtick; }
+    void setRtick(const Fraction& tick) { m_rtick = tick; }
 
     PropertyValue getProperty(Pid propertyId) const override;
     bool setProperty(Pid propertyId, const PropertyValue&) override;
@@ -64,6 +67,7 @@ private:
     StaffType* m_staffType = nullptr;
     bool m_ownsStaffType = false;
     double m_lw = 0.0;
+    Fraction m_rtick { 0, 1 };
 };
 } // namespace mu::engraving
 

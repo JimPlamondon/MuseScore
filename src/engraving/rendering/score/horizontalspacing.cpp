@@ -1310,7 +1310,7 @@ static double jimsChangeTerrainExtra(const Segment* f, const Segment* ns)
         return jims::courtesyTerrainWidth(ns->measure());
     }
     if (f->measure() == ns->measure()) {
-        return 0.0;
+        return jims::changeTerrainWidthAt(ns->measure(), ns->tick());
     }
     if (ns->tick() != ns->measure()->tick()) {
         return 0.0;

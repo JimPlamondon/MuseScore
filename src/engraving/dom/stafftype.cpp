@@ -47,6 +47,7 @@
 #include "segment.h"
 #include "score.h"
 #include "staff.h"
+#include "stafftypechange.h"
 #include "system.h"
 
 #include "log.h"
@@ -987,7 +988,7 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
     // input — when no Do-line keeps it on the staff, the frame is re-derived
     // covering it. Its old and new states are the key's extra ingredient.
     jims::ChangeIndicator intoThis;
-    const bool hasIndicator = jims::changeIndicatorIntoStaffType(score, staffIdx, this, intoThis);
+    const bool hasIndicator = jims::changeIndicatorsTouchingStaffType(score, staffIdx, this, intoThis);
     muse::String indicatorKey;
     if (hasIndicator) {
         for (const jims::ChangePoint& p : intoThis.tonicIndicators) {
@@ -1371,34 +1372,54 @@ const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, sta
     // staff type's frame is part of the derivation input (see the whole-
     // piece derivation); it only matters on the system that draws it.
     jims::ChangeIndicator intoThis;
-    bool hasIndicator = false;
-    muse::String indicatorKey;
-    if (jims::changeIndicatorIntoStaffType(score, staffIdx, this, intoThis)) {
-        // Drawn on this system when the section's carrier measure is in it
-        // (mid-system) or when this system's last measure precedes it (courtesy).
-        for (const MeasureBase* mb = fm; mb; mb = mb->next()) {
-            if (mb->isMeasure()) {
-                const Measure* m = toMeasure(mb);
-                const Measure* next = m->nextMeasure();
-                if ((jims::changeCarrier(m, staffIdx) && score->staff(staffIdx)->staffType(m->tick()) == this)
-                    || (m == lm && next && jims::changeCarrier(next, staffIdx)
-                        && score->staff(staffIdx)->staffType(next->tick()) == this)) {
-                    hasIndicator = true;
-                    break;
-                }
-            }
-            if (mb == lm) {
-                break;
+    auto appendIndicator = [&](const jims::ChangeIndicator& model) {
+        for (const muse::String& kind : model.kinds) {
+            if (std::find(intoThis.kinds.begin(), intoThis.kinds.end(), kind) == intoThis.kinds.end()) {
+                intoThis.kinds.push_back(kind);
             }
         }
-        if (hasIndicator) {
-            for (const jims::ChangePoint& p : intoThis.tonicIndicators) {
-                indicatorKey += muse::String(u"t%1/%2;").arg(p.ordinate).arg(p.periodOffset);
+        intoThis.dotStacks.insert(intoThis.dotStacks.end(), model.dotStacks.begin(), model.dotStacks.end());
+        intoThis.tonicIndicators.insert(intoThis.tonicIndicators.end(), model.tonicIndicators.begin(),
+                                        model.tonicIndicators.end());
+        intoThis.arrows.insert(intoThis.arrows.end(), model.arrows.begin(), model.arrows.end());
+    };
+    const Staff* staff = score->staff(staffIdx);
+    for (const Measure* measure = fm; measure; measure = measure->nextMeasure()) {
+        jims::ChangeIndicator model;
+        const StaffType* terrainStaffType = nullptr;
+        if (jims::midSystemChangeIndicator(measure, staffIdx, model, &terrainStaffType)
+            && terrainStaffType == this) {
+            appendIndicator(model);
+        }
+        for (const StaffTypeChange* carrier : jims::changeCarriers(measure, staffIdx)) {
+            if (carrier->rtick().isZero()) {
+                continue;
             }
-            for (const jims::ChangeArrow& a : intoThis.arrows) {
-                indicatorKey += muse::String(u"a%1/%2>%3/%4;").arg(a.from.ordinate).arg(a.from.periodOffset)
-                                .arg(a.to.ordinate).arg(a.to.periodOffset);
+            const Fraction before = Fraction::fromTicks(std::max(0, carrier->tick().ticks() - 1));
+            if (staff && staff->staffType(before) == this
+                && jims::midBarChangeIndicator(carrier, model, nullptr)) {
+                appendIndicator(model);
             }
+        }
+        if (measure == lm) {
+            break;
+        }
+    }
+    jims::ChangeIndicator courtesy;
+    const StaffType* courtesyStaffType = nullptr;
+    if (jims::courtesyChangeIndicator(lm, staffIdx, courtesy, &courtesyStaffType)
+        && courtesyStaffType == this) {
+        appendIndicator(courtesy);
+    }
+    const bool hasIndicator = !intoThis.empty();
+    muse::String indicatorKey;
+    if (hasIndicator) {
+        for (const jims::ChangePoint& p : intoThis.tonicIndicators) {
+            indicatorKey += muse::String(u"t%1/%2;").arg(p.ordinate).arg(p.periodOffset);
+        }
+        for (const jims::ChangeArrow& a : intoThis.arrows) {
+            indicatorKey += muse::String(u"a%1/%2>%3/%4;").arg(a.from.ordinate).arg(a.from.periodOffset)
+                            .arg(a.to.ordinate).arg(a.to.periodOffset);
         }
     }
     const muse::String key = jimsStateJson() + u"|" + token + u"|" + melody + u"|elide:1|min:1|ind:" + indicatorKey;

@@ -367,7 +367,7 @@ public:
     void respaceSegments();
 
     bool canAddStringTunings(staff_idx_t staffIdx) const;
-    bool canAddStaffTypeChange(staff_idx_t staffIdx) const;
+    bool canAddStaffTypeChange(staff_idx_t staffIdx, const Fraction& rtick = Fraction(0, 1)) const;
 
 private:
 

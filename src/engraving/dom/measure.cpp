@@ -920,17 +920,21 @@ void Measure::add(EngravingItem* e)
         if (templateStaffType) {
             // executed on read, undo/redo, clone
             // setStaffType adds a copy to stafftypelist and returns a pointer to that element within stafftypelist
-            newStaffType = staff->setStaffType(tick(), *templateStaffType);
+            newStaffType = staff->setStaffType(staffTypeChange->tick(), *templateStaffType);
         } else {
             // executed on add from palette
             // staffType returns a pointer to the current stafftype element in the list
             // setStaffType will make a copy and return a pointer to that element within list
-            templateStaffType = staff->staffType(tick());
-            newStaffType = staff->setStaffType(tick(), *templateStaffType);
+            templateStaffType = staff->staffType(staffTypeChange->tick());
+            newStaffType = staff->setStaffType(staffTypeChange->tick(), *templateStaffType);
         }
 
-        staff->staffTypeListChanged(tick());
+        staff->staffTypeListChanged(staffTypeChange->tick());
         staffTypeChange->setStaffType(newStaffType, false);
+
+        if (!staffTypeChange->rtick().isZero()) {
+            getSegmentR(SegmentType::TimeTick, staffTypeChange->rtick());
+        }
 
         MeasureBase::add(e);
     }
@@ -1035,8 +1039,8 @@ void Measure::remove(EngravingItem* e)
             // st currently points to an list element that is about to be removed
             // make a copy now to use on undo/redo
             StaffType* st = new StaffType(*stc->staffType());
-            if (!tick().isZero()) {
-                staff->removeStaffType(tick());
+            if (!stc->tick().isZero()) {
+                staff->removeStaffType(stc->tick());
             }
             stc->setStaffType(st, true);
         }
@@ -3659,7 +3663,7 @@ bool Measure::canAddStringTunings(staff_idx_t staffIdx) const
     return !alreadyHasStringTunings;
 }
 
-bool Measure::canAddStaffTypeChange(staff_idx_t staffIdx) const
+bool Measure::canAddStaffTypeChange(staff_idx_t staffIdx, const Fraction& rtick) const
 {
     if (isMMRest()) {
         return false;
@@ -3671,8 +3675,8 @@ bool Measure::canAddStaffTypeChange(staff_idx_t staffIdx) const
         }
 
         const StaffTypeChange* stc = toStaffTypeChange(child);
-        if (stc->staffIdx() == staffIdx) {
-            // Staff already has a StaffTypeChange at this measure...
+        if (stc->staffIdx() == staffIdx && stc->rtick() == rtick) {
+            // Staff already has a StaffTypeChange at this exact position.
             return false;
         }
     }

@@ -30,15 +30,19 @@ namespace mu::engraving::jims {
 /// force at the measure's tick. False when the staff is not a JiMStaff.
 bool effectiveState(const Score* score, staff_idx_t staffIdx, const Measure* measure, muse::String& stateJson,
                     const StaffType** effective = nullptr);
+bool effectiveState(const Score* score, staff_idx_t staffIdx, const Measure* measure, const Fraction& tick, muse::String& stateJson,
+                    const StaffType** effective = nullptr);
 
 /// The Kernel's change-panel choices for the effective state at `measure`.
 bool changeOptions(const Score* score, staff_idx_t staffIdx, const Measure* measure, StateChangeOptions& options);
+bool changeOptions(const Score* score, staff_idx_t staffIdx, const Measure* measure, const Fraction& tick, StateChangeOptions& options);
 
 /// May a JiMS change be inserted at `measure` on `staffIdx`? False with a
 /// reason when the staff is not JiMS, when a NON-JiMS StaffTypeChange
 /// already occupies the staff/measure, or when Measure::canAddStaffTypeChange
 /// refuses.
 bool canInsertChange(const Score* score, staff_idx_t staffIdx, const Measure* measure, muse::String& reason);
+bool canInsertChange(const Score* score, staff_idx_t staffIdx, const Measure* measure, const Fraction& tick, muse::String& reason);
 
 /// Apply ONE Kernel-issued choice id at `measure`: the Kernel returns the
 /// complete new state from the effective state; the controller creates the
@@ -49,6 +53,8 @@ bool canInsertChange(const Score* score, staff_idx_t staffIdx, const Measure* me
 /// the base staff type and every unbound carrier on the staff (never creates
 /// a carrier). False with `error` on refusal.
 bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const muse::String& choiceId, muse::String& error);
+bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fraction& tick, const muse::String& choiceId,
+                 muse::String& error);
 
 /// Milestone 9, owner decision 2a (2026-08-22): apply an ordered LIST of
 /// Kernel-issued choice ids at `measure` to EVERY JiMS part of the score, as
@@ -71,10 +77,13 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const mus
 /// `bind:` is NOT routed through here: a reference names what one staff's
 /// Re0 is, which stays staff-wide (owner decision 9). Use `applyChange`.
 bool applyChangeToAllJimsParts(Score* score, Measure* measure, const std::vector<muse::String>& choiceIds, muse::String& error);
+bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& tick, const std::vector<muse::String>& choiceIds,
+                               muse::String& error);
 
 /// Remove the JiMS change carrier at `measure` (one undo step). False with
 /// `error` when there is none.
 bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, muse::String& error);
+bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fraction& tick, muse::String& error);
 
 /// Enforce the persisted JiMS authority contract after native load or import.
 /// Authoritative identity plus effective state replace contradictory ordinary

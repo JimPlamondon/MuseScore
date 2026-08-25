@@ -3022,6 +3022,9 @@ void TWrite::write(const StaffType* item, XmlWriter& xml, WriteContext& ctx)
 void TWrite::write(const StaffTypeChange* item, XmlWriter& xml, WriteContext& ctx)
 {
     xml.startElement(item);
+    if (item->rtick().isNotZero()) {
+        xml.tag("relativeTick", item->rtick().toString());
+    }
     if (item->staffType()) {
         write(item->staffType(), xml, ctx);
     }

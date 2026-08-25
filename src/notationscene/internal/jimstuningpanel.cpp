@@ -327,7 +327,7 @@ void JimsTuningPanel::buildChangeSection(QWidget* parent, QVBoxLayout* outer)
     grid->addLayout(scaleRow);
 
     auto* bottomRow = new QHBoxLayout();
-    m_removeButton = new QPushButton(QStringLiteral("Remove change at this bar"), m_changeBox);
+    m_removeButton = new QPushButton(QStringLiteral("Remove change at this position"), m_changeBox);
     bottomRow->addWidget(m_removeButton);
     auto* refresh = new QPushButton(QStringLiteral("Refresh"), m_changeBox);
     bottomRow->addWidget(refresh);
@@ -367,9 +367,10 @@ void JimsTuningPanel::buildChangeSection(QWidget* parent, QVBoxLayout* outer)
     connect(refresh, &QPushButton::clicked, this, &JimsTuningPanel::syncChangeSection);
 }
 
-bool JimsTuningPanel::changeTarget(Measure*& measure, staff_idx_t& staffIdx) const
+bool JimsTuningPanel::changeTarget(Measure*& measure, Fraction& tick, staff_idx_t& staffIdx) const
 {
     measure = nullptr;
+    tick = Fraction(-1, 1);
     staffIdx = 0;
     if (!m_score) {
         return false;
@@ -377,10 +378,16 @@ bool JimsTuningPanel::changeTarget(Measure*& measure, staff_idx_t& staffIdx) con
     const Selection& sel = m_score->selection();
     if (sel.isRange() && sel.startSegment()) {
         measure = sel.startSegment()->measure();
+        tick = sel.startSegment()->tick();
         staffIdx = sel.staffStart();
     } else if (EngravingItem* e = sel.element()) {
         measure = e->findMeasure();
+        tick = e->tick();
         staffIdx = e->staffIdx();
+    }
+    if (measure && tick == measure->endTick() && measure->nextMeasure()) {
+        measure = measure->nextMeasure();
+        tick = measure->tick();
     }
     return measure != nullptr;
 }
@@ -395,10 +402,11 @@ void JimsTuningPanel::syncChangeSection()
         return;
     }
     Measure* measure = nullptr;
+    Fraction tick;
     staff_idx_t staffIdx = 0;
-    const bool haveTarget = changeTarget(measure, staffIdx);
+    const bool haveTarget = changeTarget(measure, tick, staffIdx);
     jims::StateChangeOptions options;
-    const bool ok = haveTarget && jims::changeOptions(m_score, staffIdx, measure, options);
+    const bool ok = haveTarget && jims::changeOptions(m_score, staffIdx, measure, tick, options);
     m_changeBox->setEnabled(ok);
     if (!ok) {
         m_targetLabel->setText(haveTarget
@@ -406,15 +414,15 @@ void JimsTuningPanel::syncChangeSection()
                                : QStringLiteral("Select a note or bar on the JiMStaff"));
         return;
     }
-    const bool hasCarrier = jims::changeCarrier(measure, staffIdx) != nullptr;
+    const bool hasCarrier = jims::changeCarrierAt(measure, staffIdx, tick) != nullptr;
     QString carrierNote;
-    if (hasCarrier && !measure->tick().isZero()) {
+    if (hasCarrier && !tick.isZero()) {
         // Say what the Kernel derives from (state before, state here): the
         // indicator kinds, or its reason when nothing can be drawn — a
         // change that renders nothing must never be silent.
         const Staff* staff = m_score->staff(staffIdx);
-        const StaffType* before = staff->staffType(Fraction::fromTicks(measure->tick().ticks() - 1));
-        const StaffType* here = staff->staffType(measure->tick());
+        const StaffType* before = staff->staffType(Fraction::fromTicks(tick.ticks() - 1));
+        const StaffType* here = staff->staffType(tick);
         jims::ChangeIndicator ind;
         muse::String why;
         if (before && here && before->isJiMS() && here->isJiMS()
@@ -432,8 +440,9 @@ void JimsTuningPanel::syncChangeSection()
     } else if (hasCarrier) {
         carrierNote = QStringLiteral(" — carries a change");
     }
-    m_targetLabel->setText(QStringLiteral("Bar %1, staff %2%3")
-                           .arg(measure->no() + 1).arg(int(staffIdx) + 1).arg(carrierNote));
+    m_targetLabel->setText(QStringLiteral("Bar %1, relative tick %2, staff %3%4")
+                           .arg(measure->no() + 1).arg((tick - measure->tick()).ticks())
+                           .arg(int(staffIdx) + 1).arg(carrierNote));
 
     QSignalBlocker b1(m_tonicCombo);
     m_tonicCombo->clear();
@@ -549,7 +558,7 @@ void JimsTuningPanel::syncChangeSection()
     m_scaleCombo->setCurrentIndex(currentScale);
     m_removeButton->setEnabled(hasCarrier);
     muse::String why;
-    if (!jims::canInsertChange(m_score, staffIdx, measure, why)) {
+    if (!jims::canInsertChange(m_score, staffIdx, measure, tick, why)) {
         m_statusLabel->setText(why.toQString());
     }
 }
@@ -571,12 +580,13 @@ void JimsTuningPanel::onMelodyPartChanged(int index)
 void JimsTuningPanel::applyChoice(const muse::String& choiceId)
 {
     Measure* measure = nullptr;
+    Fraction tick;
     staff_idx_t staffIdx = 0;
-    if (!changeTarget(measure, staffIdx)) {
+    if (!changeTarget(measure, tick, staffIdx)) {
         return;
     }
     muse::String error;
-    if (!jims::applyChange(m_score, staffIdx, measure, choiceId, error)) {
+    if (!jims::applyChange(m_score, staffIdx, measure, tick, choiceId, error)) {
         m_statusLabel->setText(error.toQString());
         return;
     }
@@ -590,12 +600,13 @@ void JimsTuningPanel::applyChoice(const muse::String& choiceId)
 void JimsTuningPanel::applyChoices(const std::vector<muse::String>& choiceIds)
 {
     Measure* measure = nullptr;
+    Fraction tick;
     staff_idx_t staffIdx = 0;
-    if (!changeTarget(measure, staffIdx)) {
+    if (!changeTarget(measure, tick, staffIdx)) {
         return;
     }
     muse::String error;
-    if (!jims::applyChangeToAllJimsParts(m_score, measure, choiceIds, error)) {
+    if (!jims::applyChangeToAllJimsParts(m_score, measure, tick, choiceIds, error)) {
         m_statusLabel->setText(error.toQString());
         return;
     }
@@ -613,12 +624,13 @@ void JimsTuningPanel::applyChoices(const std::vector<muse::String>& choiceIds)
 void JimsTuningPanel::onRemoveChange()
 {
     Measure* measure = nullptr;
+    Fraction tick;
     staff_idx_t staffIdx = 0;
-    if (!changeTarget(measure, staffIdx)) {
+    if (!changeTarget(measure, tick, staffIdx)) {
         return;
     }
     muse::String error;
-    if (!jims::removeChange(m_score, staffIdx, measure, error)) {
+    if (!jims::removeChange(m_score, staffIdx, measure, tick, error)) {
         m_statusLabel->setText(error.toQString());
         return;
     }
@@ -701,8 +713,9 @@ void JimsTuningPanel::syncElisionSection()
     m_elideCheck->setChecked(m_score->style().styleB(Sid::jimsElideEmptyOctaves));
     m_firstSystemCheck->setChecked(m_score->style().styleB(Sid::jimsShowAllOctavesInFirstSystem));
     Measure* measure = nullptr;
+    Fraction tick;
     staff_idx_t staffIdx = 0;
-    const bool haveTarget = changeTarget(measure, staffIdx);
+    const bool haveTarget = changeTarget(measure, tick, staffIdx);
     const StaffType* base = haveTarget ? m_score->staff(staffIdx)->staffType(Fraction(0, 1)) : nullptr;
     const bool jims = base && base->isJiMS();
     m_staffOverrideCombo->setEnabled(jims);
@@ -743,8 +756,9 @@ void JimsTuningPanel::onFirstSystemToggled(bool on)
 void JimsTuningPanel::onStaffOverrideChanged(int index)
 {
     Measure* measure = nullptr;
+    Fraction tick;
     staff_idx_t staffIdx = 0;
-    if (!m_score || !changeTarget(measure, staffIdx)) {
+    if (!m_score || !changeTarget(measure, tick, staffIdx)) {
         return;
     }
     Staff* staff = m_score->staff(staffIdx);
