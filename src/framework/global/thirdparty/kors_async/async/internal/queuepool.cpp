@@ -180,7 +180,7 @@ void QueuePool::processMessages(const std::thread::id& th)
     // A handler may synchronously register or unregister ports for this thread.
     // The recursive lock permits that same-thread mutation while excluding other
     // threads, and the snapshot keeps iteration and port lifetime stable.
-    const std::vector<std::shared_ptr<Port>> ports = thdata->ports;
+    const std::vector<std::shared_ptr<Port> > ports = thdata->ports;
 
     for (const std::shared_ptr<Port>& port : ports) {
         port->process();
