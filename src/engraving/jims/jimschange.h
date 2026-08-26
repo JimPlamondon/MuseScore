@@ -101,6 +101,10 @@ std::vector<double> changeIndicatorOverflowCents(const StaffType::JimsFrameView&
 /// part and repeat the Kernel token through every JiMS transport carrier.
 int deriveTonicAmbits(Score* score);
 
+/// True when every JiMS base and change carrier already transports the
+/// work's explicit tonic-ambit token.
+bool hasCompleteTonicAmbits(const Score* score);
+
 /// Load-time extent reconciliation: exact written-note bounds, or a
 /// Kernel-derived one-period default from the Part's declared amateur range.
 int reconcileExtents(Score* score);

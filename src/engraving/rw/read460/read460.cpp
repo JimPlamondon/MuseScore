@@ -114,9 +114,12 @@ muse::Ret Read460::readScoreFile(Score* score, XmlReader& e, rw::ReadInOutData* 
 
     // JiMS load transition: written notes become the exact per-staff extent;
     // empty SATB staves receive the Kernel's declared-range default. The
-    // designated melody then supplies the one song-wide tonic ambit.
+    // designated melody supplies the one song-wide tonic ambit only for a
+    // legacy/incomplete score. An explicit transported token is authoritative.
     jims::reconcileExtents(score);
-    jims::deriveTonicAmbits(score);
+    if (!jims::hasCompleteTonicAmbits(score)) {
+        jims::deriveTonicAmbits(score);
+    }
 
     if (data) {
         data->settingsCompat = ctx.settingCompat();

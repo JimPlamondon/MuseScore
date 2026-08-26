@@ -20,8 +20,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <cctype>
 #include <cmath>
+#include <limits>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -122,6 +125,68 @@ static std::shared_ptr<mu::iex::musicxml::IMusicXmlConfiguration> configuration(
 static std::shared_ptr<mu::engraving::IEngravingFontsProvider> engravingFonts()
 {
     return muse::modularity::globalIoc()->resolve<mu::engraving::IEngravingFontsProvider>("iex_musicxml");
+}
+
+static Fraction decimalDivisionsToTicks(const String& value, int divisions, bool* ok)
+{
+    const std::string raw = value.toStdString();
+    size_t begin = 0;
+    while (begin < raw.size() && std::isspace(static_cast<unsigned char>(raw[begin]))) {
+        ++begin;
+    }
+    size_t end = raw.size();
+    while (end > begin && std::isspace(static_cast<unsigned char>(raw[end - 1]))) {
+        --end;
+    }
+
+    bool negative = false;
+    if (begin < end && (raw[begin] == '+' || raw[begin] == '-')) {
+        negative = raw[begin] == '-';
+        ++begin;
+    }
+
+    int64_t numerator = 0;
+    int64_t scale = 1;
+    bool decimal = false;
+    bool digit = false;
+    bool valid = divisions > 0;
+    for (size_t i = begin; valid && i < end; ++i) {
+        const char ch = raw[i];
+        if (ch == '.' && !decimal) {
+            decimal = true;
+            continue;
+        }
+        if (ch < '0' || ch > '9') {
+            valid = false;
+            break;
+        }
+        digit = true;
+        const int next = ch - '0';
+        if (numerator > (std::numeric_limits<int>::max() - next) / 10) {
+            valid = false;
+            break;
+        }
+        numerator = numerator * 10 + next;
+        if (decimal) {
+            if (scale > std::numeric_limits<int>::max() / 10) {
+                valid = false;
+                break;
+            }
+            scale *= 10;
+        }
+    }
+    const int64_t denominator = int64_t(4) * divisions * scale;
+    valid = valid && digit && denominator <= std::numeric_limits<int>::max();
+    if (ok) {
+        *ok = valid;
+    }
+    if (!valid) {
+        return Fraction(0, 1);
+    }
+
+    Fraction result(static_cast<int>(negative ? -numerator : numerator), static_cast<int>(denominator));
+    result.reduce();
+    return result;
 }
 
 //---------------------------------------------------------
@@ -8151,7 +8216,11 @@ void MusicXmlParserPass2::harmony(const String& partId, Measure* measure, const 
         } else if (m_e.name() == "level") {
             skipLogCurrElem();
         } else if (m_e.name() == "offset") {
-            offset = m_pass1.calcTicks(m_e.readInt(), m_divs, &m_e);
+            bool validOffset = false;
+            offset = decimalDivisionsToTicks(m_e.readText(), m_divs, &validOffset);
+            if (!validOffset) {
+                m_logger->logError(u"invalid harmony offset", &m_e);
+            }
             preventNegativeTick(sTime, offset, m_logger);
         } else if (m_e.name() == "staff") {
             size_t nstaves = m_pass1.getPart(partId)->nstaves();

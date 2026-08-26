@@ -187,7 +187,7 @@ TEST_F(MusicXml_JiMS_Tests, v3ImportBuildsTheJiMStaffLikeTheConverter)
     // written-note bounds. All song-wide content remains the converter's.
     EXPECT_EQ(sharedState(st->jimsStateJson()), sharedState(String::fromUtf8(KEY_MODE_STATE_1)));
     EXPECT_TRUE(st->jimsJiLines());
-    EXPECT_TRUE(st->jimsTonicAmbit() == u"tonic-bounded" || st->jimsTonicAmbit() == u"tonic-centered");
+    EXPECT_EQ(st->jimsTonicAmbit(), u"tonic-bounded");
     // The change measure carries the complete second state (never derived from jims:change).
     Measure* m2 = measureNo(score, 2);
     ASSERT_TRUE(m2);
@@ -274,6 +274,51 @@ TEST_F(MusicXml_JiMS_Tests, midBarStateChangeImportsAndExportsAtItsExactTick)
     EXPECT_EQ(notesInOrder(again).size(), 4u);
     delete again;
     delete score;
+}
+
+TEST_F(MusicXml_JiMS_Tests, explicitTonicAmbitsSurviveNativeScoreReload)
+{
+    MasterScore* score = readJims("jims-mid-bar-state-change.musicxml");
+    ASSERT_TRUE(score);
+    StaffType* base = score->staff(0)->staffType(Fraction(0, 1));
+    ASSERT_TRUE(base);
+    String baseState = base->jimsStateJson();
+    baseState.replace(u"\"tonic_ambit\":\"tonic-bounded\"", u"\"tonic_ambit\":\"tonic-centered\"");
+    base->setJimsStateJson(baseState);
+    ASSERT_EQ(base->jimsTonicAmbit(), u"tonic-centered");
+
+    const String dir(u"jims-export-scratch");
+    muse::io::Dir::mkpath(dir);
+    const String mscz = dir + u"/explicit-tonic-ambit-roundtrip.mscz";
+    muse::io::File::remove(mscz);
+    {
+        muse::io::File file(mscz);
+        ASSERT_TRUE(file.open(muse::io::IODevice::WriteOnly));
+        MscWriter::Params params;
+        params.device = &file;
+        params.filePath = mscz;
+        params.mode = MscIoMode::Zip;
+        MscWriter writer(params);
+        ASSERT_TRUE(writer.open());
+        MscSaver saver(score->iocContext());
+        ASSERT_TRUE(saver.writeMscz(score, writer, false));
+        writer.close();
+        file.close();
+    }
+    delete score;
+
+    MasterScore* reloaded = ScoreRW::readScore(mscz, true);
+    ASSERT_TRUE(reloaded);
+    const StaffType* reloadedBase = reloaded->staff(0)->staffType(Fraction(0, 1));
+    ASSERT_TRUE(reloadedBase);
+    EXPECT_EQ(reloadedBase->jimsTonicAmbit(), u"tonic-centered");
+    const std::vector<const Note*> notes = notesInOrder(reloaded);
+    ASSERT_EQ(notes.size(), 4u);
+    const StaffTypeChange* change = jims::changeCarrierAt(measureNo(reloaded, 1), 0, notes[2]->tick());
+    ASSERT_TRUE(change);
+    ASSERT_TRUE(change->staffType());
+    EXPECT_EQ(change->staffType()->jimsTonicAmbit(), u"tonic-bounded");
+    delete reloaded;
 }
 
 TEST_F(MusicXml_JiMS_Tests, midBarIndicatorElementsAlignWithTheirDisplayedStaffNoteLines)
@@ -731,6 +776,29 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4PreservesOffsetStaffAndSupportedFormattin
     delete score;
     delete again;
     delete native;
+}
+
+TEST_F(MusicXml_JiMS_Tests, ChordNameV4PreservesOffsetBetweenNoteOnsets)
+{
+    MasterScore* score = readJims("jims-chord-name-unaligned-offset-v4.musicxml");
+    ASSERT_TRUE(score);
+    const std::vector<Harmony*> imported = harmoniesInOrder(score);
+    ASSERT_EQ(imported.size(), 2u);
+    EXPECT_EQ(imported[1]->harmonyName(), u"So5");
+    EXPECT_EQ(imported[1]->tick(), Fraction(7, 16));
+
+    const String out = exportToScratch(score, "jims-chord-name-unaligned-offset-roundtrip.musicxml");
+    auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
+        return importMusicXml(s, path.toQString(), false);
+    };
+    MasterScore* again = ScoreRW::readScore(out, true, importXml);
+    ASSERT_TRUE(again);
+    const std::vector<Harmony*> roundTripped = harmoniesInOrder(again);
+    ASSERT_EQ(roundTripped.size(), 2u);
+    EXPECT_EQ(roundTripped[1]->harmonyName(), u"So5");
+    EXPECT_EQ(roundTripped[1]->tick(), Fraction(7, 16));
+    delete score;
+    delete again;
 }
 
 TEST_F(MusicXml_JiMS_Tests, ChordNameV4RejectsSupersededTildeMarker)
