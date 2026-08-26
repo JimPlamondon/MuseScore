@@ -141,6 +141,7 @@ private:
     bool writeGliss(const engraving::Glissando* gliss, const std::string& startid);
     bool writeHairpin(const engraving::Hairpin* hairpin, const std::string& startid);
     bool writeHarm(const engraving::Harmony* harmony, const std::string& startid);
+    bool writeHarm(const engraving::Harmony* harmony, double tstamp);
     bool writeHarpPedal(const engraving::HarpPedalDiagram* harpPedalDiagram, const std::string& startid);
     bool writeOctave(const engraving::Ottava* ottava, const std::string& startid);
     bool writeOrnament(const engraving::Ornament* ornament, const std::string& startid);
@@ -165,6 +166,7 @@ private:
      */
     bool isCurrentNode(const libmei::Element& element);
     std::vector<const engraving::Volta*> findVoltasInMeasure(const engraving::Measure* measure);
+    bool writeTimestampedHarmonies(const engraving::Measure* measure);
     void fillControlEventMap(const std::string& xmlId, const engraving::ChordRest* chordRest);
     std::string findStartIdFor(const engraving::EngravingItem* item);
     void addToRepeatMarkList(const engraving::EngravingItem* repeatMark, pugi::xml_node node, const std::string& xmlId);

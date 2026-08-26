@@ -198,6 +198,10 @@ TEST_F(Mei_Tests, mei_harp_01) {
     meiReadTest("harp-01");
 }
 
+TEST_F(Mei_Tests, mei_harm_tstamp_01) {
+    meiReadTest("harm-tstamp-01");
+}
+
 TEST_F(Mei_Tests, mei_jump_01) {
     meiReadTest("jump-01");
 }
