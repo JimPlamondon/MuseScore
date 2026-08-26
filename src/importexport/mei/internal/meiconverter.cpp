@@ -1809,12 +1809,26 @@ void Convert::harmFromMEI(engraving::Harmony* harmony, const StringList& meiLine
     engraving::HarmonyType harmonyType = engraving::HarmonyType::STANDARD;
     if (Convert::hasTypeValue(meiHarm.GetType(), std::string(HARMONY_TYPE) + "roman")) {
         harmonyType = engraving::HarmonyType::ROMAN;
+    } else if (Convert::hasTypeValue(meiHarm.GetType(), "jims-chord-name")) {
+        harmonyType = engraving::HarmonyType::JIMS;
     }
 
     // text content
     harmony->setHarmonyType(harmonyType);
-    harmony->setHarmony(meiLines.join(u"\n"));
-    harmony->setPlainText(harmony->harmonyName());
+    if (harmonyType == engraving::HarmonyType::JIMS) {
+        // One opaque canonical JiMS chord name; never run the conventional
+        // chord parser on it (mirrors the MusicXML importer).
+        engraving::HarmonyInfo* info = new engraving::HarmonyInfo(harmony->score());
+        info->setId(-1);
+        info->setRootTpc(engraving::Tpc::TPC_INVALID);
+        info->setBassTpc(engraving::Tpc::TPC_INVALID);
+        info->setTextName(meiLines.join(u"\n"));
+        harmony->addChord(info);
+        harmony->setPlainText(harmony->harmonyName());
+    } else {
+        harmony->setHarmony(meiLines.join(u"\n"));
+        harmony->setPlainText(harmony->harmonyName());
+    }
 
     // @place
     if (meiHarm.HasPlace()) {
@@ -1838,14 +1852,22 @@ libmei::Harm Convert::harmToMEI(const engraving::Harmony* harmony, StringList& m
         case (engraving::HarmonyType::ROMAN):
             harmonyType = std::string(HARMONY_TYPE) + "roman";
             break;
+        case (engraving::HarmonyType::JIMS):
+            // mei-jims profile: the canonical JiMS chord name as typed harm
+            harmonyType = "jims-chord-name";
+            break;
         default: break;
         }
         meiHarm.SetType(harmonyType);
     }
 
     // content
-    String plainText = harmony->plainText();
-    meiLines = plainText.split(u"\n");
+    if (harmony->harmonyType() == engraving::HarmonyType::JIMS) {
+        meiLines = StringList { harmony->harmonyName() };
+    } else {
+        String plainText = harmony->plainText();
+        meiLines = plainText.split(u"\n");
+    }
 
     // @place
     if (harmony->propertyFlags(engraving::Pid::PLACEMENT) == engraving::PropertyFlags::UNSTYLED) {
