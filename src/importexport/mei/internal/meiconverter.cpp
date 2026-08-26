@@ -3238,6 +3238,22 @@ libmei::data_STEMMODIFIER Convert::stemModToMEI(const engraving::TremoloSingleCh
     }
 }
 
+std::string Convert::keyModeToString(engraving::KeyMode mode)
+{
+    switch (mode) {
+    case engraving::KeyMode::MAJOR: return "major";
+    case engraving::KeyMode::MINOR: return "minor";
+    case engraving::KeyMode::DORIAN: return "dorian";
+    case engraving::KeyMode::PHRYGIAN: return "phrygian";
+    case engraving::KeyMode::LYDIAN: return "lydian";
+    case engraving::KeyMode::MIXOLYDIAN: return "mixolydian";
+    case engraving::KeyMode::AEOLIAN: return "aeolian";
+    case engraving::KeyMode::IONIAN: return "ionian";
+    case engraving::KeyMode::LOCRIAN: return "locrian";
+    default: return "";
+    }
+}
+
 engraving::KeyMode Convert::keyModeFromString(const std::string& mode)
 {
     static const std::map<std::string, engraving::KeyMode> modes = {

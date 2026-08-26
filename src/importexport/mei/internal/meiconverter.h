@@ -317,6 +317,7 @@ public:
     static libmei::data_STEMMODIFIER stemModToMEI(const engraving::TremoloSingleChord* tremolo);
 
     static engraving::KeyMode keyModeFromString(const std::string& mode);
+    static std::string keyModeToString(engraving::KeyMode mode);
     static void sylFromMEI(engraving::Lyrics* lyrics, const libmei::Syl& meiSyl, ElisionType elision, bool& warning);
     static libmei::Syl sylToMEI(const engraving::Lyrics* lyrics, ElisionType elision);
 
