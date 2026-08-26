@@ -3238,6 +3238,19 @@ libmei::data_STEMMODIFIER Convert::stemModToMEI(const engraving::TremoloSingleCh
     }
 }
 
+engraving::KeyMode Convert::keyModeFromString(const std::string& mode)
+{
+    static const std::map<std::string, engraving::KeyMode> modes = {
+        { "major", engraving::KeyMode::MAJOR }, { "minor", engraving::KeyMode::MINOR },
+        { "dorian", engraving::KeyMode::DORIAN }, { "phrygian", engraving::KeyMode::PHRYGIAN },
+        { "lydian", engraving::KeyMode::LYDIAN }, { "mixolydian", engraving::KeyMode::MIXOLYDIAN },
+        { "aeolian", engraving::KeyMode::AEOLIAN }, { "ionian", engraving::KeyMode::IONIAN },
+        { "locrian", engraving::KeyMode::LOCRIAN },
+    };
+    auto it = modes.find(mode);
+    return it != modes.end() ? it->second : engraving::KeyMode::UNKNOWN;
+}
+
 void Convert::sylFromMEI(engraving::Lyrics* lyrics, const libmei::Syl& meiSyl, ElisionType elision, bool& warning)
 {
     warning = false;
