@@ -2328,9 +2328,11 @@ bool MeiImporter::readVerse(pugi::xml_node verseNode, Chord* chord)
 
     bool success = true;
 
-    // If the verse has a syl with @con="u", add it to the lyrics to extend
+    // If the verse has a syl with @con="u", add it to the lyrics to extend;
+    // verse@label="jims-extend" is the mei-jims carrier for an extension on
+    // a dashed syllable (where @con carries the dash).
     pugi::xpath_node extender = verseNode.select_node("./syl[@con='u']");
-    if (extender) {
+    if (extender || std::string(verseNode.attribute("label").value()) == "jims-extend") {
         m_lyricExtenders[chord->track()][no] = std::make_pair(lyrics, nullptr);
     }
 

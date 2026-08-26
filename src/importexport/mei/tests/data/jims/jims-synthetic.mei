@@ -270,11 +270,7 @@
                     </verse>
                   </note>
                   <note xml:id="n-P1-2" pname="d" oct="4" dur="8" grace="unacc" stem.mod="1slash"/>
-                  <note xml:id="n-P1-3" pname="e" oct="5" dur="4">
-                    <verse n="1">
-                      <syl wordpos="t">thetic</syl>
-                    </verse>
-                  </note>
+                  <note xml:id="n-P1-3" pname="e" oct="5" dur="4"/>
                   <chord dur="2" xml:id="c-P1-4">
                     <note xml:id="n-P1-4" pname="c" oct="4"/>
                     <note xml:id="n-P1-5" pname="g" oct="4"/>
@@ -288,7 +284,11 @@
             <measure n="2" xml:id="m-2">
               <staff n="1">
                 <layer n="1">
-                  <note xml:id="n-P1-6" pname="g" oct="4" dur="2"/>
+                  <note xml:id="n-P1-6" pname="g" oct="4" dur="2">
+                    <verse n="1">
+                      <syl wordpos="t">thetic</syl>
+                    </verse>
+                  </note>
                   <note xml:id="n-P1-7" pname="a" oct="4" dur="2"/>
                 </layer>
               </staff>

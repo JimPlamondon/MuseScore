@@ -8510,9 +8510,12 @@ void MusicXmlParserLyric::parse(bool visibility)
         l->setSyllabic(syllabic);
         m_numberedLyrics[lyricNo] = l;
 
+        // mei-jims profile: an extension is a musical fact on ANY syllabic -
+        // a begin/middle syllable may carry a melisma before the word's next
+        // syllable (Codex acceptance review, 2026-08-26). The exporter
+        // already writes <extend> from ticks alone.
         if (hasExtend
-            && (extendType.empty() || extendType == "start")
-            && (l->syllabic() == LyricsSyllabic::SINGLE || l->syllabic() == LyricsSyllabic::END)) {
+            && (extendType.empty() || extendType == "start")) {
             m_extendedLyrics.insert(l);
         }
     } else if (item->isSticking()) {
