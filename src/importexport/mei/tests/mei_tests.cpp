@@ -29,6 +29,10 @@
 
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/excerpt.h"
+#include "engraving/dom/note.h"
+#include "engraving/dom/segment.h"
+#include "engraving/dom/staff.h"
+#include "engraving/dom/stafftype.h"
 
 #include "modularity/ioc.h"
 #include "importexport/mei/imeiconfiguration.h"
@@ -88,6 +92,74 @@ void Mei_Tests::meiReadTest(const char* file)
 
     // Compare the mei files
     EXPECT_TRUE(ScoreComp::compareFiles(fileName + u".test.mei", ScoreRW::rootPath() + u"/" + MEI_DIR + fileName + u".mei"));
+}
+
+// JiMS MEI (mei-jims profile) focused round trip: typed state import,
+// native carriers, and extMeta regeneration on export.
+TEST_F(Mei_Tests, mei_jims_roundtrip_01) {
+    auto importFunc = [](MasterScore* score, const muse::io::path_t& path) -> Err {
+        MeiReader meiReader(nullptr);
+        return meiReader.import(score, path);
+    };
+    auto exportFunc = [](Score* score, const muse::io::path_t& path) -> Err {
+        MeiWriter meiWriter;
+        return meiWriter.writeScore(score, path);
+    };
+
+    MasterScore* score = ScoreRW::readScore(MEI_DIR + u"jims/jims-synthetic.mei", false, importFunc);
+    ASSERT_TRUE(score);
+
+    // Typed staff state: JiMS staff type at tick 0 plus two later states.
+    const Staff* staff = score->staff(0);
+    ASSERT_TRUE(staff);
+    const StaffType* base = staff->staffType(Fraction(0, 1));
+    ASSERT_TRUE(base && base->isJiMS());
+    EXPECT_FALSE(base->jimsStateJson().isEmpty());
+    EXPECT_EQ(base->jimsTonicAmbit(), String(u"tonic-bounded"));
+
+    // Note identities and melody part.
+    int pitched = 0;
+    int identified = 0;
+    for (const Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
+         seg = seg->next1(SegmentType::ChordRest)) {
+        for (const EngravingItem* item : seg->elist()) {
+            if (!item || !item->isChord()) {
+                continue;
+            }
+            for (const Note* note : toChord(item)->notes()) {
+                ++pitched;
+                if (note->hasJimsPitch()) {
+                    ++identified;
+                }
+            }
+        }
+    }
+    EXPECT_GT(pitched, 0);
+    EXPECT_EQ(pitched, identified);
+    EXPECT_EQ(score->jimsMelodyPart(), engraving::jims::MelodyPart::Soprano);
+    ASSERT_EQ(score->jimsProvenance().resources.size(), size_t(1));
+    EXPECT_TRUE(score->jimsProvenance().strictFallback);
+    EXPECT_EQ(staff->jimsTuningTrajectories().size(), size_t(1));
+
+    // Export regenerates the typed carriers. The harness never rebuilds the
+    // MIDI mapping the way the application does on load; writeInstrDef needs
+    // playback channels to exist.
+    score->masterScore()->rebuildMidiMapping();
+    bool output = ScoreRW::saveScore(score, u"jims-synthetic.test.mei", exportFunc);
+    EXPECT_TRUE(output);
+    muse::io::File out(muse::io::path_t(u"jims-synthetic.test.mei"));
+    ASSERT_TRUE(out.open(muse::io::IODevice::ReadOnly));
+    const muse::ByteArray meiBytes = out.readAll();
+    const String mei = String::fromUtf8(meiBytes.constChar());
+    out.close();
+    EXPECT_TRUE(mei.contains(u"jm:record"));
+    EXPECT_TRUE(mei.contains(u"jims-tonal-state"));
+    EXPECT_TRUE(mei.contains(u"jims-chord-name"));
+    EXPECT_TRUE(mei.contains(u"jims-tonic-ambit"));
+    EXPECT_TRUE(mei.contains(u"jims-melody-part"));
+    EXPECT_TRUE(mei.contains(u"<ambitus>"));
+    EXPECT_TRUE(mei.contains(u"jims:tuning-trajectory"));
+    delete score;
 }
 
 TEST_F(Mei_Tests, mei_accid_01) {

@@ -120,8 +120,16 @@ bool MeiExporter::write(std::string& meiData)
         decl.append_attribute("version") = "1.0";
         decl.append_attribute("encoding") = "UTF-8";
 
-        // schema processing instruction
-        std::string schema = "https://music-encoding.org/schema/5.1/mei-basic.rng";
+        if (!m_jims.buildPlan(m_score)) {
+            LOGE() << m_jims.error();
+            return false;
+        }
+
+        // schema processing instruction; a JiMS score uses the full CMN
+        // profile its carriers require (the mei-jims customization)
+        std::string schema = m_jims.present()
+                             ? "https://music-encoding.org/schema/5.1/mei-CMN.rng"
+                             : "https://music-encoding.org/schema/5.1/mei-basic.rng";
         decl = meiDoc.append_child(pugi::node_declaration);
         decl.set_name("xml-model");
         decl.append_attribute("href") = schema.c_str();
@@ -159,11 +167,20 @@ bool MeiExporter::write(std::string& meiData)
 
         libmei::AttConverter converter;
         libmei::meiVersion_MEIVERSION meiVersion = libmei::meiVersion_MEIVERSION_5_1plusbasic;
-        m_mei.append_attribute("meiversion") = (converter.MeiVersionMeiversionToStr(meiVersion)).c_str();
+        if (m_jims.present()) {
+            m_mei.append_attribute("meiversion") = "5.1";
+        } else {
+            m_mei.append_attribute("meiversion") = (converter.MeiVersionMeiversionToStr(meiVersion)).c_str();
+        }
 
         this->writeHeader();
 
         this->writeScore();
+
+        if (!m_jims.writeExtMeta(m_mei.child("meiHead"))) {
+            LOGE() << m_jims.error();
+            return false;
+        }
 
         // Currently not used. To be enabled for unfolding MuseScore Jumps into `@jumpto` MEI attribute if it becomes available on MEI repeatMark
         // this->addJumpToRepeatMarks();
@@ -264,6 +281,8 @@ bool MeiExporter::writeScore()
     m_currentNode = m_currentNode.append_child("score");
 
     this->writeScoreDef();
+
+    m_jims.writeScoreAnnots(m_currentNode);
 
     m_currentNode = m_currentNode.append_child();
     libmei::Section meiSection;
@@ -727,6 +746,11 @@ bool MeiExporter::writeStaffDef(const Staff* staff, const Measure* measure, cons
 
     meiStaffDef.Write(staffDefNode);
 
+    if (!m_jims.onStaffDef(staffDefNode, staff)) {
+        LOGE() << m_jims.error();
+        return false;
+    }
+
     return true;
 }
 
@@ -841,7 +865,9 @@ bool MeiExporter::writeMeasure(const Measure* measure, int& measureN, bool& isFi
 
     libmei::Measure meiMeasure = Convert::measureToMEI(measure, measureN, wasPreviousIrregular);
     m_currentNode = m_currentNode.append_child();
-    meiMeasure.Write(m_currentNode, this->getMeasureXmlId(measure));
+    const std::string measureXmlId = this->getMeasureXmlId(measure);
+    meiMeasure.Write(m_currentNode, measureXmlId);
+    m_jims.onMeasure(measure, measureXmlId);
 
     // Reset keySig and timeSig change
     m_keySig = nullptr;
@@ -907,6 +933,7 @@ bool MeiExporter::writeMeasure(const Measure* measure, int& measureN, bool& isFi
         }
     }
     success = success && this->writeTimestampedHarmonies(measure);
+    m_jims.writeMeasureAnnots(m_currentNode, measure);
     m_startingControlEventList.clear();
 
     for (auto controlEvent : m_tstampControlEventMap) {
@@ -1402,6 +1429,7 @@ bool MeiExporter::writeNote(const Note* note, const Chord* chord, const Staff* s
     Convert::colorToMEI(note, meiNote);
     std::string xmlId = this->getXmlIdFor(note, 'n');
     meiNote.Write(m_currentNode, xmlId);
+    m_jims.onNote(note, xmlId);
     if (!isChord) {
         this->fillControlEventMap(xmlId, chord);
     }
@@ -1946,7 +1974,9 @@ bool MeiExporter::writeHarm(const Harmony* harmony, const std::string& startid)
     pugi::xml_node harmNode = m_currentNode.append_child();
     libmei::Harm meiHarm = Convert::harmToMEI(harmony, meiLines);
     meiHarm.SetStartid(startid);
-    meiHarm.Write(harmNode, this->getXmlIdFor(harmony, 'h'));
+    const std::string harmXmlId = this->getXmlIdFor(harmony, 'h');
+    meiHarm.Write(harmNode, harmXmlId);
+    m_jims.onHarm(harmNode, harmony, harmXmlId);
 
     this->writeLines(harmNode, meiLines);
 
@@ -1968,7 +1998,9 @@ bool MeiExporter::writeHarm(const Harmony* harmony, double tstamp)
     pugi::xml_node harmNode = m_currentNode.append_child();
     libmei::Harm meiHarm = Convert::harmToMEI(harmony, meiLines);
     meiHarm.SetTstamp(tstamp);
-    meiHarm.Write(harmNode, this->getXmlIdFor(harmony, 'h'));
+    const std::string harmXmlId = this->getXmlIdFor(harmony, 'h');
+    meiHarm.Write(harmNode, harmXmlId);
+    m_jims.onHarm(harmNode, harmony, harmXmlId);
 
     this->writeLines(harmNode, meiLines);
 

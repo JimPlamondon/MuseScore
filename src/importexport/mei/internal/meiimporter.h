@@ -23,6 +23,7 @@
 #pragma once
 
 #include "engraving/types/types.h"
+#include "meijims.h"
 
 #include "modularity/ioc.h"
 #include "imeiconfiguration.h"
@@ -216,6 +217,10 @@ private:
 
     /** The uid register */
     UIDRegister* m_uids;
+
+    /// JiMS MEI carriage (mei-jims profile)
+    JimsMeiImporter m_jims;
+    std::map<std::string, engraving::Note*> m_jimsNoteIds;
 
     /** A flag indicating the file has MuseScore EIDs as xml:ids */
     bool m_hasMuseScoreIds;

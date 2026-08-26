@@ -132,11 +132,17 @@ bool MeiImporter::read(const muse::io::path_t& path)
     pugi::xml_node root = doc.first_child();
 
     pugi::xml_attribute meiVersion = root.attribute("meiversion");
-    if (!meiVersion || String(meiVersion.value()) != String(MEI_BASIC_VERSION)) {
+    // "5.1" is the JiMS MEI profile (mei-jims customization of MEI 5.1 CMN)
+    if (!meiVersion
+        || (String(meiVersion.value()) != String(MEI_BASIC_VERSION)
+            && String(meiVersion.value()) != u"5.1")) {
         Convert::logs.push_back(String("The MEI file does not seem to be a MEI Basic version '%1' file").arg(String(MEI_BASIC_VERSION)));
     }
 
     bool success = true;
+
+    m_jimsNoteIds.clear();
+    m_jims.capture(root);
 
     success = success && this->readMeiHead(root);
 
@@ -161,6 +167,19 @@ bool MeiImporter::read(const muse::io::path_t& path)
     }
 
     success = success && this->readScore(root);
+
+    if (success && m_jims.present()) {
+        success = m_jims.apply(m_score,
+                               [this](const std::string& id) -> Note* {
+            auto it = m_jimsNoteIds.find(id);
+            return it != m_jimsNoteIds.end() ? it->second : nullptr;
+        },
+                               [this](int staffN) { return this->getStaffIndex(staffN); });
+        if (!success) {
+            Convert::logs.push_back(m_jims.error());
+            LOGE() << m_jims.error();
+        }
+    }
 
     if (hasRootXmlId) {
         // Do not keep a xml:id map when having a xml:id seed or MscoreIds
@@ -1066,6 +1085,14 @@ bool MeiImporter::readScoreDef(pugi::xml_node scoreDefNode, bool isInitial)
     }
 
     meiScoreDef.Read(scoreDefNode);
+
+    // try to import MEI from other applications: meterSig as a direct child
+    pugi::xml_node scoreDefMeterSig = scoreDefNode.child("meterSig");
+    if (scoreDefMeterSig) {
+        meiScoreDef.SetMeterCount(meiScoreDef.AttMeterSigDefaultLog::StrToMetercountPair(scoreDefMeterSig.attribute("count").value()));
+        meiScoreDef.SetMeterUnit(scoreDefMeterSig.attribute("unit").as_int());
+        meiScoreDef.SetMeterSym(meiScoreDef.AttMeterSigDefaultLog::StrToMetersign(scoreDefMeterSig.attribute("sym").value()));
+    }
 
     if (meiScoreDef.HasMeterSym() || meiScoreDef.HasMeterCount()) {
         m_timeSigs[SCOREDEF_IDX] = Convert::meterFromMEI(meiScoreDef, warning);
@@ -2096,6 +2123,9 @@ bool MeiImporter::readNote(pugi::xml_node noteNode, Measure* measure, int track,
     Note* note = Factory::createNote(chord);
     Convert::colorFromMEI(note, meiNote);
     this->readXmlId(note, meiNote.m_xmlId);
+    if (!meiNote.m_xmlId.empty()) {
+        m_jimsNoteIds[meiNote.m_xmlId] = note;
+    }
 
     // If there is a reference to the note in the MEI, add it the maps (e.g., for ties)
     if (m_startIdChordRests.count(meiNote.m_xmlId)) {

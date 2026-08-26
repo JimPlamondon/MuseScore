@@ -24,6 +24,7 @@
 #define MU_IMPORTEXPORT_MEIEXPORTER_H
 
 #include "engraving/types/types.h"
+#include "meijims.h"
 
 #include "modularity/ioc.h"
 #include "imeiconfiguration.h"
@@ -207,6 +208,9 @@ private:
 
     /** The uid register */
     UIDRegister* m_uids;
+
+    /// JiMS MEI carriage (mei-jims profile)
+    JimsMeiExporter m_jims;
 
     /** MEI xml element */
     pugi::xml_node m_mei;
