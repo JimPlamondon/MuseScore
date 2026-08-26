@@ -595,7 +595,21 @@ bool MeiExporter::writeScoreDefChange()
     // Single keysig change
     if (scoreDefKeySig) {
         //libmei::StaffDef keySigDef = Convert::keyToMEI(scoreDefKeySig->sig());
-        meiScoreDef.SetKeysig(Convert::keyToMEI(scoreDefKeySig->key()));
+        // mei-jims profile: a known mode rides on a child keySig (an
+        // attribute cannot carry it); otherwise keep the attribute form.
+        const KeyMode mode = scoreDefKeySig->keySigEvent().mode();
+        if (m_jims.present() && mode != KeyMode::UNKNOWN && mode != KeyMode::NONE) {
+            pugi::xml_node ksNode = scoreDefNode.append_child("keySig");
+            libmei::AttConverter attConverter;
+            UNUSED(attConverter);
+            const int fifths = static_cast<int>(scoreDefKeySig->key());
+            const std::string sig = (fifths == 0) ? "0"
+                                    : std::to_string(std::abs(fifths)) + (fifths > 0 ? "s" : "f");
+            ksNode.append_attribute("sig") = sig.c_str();
+            ksNode.append_attribute("mode") = Convert::keyModeToString(mode).c_str();
+        } else {
+            meiScoreDef.SetKeysig(Convert::keyToMEI(scoreDefKeySig->key()));
+        }
     }
     // Otherwise, add staffGrp/staffDef
     if ((!scoreDefTimeSig && m_timeSig) || (!scoreDefKeySig && m_keySig)) {

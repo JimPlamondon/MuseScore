@@ -294,10 +294,15 @@
               </staff>
               <annot type="jims-tonal-state" staff="1" xml:id="st-P1-2" tstamp="3" corresp="#jmstate-P1-2"/>
             </measure>
+            <scoreDef>
+              <keySig sig="2s" mode="major"/>
+            </scoreDef>
             <measure n="3" xml:id="m-3" right="end">
               <staff n="1">
                 <layer n="1">
+                  <clef shape="F" line="4"/>
                   <note xml:id="n-P1-8" pname="d" oct="4" dur="2"/>
+                  <clef shape="G" line="2"/>
                   <note xml:id="n-P1-9" pname="d" oct="4" dur="2"/>
                 </layer>
               </staff>

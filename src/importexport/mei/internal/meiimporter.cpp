@@ -1100,10 +1100,23 @@ bool MeiImporter::readScoreDef(pugi::xml_node scoreDefNode, bool isInitial)
             this->addLog("meter signature", scoreDefNode);
         }
     }
+    m_keyModes.erase(SCOREDEF_IDX);
     if (meiScoreDef.HasKeysig()) {
         m_keySigs[SCOREDEF_IDX] = Convert::keyFromMEI(meiScoreDef.GetKeysig(), warning);
         if (warning) {
             this->addLog("key signature", scoreDefNode);
+        }
+    } else if (pugi::xml_node scoreDefKeySig = scoreDefNode.child("keySig")) {
+        // try to import MEI from other applications: keySig as a direct child
+        libmei::StaffDef helperDef;
+        m_keySigs[SCOREDEF_IDX] = Convert::keyFromMEI(
+            helperDef.AttKeySigDefaultLog::StrToKeysignature(scoreDefKeySig.attribute("sig").value()), warning);
+        if (warning) {
+            this->addLog("key signature", scoreDefKeySig);
+        }
+        const KeyMode mode = Convert::keyModeFromString(scoreDefKeySig.attribute("mode").value());
+        if (mode != KeyMode::UNKNOWN) {
+            m_keyModes[SCOREDEF_IDX] = mode;
         }
     }
 
@@ -1308,6 +1321,7 @@ bool MeiImporter::readStaffDefs(pugi::xml_node parentNode)
                 this->addLog("key signature", keySigNode);
             }
             // mei-jims profile: keySig/@mode carries the conventional mode
+            m_keyModes.erase(staffIdx);
             const KeyMode mode = Convert::keyModeFromString(keySigNode.attribute("mode").value());
             if (mode != KeyMode::UNKNOWN) {
                 m_keyModes[staffIdx] = mode;
