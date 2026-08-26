@@ -843,7 +843,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
         std::vector<std::pair<double, double> > horns;    // crescent top / bottom
         std::vector<double> closureYs;                    // clipped-crescent horizontal closures
         std::vector<PointF> glyphs;                       // single-codepoint (music-font) glyph origins
-        int strokedCrescentSeams = 0;                     // accidental close-subpath strokes
+        int strokedCrescentSeams = 0;                     // accidental straight strokes inside crescent outlines
     };
     auto paintOf = [&](const StaffLines* lines) {
         std::shared_ptr<BufferedPaintProvider> prv = std::make_shared<BufferedPaintProvider>();
@@ -880,9 +880,11 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                     if (hasCurve && path.mode != DrawMode::Fill) {
                         const RectF r = path.path.boundingRect();
                         out.horns.push_back({ r.top(), r.bottom() });
-                        const PainterPath::Element last = path.path.elementAt(path.path.elementCount() - 1);
-                        out.strokedCrescentSeams
-                            += last.type == PainterPath::ElementType::LineToElement ? 1 : 0;
+                        for (size_t i = 1; i < path.path.elementCount(); ++i) {
+                            const PainterPath::Element element = path.path.elementAt(i);
+                            out.strokedCrescentSeams
+                                += element.type == PainterPath::ElementType::LineToElement ? 1 : 0;
+                        }
                     }
                 }
                 for (const DrawText& t : d.texts) {
@@ -967,11 +969,19 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                 const double period = jst->jimsPeriodCents();
                 jims::PeriodicOrigins origins;
                 ASSERT_TRUE(jims::periodicOrigins(jst->jimsStateJson(), origins)) << what;
+                std::vector<jims::JiLine> jiLines;
+                ASSERT_TRUE(jims::jiLines(jst->jimsStateJson(), jiLines)) << what;
                 const StaffLines* lines = m->staffLines(0);
                 ASSERT_TRUE(lines) << what;
                 const double topY = lines->pos().y();
                 const double ldSp = jst->lineDistance().val() * lines->spatium();
                 auto centsOfY = [&](double y) { return v.centsFromYLd((y - topY) / ldSp); };
+                auto hasGuideAt = [&](double cents) {
+                    return std::any_of(lines->jimsGuideLines().begin(), lines->jimsGuideLines().end(),
+                                       [&](const StaffLines::JimsGuideLine& g) {
+                        return std::abs(centsOfY(g.line.y1()) - cents) < 1e-6;
+                    });
+                };
                 // (a) red = Do row, dashed != Do row; one red line per Do row in a segment.
                 int red = 0;
                 int expectedRed = 0;
@@ -992,6 +1002,18 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                     for (const StaffType::JimsSegment& seg : band.segments) {
                         if (!seg.whole) {
                             *sawPartial = true;
+                        }
+                        const double basePeriod = origins.doCentsAboveExtentLower
+                                                  + std::floor((seg.lowerCents - origins.doCentsAboveExtentLower)
+                                                               / period) * period;
+                        for (double p = basePeriod; p < seg.upperCents; p += period) {
+                            for (const jims::JiLine& ji : jiLines) {
+                                const double c = p + ji.cents;
+                                if (ji.visible && c >= seg.lowerCents - 1e-6 && c <= seg.upperCents + 1e-6) {
+                                    EXPECT_TRUE(hasGuideAt(c))
+                                        << what << " visible Xx row has no staff line at " << c << " cents";
+                                }
+                            }
                         }
                         const double first = origins.doCentsAboveExtentLower
                                              + std::ceil((seg.lowerCents - origins.doCentsAboveExtentLower - 1e-6)

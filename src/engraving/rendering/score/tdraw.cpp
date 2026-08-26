@@ -3054,17 +3054,21 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                         const double periodTopY
                             = segTopY + (segment.upperCents - periodCeiling)
                               / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * dist;
-                        PainterPath crescentOutline;
-                        crescentOutline.moveTo(clefRight, periodTopY);
-                        crescentOutline.arcTo(RectF(clefRight - clefRx, periodTopY, 2.0 * clefRx, 2.0 * clefRy),
-                                              90.0, 180.0);
-                        crescentOutline.arcTo(RectF(clefRight - clefRy, periodTopY, 2.0 * clefRy, 2.0 * clefRy),
-                                              270.0, -180.0);
-                        PainterPath crescentFill = crescentOutline;
+                        const RectF outerArc(clefRight - clefRx, periodTopY, 2.0 * clefRx, 2.0 * clefRy);
+                        const RectF innerArc(clefRight - clefRy, periodTopY, 2.0 * clefRy, 2.0 * clefRy);
+                        PainterPath crescentFill;
+                        crescentFill.arcMoveTo(outerArc, 90.0);
+                        crescentFill.arcTo(outerArc, 90.0, 180.0);
+                        crescentFill.arcTo(innerArc, 270.0, -180.0);
                         crescentFill.closeSubpath();
                         painter->setNoPen();
                         painter->setBrush(Brush(Color::WHITE));
                         painter->drawPath(crescentFill);
+                        PainterPath crescentOutline;
+                        crescentOutline.arcMoveTo(outerArc, 90.0);
+                        crescentOutline.arcTo(outerArc, 90.0, 180.0);
+                        crescentOutline.arcMoveTo(innerArc, 270.0);
+                        crescentOutline.arcTo(innerArc, 270.0, -180.0);
                         painter->setPen(Pen(item->curColor(opt), item->lw() * 1.5, PenStyle::SolidLine));
                         painter->setBrush(BrushStyle::NoBrush);
                         painter->drawPath(crescentOutline);

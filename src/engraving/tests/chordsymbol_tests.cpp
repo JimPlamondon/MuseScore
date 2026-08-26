@@ -541,6 +541,41 @@ TEST_F(Engraving_ChordSymbolTests, jimsHarmonyCreationIsPerObjectUndoableCloneab
     delete score;
 }
 
+TEST_F(Engraving_ChordSymbolTests, denseJimsHarmonyLabelsUseAlternatingVerticalLanes)
+{
+    MasterScore* score = test_pre(u"add-link");
+    ASSERT_TRUE(score);
+    score->style().set(Sid::verticallyAlignChordSymbols, true);
+
+    Segment* firstSegment = score->firstSegment(SegmentType::ChordRest);
+    Segment* secondSegment = firstSegment ? firstSegment->next(SegmentType::ChordRest) : nullptr;
+    ASSERT_TRUE(firstSegment && secondSegment);
+    ChordRest* firstChordRest = firstSegment->cr(0);
+    ChordRest* secondChordRest = secondSegment->cr(0);
+    ASSERT_TRUE(firstChordRest && secondChordRest);
+
+    Harmony* first = score->addHarmony(HarmonyType::JIMS, firstChordRest);
+    Harmony* second = score->addHarmony(HarmonyType::JIMS, secondChordRest);
+    ASSERT_TRUE(first && second);
+    first->setHarmony(u"Fi@Te:M3²+La,Ti/Re—Fi@Te:M3²+La,Ti/Re");
+    second->setHarmony(u"!So7/Ti,Mi,La—!So7/Ti,Mi,La");
+    score->doLayout();
+
+    const RectF firstBox = first->ldata()->bbox().translated(first->canvasPos());
+    const RectF secondBox = second->ldata()->bbox().translated(second->canvasPos());
+    ASSERT_GT(firstBox.right() + std::max(firstBox.height(), secondBox.height()), secondBox.left())
+        << "fixture must exercise chord names separated by less than one label height";
+    EXPECT_GT(std::abs(first->canvasPos().y() - second->canvasPos().y()),
+              std::max(firstBox.height(), secondBox.height()) * 0.5);
+    const double firstY = first->canvasPos().y();
+    const double secondY = second->canvasPos().y();
+    score->doLayout();
+    EXPECT_NEAR(first->canvasPos().y(), firstY, POSITION_ERROR);
+    EXPECT_NEAR(second->canvasPos().y(), secondY, POSITION_ERROR);
+
+    delete score;
+}
+
 TEST_F(Engraving_ChordSymbolTests, jimsHarmonyRangeCopyPasteKeepsTypeAndCanonicalName)
 {
     MasterScore* score = test_pre(u"add-link");
