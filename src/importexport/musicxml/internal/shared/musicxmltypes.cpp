@@ -152,6 +152,26 @@ int LyricNumberHandler::getLyricNo(const String& number) const
 
 void LyricNumberHandler::determineLyricNos()
 {
+    // JiMS (mei-jims profile): when every lyric number is a plain positive
+    // integer, honor it as the verse identity (number N -> verse N-1) so a
+    // sparse numbering such as a lone verse 2 survives the round trip.
+    // Any non-numeric or out-of-range number falls back to the historical
+    // densification below.
+    bool allNumeric = !m_numberToNo.empty();
+    for (const auto& p : m_numberToNo) {
+        bool ok = false;
+        const int n = p.first.toInt(&ok);
+        if (!ok || n < 1 || n > 16) {
+            allNumeric = false;
+            break;
+        }
+    }
+    if (allNumeric) {
+        for (auto& p : m_numberToNo) {
+            p.second = p.first.toInt() - 1;
+        }
+        return;
+    }
     int i = 0;
     for (auto& p : m_numberToNo) {
         p.second = i;

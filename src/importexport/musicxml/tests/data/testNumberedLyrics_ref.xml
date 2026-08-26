@@ -195,7 +195,7 @@
         <duration>4</duration>
         <voice>1</voice>
         <type>whole</type>
-        <lyric number="1">
+        <lyric number="3">
           <syllabic>single</syllabic>
           <text>3</text>
           </lyric>
@@ -210,11 +210,11 @@
         <duration>4</duration>
         <voice>1</voice>
         <type>whole</type>
-        <lyric number="1">
+        <lyric number="3">
           <syllabic>single</syllabic>
           <text>3</text>
           </lyric>
-        <lyric number="2">
+        <lyric number="4">
           <syllabic>single</syllabic>
           <text>4</text>
           </lyric>
@@ -229,11 +229,11 @@
         <duration>4</duration>
         <voice>1</voice>
         <type>whole</type>
-        <lyric number="1">
+        <lyric number="3">
           <syllabic>single</syllabic>
           <text>3</text>
           </lyric>
-        <lyric number="2">
+        <lyric number="4">
           <syllabic>single</syllabic>
           <text>4</text>
           </lyric>
@@ -248,7 +248,7 @@
         <duration>4</duration>
         <voice>1</voice>
         <type>whole</type>
-        <lyric number="1">
+        <lyric number="3">
           <syllabic>single</syllabic>
           <text>3</text>
           </lyric>
