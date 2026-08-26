@@ -1307,6 +1307,11 @@ bool MeiImporter::readStaffDefs(pugi::xml_node parentNode)
             if (warning) {
                 this->addLog("key signature", keySigNode);
             }
+            // mei-jims profile: keySig/@mode carries the conventional mode
+            const KeyMode mode = Convert::keyModeFromString(keySigNode.attribute("mode").value());
+            if (mode != KeyMode::UNKNOWN) {
+                m_keyModes[staffIdx] = mode;
+            }
         }
     }
 
@@ -1605,6 +1610,9 @@ bool MeiImporter::readStaves(pugi::xml_node parentNode, Measure* measure, Fracti
             KeySigEvent ksEvent;
             ksEvent.setKey(m_keySigs.at(keySigIdx));
             ksEvent.setConcertKey(m_keySigs.at(keySigIdx));
+            if (m_keyModes.count(keySigIdx)) {
+                ksEvent.setMode(m_keyModes.at(keySigIdx));
+            }
             KeySig* keySig = Factory::createKeySig(segment);
             keySig->setTrack(staffIdx * VOICES);
             keySig->setKeySigEvent(ksEvent);

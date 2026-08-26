@@ -233,6 +233,7 @@ private:
     std::map<int, engraving::ClefTypeList> m_clefs;
     std::map<int, std::pair<engraving::Fraction, engraving::TimeSigType> > m_timeSigs;
     std::map<int, engraving::Key> m_keySigs;
+    std::map<int, engraving::KeyMode> m_keyModes;    // keySig/@mode (mei-jims)
     /** the current time signature */
     engraving::Fraction m_currentTimeSig = engraving::Fraction(4, 4);
 
