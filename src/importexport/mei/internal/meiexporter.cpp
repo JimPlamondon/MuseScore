@@ -906,6 +906,7 @@ bool MeiExporter::writeMeasure(const Measure* measure, int& measureN, bool& isFi
             success = success && this->writeTrill(toTrill(controlEvent.first), controlEvent.second);
         }
     }
+    success = success && this->writeTimestampedHarmonies(measure);
     m_startingControlEventList.clear();
 
     for (auto controlEvent : m_tstampControlEventMap) {
@@ -1953,6 +1954,28 @@ bool MeiExporter::writeHarm(const Harmony* harmony, const std::string& startid)
 }
 
 /**
+ * Write a harm at an exact timestamp when its track has no ChordRest attack to reference.
+ */
+
+bool MeiExporter::writeHarm(const Harmony* harmony, double tstamp)
+{
+    IF_ASSERT_FAILED(harmony) {
+        return false;
+    }
+
+    StringList meiLines;
+
+    pugi::xml_node harmNode = m_currentNode.append_child();
+    libmei::Harm meiHarm = Convert::harmToMEI(harmony, meiLines);
+    meiHarm.SetTstamp(tstamp);
+    meiHarm.Write(harmNode, this->getXmlIdFor(harmony, 'h'));
+
+    this->writeLines(harmNode, meiLines);
+
+    return true;
+}
+
+/**
  * Write a harpPedal.
  */
 
@@ -2326,6 +2349,30 @@ std::vector<const Volta*> MeiExporter::findVoltasInMeasure(const Measure* measur
         }
     }
     return voltas;
+}
+
+/**
+ * Write harmonies that could not be anchored with @startid because their track has no ChordRest attack at the harmony's tick.
+ */
+
+bool MeiExporter::writeTimestampedHarmonies(const Measure* measure)
+{
+    IF_ASSERT_FAILED(measure) {
+        return false;
+    }
+
+    bool success = true;
+    for (Segment* segment = measure->first(SegmentType::ChordRest); segment; segment = segment->next(SegmentType::ChordRest)) {
+        for (const EngravingItem* annotation : segment->annotations()) {
+            if (!annotation->isHarmony() || !this->findStartIdFor(annotation).empty()) {
+                continue;
+            }
+
+            const double tstamp = Convert::tstampFromFraction(segment->tick() - measure->tick(), measure->timesig());
+            success = success && this->writeHarm(toHarmony(annotation), tstamp);
+        }
+    }
+    return success;
 }
 
 /**

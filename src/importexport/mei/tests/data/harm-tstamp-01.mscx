@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<museScore version="4.70">
+  <Score>
+    <eid>B_B</eid>
+    <Division>480</Division>
+    <Style>
+      <spatium>1.75</spatium>
+      </Style>
+    <showInvisible>1</showInvisible>
+    <showUnprintable>1</showUnprintable>
+    <showFrames>1</showFrames>
+    <showMargins>0</showMargins>
+    <metaTag name="arranger"></metaTag>
+    <metaTag name="composer"></metaTag>
+    <metaTag name="copyright"></metaTag>
+    <metaTag name="lyricist"></metaTag>
+    <metaTag name="meiHead">&lt;meiHead&gt;&lt;fileDesc&gt;&lt;titleStmt&gt;&lt;title&gt;Timestamped harmonies&lt;/title&gt;&lt;/titleStmt&gt;&lt;pubStmt/&gt;&lt;/fileDesc&gt;&lt;/meiHead&gt;</metaTag>
+    <metaTag name="movementNumber"></metaTag>
+    <metaTag name="movementTitle"></metaTag>
+    <metaTag name="source"></metaTag>
+    <metaTag name="translator"></metaTag>
+    <metaTag name="workNumber"></metaTag>
+    <metaTag name="workTitle">Timestamped harmonies</metaTag>
+    <Part id="1">
+      <Staff>
+        <eid>C_C</eid>
+        <StaffType group="pitched">
+          <name>stdNormal</name>
+          </StaffType>
+        </Staff>
+      <trackName></trackName>
+      <Instrument id="piano">
+        <trackName></trackName>
+        <instrumentId>keyboard.piano</instrumentId>
+        <Channel>
+          </Channel>
+        </Instrument>
+      </Part>
+    <Staff id="1">
+      <VBox>
+        <height>10</height>
+        <eid>D_D</eid>
+        <Text>
+          <eid>E_E</eid>
+          <style>title</style>
+          <text>Timestamped harmonies</text>
+          </Text>
+        </VBox>
+      <Measure>
+        <eid>F_F</eid>
+        <voice>
+          <Clef>
+            <concertClefType>G</concertClefType>
+            <transposingClefType>G</transposingClefType>
+            <isHeader>1</isHeader>
+            <eid>G_G</eid>
+            </Clef>
+          <TimeSig>
+            <eid>H_H</eid>
+            <sigN>4</sigN>
+            <sigD>4</sigD>
+            </TimeSig>
+          <Chord>
+            <eid>I_I</eid>
+            <durationType>whole</durationType>
+            <Note>
+              <eid>J_J</eid>
+              <pitch>60</pitch>
+              <tpc>14</tpc>
+              </Note>
+            </Chord>
+          <location>
+            <fractions>-7/8</fractions>
+            </location>
+          <Harmony>
+            <harmonyInfo>
+              <name>Si:m3²</name>
+              </harmonyInfo>
+            <eid>K_K</eid>
+            </Harmony>
+          <Harmony>
+            <harmonyInfo>
+              <name>Ti5/Re</name>
+              </harmonyInfo>
+            <eid>L_L</eid>
+            </Harmony>
+          <location>
+            <fractions>1/16</fractions>
+            </location>
+          <Harmony>
+            <harmonyInfo>
+              <name>Si:m3³/Ti</name>
+              </harmonyInfo>
+            <eid>M_M</eid>
+            </Harmony>
+          <location>
+            <fractions>3/16</fractions>
+            </location>
+          <Harmony>
+            <rootCase>1</rootCase>
+            <harmonyInfo>
+              <name>!Ri:Ti5+9/La</name>
+              </harmonyInfo>
+            <eid>N_N</eid>
+            </Harmony>
+          <Harmony>
+            <harmonyInfo>
+              <name>So7/Fa</name>
+              </harmonyInfo>
+            <eid>O_O</eid>
+            </Harmony>
+          <location>
+            <fractions>1/16</fractions>
+            </location>
+          <Harmony>
+            <harmonyInfo>
+              <name>Mi+Si,4,7</name>
+              </harmonyInfo>
+            <eid>P_P</eid>
+            </Harmony>
+          <location>
+            <fractions>3/16</fractions>
+            </location>
+          <Harmony>
+            <harmonyInfo>
+              <name>So7</name>
+              </harmonyInfo>
+            <eid>Q_Q</eid>
+            </Harmony>
+          <Harmony>
+            <harmonyInfo>
+              <name>So7</name>
+              </harmonyInfo>
+            <eid>R_R</eid>
+            </Harmony>
+          <Harmony>
+            <rootCase>1</rootCase>
+            <harmonyInfo>
+              <name>!So7/Ti</name>
+              </harmonyInfo>
+            <eid>S_S</eid>
+            </Harmony>
+          <location>
+            <fractions>1/4</fractions>
+            </location>
+          <Harmony>
+            <harmonyInfo>
+              <name>Re5/Fa</name>
+              </harmonyInfo>
+            <eid>T_T</eid>
+            </Harmony>
+          <location>
+            <fractions>1/8</fractions>
+            </location>
+          <BarLine>
+            <subtype>end</subtype>
+            <eid>U_U</eid>
+            </BarLine>
+          </voice>
+        <voice>
+          <Chord>
+            <eid>V_V</eid>
+            <durationType>half</durationType>
+            <Note>
+              <eid>W_W</eid>
+              <pitch>64</pitch>
+              <tpc>18</tpc>
+              </Note>
+            </Chord>
+          <Chord>
+            <eid>X_X</eid>
+            <durationType>half</durationType>
+            <Note>
+              <eid>Y_Y</eid>
+              <pitch>65</pitch>
+              <tpc>13</tpc>
+              </Note>
+            </Chord>
+          </voice>
+        </Measure>
+      </Staff>
+    </Score>
+  </museScore>
