@@ -21,6 +21,7 @@
  */
 #include "meijims.h"
 
+#include <algorithm>
 #include <sstream>
 
 #include "engraving/dom/factory.h"
@@ -106,8 +107,82 @@ static bool extentBounds(const String& stateJson, int out[4])
 }
 
 //---------------------------------------------------------
+// typed review value tree <-> jm value elements
+//---------------------------------------------------------
+
+static void writeReviewValue(pugi::xml_node parent, const jims::ReviewValue& v)
+{
+    using Kind = jims::ReviewValue::Kind;
+    const char* tag = "jm:z";
+    switch (v.kind) {
+    case Kind::Object: tag = "jm:o";
+        break;
+    case Kind::Array: tag = "jm:a";
+        break;
+    case Kind::String: tag = "jm:s";
+        break;
+    case Kind::Number: tag = "jm:num";
+        break;
+    case Kind::Bool: tag = "jm:b";
+        break;
+    case Kind::Null: tag = "jm:z";
+        break;
+    }
+    pugi::xml_node node = parent.append_child(tag);
+    if (!v.name.isEmpty()) {
+        node.append_attribute("n") = v.name.toStdString().c_str();
+    }
+    if (v.kind == Kind::Object || v.kind == Kind::Array) {
+        for (const jims::ReviewValue& c : v.children) {
+            writeReviewValue(node, c);
+        }
+    } else if (v.kind != Kind::Null) {
+        node.text().set(v.text.toStdString().c_str());
+    }
+}
+
+static std::string localNameOf(pugi::xml_node node);
+
+static jims::ReviewValue readReviewValue(pugi::xml_node node)
+{
+    using Kind = jims::ReviewValue::Kind;
+    jims::ReviewValue v;
+    v.name = String(node.attribute("n").value());
+    const std::string tag = localNameOf(node);
+    if (tag == "o" || tag == "a") {
+        v.kind = (tag == "o") ? Kind::Object : Kind::Array;
+        for (pugi::xml_node child : node.children()) {
+            v.children.push_back(readReviewValue(child));
+        }
+    } else if (tag == "s") {
+        v.kind = Kind::String;
+        v.text = String(node.text().as_string());
+    } else if (tag == "num") {
+        v.kind = Kind::Number;
+        v.text = String(node.text().as_string());
+    } else if (tag == "b") {
+        v.kind = Kind::Bool;
+        v.text = String(node.text().as_string());
+    } else {
+        v.kind = Kind::Null;
+    }
+    return v;
+}
+
+//---------------------------------------------------------
 // JimsMeiExporter
 //---------------------------------------------------------
+
+std::string JimsMeiExporter::respIdFor(const String& reviewer)
+{
+    for (size_t i = 0; i < m_reviewers.size(); ++i) {
+        if (m_reviewers.at(i) == reviewer) {
+            return "jims-resp-" + std::to_string(i + 1);
+        }
+    }
+    m_reviewers.push_back(reviewer);
+    return "jims-resp-" + std::to_string(m_reviewers.size());
+}
 
 bool JimsMeiExporter::buildPlan(const Score* score)
 {
@@ -120,6 +195,16 @@ bool JimsMeiExporter::buildPlan(const Score* score)
     m_measureIndex.clear();
     m_harms.clear();
     m_notes.clear();
+    m_reviewers.clear();
+    m_adjAnnotIds.clear();
+    for (const jims::ReviewAdjudication& adj : score->jimsReview().adjudications) {
+        if (!adj.reviewer.isEmpty()) {
+            respIdFor(adj.reviewer);
+        }
+    }
+    if (!score->jimsReview().empty()) {
+        m_present = true;
+    }
 
     // JiMS chord names must be exportable (same contract as MusicXML export).
     for (const Segment* segment = score->firstSegment(SegmentType::ChordRest); segment;
@@ -340,6 +425,15 @@ void JimsMeiExporter::writeScoreAnnots(pugi::xml_node scoreNode)
         annot.append_attribute("class") = ("#jims.ambit." + m_tonicAmbit.toStdString()).c_str();
         annot.text().set(m_tonicAmbit.toStdString().c_str());
     }
+    const jims::ReviewRecord& review = m_score->jimsReview();
+    if (!review.focusedReviewReasons.empty()) {
+        pugi::xml_node fr = scoreNode.append_child("annot");
+        fr.append_attribute("xml:id") = "jims-focused-review";
+        fr.append_attribute("type") = "jims-focused-review";
+        for (const String& reason : review.focusedReviewReasons) {
+            fr.append_child("p").text().set(reason.toStdString().c_str());
+        }
+    }
     if (!m_staves.empty()) {
         const String token = jims::melodyPartToken(m_score->jimsMelodyPart());
         pugi::xml_node annot = scoreNode.append_child("annot");
@@ -359,6 +453,42 @@ void JimsMeiExporter::writeScoreAnnots(pugi::xml_node scoreNode)
 
 void JimsMeiExporter::writeMeasureAnnots(pugi::xml_node measureNode, const Measure* measure)
 {
+    // Evidentiary adjudications anchored inside this measure. An anchor that
+    // no longer lands in the score is STALE: it is marked, never silently
+    // re-timed (spec/MAPPING.md fact 12-14).
+    const jims::ReviewRecord& review = m_score->jimsReview();
+    for (size_t i = 0; i < review.adjudications.size(); ++i) {
+        const jims::ReviewAdjudication& adj = review.adjudications.at(i);
+        if (adj.tick < measure->tick() || adj.tick >= measure->endTick()) {
+            continue;
+        }
+        pugi::xml_node annot = measureNode.append_child("annot");
+        const std::string id = adj.annotId.isEmpty()
+                               ? ("jims-adj-" + std::to_string(i + 1)) : adj.annotId.toStdString();
+        annot.append_attribute("xml:id") = id.c_str();
+        annot.append_attribute("type") = "jims-adjudication";
+        annot.append_attribute("class") = ("#jims.outcome." + adj.outcome.toStdString()).c_str();
+        annot.append_attribute("tstamp")
+            = tstampStr(tstampFrom(adj.tick - measure->tick(), measure->timesig())).c_str();
+        if (!adj.reviewer.isEmpty()) {
+            annot.append_attribute("resp") = ("#" + respIdFor(adj.reviewer)).c_str();
+        }
+        for (const String& note : adj.notes) {
+            annot.append_child("p").text().set(note.toStdString().c_str());
+        }
+        pugi::xml_node ptrs = annot.append_child("p");
+        for (const String& ev : adj.evidence) {
+            pugi::xml_node ptr = ptrs.append_child("ptr");
+            ptr.append_attribute("type") = "jims-evidence";
+            ptr.append_attribute("target") = ev.toStdString().c_str();
+        }
+        if (!adj.sourceAnalysis.isEmpty()) {
+            pugi::xml_node ptr = ptrs.append_child("ptr");
+            ptr.append_attribute("type") = "jims-source-analysis";
+            ptr.append_attribute("target") = adj.sourceAnalysis.toStdString().c_str();
+        }
+        m_adjAnnotIds.push_back(id);
+    }
     for (StaffPlan& plan : m_staves) {
         for (size_t si = 0; si < plan.states.size(); ++si) {
             const Fraction tick = plan.states.at(si).first;
@@ -579,6 +709,38 @@ bool JimsMeiExporter::writeExtMeta(pugi::xml_node meiHead)
         ev.append_attribute("off") = fracStr(quartersOf(segment->tick() - measure->tick())).c_str();
     }
 
+    // Responsible agents for the evidentiary adjudications.
+    if (!m_reviewers.empty()) {
+        pugi::xml_node fileDesc = meiHead.child("fileDesc");
+        if (!fileDesc) {
+            fileDesc = meiHead.prepend_child("fileDesc");
+        }
+        pugi::xml_node titleStmt = fileDesc.child("titleStmt");
+        if (!titleStmt) {
+            titleStmt = fileDesc.prepend_child("titleStmt");
+        }
+        pugi::xml_node respStmt = titleStmt.child("respStmt");
+        if (!respStmt) {
+            respStmt = titleStmt.append_child("respStmt");
+        }
+        for (size_t i = 0; i < m_reviewers.size(); ++i) {
+            const std::string id = "jims-resp-" + std::to_string(i + 1);
+            bool exists = false;
+            for (pugi::xml_node pn : respStmt.children("persName")) {
+                if (id == pn.attribute("xml:id").value()) {
+                    exists = true;
+                }
+            }
+            if (exists) {
+                continue;
+            }
+            pugi::xml_node pn = respStmt.append_child("persName");
+            pn.append_attribute("xml:id") = id.c_str();
+            pn.append_attribute("role") = "jims-reviewer";
+            pn.text().set(m_reviewers.at(i).toStdString().c_str());
+        }
+    }
+
     // Native provenance sources (uri, media type, hash) in fileDesc/sourceDesc.
     const jims::Provenance& prov = m_score->jimsProvenance();
     if (!prov.resources.empty()) {
@@ -638,6 +800,75 @@ bool JimsMeiExporter::writeExtMeta(pugi::xml_node meiHead)
             }
         }
     }
+    // The evidentiary review record. Every adjudication must still resolve
+    // to a live score position; a stale anchor is reported, never silently
+    // emitted as valid analysis.
+    const jims::ReviewRecord& review = m_score->jimsReview();
+    if (!review.empty()) {
+        pugi::xml_node rv = rec.append_child("jm:review");
+        rv.append_attribute("schema") = review.schema.toStdString().c_str();
+        if (!review.work.children.empty()) {
+            pugi::xml_node w = rv.append_child("jm:work");
+            writeReviewValue(w, review.work);
+        }
+        // Revision history: date, agent and prose ride the NATIVE
+        // revisionDesc (spec/MAPPING.md fact 20); jm:audit carries only the
+        // exact field/prior/new payload, linked by @change.
+        pugi::xml_node revisionDesc = meiHead.child("revisionDesc");
+        if (!revisionDesc && !review.audits.empty()) {
+            revisionDesc = meiHead.append_child("revisionDesc");
+        }
+        for (size_t i = 0; i < review.audits.size(); ++i) {
+            const jims::ReviewAudit& a = review.audits.at(i);
+            // reuse the imported change identity so a round trip never
+            // duplicates the native revision entry
+            const std::string id = a.changeId.isEmpty()
+                                   ? ("jims-change-" + std::to_string(i + 1))
+                                   : a.changeId.toStdString();
+            bool exists = false;
+            for (pugi::xml_node ch : revisionDesc.children("change")) {
+                if (id == ch.attribute("xml:id").value()) {
+                    exists = true;
+                }
+            }
+            if (!exists) {
+                pugi::xml_node ch = revisionDesc.append_child("change");
+                ch.append_attribute("xml:id") = id.c_str();
+                if (!a.date.isEmpty()) {
+                    ch.append_attribute("isodate") = a.date.toStdString().c_str();
+                }
+                if (!a.phase.isEmpty()) {
+                    ch.append_attribute("label") = a.phase.toStdString().c_str();
+                }
+                pugi::xml_node cd = ch.append_child("changeDesc");
+                cd.append_child("p").text().set(a.reason.toStdString().c_str());
+            }
+            pugi::xml_node ae = rv.append_child("jm:audit");
+            ae.append_attribute("change") = ("#" + id).c_str();
+            writeReviewValue(ae, a.record);
+        }
+        size_t emitted = 0;
+        for (size_t i = 0; i < review.adjudications.size(); ++i) {
+            const jims::ReviewAdjudication& adj = review.adjudications.at(i);
+            const std::string id = adj.annotId.isEmpty()
+                                   ? ("jims-adj-" + std::to_string(i + 1)) : adj.annotId.toStdString();
+            const bool placed = std::find(m_adjAnnotIds.begin(), m_adjAnnotIds.end(), id) != m_adjAnnotIds.end();
+            pugi::xml_node te = rv.append_child("jm:adjudication");
+            if (placed) {
+                te.append_attribute("annot") = ("#" + id).c_str();
+                ++emitted;
+            } else {
+                // the anchored position no longer exists in this score
+                te.append_attribute("stale") = "true";
+                te.append_attribute("id") = id.c_str();
+                te.append_attribute("tick") = adj.tick.toString().toStdString().c_str();
+                LOGW() << "JiMS MEI export: adjudication " << id
+                       << " is stale (its score-time anchor no longer resolves); marked stale";
+            }
+            writeReviewValue(te, adj.record);
+        }
+        UNUSED(emitted);
+    }
     return true;
 }
 
@@ -690,6 +921,41 @@ void JimsMeiImporter::capture(pugi::xml_node root)
     if (melody) {
         m_melodyToken = String(melody.text().as_string());
     }
+
+    // Evidentiary review carriers: responsible agents, focused-review
+    // reasons, and each adjudication's native annotation (its class,
+    // prose, pointers, and exact timing).
+    m_reviewerById.clear();
+    for (pugi::xpath_node pn : root.select_nodes("//respStmt/persName[@role='jims-reviewer']")) {
+        m_reviewerById[pn.node().attribute("xml:id").value()] = String(pn.node().text().as_string());
+    }
+    m_focusedReviewReasons.clear();
+    pugi::xml_node fr = root.select_node("//score/annot[@type='jims-focused-review']").node();
+    if (fr) {
+        for (pugi::xml_node p : fr.children("p")) {
+            m_focusedReviewReasons.push_back(String(p.text().as_string()));
+        }
+    }
+    m_adjAnnots.clear();
+    for (pugi::xpath_node a : root.select_nodes("//measure/annot[@type='jims-adjudication']")) {
+        m_adjAnnots[a.node().attribute("xml:id").value()] = a.node();
+    }
+    m_changeById.clear();
+    for (pugi::xpath_node ch : root.select_nodes("//revisionDesc/change[@xml:id]")) {
+        ChangeEntry entry;
+        entry.date = String(ch.node().attribute("isodate").value());
+        entry.phase = String(ch.node().attribute("label").value());
+        entry.reason = String(ch.node().select_node(".//changeDesc/p").node().text().as_string());
+        m_changeById[ch.node().attribute("xml:id").value()] = entry;
+    }
+    m_adjMeasureIndex.clear();
+    int mi = 0;
+    for (pugi::xpath_node m : root.select_nodes("//section/measure")) {
+        for (pugi::xpath_node a : m.node().select_nodes("./annot[@type='jims-adjudication']")) {
+            m_adjMeasureIndex[a.node().attribute("xml:id").value()] = mi;
+        }
+        ++mi;
+    }
 }
 
 /// jx local name of a node whose prefix is unknown ("jx:staff-state",
@@ -699,6 +965,11 @@ static std::string localName(pugi::xml_node node)
     std::string name = node.name();
     size_t colon = name.find(':');
     return colon == std::string::npos ? name : name.substr(colon + 1);
+}
+
+static std::string localNameOf(pugi::xml_node node)
+{
+    return localName(node);
 }
 
 static pugi::xml_node childByLocal(pugi::xml_node parent, const char* local)
@@ -977,6 +1248,97 @@ bool JimsMeiImporter::apply(Score* score,
                 staff->addJimsTuningTrajectory(trajectory);
             }
         }
+    }
+
+    // Evidentiary review record: the jm payload supplies the exact fields,
+    // the native annotations supply category, prose, agent, and timing.
+    pugi::xml_node rv;
+    for (pugi::xml_node child : m_record.children()) {
+        if (localName(child) == "review") {
+            rv = child;
+        }
+    }
+    if (rv) {
+        jims::ReviewRecord review;
+        review.schema = String(rv.attribute("schema").value());
+        review.focusedReviewReasons = m_focusedReviewReasons;
+        for (pugi::xml_node child : rv.children()) {
+            const std::string tag = localName(child);
+            if (tag == "work") {
+                for (pugi::xml_node v : child.children()) {
+                    review.work = readReviewValue(v);
+                }
+            } else if (tag == "audit") {
+                jims::ReviewAudit a;
+                const std::string cid = std::string(child.attribute("change").value()).substr(1);
+                a.changeId = String::fromStdString(cid);
+                auto cit = m_changeById.find(cid);
+                if (cit != m_changeById.end()) {
+                    a.date = cit->second.date;
+                    a.phase = cit->second.phase;
+                    a.reason = cit->second.reason;
+                }
+                for (pugi::xml_node v : child.children()) {
+                    a.record = readReviewValue(v);
+                }
+                review.audits.push_back(a);
+            } else if (tag == "adjudication") {
+                jims::ReviewAdjudication adj;
+                for (pugi::xml_node v : child.children()) {
+                    adj.record = readReviewValue(v);
+                }
+                if (std::string(child.attribute("stale").value()) == "true") {
+                    // a stale record round-trips as stale; it is never
+                    // re-anchored to an arbitrary position
+                    adj.annotId = String(child.attribute("id").value());
+                    adj.tick = Fraction::fromString(String(child.attribute("tick").value()));
+                    review.adjudications.push_back(adj);
+                    continue;
+                }
+                const std::string aid = std::string(child.attribute("annot").value()).substr(1);
+                auto ait = m_adjAnnots.find(aid);
+                if (ait == m_adjAnnots.end()) {
+                    m_error = u"JiMS MEI import: an adjudication record does not resolve to its annotation";
+                    return false;
+                }
+                pugi::xml_node annot = ait->second;
+                adj.annotId = String::fromStdString(aid);
+                const std::string cls = annot.attribute("class").value();
+                const size_t dot = cls.rfind('.');
+                adj.outcome = String::fromStdString(dot == std::string::npos ? cls : cls.substr(dot + 1));
+                auto rit = m_reviewerById.find(std::string(annot.attribute("resp").value()).substr(1));
+                if (rit != m_reviewerById.end()) {
+                    adj.reviewer = rit->second;
+                }
+                for (pugi::xml_node p : annot.children("p")) {
+                    if (p.child("ptr")) {
+                        for (pugi::xml_node ptr : p.children("ptr")) {
+                            const std::string type = ptr.attribute("type").value();
+                            if (type == "jims-evidence") {
+                                adj.evidence.push_back(String(ptr.attribute("target").value()));
+                            } else if (type == "jims-source-analysis") {
+                                adj.sourceAnalysis = String(ptr.attribute("target").value());
+                            }
+                        }
+                    } else {
+                        adj.notes.push_back(String(p.text().as_string()));
+                    }
+                }
+                auto mit = m_adjMeasureIndex.find(aid);
+                if (mit != m_adjMeasureIndex.end() && mit->second < int(measures.size())) {
+                    Measure* measure = measures.at(mit->second);
+                    const double tstamp = annot.attribute("tstamp").as_double(1.0);
+                    const Fraction timesig = measure->timesig();
+                    const Fraction off = Fraction::fromTicks(
+                        int(std::lround((tstamp - 1.0) * timesig.denominator() > 0
+                                        ? (tstamp - 1.0) / timesig.denominator() * 4.0 * Constants::DIVISION
+                                        : 0.0)));
+                    adj.tick = measure->tick() + off;
+                }
+                review.adjudications.push_back(adj);
+            }
+        }
+        score->setJimsReview(review);
     }
 
     // Melody-part designation (typed native annotation).

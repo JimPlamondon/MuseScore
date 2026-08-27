@@ -5081,6 +5081,14 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         std::vector<StaffLines::JimsGuideLine> guides;
         auto guide = [&](double cents, bool dashed, int rgb) {
             double gy = y + jimsSt->jimsYFromCents(cents, view) * _spatium;
+            const bool alreadyPresent
+                = std::any_of(guides.begin(), guides.end(), [&](const StaffLines::JimsGuideLine& existing) {
+                return std::abs(existing.line.y1() - gy) < 1e-6
+                       && existing.dashed == dashed && existing.rgb == rgb;
+            });
+            if (alreadyPresent) {
+                return;
+            }
             guides.push_back({ LineF(lineStartX, gy, x2, gy), dashed, rgb });
         };
         // Kernel JI lines for the scaffold colors (fetched once).
@@ -5103,9 +5111,10 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         };
         // Per segment: red Do-lines at every period boundary inside the
         // segment (inclusive of segment edges when they ARE boundaries);
-        // scaffold lines only where they fall inside the segment. Lines
-        // beyond a partial cut are simply not drawn — the cut edge
-        // itself is closed by the sliced clef, not by a staff line.
+        // scaffold lines wherever they fall inside the segment, including
+        // a non-Do Xx row that forms either edge. The sliced clef closes on
+        // that same row; excluding the scaffold at the edge leaves an
+        // isolated closure and makes the staff appear to lack its boundary.
         const double epsilon = 1e-6;
         // Per band, per segment (one band when elision is off).
         for (const StaffType::JimsFrameBand& band : view.bands) {
@@ -5117,24 +5126,24 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
                      boundary += periodCents) {
                     guide(boundary, false, 0xE03030);
                 }
-                double basePeriod = origins.doCentsAboveExtentLower
-                                    + std::floor((segment.lowerCents - origins.doCentsAboveExtentLower) / periodCents)
-                                    * periodCents;
+                const double basePeriod = origins.doCentsAboveExtentLower
+                                          + std::floor((segment.lowerCents - origins.doCentsAboveExtentLower)
+                                                       / periodCents) * periodCents;
                 for (double period = basePeriod; period < segment.upperCents; period += periodCents) {
                     if (haveJi) {
                         for (const jims::JiLine& ji : jiLines) {
                             if (ji.visible) {
-                                double cents = period + ji.cents;
-                                if (cents > segment.lowerCents + epsilon
-                                    && cents < segment.upperCents - epsilon) {
+                                const double cents = period + ji.cents;
+                                if (cents >= segment.lowerCents - epsilon
+                                    && cents <= segment.upperCents + epsilon) {
                                     guide(cents, true, limitColor(ji.limit));
                                 }
                             }
                         }
                     } else if (!jimsSt->jimsJiLines()) {
-                        double framePeriod = std::floor(segment.lowerCents / periodCents) * periodCents;
-                        double cents = framePeriod + periodCents / 2.0; // mid-frame line
-                        if (cents > segment.lowerCents + epsilon && cents < segment.upperCents - epsilon) {
+                        const double cents = period + periodCents / 2.0; // mid-frame line
+                        if (cents >= segment.lowerCents - epsilon
+                            && cents <= segment.upperCents + epsilon) {
                             guide(cents, true, 0xE0C020);
                         }
                     }

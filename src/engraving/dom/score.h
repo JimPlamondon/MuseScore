@@ -35,6 +35,7 @@
 #include "global/async/channel.h"
 #include "global/types/ret.h"
 #include "../jims/jimsinterchange.h"
+#include "../jims/jimsreview.h"
 
 #include "modularity/ioc.h"
 #include "draw/iimageprovider.h"
@@ -903,6 +904,9 @@ public:
     void setJimsProvenance(const jims::Provenance& p) { m_jimsProvenance = p; }
     jims::MelodyPart jimsMelodyPart() const { return m_jimsMelodyPart; }
     void setJimsMelodyPart(jims::MelodyPart part) { m_jimsMelodyPart = part; }
+    /// The JiMS evidentiary review record (transported; see jims/jimsreview.h)
+    const jims::ReviewRecord& jimsReview() const { return m_jimsReview; }
+    void setJimsReview(const jims::ReviewRecord& r) { m_jimsReview = r; }
 
     const std::map<String, String>& metaTags() const { return m_metaTags; }
     std::map<String, String>& metaTags() { return m_metaTags; }
@@ -1236,6 +1240,7 @@ private:
     std::map<String, String> m_metaTags;
     jims::Provenance m_jimsProvenance;
     jims::MelodyPart m_jimsMelodyPart = jims::MelodyPart::Soprano;
+    jims::ReviewRecord m_jimsReview;
 
     Selection m_selection;
     SelectionFilter m_selectionFilter;

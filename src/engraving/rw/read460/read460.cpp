@@ -63,6 +63,84 @@
 using namespace mu::engraving;
 using namespace mu::engraving::read460;
 
+static jims::ReviewValue readJimsReviewValue(XmlReader& e)
+{
+    using Kind = jims::ReviewValue::Kind;
+    jims::ReviewValue v;
+    v.name = e.attribute("n");
+    const AsciiStringView tag = e.name();
+    if (tag == "o" || tag == "a") {
+        v.kind = (tag == "o") ? Kind::Object : Kind::Array;
+        while (e.readNextStartElement()) {
+            v.children.push_back(readJimsReviewValue(e));
+        }
+    } else if (tag == "s") {
+        v.kind = Kind::String;
+        v.text = e.readText();
+    } else if (tag == "num") {
+        v.kind = Kind::Number;
+        v.text = e.readText();
+    } else if (tag == "b") {
+        v.kind = Kind::Bool;
+        v.text = e.readText();
+    } else {
+        v.kind = Kind::Null;
+        e.skipCurrentElement();
+    }
+    return v;
+}
+
+/// Read the JiMS evidentiary review record (jims/jimsreview.h).
+static jims::ReviewRecord readJimsReview(XmlReader& e)
+{
+    jims::ReviewRecord review;
+    review.schema = e.attribute("schema");
+    while (e.readNextStartElement()) {
+        const AsciiStringView tag = e.name();
+        if (tag == "work") {
+            while (e.readNextStartElement()) {
+                review.work = readJimsReviewValue(e);
+            }
+        } else if (tag == "focusedReviewReason") {
+            review.focusedReviewReasons.push_back(e.readText());
+        } else if (tag == "audit") {
+            jims::ReviewAudit a;
+            a.changeId = e.attribute("id");
+            a.date = e.attribute("date");
+            a.phase = e.attribute("phase");
+            while (e.readNextStartElement()) {
+                if (e.name() == "reason") {
+                    a.reason = e.readText();
+                } else {
+                    a.record = readJimsReviewValue(e);
+                }
+            }
+            review.audits.push_back(a);
+        } else if (tag == "adjudication") {
+            jims::ReviewAdjudication adj;
+            adj.annotId = e.attribute("id");
+            adj.outcome = e.attribute("outcome");
+            adj.reviewer = e.attribute("reviewer");
+            adj.tick = Fraction::fromString(e.attribute("tick"));
+            while (e.readNextStartElement()) {
+                if (e.name() == "note") {
+                    adj.notes.push_back(e.readText());
+                } else if (e.name() == "evidence") {
+                    adj.evidence.push_back(e.readText());
+                } else if (e.name() == "sourceAnalysis") {
+                    adj.sourceAnalysis = e.readText();
+                } else {
+                    adj.record = readJimsReviewValue(e);
+                }
+            }
+            review.adjudications.push_back(adj);
+        } else {
+            e.unknown();
+        }
+    }
+    return review;
+}
+
 muse::Ret Read460::readScoreFile(Score* score, XmlReader& e, rw::ReadInOutData* data)
 {
     ReadContext ctx(score);
@@ -210,6 +288,8 @@ bool Read460::readScoreTag(Score* score, XmlReader& e, ReadContext& ctx)
                 }
             }
             score->setJimsProvenance(prov);
+        } else if (tag == "jimsReview") {
+            score->setJimsReview(readJimsReview(e));
         } else if (tag == "jimsMelodyPart") {
             jims::MelodyPart part = jims::MelodyPart::Soprano;
             if (jims::melodyPartFromToken(e.readText().trimmed(), part)) {

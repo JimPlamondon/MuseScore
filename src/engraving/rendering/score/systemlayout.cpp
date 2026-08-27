@@ -1201,12 +1201,61 @@ static void autoplaceHarmony(EngravingItem* harmony)
     Autoplace::autoplaceSegmentElement(harmony, harmony->mutldata());
 }
 
+static void staggerDenseJimsHarmonies(const std::vector<Harmony*>& harmonies, System* system, LayoutContext& ctx)
+{
+    using GroupKey = std::pair<staff_idx_t, bool>;
+    std::map<GroupKey, std::vector<Harmony*> > groups;
+    for (Harmony* harmony : harmonies) {
+        if (harmony->harmonyType() == HarmonyType::JIMS) {
+            groups[{ harmony->staffIdx(), harmony->placeAbove() }].push_back(harmony);
+        }
+    }
+
+    for (auto& [key, group] : groups) {
+        if (group.size() < 2) {
+            continue;
+        }
+        std::sort(group.begin(), group.end(), [](const Harmony* left, const Harmony* right) {
+            return left->canvasPos().x() + left->ldata()->bbox().left()
+                   < right->canvasPos().x() + right->ldata()->bbox().left();
+        });
+
+        double laneOffset = 0.0;
+        for (const Harmony* harmony : group) {
+            laneOffset = std::max(laneOffset, harmony->ldata()->bbox().height());
+        }
+        laneOffset += ctx.conf().styleMM(Sid::harmonyHarmonyDistance);
+
+        double laneRight[2] = { -DBL_MAX, -DBL_MAX };
+        double laneHeight[2] = { 0.0, 0.0 };
+        for (Harmony* harmony : group) {
+            const RectF box = harmony->ldata()->bbox().translated(harmony->canvasPos());
+            auto hasRoom = [&](int lane) {
+                const double readableGap = std::max(box.height(), laneHeight[lane]);
+                return box.left() - laneRight[lane] >= readableGap;
+            };
+            int lane = hasRoom(0) ? 0 : 1;
+            if (lane == 1 && !hasRoom(1) && laneRight[0] < laneRight[1]) {
+                lane = 0;
+            }
+            if (lane == 1) {
+                const double yMove = key.second ? -laneOffset : laneOffset;
+                harmony->mutldata()->moveY(yMove);
+                SystemLayout::updateSkylineForElement(harmony, system, yMove);
+            }
+            laneRight[lane] = box.right();
+            laneHeight[lane] = box.height();
+        }
+    }
+}
+
 void SystemLayout::layoutHarmonies(const std::vector<Harmony*> harmonies, System* system, LayoutContext& ctx)
 {
     if (!ctx.conf().styleB(Sid::verticallyAlignChordSymbols)) {
         for (Harmony* harmony : harmonies) {
             autoplaceHarmony(harmony);
         }
+        staggerDenseJimsHarmonies(harmonies, system, ctx);
         return;
     }
 
@@ -1232,6 +1281,7 @@ void SystemLayout::layoutHarmonies(const std::vector<Harmony*> harmonies, System
     for (EngravingItem* harmony : harmonyItemsNoAlign) {
         autoplaceHarmony(harmony);
     }
+    staggerDenseJimsHarmonies(harmonies, system, ctx);
 }
 
 void SystemLayout::layoutFretDiagrams(const ElementsToLayout& elements, System* system, LayoutContext& ctx)
