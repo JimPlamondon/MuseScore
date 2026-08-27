@@ -37,6 +37,73 @@
 
 using namespace muse;
 using namespace mu::engraving;
+
+static void writeJimsReviewValue(XmlWriter& xml, const jims::ReviewValue& v)
+{
+    using Kind = jims::ReviewValue::Kind;
+    XmlWriter::Attributes attrs;
+    if (!v.name.isEmpty()) {
+        attrs.push_back({ "n", v.name });
+    }
+    switch (v.kind) {
+    case Kind::Object:
+    case Kind::Array:
+        xml.startElement(v.kind == Kind::Object ? "o" : "a", attrs);
+        for (const jims::ReviewValue& c : v.children) {
+            writeJimsReviewValue(xml, c);
+        }
+        xml.endElement();
+        break;
+    case Kind::String: xml.tag("s", attrs, v.text);
+        break;
+    case Kind::Number: xml.tag("num", attrs, v.text);
+        break;
+    case Kind::Bool: xml.tag("b", attrs, v.text);
+        break;
+    case Kind::Null: xml.tag("z", attrs);
+        break;
+    }
+}
+
+/// The JiMS evidentiary review record (jims/jimsreview.h): typed, never an
+/// opaque string, with every adjudication carrying its exact tick anchor.
+static void writeJimsReview(XmlWriter& xml, const jims::ReviewRecord& review)
+{
+    xml.startElement("jimsReview", { { "schema", review.schema } });
+    if (!review.work.children.empty()) {
+        xml.startElement("work");
+        writeJimsReviewValue(xml, review.work);
+        xml.endElement();
+    }
+    for (const muse::String& reason : review.focusedReviewReasons) {
+        xml.tag("focusedReviewReason", reason);
+    }
+    for (const jims::ReviewAudit& a : review.audits) {
+        xml.startElement("audit", { { "id", a.changeId }, { "date", a.date }, { "phase", a.phase } });
+        xml.tag("reason", a.reason);
+        writeJimsReviewValue(xml, a.record);
+        xml.endElement();
+    }
+    for (const jims::ReviewAdjudication& adj : review.adjudications) {
+        xml.startElement("adjudication", {
+            { "id", adj.annotId }, { "outcome", adj.outcome },
+            { "reviewer", adj.reviewer }, { "tick", adj.tick.toString() },
+        });
+        for (const muse::String& note : adj.notes) {
+            xml.tag("note", note);
+        }
+        for (const muse::String& ev : adj.evidence) {
+            xml.tag("evidence", ev);
+        }
+        if (!adj.sourceAnalysis.isEmpty()) {
+            xml.tag("sourceAnalysis", adj.sourceAnalysis);
+        }
+        writeJimsReviewValue(xml, adj.record);
+        xml.endElement();
+    }
+    xml.endElement();
+}
+
 using namespace mu::engraving::write;
 
 Writer::Writer(const muse::modularity::ContextPtr& iocCtx)
@@ -178,7 +245,7 @@ void Writer::write(Score* score, XmlWriter& xml, WriteContext& ctx, compat::Writ
         }
     }
 
-    // JiMS MusicXML interchange carrier, transported verbatim (jims/jimsinterchange.h).
+// JiMS MusicXML interchange carrier, transported verbatim (jims/jimsinterchange.h).
     if (!score->m_jimsProvenance.empty()) {
         XmlWriter::Attributes attrs;
         if (score->m_jimsProvenance.strictFallback) {
@@ -200,6 +267,9 @@ void Writer::write(Score* score, XmlWriter& xml, WriteContext& ctx, compat::Writ
     }
     if (score->m_jimsMelodyPart != jims::MelodyPart::Soprano) {
         xml.tag("jimsMelodyPart", jims::melodyPartToken(score->m_jimsMelodyPart));
+    }
+    if (!score->m_jimsReview.empty()) {
+        writeJimsReview(xml, score->m_jimsReview);
     }
 
     if (score->m_scoreOrder.isValid()) {

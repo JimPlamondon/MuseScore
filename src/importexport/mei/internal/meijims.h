@@ -97,6 +97,7 @@ private:
     };
 
     bool projectPitch(const muse::String& stateJson, int nPer, int nGen, std::string& pname, int& alter, int& octave);
+    std::string respIdFor(const muse::String& reviewer);
 
     bool m_present = false;
     muse::String m_error;
@@ -107,6 +108,8 @@ private:
     std::map<const engraving::Measure*, size_t> m_measureIndex;
     std::vector<std::pair<std::string, const engraving::Harmony*> > m_harms;
     std::vector<std::pair<std::string, const engraving::Note*> > m_notes;
+    std::vector<muse::String> m_reviewers;      // responsible agents, in first-seen order
+    std::vector<std::string> m_adjAnnotIds;     // adjudications actually placed in a measure
 };
 
 /// Import-side capture and application.
@@ -135,6 +138,17 @@ private:
     pugi::xml_node m_record;
     std::map<std::string, int> m_staffDefN;    // staffDef xml:id -> @n
     std::vector<engraving::jims::ProvenanceResource> m_provResources;
+    struct ChangeEntry {
+        muse::String date;
+        muse::String phase;
+        muse::String reason;
+    };
+
+    std::map<std::string, muse::String> m_reviewerById;
+    std::map<std::string, ChangeEntry> m_changeById;
+    std::vector<muse::String> m_focusedReviewReasons;
+    std::map<std::string, pugi::xml_node> m_adjAnnots;
+    std::map<std::string, int> m_adjMeasureIndex;
     muse::String m_melodyToken;
     muse::String m_error;
 };
