@@ -71,6 +71,25 @@ TEST(JiMStaffTests, bridgeSpeaksAbi2)
     EXPECT_TRUE(jims::available());
 }
 
+TEST(JiMStaffTests, toneDiamondSettingsAndHostParametersComeFromKernel)
+{
+    std::vector<jims::ToneDiamondSetting> settings;
+    uint32_t generatorParamId = 0;
+    uint32_t xParamId = 0;
+    uint32_t yParamId = 0;
+    ASSERT_TRUE(jims::toneDiamondSettings(settings, generatorParamId, xParamId, yParamId));
+    ASSERT_EQ(settings.size(), 2u);
+    EXPECT_EQ(generatorParamId, 0x4A530020u);
+    EXPECT_EQ(xParamId, 0x4A530022u);
+    EXPECT_EQ(yParamId, 0x4A530023u);
+    EXPECT_EQ(settings[0].label, muse::String(u"Max Consonance"));
+    EXPECT_DOUBLE_EQ(settings[0].x, 100.0);
+    EXPECT_DOUBLE_EQ(settings[0].y, 0.0);
+    EXPECT_EQ(settings[1].label, muse::String(u"Major JI"));
+    EXPECT_DOUBLE_EQ(settings[1].x, 50.0);
+    EXPECT_DOUBLE_EQ(settings[1].y, 100.0);
+}
+
 // Cents positions at three tunings: the SAME lattice identities, whose
 // heights move with the generator. Relative to the staff's lower Do
 // (C4 = (1,-2), abs 1200 - 2g): G4 = (1,-1) sits exactly one generator

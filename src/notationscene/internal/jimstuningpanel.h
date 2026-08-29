@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "engraving/types/types.h"
+#include "engraving/jims/jimsbridge.h"
 #include "types/string.h"
 
 #include "async/asyncable.h"
@@ -49,8 +50,9 @@ class JimsTuningPanel : public QWidget, public muse::async::Asyncable
     Q_OBJECT
 
 public:
-    JimsTuningPanel(mu::engraving::Score* score,
-                    std::function<void()> refreshView, muse::async::Notification scoreChanged, QWidget* parent = nullptr);
+    using HostParamCallback = std::function<void (uint32_t, double)>;
+    JimsTuningPanel(mu::engraving::Score* score, std::function<void()> refreshView, muse::async::Notification scoreChanged,
+                    HostParamCallback setHostParam, QWidget* parent = nullptr);
     ~JimsTuningPanel() override;
 
 private:
@@ -59,6 +61,7 @@ private:
     void onSliderReleased();
     void onSpinAccepted();
     void syncFromScore();
+    void onToneDiamondSettingChanged(int index);
 
     // JiMStaff Milestone 6 (owner decision 1a, 2026-08-16): the change
     // section — mode / key / scale changes at the selected score position, every
@@ -94,9 +97,15 @@ private:
 
     std::unique_ptr<mu::engraving::jims::TuningController> m_controller;
     std::function<void()> m_refreshView;
+    HostParamCallback m_setHostParam;
     QSlider* m_slider = nullptr;
     QDoubleSpinBox* m_spin = nullptr;
     bool m_dragging = false;
+    QComboBox* m_toneDiamondCombo = nullptr;
+    std::vector<mu::engraving::jims::ToneDiamondSetting> m_toneDiamondSettings;
+    uint32_t m_generatorParamId = 0;
+    uint32_t m_toneDiamondXParamId = 0;
+    uint32_t m_toneDiamondYParamId = 0;
 
     mu::engraving::Score* m_score = nullptr;
     QGroupBox* m_changeBox = nullptr;

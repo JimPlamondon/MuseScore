@@ -78,6 +78,16 @@ bool staffMetrics(const muse::String& stateJson, double& generatorCents, double&
 /// control's bounds derive from this, never a fork-side constant.
 bool generatorRange(double& minCents, double& maxCents);
 
+struct ToneDiamondSetting {
+    muse::String id;
+    muse::String label;
+    double x = 0.0;
+    double y = 0.0;
+};
+
+/// Kernel-owned named Tone Diamond settings for host controls.
+bool toneDiamondSettings(std::vector<ToneDiamondSetting>& settings, uint32_t& generatorParamId, uint32_t& xParamId, uint32_t& yParamId);
+
 /// The Kernel's scale-dot label-legibility range (owner-defined,
 /// distinct from the valid tuning range): Auto label mode reads Left
 /// strictly inside, Split at or outside.

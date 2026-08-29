@@ -173,6 +173,38 @@ bool generatorRange(double& minCents, double& maxCents)
     return true;
 }
 
+bool toneDiamondSettings(std::vector<ToneDiamondSetting>& settings, uint32_t& generatorParamId,
+                         uint32_t& xParamId, uint32_t& yParamId)
+{
+    JsonValue result;
+    if (!okResult(callBridge(String(u"{\"abi\":2,\"op\":\"tone_diamond_settings\"}")), result)
+        || !result.isObject()) {
+        return false;
+    }
+    const JsonObject root = result.toObject();
+    generatorParamId = uint32_t(root.value("generator_param_id").toInt());
+    xParamId = uint32_t(root.value("x_param_id").toInt());
+    yParamId = uint32_t(root.value("y_param_id").toInt());
+    settings.clear();
+    const JsonArray settingsArray = root.value("settings").toArray();
+    for (size_t i = 0; i < settingsArray.size(); ++i) {
+        const JsonValue value = settingsArray.at(i);
+        const JsonObject object = value.toObject();
+        const JsonObject point = object.value("point").toObject();
+        ToneDiamondSetting setting;
+        setting.id = object.value("id").toString();
+        setting.label = object.value("label").toString();
+        setting.x = point.value("x").toDouble();
+        setting.y = point.value("y").toDouble();
+        if (setting.id.isEmpty() || setting.label.isEmpty()) {
+            settings.clear();
+            return false;
+        }
+        settings.push_back(std::move(setting));
+    }
+    return !settings.empty();
+}
+
 bool labelLegibilityRange(double& minCents, double& maxCents)
 {
     JsonValue result;

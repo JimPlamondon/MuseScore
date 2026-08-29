@@ -58,6 +58,7 @@ public:
 
     using InstrumentTrackIdMap = std::unordered_map<engraving::InstrumentTrackId, muse::audio::TrackId>;
     virtual const InstrumentTrackIdMap& instrumentTrackIdMap() const = 0;
+    virtual void setInputParamPlainForResource(const muse::audio::AudioResourceId&, uint32_t, double) {}
 
     using AuxTrackIdMap = std::map<muse::audio::aux_channel_idx_t, muse::audio::TrackId>;
     virtual const AuxTrackIdMap& auxTrackIdMap() const = 0;
@@ -70,7 +71,7 @@ public:
 
     virtual muse::async::Promise<muse::audio::SoundPresetList> availableSoundPresets(const engraving::InstrumentTrackId& instrumentTrackId)
     const
-        = 0;
+    = 0;
 
     using SoloMuteState = notation::INotationSoloMuteState::SoloMuteState;
 
@@ -84,8 +85,8 @@ public:
         bool flushSound = true;
     };
 
-    virtual void playElements(const std::vector<const notation::EngravingItem*>& elements,
-                              const PlayParams& params = PlayParams(), bool isMidi = false) = 0;
+    virtual void playElements(const std::vector<const notation::EngravingItem*>& elements, const PlayParams& params = PlayParams(),
+                              bool isMidi = false) = 0;
     virtual void playNotes(const notation::NoteValList& notes, notation::staff_idx_t staffIdx, const notation::Segment* segment,
                            const PlayParams& params = PlayParams()) = 0;
     virtual void playMetronome(int tick) = 0;

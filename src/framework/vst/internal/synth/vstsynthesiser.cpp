@@ -25,6 +25,8 @@
 
 #include "log.h"
 
+#include <cmath>
+
 using namespace muse;
 using namespace muse::vst;
 using namespace muse::audio::synth;
@@ -168,6 +170,24 @@ bool VstSynthesiser::isValid() const
     }
 
     return m_pluginPtr->isLoaded();
+}
+
+bool VstSynthesiser::setHostParameterPlain(uint32_t paramId, double plain)
+{
+    ONLY_AUDIO_ENGINE_THREAD;
+    if (!m_inited || !std::isfinite(plain)) {
+        return false;
+    }
+    PluginControllerPtr controller = m_pluginPtr ? m_pluginPtr->controller() : nullptr;
+    if (!controller) {
+        return false;
+    }
+    const double normalized = controller->plainParamToNormalized(paramId, plain);
+    if (!std::isfinite(normalized) || normalized < 0.0 || normalized > 1.0
+        || controller->setParamNormalized(paramId, normalized) != Steinberg::kResultOk) {
+        return false;
+    }
+    return m_vstAudioClient->handleParamChange(ParamChangeEvent { paramId, normalized });
 }
 
 bool VstSynthesiser::readyToPlay() const

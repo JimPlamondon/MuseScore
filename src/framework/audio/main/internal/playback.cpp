@@ -436,6 +436,15 @@ void Playback::setInputParams(const TrackSequenceId sequenceId, const TrackId tr
     channel()->send(msg);
 }
 
+void Playback::setInputParamPlain(const TrackSequenceId sequenceId, const TrackId trackId,
+                                  uint32_t paramId, double plain)
+{
+    ONLY_AUDIO_MAIN_THREAD;
+    Msg msg = rpc::make_request(Method::SetInputParamPlain,
+                                RpcPacker::pack(sequenceId, trackId, paramId, plain));
+    channel()->send(msg);
+}
+
 async::Channel<TrackSequenceId, TrackId, AudioInputParams> Playback::inputParamsChanged() const
 {
     return m_inputParamsChanged;

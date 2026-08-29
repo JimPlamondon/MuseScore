@@ -50,6 +50,7 @@ public:
     void init(const audio::OutputSpec& spec);
 
     bool isValid() const override;
+    bool setHostParameterPlain(uint32_t paramId, double plain) override;
 
     //! JiMSynth VST3 workstream: a VST instrument is ready to play only once
     //! its module has loaded and the audio client/sequencer have been set up
