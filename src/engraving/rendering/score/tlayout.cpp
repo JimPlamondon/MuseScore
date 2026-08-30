@@ -5091,6 +5091,16 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
             }
             guides.push_back({ LineF(lineStartX, gy, x2, gy), dashed, rgb });
         };
+        auto boundaryGuide = [&](double cents) {
+            const double gy = y + jimsSt->jimsYFromCents(cents, view) * _spatium;
+            const bool alreadyPresent
+                = std::any_of(guides.begin(), guides.end(), [&](const StaffLines::JimsGuideLine& existing) {
+                return std::abs(existing.line.y1() - gy) < 1e-6;
+            });
+            if (!alreadyPresent) {
+                guides.push_back({ LineF(lineStartX, gy, x2, gy), false, 0x000000 });
+            }
+        };
         // Kernel JI lines for the scaffold colors (fetched once).
         std::vector<jims::JiLine> jiLines;
         const bool haveJi = jimsSt->jimsJiLines()
@@ -5148,6 +5158,13 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
                         }
                     }
                 }
+                // A frame cut is itself a visible staff boundary even when
+                // it coincides with neither Do nor a Kernel JI scaffold row.
+                // Preserve an existing musical line at that ordinate;
+                // otherwise add one neutral presentation boundary. This is
+                // per rendered segment and never changes Kernel geometry.
+                boundaryGuide(segment.lowerCents);
+                boundaryGuide(segment.upperCents);
             }
         }
         item->setJimsGuideLines(guides);

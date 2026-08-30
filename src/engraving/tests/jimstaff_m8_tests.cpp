@@ -1170,6 +1170,100 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
     }
 }
 
+// Regression for the two-staff dynamic-tuning video (owner finding
+// 2026-08-30): every visible JiMStaff segment has an explicit top and bottom
+// boundary throughout tuning motion, and a clipped crescent's closure belongs
+// only to the staff-local occurrence whose period is actually cut.
+TEST_F(Engraving_JiMStaffM8BandElisionTests, m8EveryStaffSegmentHasBothBoundaryLinesAndLocalCrescentClosures)
+{
+    MasterScore* score = ScoreRW::readScore(TWO_STAVES);
+    ASSERT_TRUE(score);
+    score->doLayout();
+    ASSERT_EQ(score->nstaves(), 2u);
+
+    for (staff_idx_t staffIdx = 0; staffIdx < score->nstaves(); ++staffIdx) {
+        System* system = measureSystems(score).front();
+        Measure* measure = system->firstMeasure();
+        const StaffType* jst = st(score, staffIdx);
+        const StaffType::JimsFrameView& view = viewOn(score, system, staffIdx);
+        const StaffLines* lines = measure->staffLines(staffIdx);
+        ASSERT_TRUE(jst && lines);
+        ASSERT_FALSE(view.empty());
+        const double topY = lines->pos().y();
+        const double ldSp = jst->lineDistance().val() * lines->spatium();
+        auto centsOfY = [&](double y) { return view.centsFromYLd((y - topY) / ldSp); };
+        auto hasGuideAt = [&](double cents) {
+            return std::any_of(lines->jimsGuideLines().begin(), lines->jimsGuideLines().end(),
+                               [&](const StaffLines::JimsGuideLine& guide) {
+                return std::abs(centsOfY(guide.line.y1()) - cents) < 1e-6;
+            });
+        };
+        std::vector<double> expectedClosures;
+        const double periodCents = jst->jimsPeriodCents();
+        jims::PeriodicOrigins origins;
+        ASSERT_TRUE(jims::periodicOrigins(jst->jimsStateJson(), origins));
+        for (const StaffType::JimsFrameBand& band : view.bands) {
+            for (const StaffType::JimsSegment& segment : band.segments) {
+                EXPECT_TRUE(hasGuideAt(segment.lowerCents))
+                    << "staff " << staffIdx << " missing bottom boundary at " << segment.lowerCents;
+                EXPECT_TRUE(hasGuideAt(segment.upperCents))
+                    << "staff " << staffIdx << " missing top boundary at " << segment.upperCents;
+                double periodFloor = origins.doCentsAboveExtentLower
+                                     + std::floor((segment.lowerCents - origins.doCentsAboveExtentLower)
+                                                  / periodCents + 1e-6) * periodCents;
+                for (; periodFloor < segment.upperCents - 1e-6; periodFloor += periodCents) {
+                    const double periodCeiling = periodFloor + periodCents;
+                    if (segment.upperCents > periodFloor + 1e-6
+                        && segment.upperCents < periodCeiling - 1e-6) {
+                        expectedClosures.push_back(segment.upperCents);
+                    }
+                    if (segment.lowerCents > periodFloor + 1e-6
+                        && segment.lowerCents < periodCeiling - 1e-6) {
+                        expectedClosures.push_back(segment.lowerCents);
+                    }
+                }
+            }
+        }
+
+        std::shared_ptr<BufferedPaintProvider> provider = std::make_shared<BufferedPaintProvider>();
+        Painter painter(provider, "m8-staff-local-crescent");
+        painter.setViewport(RectF(0, 0, 4000, 4000));
+        PaintOptions options;
+        lines->renderer()->drawItem(lines, &painter, options);
+        painter.endDraw();
+        std::vector<double> actualClosures;
+        const DrawDataPtr drawData = provider->drawData();
+        std::function<void(const DrawData::Item&)> walk = [&](const DrawData::Item& item) {
+            for (const DrawData::Data& data : item.datas) {
+                const DrawData::State& state = drawData->states.at(data.state);
+                for (const DrawPolygon& poly : data.polygons) {
+                    if (poly.mode == PolygonMode::Polyline && poly.polygon.size() == 2
+                        && state.pen.style() == PenStyle::SolidLine
+                        && state.pen.color() == Color::BLACK
+                        && state.pen.capStyle() == PenCapStyle::FlatCap
+                        && std::abs(state.pen.widthF() - lines->lw() * 1.5) < EPS
+                        && std::abs(poly.polygon[0].y() - poly.polygon[1].y()) < EPS) {
+                        actualClosures.push_back(centsOfY(poly.polygon[0].y()));
+                    }
+                }
+            }
+            for (const DrawData::Item& child : item.chilren) {
+                walk(child);
+            }
+        };
+        walk(drawData->item);
+        std::sort(expectedClosures.begin(), expectedClosures.end());
+        std::sort(actualClosures.begin(), actualClosures.end());
+        ASSERT_EQ(actualClosures.size(), expectedClosures.size())
+            << "staff " << staffIdx << " closure geometry leaked across crescent occurrences";
+        for (size_t i = 0; i < expectedClosures.size(); ++i) {
+            EXPECT_NEAR(actualClosures[i], expectedClosures[i], 1e-6)
+                << "staff " << staffIdx << " closure " << i << " is not staff-local";
+        }
+    }
+    delete score;
+}
+
 // Owner ruling 2026-08-19 (seen on the two-part gate score): a Do->La mode
 // change was drawn from the staff's LOWEST Do-line down to a La below the
 // staff. The indicator must anchor on the Do-line that keeps the whole
@@ -1368,6 +1462,21 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8RoundTripPreservesSwitchesAndAbse
     ASSERT_TRUE(fourth);
     EXPECT_EQ(st(fourth)->jimsElideOctaves(), JimsElideOctaves::Auto);
     delete fourth;
+}
+
+TEST_F(Engraving_JiMStaffM8BandElisionTests, exactDeclaredExtentOverrideRoundTripsPerStaffType)
+{
+    MasterScore* score = ScoreRW::readScore(TWO_HAND);
+    ASSERT_TRUE(score);
+    EXPECT_FALSE(st(score)->jimsExactDeclaredExtent());
+    mutSt(score)->setJimsExactDeclaredExtent(true);
+    const String out = ScoreRW::rootPath() + u"/../../../build.release/jims-m8-scratch/exact-extent-roundtrip.mscx";
+    ASSERT_TRUE(ScoreRW::saveScore(score, out));
+    delete score;
+    MasterScore* again = ScoreRW::readScore(out, true);
+    ASSERT_TRUE(again);
+    EXPECT_TRUE(st(again)->jimsExactDeclaredExtent());
+    delete again;
 }
 
 // None of the three settings enters the Kernel state; the notes' identities

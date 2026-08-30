@@ -2977,6 +2977,9 @@ void TWrite::write(const StaffType* item, XmlWriter& xml, WriteContext& ctx)
         if (item->jimsElideOctaves() != JimsElideOctaves::Auto) {
             xml.tag("jimsElideOctaves", String::fromAscii(item->jimsElideOctaves() == JimsElideOctaves::On ? "on" : "off"));
         }
+        if (item->jimsExactDeclaredExtent()) {
+            xml.tag("jimsExactDeclaredExtent", true);
+        }
     }
     if (item->group() == StaffGroup::STANDARD || item->group() == StaffGroup::PERCUSSION) {
         if (!item->genKeysig()) {

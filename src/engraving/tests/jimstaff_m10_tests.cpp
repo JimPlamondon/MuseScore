@@ -319,6 +319,27 @@ TEST(Engraving_JiMStaffM10SATBTests, extentGrowsOnlyUntilSaveAndContractsOnlyOnR
     delete reloaded;
 }
 
+TEST(Engraving_JiMStaffM10SATBTests, exactDeclaredExtentIsNotContractedToWrittenNotesOnLoad)
+{
+    MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m9-satb-mixed.mscx");
+    ASSERT_TRUE(score);
+    StaffType* type = score->staff(0)->staffType(Fraction(0, 1));
+    ASSERT_TRUE(type && type->isJiMS());
+    const std::vector<Note*> notes = notesOn(score, 0);
+    ASSERT_FALSE(notes.empty());
+
+    String declared;
+    ASSERT_TRUE(jims::widenExtent(type->jimsStateJson(), -10, notes.front()->jimsNGen(), declared));
+    ASSERT_NE(declared, type->jimsStateJson());
+    type->setJimsStateJson(declared);
+    type->setJimsExactDeclaredExtent(true);
+
+    EXPECT_EQ(jims::reconcileExtents(score), 0);
+    EXPECT_EQ(type->jimsStateJson(), declared)
+        << "an exact staff's explicit lower and upper boundaries are authoritative";
+    delete score;
+}
+
 TEST(Engraving_JiMStaffM10SATBTests, melodyDesignationDefaultsOverridesAndUndoRedoDrivesOneSongWideAmbit)
 {
     MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m9-satb-hymn.mscx");
