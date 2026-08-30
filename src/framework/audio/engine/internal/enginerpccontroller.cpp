@@ -31,11 +31,11 @@
 #ifdef CHECK_METHODS_DURATION
 #include <chrono>
 #define BEGIN_METHOD_DURATION \
-    auto _start_clock = std::chrono::high_resolution_clock::now();
+        auto _start_clock = std::chrono::high_resolution_clock::now();
 #define END_METHOD_DURATION(method) \
-    auto _end_clock = std::chrono::high_resolution_clock::now(); \
-    auto _duration_us = std::chrono::duration_cast<std::chrono::microseconds>(_end_clock - _start_clock); \
-    LOGDA() << rpc::to_string(method) << " duration: " << (_duration_us.count() / 1000.0) << " ms";
+        auto _end_clock = std::chrono::high_resolution_clock::now(); \
+        auto _duration_us = std::chrono::duration_cast<std::chrono::microseconds>(_end_clock - _start_clock); \
+        LOGDA() << rpc::to_string(method) << " duration: " << (_duration_us.count() / 1000.0) << " ms";
 #else
 #define BEGIN_METHOD_DURATION
 #define END_METHOD_DURATION(method)
@@ -333,6 +333,18 @@ void EngineRpcController::init()
             return;
         }
         playback()->setInputParams(seqId, trackId, params);
+    });
+
+    onLongMethod(Method::SetInputParamPlain, [this](const Msg& msg) {
+        ONLY_AUDIO_RPC_THREAD;
+        TrackSequenceId seqId = 0;
+        TrackId trackId = 0;
+        uint32_t paramId = 0;
+        double plain = 0.0;
+        IF_ASSERT_FAILED(RpcPacker::unpack(msg.data, seqId, trackId, paramId, plain)) {
+            return;
+        }
+        playback()->setInputParamPlain(seqId, trackId, paramId, plain);
     });
 
     onLongMethod(Method::ProcessInput, [this](const Msg& msg) {

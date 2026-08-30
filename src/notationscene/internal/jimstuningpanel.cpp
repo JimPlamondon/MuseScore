@@ -101,8 +101,8 @@ constexpr int FIG_HEADER_Y = 100;
 class TuningFigure : public QWidget
 {
 public:
-    TuningFigure(ScaleSlider* slider, double step, double minCents, double maxCents, QWidget* parent)
-        : QWidget(parent), m_slider(slider), m_step(step), m_minCents(minCents), m_maxCents(maxCents)
+    TuningFigure(ScaleSlider* slider, double minCents, double maxCents, QWidget* parent)
+        : QWidget(parent), m_slider(slider), m_minCents(minCents), m_maxCents(maxCents)
     {
         m_figure.load(QStringLiteral(":/jims/internal/jims/rank2_temperaments_fifth_octave.jpg"));
         m_slider->setParent(this);
@@ -195,15 +195,14 @@ private:
 
     ScaleSlider* m_slider = nullptr;
     QPixmap m_figure;
-    double m_step = 0.1;
     double m_minCents = 686.0;
     double m_maxCents = 720.0;
 };
 } // namespace
 
 JimsTuningPanel::JimsTuningPanel(Score* score, std::function<void()> refreshView,
-                                 muse::async::Notification scoreChanged, QWidget* parent)
-    : QWidget(parent, Qt::Tool), m_refreshView(std::move(refreshView)), m_score(score)
+                                 muse::async::Notification scoreChanged, HostParamCallback setHostParam, QWidget* parent)
+    : QWidget(parent, Qt::Tool), m_refreshView(std::move(refreshView)), m_setHostParam(std::move(setHostParam)), m_score(score)
 {
     setWindowTitle(QStringLiteral("JiMS Staff"));
     m_controller = std::make_unique<jims::TuningController>(score, 0);
@@ -217,8 +216,9 @@ JimsTuningPanel::JimsTuningPanel(Score* score, std::function<void()> refreshView
     auto* entryRow = new QHBoxLayout();
     auto* label = new QLabel(QStringLiteral("M5="), this);
     m_spin = new QDoubleSpinBox(this);
+    m_spin->setObjectName(QStringLiteral("jimsGeneratorCents"));
     m_spin->setRange(m_minCents, m_maxCents);
-    m_spin->setDecimals(3);
+    m_spin->setDecimals(9);
     m_spin->setSingleStep(SLIDER_STEP);
     m_spin->setSuffix(QStringLiteral("¢"));
     entryRow->addWidget(label);
@@ -228,11 +228,25 @@ JimsTuningPanel::JimsTuningPanel(Score* score, std::function<void()> refreshView
     auto* slider = new ScaleSlider(Qt::Vertical, nullptr);
     slider->setRange(int(m_minCents / SLIDER_STEP), int(m_maxCents / SLIDER_STEP));
     m_slider = slider;
-    auto* figure = new TuningFigure(slider, SLIDER_STEP, m_minCents, m_maxCents, this);
+    auto* figure = new TuningFigure(slider, m_minCents, m_maxCents, this);
     outer->addWidget(figure, 1);
     auto* credit = new QLabel(QStringLiteral("Figure: Andrew Milne & Jim Plamondon, CC BY-SA 4.0 (Wikimedia Commons)"), this);
     credit->setStyleSheet(QStringLiteral("color: gray; font-size: 9pt;"));
     outer->addWidget(credit);
+
+    auto* toneBox = new QGroupBox(QStringLiteral("JiMSynth Tone Diamond"), this);
+    auto* toneRow = new QHBoxLayout(toneBox);
+    toneRow->addWidget(new QLabel(QStringLiteral("Setting"), toneBox));
+    m_toneDiamondCombo = new QComboBox(toneBox);
+    m_toneDiamondCombo->setObjectName(QStringLiteral("jimsToneDiamondSetting"));
+    if (jims::toneDiamondSettings(m_toneDiamondSettings, m_generatorParamId,
+                                  m_toneDiamondXParamId, m_toneDiamondYParamId)) {
+        for (const jims::ToneDiamondSetting& setting : m_toneDiamondSettings) {
+            m_toneDiamondCombo->addItem(setting.label.toQString());
+        }
+    }
+    toneRow->addWidget(m_toneDiamondCombo, 1);
+    outer->addWidget(toneBox);
 
     // Milestone 6: mode / key / scale changes at the selected measure.
     buildChangeSection(this, outer);
@@ -246,6 +260,8 @@ JimsTuningPanel::JimsTuningPanel(Score* score, std::function<void()> refreshView
     connect(m_slider, &QSlider::sliderMoved, this, &JimsTuningPanel::onSliderMoved);
     connect(m_slider, &QSlider::sliderReleased, this, &JimsTuningPanel::onSliderReleased);
     connect(m_spin, &QDoubleSpinBox::editingFinished, this, &JimsTuningPanel::onSpinAccepted);
+    connect(m_toneDiamondCombo, &QComboBox::currentIndexChanged,
+            this, &JimsTuningPanel::onToneDiamondSettingChanged);
 
     // Undo/redo (and any other score change) resyncs the controls
     // (owner correction 2026-08-14: the staff updated, the slider
@@ -665,6 +681,18 @@ void JimsTuningPanel::syncFromScore()
     syncElisionSection();
 }
 
+void JimsTuningPanel::onToneDiamondSettingChanged(int index)
+{
+    if (!m_setHostParam || index < 0 || index >= int(m_toneDiamondSettings.size())) {
+        return;
+    }
+    const jims::ToneDiamondSetting& setting = m_toneDiamondSettings[size_t(index)];
+    // Y first keeps both vertex-to-vertex paths inside the diamond; X then
+    // lands on the exact Kernel-issued point.
+    m_setHostParam(m_toneDiamondYParamId, setting.y);
+    m_setHostParam(m_toneDiamondXParamId, setting.x);
+}
+
 // ---------------------------------------------------------------------------
 // Milestone 8 — octave-band elision ("hollow stacks"). Mirrors MuseScore's
 // Format > Style > Score "Hide empty staves" wording: a score-wide opt-in
@@ -792,6 +820,9 @@ void JimsTuningPanel::onSliderMoved(int value)
     }
     const double cents = value * SLIDER_STEP;
     if (m_controller->preview(cents)) {
+        if (m_setHostParam && m_generatorParamId != 0) {
+            m_setHostParam(m_generatorParamId, cents);
+        }
         QSignalBlocker bb(m_spin);
         m_spin->setValue(cents);
         if (m_refreshView) {
@@ -806,7 +837,11 @@ void JimsTuningPanel::onSliderReleased()
         return;
     }
     m_dragging = false;
-    if (m_controller->commit(m_slider->value() * SLIDER_STEP) && m_refreshView) {
+    const double cents = m_slider->value() * SLIDER_STEP;
+    if (m_setHostParam && m_generatorParamId != 0) {
+        m_setHostParam(m_generatorParamId, cents);
+    }
+    if (m_controller->commit(cents) && m_refreshView) {
         m_refreshView();
     }
 }
@@ -818,6 +853,9 @@ void JimsTuningPanel::onSpinAccepted()
         return;
     }
     if (m_controller->commit(cents)) {
+        if (m_setHostParam && m_generatorParamId != 0) {
+            m_setHostParam(m_generatorParamId, cents);
+        }
         QSignalBlocker sb(m_slider);
         m_slider->setValue(int(cents / SLIDER_STEP + 0.5));
         if (m_refreshView) {

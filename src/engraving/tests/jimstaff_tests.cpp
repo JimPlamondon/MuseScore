@@ -71,6 +71,25 @@ TEST(JiMStaffTests, bridgeSpeaksAbi2)
     EXPECT_TRUE(jims::available());
 }
 
+TEST(JiMStaffTests, toneDiamondSettingsAndHostParametersComeFromKernel)
+{
+    std::vector<jims::ToneDiamondSetting> settings;
+    uint32_t generatorParamId = 0;
+    uint32_t xParamId = 0;
+    uint32_t yParamId = 0;
+    ASSERT_TRUE(jims::toneDiamondSettings(settings, generatorParamId, xParamId, yParamId));
+    ASSERT_EQ(settings.size(), 2u);
+    EXPECT_EQ(generatorParamId, 0x4A530020u);
+    EXPECT_EQ(xParamId, 0x4A530022u);
+    EXPECT_EQ(yParamId, 0x4A530023u);
+    EXPECT_EQ(settings[0].label, muse::String(u"Max Consonance"));
+    EXPECT_DOUBLE_EQ(settings[0].x, 100.0);
+    EXPECT_DOUBLE_EQ(settings[0].y, 0.0);
+    EXPECT_EQ(settings[1].label, muse::String(u"Major JI"));
+    EXPECT_DOUBLE_EQ(settings[1].x, 50.0);
+    EXPECT_DOUBLE_EQ(settings[1].y, 100.0);
+}
+
 // Cents positions at three tunings: the SAME lattice identities, whose
 // heights move with the generator. Relative to the staff's lower Do
 // (C4 = (1,-2), abs 1200 - 2g): G4 = (1,-1) sits exactly one generator
@@ -152,6 +171,26 @@ TEST(JiMStaffTests, tonicBoundedLaModeFrameKeepsStoredExtentMinimum)
     EXPECT_TRUE(segments[1].whole);
     EXPECT_NEAR(segments[1].lowerCents, 1200.0, EPS);
     EXPECT_NEAR(segments[1].upperCents, 2400.0, EPS);
+}
+
+TEST(JiMStaffTests, fixedRatioLineExtentCanReturnASubperiodSoToDoFrame)
+{
+    const muse::String state
+        =u"{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],"
+         u"\"collection_rotation\":0,\"mode_rotation\":0,\"generator_cents\":700.0,\"period_cents\":1200.0,"
+         u"\"embedding\":{\"large_steps\":5,\"small_steps\":2},"
+         u"\"extent\":{\"lower\":{\"nPer\":-2,\"nGen\":-1},\"upper\":{\"nPer\":-1,\"nGen\":-2}},"
+         u"\"reference\":\"none\"}";
+    const muse::String melody = u"{\"notes\":[{\"nPer\":-2,\"nGen\":-1}]}";
+    std::vector<jims::StaveSegment> segments;
+    const muse::String ratioExtent
+        = u"{\"lower\":{\"period\":-1,\"ratio\":\"3/2\"},"
+          u"\"upper\":{\"period\":0,\"ratio\":\"1/1\"}}";
+    ASSERT_TRUE(jims::frameForMelody(state, melody, u"tonic-bounded", segments, {}, ratioExtent));
+    ASSERT_EQ(segments.size(), 1u);
+    EXPECT_FALSE(segments[0].whole);
+    EXPECT_NEAR(segments[0].lowerCents, 1.955000865387433, EPS);
+    EXPECT_NEAR(segments[0].upperCents, 500.0, EPS);
 }
 
 // The tuning metrics seam feeding the "M5= <cents>¢" label reports the

@@ -5093,8 +5093,7 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         };
         // Kernel JI lines for the scaffold colors (fetched once).
         std::vector<jims::JiLine> jiLines;
-        const bool haveJi = jimsSt->jimsJiLines()
-                            && jims::jiLines(jimsSt->jimsStateJson(), jiLines);
+        const bool haveJi = jims::jiLines(jimsSt->jimsStateJson(), jiLines);
         jims::PeriodicOrigins origins;
         if (!jims::periodicOrigins(jimsSt->jimsStateJson(), origins)) {
             item->setJimsGuideLines({});
@@ -5132,12 +5131,13 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
                 for (double period = basePeriod; period < segment.upperCents; period += periodCents) {
                     if (haveJi) {
                         for (const jims::JiLine& ji : jiLines) {
-                            if (ji.visible) {
-                                const double cents = period + ji.cents;
-                                if (cents >= segment.lowerCents - epsilon
-                                    && cents <= segment.upperCents + epsilon) {
-                                    guide(cents, true, limitColor(ji.limit));
-                                }
+                            const double cents = period + ji.cents;
+                            const bool isFixedEdge = std::abs(cents - segment.lowerCents) <= epsilon
+                                                     || std::abs(cents - segment.upperCents) <= epsilon;
+                            if ((isFixedEdge || (jimsSt->jimsJiLines() && ji.visible))
+                                && cents >= segment.lowerCents - epsilon
+                                && cents <= segment.upperCents + epsilon) {
+                                guide(cents, true, limitColor(ji.limit));
                             }
                         }
                     } else if (!jimsSt->jimsJiLines()) {

@@ -107,6 +107,7 @@ bool hasCompleteTonicAmbits(const Score* score);
 
 /// Load-time extent reconciliation: exact written-note bounds, or a
 /// Kernel-derived one-period default from the Part's declared amateur range.
+/// Staff types with an explicit exact-declared-extent override are preserved.
 int reconcileExtents(Score* score);
 
 /// Reproject an empty vocal staff's default extent after its song state

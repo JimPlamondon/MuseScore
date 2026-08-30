@@ -39,6 +39,7 @@ public:
     RetVal<AudioOutputParams> outputParams(const TrackId id) const override;
 
     void setInputParams(const TrackId id, const AudioInputParams& params) override;
+    void setInputParamPlain(const TrackId id, uint32_t paramId, double plain) override;
     void setOutputParams(const TrackId id, const AudioOutputParams& params) override;
 
     async::Channel<TrackId, AudioInputParams> inputParamsChanged() const override;

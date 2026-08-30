@@ -2732,7 +2732,7 @@ void TDraw::draw(const Spacer* item, Painter* painter, const PaintOptions& opt)
 
     auto conf = item->configuration();
 
-    Pen pen(item->selected() ? conf->selectionColor() : conf->formattingColor(), item->spatium()* 0.3);
+    Pen pen(item->selected() ? conf->selectionColor() : conf->formattingColor(), item->spatium() * 0.3);
 
     painter->setPen(pen);
     painter->setBrush(BrushStyle::NoBrush);
@@ -2850,6 +2850,55 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             }
             const bool haveTonic = jims::tonicCentsAboveDo(jimsSt->jimsStateJson(), tonicCents);
             const double epsilon = 1e-6;
+            auto dotSymbol = [&](int nGen) {
+                muse::String token;
+                SymId symbol = SymId::noteheadHalf;
+                if (jims::noteheadToken(jimsSt->jimsStateJson(), nGen, token)) {
+                    if (token == u"triangle-vertex-up") {
+                        symbol = SymId::noteheadTriangleUpBlack;
+                    } else if (token == u"triangle-vertex-down") {
+                        symbol = SymId::noteheadTriangleDownBlack;
+                    } else if (token == u"square-vertex-up") {
+                        symbol = SymId::noteheadDiamondBlack;
+                    } else if (token == u"square-edge-up") {
+                        symbol = SymId::noteheadSquareBlack;
+                    }
+                }
+                return symbol;
+            };
+            auto dotCentroidDy = [&](SymId symbol, const RectF& bounds) {
+                if (symbol == SymId::noteheadTriangleUpBlack) {
+                    return -bounds.height() / 6.0;
+                }
+                if (symbol == SymId::noteheadTriangleDownBlack) {
+                    return bounds.height() / 6.0;
+                }
+                return 0.0;
+            };
+            // A fixed ratio-line edge and its associated moving scale dot
+            // coincide only at the ratio's exact tuning. Retain a dot stack
+            // whenever its actual painted glyph intersects the fixed staff
+            // segment; testing only the moving centre loses So at a pure 3/2
+            // edge (and likewise Fa at its fixed boundary).
+            auto dotStackIntersectsSegment = [&](double cents, const std::vector<int>& generators,
+                                                 const StaffType::JimsSegment& segment) {
+                if (!font) {
+                    return false;
+                }
+                const double centerY = yOf(cents);
+                double inkTop = centerY;
+                double inkBottom = centerY;
+                for (int nGen : generators) {
+                    const SymId symbol = dotSymbol(nGen);
+                    const RectF bounds = font->bbox(symbol, 1.0);
+                    const double originY = centerY + dotCentroidDy(symbol, bounds);
+                    inkTop = std::min(inkTop, originY + bounds.top());
+                    inkBottom = std::max(inkBottom, originY + bounds.bottom());
+                }
+                const double segmentTop = yOf(segment.upperCents);
+                const double segmentBottom = yOf(segment.lowerCents);
+                return inkBottom >= segmentTop - epsilon && inkTop <= segmentBottom + epsilon;
+            };
             if (font && jims::scaleDots(jimsSt->jimsStateJson(), stacks)) {
                 for (const StaffType::JimsFrameBand& band : view.bands) {
                     for (const StaffType::JimsSegment& segment : band.segments) {
@@ -2860,33 +2909,15 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                              period += periodCents) {
                             for (const auto& stack : stacks) {
                                 double cents = period + stack.cents;
-                                if (cents < segment.lowerCents - epsilon
-                                    || cents > segment.upperCents + epsilon) {
+                                if (!dotStackIntersectsSegment(cents, stack.frontToBack, segment)) {
                                     continue;
                                 }
                                 double dy = yOf(cents);
                                 double dx = 0.0;
                                 for (int nGen : stack.frontToBack) {
-                                    muse::String token;
-                                    SymId dotSym = SymId::noteheadHalf;
-                                    if (jims::noteheadToken(jimsSt->jimsStateJson(), nGen, token)) {
-                                        if (token == u"triangle-vertex-up") {
-                                            dotSym = SymId::noteheadTriangleUpBlack;
-                                        } else if (token == u"triangle-vertex-down") {
-                                            dotSym = SymId::noteheadTriangleDownBlack;
-                                        } else if (token == u"square-vertex-up") {
-                                            dotSym = SymId::noteheadDiamondBlack;
-                                        } else if (token == u"square-edge-up") {
-                                            dotSym = SymId::noteheadSquareBlack;
-                                        }
-                                    }
+                                    const SymId dotSym = dotSymbol(nGen);
                                     RectF gb = font->bbox(dotSym, 1.0);
-                                    double centroidDy = 0.0;
-                                    if (dotSym == SymId::noteheadTriangleUpBlack) {
-                                        centroidDy = -gb.height() / 6.0;
-                                    } else if (dotSym == SymId::noteheadTriangleDownBlack) {
-                                        centroidDy = gb.height() / 6.0;
-                                    }
+                                    const double centroidDy = dotCentroidDy(dotSym, gb);
                                     painter->setPen(Pen(item->curColor(opt), item->lw()));
                                     font->draw(dotSym, painter, 1.0,
                                                PointF(dotCenterX - gb.width() / 2.0 + dx,
@@ -2961,8 +2992,12 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                  period += periodCents) {
                                 for (const jims::LabeledDotStack& stack : labelStacks) {
                                     double cents = period + stack.cents;
-                                    if (cents < segment.lowerCents - epsilon
-                                        || cents > segment.upperCents + epsilon) {
+                                    std::vector<int> generators;
+                                    generators.reserve(stack.members.size());
+                                    for (const jims::LabeledDotMember& member : stack.members) {
+                                        generators.push_back(member.nGen);
+                                    }
+                                    if (!dotStackIntersectsSegment(cents, generators, segment)) {
                                         continue;
                                     }
                                     muse::String leftText;
@@ -2984,9 +3019,12 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                         && std::abs(cents - lowestTonicRow) < epsilon) {
                                         // Only the tonic indicator's own row (the
                                         // lowest Do register carries the indicator).
-                                        leftText = leftText.isEmpty()
-                                                   ? keyText + u":"
-                                                   : keyText + u": " + leftText;
+                                        // The pitch label occupies the open lane
+                                        // to the right of Do's dot; the solfa label
+                                        // remains on its resolved side.
+                                        rightText = rightText.isEmpty()
+                                                    ? keyText + u":"
+                                                    : keyText + u": " + rightText;
                                     }
                                     // Painter::drawText rescales the CURRENT
                                     // painter font by 1200/deviceDpi in place

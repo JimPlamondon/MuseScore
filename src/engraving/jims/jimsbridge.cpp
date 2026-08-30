@@ -173,6 +173,38 @@ bool generatorRange(double& minCents, double& maxCents)
     return true;
 }
 
+bool toneDiamondSettings(std::vector<ToneDiamondSetting>& settings, uint32_t& generatorParamId,
+                         uint32_t& xParamId, uint32_t& yParamId)
+{
+    JsonValue result;
+    if (!okResult(callBridge(String(u"{\"abi\":2,\"op\":\"tone_diamond_settings\"}")), result)
+        || !result.isObject()) {
+        return false;
+    }
+    const JsonObject root = result.toObject();
+    generatorParamId = uint32_t(root.value("generator_param_id").toInt());
+    xParamId = uint32_t(root.value("x_param_id").toInt());
+    yParamId = uint32_t(root.value("y_param_id").toInt());
+    settings.clear();
+    const JsonArray settingsArray = root.value("settings").toArray();
+    for (size_t i = 0; i < settingsArray.size(); ++i) {
+        const JsonValue value = settingsArray.at(i);
+        const JsonObject object = value.toObject();
+        const JsonObject point = object.value("point").toObject();
+        ToneDiamondSetting setting;
+        setting.id = object.value("id").toString();
+        setting.label = object.value("label").toString();
+        setting.x = point.value("x").toDouble();
+        setting.y = point.value("y").toDouble();
+        if (setting.id.isEmpty() || setting.label.isEmpty()) {
+            settings.clear();
+            return false;
+        }
+        settings.push_back(std::move(setting));
+    }
+    return !settings.empty();
+}
+
 bool labelLegibilityRange(double& minCents, double& maxCents)
 {
     JsonValue result;
@@ -502,17 +534,21 @@ static String jimsExtraCentsJson(const std::vector<double>& extraCents)
 
 bool frameForMelody(const String& stateJson, const String& melodyJson,
                     const String& extentToken, std::vector<StaveSegment>& segments,
-                    const std::vector<double>& extraCents)
+                    const std::vector<double>& extraCents, const String& ratioLineExtentJson)
 {
     // Owner rule 2026-08-19 (7b): extra cents the frame must cover ride in
     // the same op's options; without them the envelope is byte-identical
     // to the Milestone-4 request.
-    String envelope = extraCents.empty()
+    String options = String(u"\"extra_cents\":%1").arg(jimsExtraCentsJson(extraCents));
+    if (!ratioLineExtentJson.isEmpty()) {
+        options += String(u",\"ratio_extent\":%1").arg(ratioLineExtentJson);
+    }
+    String envelope = extraCents.empty() && ratioLineExtentJson.isEmpty()
                       ? String(u"{\"abi\":2,\"op\":\"frame_for_melody\",\"state\":%1,\"melody\":%2,\"declared_extent\":\"%3\"}")
                       .arg(stateJson).arg(melodyJson).arg(extentToken)
                       : String(u"{\"abi\":2,\"op\":\"frame_for_melody\",\"state\":%1,\"melody\":%2,\"declared_extent\":\"%3\","
-                               u"\"options\":{\"extra_cents\":%4}}")
-                      .arg(stateJson).arg(melodyJson).arg(extentToken).arg(jimsExtraCentsJson(extraCents));
+                               u"\"options\":{%4}}")
+                      .arg(stateJson).arg(melodyJson).arg(extentToken).arg(options);
     JsonValue result;
     if (!okResult(callBridge(envelope), result)) {
         return false;
@@ -530,20 +566,19 @@ bool frameForMelody(const String& stateJson, const String& melodyJson,
 
 bool frameBandsForMelody(const String& stateJson, const String& melodyJson,
                          const String& extentToken, bool elideEmptyPeriods, int minBandPeriods,
-                         FrameBands& out, const std::vector<double>& extraCents)
+                         FrameBands& out, const std::vector<double>& extraCents, const String& ratioLineExtentJson)
 {
-    String envelope = extraCents.empty()
-                      ? String(
+    String options = String(u"\"elide_empty_periods\":%1,\"min_band_periods\":%2,\"extra_cents\":%3")
+                     .arg(String(elideEmptyPeriods ? u"true" : u"false"))
+                     .arg(minBandPeriods)
+                     .arg(jimsExtraCentsJson(extraCents));
+    if (!ratioLineExtentJson.isEmpty()) {
+        options += String(u",\"ratio_extent\":%1").arg(ratioLineExtentJson);
+    }
+    String envelope = String(
         u"{\"abi\":2,\"op\":\"frame_for_melody\",\"state\":%1,\"melody\":%2,\"declared_extent\":\"%3\","
-        u"\"options\":{\"elide_empty_periods\":%4,\"min_band_periods\":%5}}")
-                      .arg(stateJson).arg(melodyJson).arg(extentToken)
-                      .arg(String(elideEmptyPeriods ? u"true" : u"false")).arg(minBandPeriods)
-                      : String(
-        u"{\"abi\":2,\"op\":\"frame_for_melody\",\"state\":%1,\"melody\":%2,\"declared_extent\":\"%3\","
-        u"\"options\":{\"elide_empty_periods\":%4,\"min_band_periods\":%5,\"extra_cents\":%6}}")
-                      .arg(stateJson).arg(melodyJson).arg(extentToken)
-                      .arg(String(elideEmptyPeriods ? u"true" : u"false")).arg(minBandPeriods)
-                      .arg(jimsExtraCentsJson(extraCents));
+        u"\"options\":{%4}}")
+                      .arg(stateJson).arg(melodyJson).arg(extentToken).arg(options);
     JsonValue result;
     if (!okResult(callBridge(envelope), result)) {
         return false;

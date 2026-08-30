@@ -1814,11 +1814,14 @@ void NotationActionController::openJimsTuningPanel()
         return;
     }
     auto notation = currentNotation();
+    auto setHostParam = [this](uint32_t paramId, double plain) {
+        playbackController()->setInputParamPlainForResource("JiMSynth", paramId, plain);
+    };
     auto* panel = new notationscene::JimsTuningPanel(score, [notation]() {
         if (notation) {
             notation->notationChanged().notify();
         }
-    }, notation ? notation->notationChanged() : muse::async::Notification());
+    }, notation ? notation->notationChanged() : muse::async::Notification(), std::move(setHostParam));
     panel->setAttribute(Qt::WA_DeleteOnClose);
     panel->show();
     panel->raise();

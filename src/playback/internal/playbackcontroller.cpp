@@ -277,6 +277,22 @@ const IPlaybackController::InstrumentTrackIdMap& PlaybackController::instrumentT
     return m_instrumentTrackIdMap;
 }
 
+void PlaybackController::setInputParamPlainForResource(const AudioResourceId& resourceId,
+                                                       uint32_t paramId, double plain)
+{
+    const TrackSequenceId sequenceId = currentTrackSequenceId();
+    if (sequenceId < 0) {
+        return;
+    }
+    for (const auto& [instrumentTrackId, audioTrackId] : m_instrumentTrackIdMap) {
+        const AudioInputParams& params = audioSettings()->trackInputParams(instrumentTrackId);
+        if (params.resourceMeta.type == AudioResourceType::VstPlugin
+            && params.resourceMeta.id == resourceId) {
+            playback()->setInputParamPlain(sequenceId, audioTrackId, paramId, plain);
+        }
+    }
+}
+
 const IPlaybackController::AuxTrackIdMap& PlaybackController::auxTrackIdMap() const
 {
     return m_auxTrackIdMap;

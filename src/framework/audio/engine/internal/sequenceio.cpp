@@ -123,6 +123,18 @@ void SequenceIO::setInputParams(const TrackId id, const AudioInputParams& params
     track->setInputParams(params);
 }
 
+void SequenceIO::setInputParamPlain(const TrackId id, uint32_t paramId, double plain)
+{
+    ONLY_AUDIO_ENGINE_THREAD;
+    IF_ASSERT_FAILED(m_getTracks) {
+        return;
+    }
+    TrackPtr track = m_getTracks->track(id);
+    if (track && track->inputHandler) {
+        track->inputHandler->setInputParamPlain(paramId, plain);
+    }
+}
+
 void SequenceIO::setOutputParams(const TrackId id, const AudioOutputParams& params)
 {
     ONLY_AUDIO_ENGINE_THREAD;

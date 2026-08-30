@@ -78,6 +78,16 @@ bool staffMetrics(const muse::String& stateJson, double& generatorCents, double&
 /// control's bounds derive from this, never a fork-side constant.
 bool generatorRange(double& minCents, double& maxCents);
 
+struct ToneDiamondSetting {
+    muse::String id;
+    muse::String label;
+    double x = 0.0;
+    double y = 0.0;
+};
+
+/// Kernel-owned named Tone Diamond settings for host controls.
+bool toneDiamondSettings(std::vector<ToneDiamondSetting>& settings, uint32_t& generatorParamId, uint32_t& xParamId, uint32_t& yParamId);
+
 /// The Kernel's scale-dot label-legibility range (owner-defined,
 /// distinct from the valid tuning range): Auto label mode reads Left
 /// strictly inside, Split at or outside.
@@ -223,7 +233,8 @@ struct ConnectorGlyph {
 bool connectorGlyph(ConnectorGlyph& out);
 
 bool frameForMelody(const muse::String& stateJson, const muse::String& melodyJson, const muse::String& extentToken,
-                    std::vector<StaveSegment>& segments, const std::vector<double>& extraCents = {});
+                    std::vector<StaveSegment>& segments, const std::vector<double>& extraCents = {},
+                    const muse::String& ratioLineExtentJson = {});
 
 /// Milestone 8 (octave-band elision): the Kernel's BANDED frame for a
 /// melody through the same frame_for_melody op with the additive
@@ -245,7 +256,8 @@ struct FrameBands {
     int omittedPeriodCount = 0;
 };
 bool frameBandsForMelody(const muse::String& stateJson, const muse::String& melodyJson, const muse::String& extentToken,
-                         bool elideEmptyPeriods, int minBandPeriods, FrameBands& out, const std::vector<double>& extraCents = {});
+                         bool elideEmptyPeriods, int minBandPeriods, FrameBands& out, const std::vector<double>& extraCents = {},
+                         const muse::String& ratioLineExtentJson = {});
 
 /// A quantization hit: the nearest realizable lattice pitch to a target
 /// cents height, with the Kernel compatibility pitch (step/alter/octave)

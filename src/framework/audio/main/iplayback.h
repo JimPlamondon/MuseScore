@@ -79,6 +79,7 @@ public:
 
     virtual async::Promise<AudioInputParams> inputParams(const TrackSequenceId sequenceId, const TrackId trackId) const = 0;
     virtual void setInputParams(const TrackSequenceId sequenceId, const TrackId trackId, const AudioInputParams& params) = 0;
+    virtual void setInputParamPlain(TrackSequenceId, TrackId, uint32_t, double) {}
     virtual async::Channel<TrackSequenceId, TrackId, AudioInputParams> inputParamsChanged() const = 0;
 
     virtual void processInput(const TrackSequenceId sequenceId, const TrackId trackId) const = 0;

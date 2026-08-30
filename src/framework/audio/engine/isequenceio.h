@@ -40,6 +40,7 @@ public:
     virtual RetVal<AudioOutputParams> outputParams(const TrackId id) const = 0;
 
     virtual void setInputParams(const TrackId id, const AudioInputParams& params) = 0;
+    virtual void setInputParamPlain(TrackId, uint32_t, double) {}
     virtual void setOutputParams(const TrackId id, const AudioOutputParams& params) = 0;
 
     virtual async::Channel<TrackId, AudioInputParams> inputParamsChanged() const = 0;

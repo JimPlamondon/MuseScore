@@ -304,6 +304,16 @@ void EnginePlayback::setInputParams(const TrackSequenceId sequenceId, const Trac
     }
 }
 
+void EnginePlayback::setInputParamPlain(const TrackSequenceId sequenceId, const TrackId trackId,
+                                        uint32_t paramId, double plain)
+{
+    ONLY_AUDIO_ENGINE_THREAD;
+    ITrackSequencePtr s = sequence(sequenceId);
+    if (s) {
+        s->audioIO()->setInputParamPlain(trackId, paramId, plain);
+    }
+}
+
 async::Channel<TrackSequenceId, TrackId, AudioInputParams> EnginePlayback::inputParamsChanged() const
 {
     ONLY_AUDIO_ENGINE_THREAD;

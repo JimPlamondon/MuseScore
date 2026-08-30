@@ -77,6 +77,7 @@ public:
     muse::async::Notification currentTrackSequenceIdChanged() const override;
 
     const InstrumentTrackIdMap& instrumentTrackIdMap() const override;
+    void setInputParamPlainForResource(const muse::audio::AudioResourceId& resourceId, uint32_t paramId, double plain) override;
     const AuxTrackIdMap& auxTrackIdMap() const override;
 
     muse::async::Channel<muse::audio::TrackId> trackAdded() const override;
@@ -91,8 +92,8 @@ public:
     const SoloMuteState& trackSoloMuteState(const engraving::InstrumentTrackId& trackId) const override;
     void setTrackSoloMuteState(const engraving::InstrumentTrackId& trackId, const SoloMuteState& state) override;
 
-    void playElements(const std::vector<const notation::EngravingItem*>& elements,
-                      const PlayParams& params = PlayParams(), bool isMidi = false) override;
+    void playElements(const std::vector<const notation::EngravingItem*>& elements, const PlayParams& params = PlayParams(),
+                      bool isMidi = false) override;
     void playNotes(const notation::NoteValList& notes, notation::staff_idx_t staffIdx, const notation::Segment* segment,
                    const PlayParams& params = PlayParams()) override;
     void playMetronome(int tick) override;

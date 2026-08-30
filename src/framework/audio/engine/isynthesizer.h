@@ -41,6 +41,7 @@ public:
 
     virtual const audio::AudioInputParams& params() const = 0;
     virtual async::Channel<audio::AudioInputParams> paramsChanged() const = 0;
+    virtual bool setHostParameterPlain(uint32_t, double) { return false; }
 
     virtual msecs_t playbackPosition() const = 0;
     virtual void setPlaybackPosition(const msecs_t newPosition) = 0;
