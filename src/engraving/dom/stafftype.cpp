@@ -848,8 +848,10 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
     const double gap = 0.25 * spatium;
     std::vector<jims::LabeledDotStack> stacks;
     const bool haveLabels = jims::scaleDotLabels(m_jimsStateJson, stacks);
-    // Current-key label "[PitchN]:" left of the tonic indicator (owner spec
-    // 2026-08-17): reserve its advance (plus one space) in the left bands.
+    // Current-key label "[PitchN]:" to the right of Do's scale dot (owner
+    // corrections 2026-08-30): its established home is inside the open
+    // curve of the crescent clef. It contributes to change-terrain width,
+    // but MUST NOT reserve a header label band or move the scale-dot stack.
     jims::TonicPitchLabel key;
     double keyAdvance = jims::tonicPitchLabel(m_jimsStateJson, key)
                         ? jims::pitchLabelLayout(key.label + u": ", labelFont, engravingFont).advance : 0.0;
@@ -900,10 +902,6 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
 
     const JimsScaleDotLabelMode mode = jimsResolvedScaleDotLabelMode();
     if (mode == JimsScaleDotLabelMode::None || !haveLabels) {
-        if (keyAdvance > 0.0) {
-            g.leftLabelBand = keyAdvance + gap;
-            g.headerWidth += g.leftLabelBand;
-        }
         g.headerWidth += g.braceWidth;
         return g;
     }
@@ -927,8 +925,8 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
             maxRight = std::max(maxRight, fm.horizontalAdvance(rightText));
         }
     }
-    if (maxLeft > 0.0 || keyAdvance > 0.0) {
-        g.leftLabelBand = maxLeft + keyAdvance + gap;
+    if (maxLeft > 0.0) {
+        g.leftLabelBand = maxLeft + gap;
     }
     if (maxRight > 0.0 && mode == JimsScaleDotLabelMode::Split) {
         g.rightLabelBand = maxRight + gap;

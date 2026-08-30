@@ -1278,6 +1278,96 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8EveryStaffSegmentHasBothBoundaryL
     delete score;
 }
 
+// A fixed ratio-line cut is not a moving scale-dot cut. At 12-TET the So
+// dot sits 1.955 cents below its pure 3/2 boundary; at other tunings it moves
+// farther while the boundary remains fixed. The boundary dot and its label
+// must therefore survive whenever their painted glyph intersects the staff.
+// The tonic pitch label belongs in the open lane to the right of Do's dot.
+TEST_F(Engraving_JiMStaffM8BandElisionTests, fixedRatioEdgeKeepsSoDotAndLabelAndPlacesTonicPitchLabelRightOfDo)
+{
+    MasterScore* score = ScoreRW::readScore(SINGLE_OCTAVE);
+    ASSERT_TRUE(score);
+    StaffType* type = mutSt(score);
+    ASSERT_TRUE(type && type->isJiMS());
+    type->setJimsStateJson(
+        u"{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],"
+        u"\"collection_rotation\":0,\"mode_rotation\":0,\"generator_cents\":700.0,"
+        u"\"period_cents\":1200.0,\"embedding\":{\"large_steps\":5,\"small_steps\":2},"
+        u"\"extent\":{\"lower\":{\"nPer\":-2,\"nGen\":-1},"
+        u"\"upper\":{\"nPer\":-1,\"nGen\":-2}},"
+        u"\"reference\":{\"reference-pitch\":{\"key_number\":62}},"
+        u"\"tonic_ambit\":\"tonic-bounded\"}");
+    type->setJimsRatioLineExtentJson(
+        u"{\"lower\":{\"period\":-1,\"ratio\":\"3/2\"},"
+        u"\"upper\":{\"period\":0,\"ratio\":\"1/1\"}}");
+    for (Measure* measure = score->firstMeasure(); measure; measure = measure->nextMeasure()) {
+        for (Chord* chord : chordsOf(measure)) {
+            for (Note* note : chord->notes()) {
+                note->setJimsPitch(-2, -1);
+            }
+        }
+    }
+    score->setLayoutAll();
+    score->doLayout();
+
+    System* system = measureSystems(score).front();
+    const StaffType::JimsFrameView& view = viewOn(score, system);
+    ASSERT_EQ(view.bands.size(), 1u);
+    EXPECT_NEAR(view.bottomCents(), 1.955000865387433, 1e-6);
+    EXPECT_NEAR(view.topCents(), 500.0, 1e-6);
+    const StaffLines* lines = system->firstMeasure()->staffLines(0);
+    ASSERT_TRUE(lines);
+
+    std::shared_ptr<BufferedPaintProvider> provider = std::make_shared<BufferedPaintProvider>();
+    Painter painter(provider, "fixed-ratio-edge-header");
+    painter.setViewport(RectF(0, 0, 4000, 4000));
+    PaintOptions options;
+    lines->renderer()->drawItem(lines, &painter, options);
+    painter.endDraw();
+
+    bool sawSo = false;
+    bool sawTonicPitch = false;
+    double tonicPitchX = 0.0;
+    double tonicPitchRight = 0.0;
+    const DrawDataPtr drawData = provider->drawData();
+    std::function<void(const DrawData::Item&)> walk = [&](const DrawData::Item& item) {
+        for (const DrawData::Data& data : item.datas) {
+            for (const DrawText& text : data.texts) {
+                sawSo = sawSo || text.text.contains(u"So");
+                if (text.text.contains(u"C2:")) {
+                    sawTonicPitch = true;
+                    tonicPitchX = text.rect.left();
+                    tonicPitchRight = text.rect.right();
+                }
+            }
+        }
+        for (const DrawData::Item& child : item.chilren) {
+            walk(child);
+        }
+    };
+    walk(drawData->item);
+    EXPECT_TRUE(sawSo) << "the So dot intersecting the fixed 3/2 edge lost its label";
+    ASSERT_TRUE(sawTonicPitch);
+
+    const StaffType::JimsHeaderGeometry geometry
+        = type->jimsHeaderGeometry(lines->spatium(), score->style().defaultSpatium(), &view);
+    const double clefRight = lines->pos().x() - 0.3 * lines->spatium();
+    const double clefLeft = clefRight - geometry.clefRx;
+    EXPECT_NEAR(geometry.rightLabelBand, 0.0, 1e-6)
+        << "the tonic pitch label must not displace the scale-dot stack";
+    const double dotCenterX = clefLeft - geometry.rightLabelBand
+                              - 2.0 * geometry.indicatorW + geometry.indicatorW;
+    EXPECT_NEAR(dotCenterX, clefLeft - geometry.indicatorW, 1e-6)
+        << "the scale-dot stack moved away from its established clef geometry";
+    EXPECT_GT(tonicPitchX, dotCenterX)
+        << "the tonic pitch label must sit to the right of Do's scale dot";
+    EXPECT_GT(tonicPitchX, clefLeft)
+        << "the tonic pitch label must nestle inside the crescent's horizontal span";
+    EXPECT_LT(tonicPitchRight, clefRight)
+        << "the tonic pitch label must fit before the crescent's Do-line point";
+    delete score;
+}
+
 // Owner ruling 2026-08-19 (seen on the two-part gate score): a Do->La mode
 // change was drawn from the staff's LOWEST Do-line down to a La below the
 // staff. The indicator must anchor on the Do-line that keeps the whole
