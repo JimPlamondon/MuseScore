@@ -296,8 +296,8 @@ public:
     void setJimsScaleDotLabelMode(JimsScaleDotLabelMode mode) { m_jimsScaleDotLabelMode = mode; }
     JimsElideOctaves jimsElideOctaves() const { return m_jimsElideOctaves; }
     void setJimsElideOctaves(JimsElideOctaves mode) { m_jimsElideOctaves = mode; }
-    bool jimsExactDeclaredExtent() const { return m_jimsExactDeclaredExtent; }
-    void setJimsExactDeclaredExtent(bool value) { m_jimsExactDeclaredExtent = value; }
+    const String& jimsRatioLineExtentJson() const { return m_jimsRatioLineExtentJson; }
+    void setJimsRatioLineExtentJson(const String& value) { m_jimsRatioLineExtentJson = value; }
     bool jimsJiLines() const { return m_jimsJiLines; }
     void setJimsJiLines(bool val) { m_jimsJiLines = val; }
     // Derived frame cache (Kernel frame_for_melody result; keyed by the
@@ -536,7 +536,7 @@ private:
     bool m_jimsJiLines = false;
     JimsScaleDotLabelMode m_jimsScaleDotLabelMode = JimsScaleDotLabelMode::Auto;
     JimsElideOctaves m_jimsElideOctaves = JimsElideOctaves::Auto;
-    bool m_jimsExactDeclaredExtent = false;
+    String m_jimsRatioLineExtentJson;
     mutable muse::String m_jimsFrameKey;
     mutable bool m_jimsFrameFrozen = false;
     mutable std::vector<JimsSegment> m_jimsFrameSegments;

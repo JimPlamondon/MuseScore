@@ -201,7 +201,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8WholeViewIsOneBandWithLegacyGeome
     EXPECT_EQ(whole.bands[0].segments.size(), 5u);   // five stored-extent segments
     // The whole frame's "[PitchN]:" names the period index selected by the
     // Kernel for its lowest labelled tonic row, not an inferred extent centre.
-    EXPECT_EQ(whole.bands[0].labelPeriodIndex, 0);
+    EXPECT_EQ(whole.bands[0].labelPeriodIndex, -1);
     jims::TonicPitchLabel wholeLabel;
     ASSERT_TRUE(jims::tonicPitchLabelInPeriod(jst->jimsStateJson(), whole.bands[0].labelPeriodIndex, wholeLabel));
     EXPECT_TRUE(whole.bands[0].tonicLabel == wholeLabel.label);
@@ -242,12 +242,12 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8ElisionOffMatchesPhase2Baseline)
         EXPECT_FALSE(st(score)->jimsElisionActive(score, 0, system));
         const StaffType::JimsFrameView& v = viewOn(score, system);
         EXPECT_EQ(v.bands.size(), 1u);
-        EXPECT_NEAR(v.bottomCents(), 0.0, EPS);
+        EXPECT_NEAR(v.bottomCents(), -200.0, EPS);
         EXPECT_NEAR(v.topCents(), 5800.0, EPS);
         Measure* m = system->firstMeasure();
-        // The arbitrary extent lower is not Do. The five actual Do rows
+        // The arbitrary extent lower is not Do. The six actual Do rows
         // inside this frame are each drawn exactly once.
-        EXPECT_EQ(redDoLineCount(m->staffLines(0)), 5);
+        EXPECT_EQ(redDoLineCount(m->staffLines(0)), 6);
     }
     delete score;
 }
@@ -268,7 +268,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StyleOnBandsLaterSystemsWithLabel
         const StaffType::JimsFrameView& v = viewOn(score, systems[0]);
         EXPECT_FALSE(v.banded);
         EXPECT_EQ(v.bands.size(), 1u);
-        EXPECT_EQ(redDoLineCount(systems[0]->firstMeasure()->staffLines(0)), 5);
+        EXPECT_EQ(redDoLineCount(systems[0]->firstMeasure()->staffLines(0)), 6);
     }
     const double ld = st(score)->lineDistance().val();
     const double gapLd = score->style().styleS(Sid::staffDistance).val() / ld;
@@ -276,12 +276,12 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StyleOnBandsLaterSystemsWithLabel
         const StaffType::JimsFrameView& v = viewOn(score, systems[i]);
         EXPECT_TRUE(v.banded) << "system " << i + 1;
         ASSERT_EQ(v.bands.size(), 2u) << "system " << i + 1;
-        EXPECT_EQ(v.omittedPeriodCount, 2);
-        EXPECT_NEAR(v.bands[0].lowerCents, 0.0, EPS);
-        EXPECT_NEAR(v.bands[0].upperCents, 1200.0, EPS);
-        EXPECT_NEAR(v.bands[1].lowerCents, 3600.0, EPS);
+        EXPECT_EQ(v.omittedPeriodCount, 3);
+        EXPECT_NEAR(v.bands[0].lowerCents, -200.0, EPS);
+        EXPECT_NEAR(v.bands[0].upperCents, 1000.0, EPS);
+        EXPECT_NEAR(v.bands[1].lowerCents, 4600.0, EPS);
         EXPECT_NEAR(v.bands[1].upperCents, 5800.0, EPS);
-        EXPECT_EQ(v.bands[0].labelPeriodIndex, 0);
+        EXPECT_EQ(v.bands[0].labelPeriodIndex, -1);
         EXPECT_EQ(v.bands[1].labelPeriodIndex, 3);
         for (const StaffType::JimsFrameBand& band : v.bands) {
             jims::TonicPitchLabel expected;
@@ -290,13 +290,13 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StyleOnBandsLaterSystemsWithLabel
         }
         // Geometry: top band at 0, bottom band below it plus one gap.
         EXPECT_NEAR(v.bands[1].yTopLd, 0.0, EPS);
-        EXPECT_NEAR(v.bands[0].yTopLd, 22.0 + gapLd, EPS);
-        EXPECT_NEAR(v.heightLd(), 34.0 + gapLd, EPS);
+        EXPECT_NEAR(v.bands[0].yTopLd, 12.0 + gapLd, EPS);
+        EXPECT_NEAR(v.heightLd(), 24.0 + gapLd, EPS);
         EXPECT_NEAR(v.gapLd, gapLd, EPS);
-        // One actual Do row in the lower band and two in the upper band,
+        // Two boundary Do rows in each band,
         // with none in the gap.
         Measure* m = systems[i]->firstMeasure();
-        EXPECT_EQ(redDoLineCount(m->staffLines(0)), 3);
+        EXPECT_EQ(redDoLineCount(m->staffLines(0)), 4);
         // The staff lines' bbox is the drawn height (band heights + gap).
         const double spatium = score->style().spatium();
         const StaffLines* lines = systems[i]->lastMeasure()->staffLines(0);
@@ -340,7 +340,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8FirstSystemSwitchOffBandsSystemOn
         const StaffType::JimsFrameView& v = viewOn(score, system);
         EXPECT_TRUE(v.banded);
         EXPECT_EQ(v.bands.size(), 2u);
-        EXPECT_EQ(v.omittedPeriodCount, 2);
+        EXPECT_EQ(v.omittedPeriodCount, 3);
     }
     {
         Measure* m1 = systems[0]->firstMeasure();
@@ -473,9 +473,9 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8GapClickSnapsToNearestBandEdgeAnd
         EXPECT_FALSE(error);
         return nval.pitch;
     };
-    EXPECT_EQ(entryPitch(gapTop + 0.5), 74);
-    EXPECT_EQ(entryPitch(gapBottom - 0.5), 50);
-    EXPECT_EQ(entryPitch((gapTop + gapBottom) / 2.0), 50);
+    EXPECT_EQ(entryPitch(gapTop + 0.5), 84);
+    EXPECT_EQ(entryPitch(gapBottom - 0.5), 48);
+    EXPECT_EQ(entryPitch((gapTop + gapBottom) / 2.0), 48);
     delete score;
 }
 
@@ -503,15 +503,15 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DragFreezeThenDropRederives)
     // tick range, never by System pointer.)
     system2 = measureSystems(score)[1];
     EXPECT_EQ(viewOn(score, system2).bands.size(), 2u);
-    EXPECT_EQ(viewOn(score, system2).omittedPeriodCount, 2);
+    EXPECT_EQ(viewOn(score, system2).omittedPeriodCount, 3);
     st(score)->jimsSetFrameFrozen(false);
     score->setLayoutAll();
     score->doLayout();
     system2 = measureSystems(score)[1];
     const StaffType::JimsFrameView& after = viewOn(score, system2);
     ASSERT_EQ(after.bands.size(), 2u);
-    EXPECT_EQ(after.omittedPeriodCount, 1);
-    EXPECT_NEAR(after.bands[1].lowerCents, 2400.0, EPS);
+    EXPECT_EQ(after.omittedPeriodCount, 2);
+    EXPECT_NEAR(after.bands[1].lowerCents, 3400.0, EPS);
     delete score;
 }
 
@@ -536,17 +536,17 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8KeyboardOctaveStepGrowsOnlyTheAff
     ASSERT_EQ(systems.size(), 4u);
     const StaffType::JimsFrameView& sys2 = viewOn(score, systems[1]);
     EXPECT_EQ(sys2.bands.size(), 2u);
-    EXPECT_EQ(sys2.omittedPeriodCount, 1);
-    EXPECT_NEAR(sys2.bands[1].lowerCents, 2400.0, EPS);
+    EXPECT_EQ(sys2.omittedPeriodCount, 2);
+    EXPECT_NEAR(sys2.bands[1].lowerCents, 3400.0, EPS);
     for (size_t i : { 2u, 3u }) {
         const StaffType::JimsFrameView& other = viewOn(score, systems[i]);
         EXPECT_EQ(other.bands.size(), 2u) << "system " << i + 1;
-        EXPECT_EQ(other.omittedPeriodCount, 2) << "system " << i + 1;
+        EXPECT_EQ(other.omittedPeriodCount, 3) << "system " << i + 1;
     }
     // Undo restores the three-omitted view on system 2.
     score->undoRedo(true, nullptr);
     score->doLayout();
-    EXPECT_EQ(viewOn(score, measureSystems(score)[1]).omittedPeriodCount, 2);
+    EXPECT_EQ(viewOn(score, measureSystems(score)[1]).omittedPeriodCount, 3);
     delete score;
 }
 
@@ -984,7 +984,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                 };
                 // (a) red = Do row, dashed != Do row; one red line per Do row in a segment.
                 int red = 0;
-                int expectedRed = 0;
+                std::vector<double> expectedDoRows;
                 std::vector<double> redYs;
                 for (const StaffLines::JimsGuideLine& g : lines->jimsGuideLines()) {
                     const double cents = centsOfY(g.line.y1());
@@ -1019,11 +1019,14 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                                              + std::ceil((seg.lowerCents - origins.doCentsAboveExtentLower - 1e-6)
                                                          / period) * period;
                         for (double b = first; b <= seg.upperCents + 1e-6; b += period) {
-                            ++expectedRed;
+                            if (std::none_of(expectedDoRows.begin(), expectedDoRows.end(),
+                                             [&](double existing) { return std::abs(existing - b) < 1e-6; })) {
+                                expectedDoRows.push_back(b);
+                            }
                         }
                     }
                 }
-                EXPECT_EQ(red, expectedRed) << what << " tick " << m->tick().ticks();
+                EXPECT_EQ(red, int(expectedDoRows.size())) << what << " tick " << m->tick().ticks();
                 if (system->firstMeasure() != m) {
                     continue;
                 }
@@ -1198,6 +1201,13 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8EveryStaffSegmentHasBothBoundaryL
                 return std::abs(centsOfY(guide.line.y1()) - cents) < 1e-6;
             });
         };
+        auto hasBlackGuideAt = [&](double cents) {
+            return std::any_of(lines->jimsGuideLines().begin(), lines->jimsGuideLines().end(),
+                               [&](const StaffLines::JimsGuideLine& guide) {
+                return guide.rgb == 0x000000
+                       && std::abs(centsOfY(guide.line.y1()) - cents) < 1e-6;
+            });
+        };
         std::vector<double> expectedClosures;
         const double periodCents = jst->jimsPeriodCents();
         jims::PeriodicOrigins origins;
@@ -1208,6 +1218,10 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8EveryStaffSegmentHasBothBoundaryL
                     << "staff " << staffIdx << " missing bottom boundary at " << segment.lowerCents;
                 EXPECT_TRUE(hasGuideAt(segment.upperCents))
                     << "staff " << staffIdx << " missing top boundary at " << segment.upperCents;
+                EXPECT_FALSE(hasBlackGuideAt(segment.lowerCents))
+                    << "staff " << staffIdx << " synthesized a non-musical black bottom boundary";
+                EXPECT_FALSE(hasBlackGuideAt(segment.upperCents))
+                    << "staff " << staffIdx << " synthesized a non-musical black top boundary";
                 double periodFloor = origins.doCentsAboveExtentLower
                                      + std::floor((segment.lowerCents - origins.doCentsAboveExtentLower)
                                                   / periodCents + 1e-6) * periodCents;
@@ -1464,18 +1478,21 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8RoundTripPreservesSwitchesAndAbse
     delete fourth;
 }
 
-TEST_F(Engraving_JiMStaffM8BandElisionTests, exactDeclaredExtentOverrideRoundTripsPerStaffType)
+TEST_F(Engraving_JiMStaffM8BandElisionTests, fixedRatioLineExtentRoundTripsPerStaffType)
 {
     MasterScore* score = ScoreRW::readScore(TWO_HAND);
     ASSERT_TRUE(score);
-    EXPECT_FALSE(st(score)->jimsExactDeclaredExtent());
-    mutSt(score)->setJimsExactDeclaredExtent(true);
-    const String out = ScoreRW::rootPath() + u"/../../../build.release/jims-m8-scratch/exact-extent-roundtrip.mscx";
+    EXPECT_TRUE(st(score)->jimsRatioLineExtentJson().isEmpty());
+    const String extent
+        = u"{\"lower\":{\"period\":-2,\"ratio\":\"3/2\"},"
+          u"\"upper\":{\"period\":6,\"ratio\":\"3/2\"}}";
+    mutSt(score)->setJimsRatioLineExtentJson(extent);
+    const String out = ScoreRW::rootPath() + u"/../../../build.release/jims-m8-scratch/ratio-extent-roundtrip.mscx";
     ASSERT_TRUE(ScoreRW::saveScore(score, out));
     delete score;
     MasterScore* again = ScoreRW::readScore(out, true);
     ASSERT_TRUE(again);
-    EXPECT_TRUE(st(again)->jimsExactDeclaredExtent());
+    EXPECT_EQ(st(again)->jimsRatioLineExtentJson(), extent);
     delete again;
 }
 
@@ -1590,7 +1607,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8GapIndicatorIsScreenOnlyAndNeverP
     bool sawCount = false;
     for (const String& t : screen) {
         if (t.contains(u"hidden")) {
-            EXPECT_TRUE(t == u"2 empty octaves hidden");
+            EXPECT_TRUE(t == u"3 empty octaves hidden");
             sawCount = true;
         }
     }
@@ -1683,11 +1700,12 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorExtendsTheStaffWhenN
     const StaffType* baseSt = st(score);
     const StaffType* changeSt = score->staff(0)->staffType(m2->tick());
     ASSERT_TRUE(changeSt && changeSt->isJiMS() && changeSt != baseSt);
-    // The base section: the one-period window [-250, 950] — a single Do-line at 0.
+    // The base section: the half-period minimum resolved outward to its
+    // surrounding fixed ratio-lines.
     const StaffType::JimsFrameView& baseView = baseSt->jimsWholeFrameView(score, 0);
     ASSERT_FALSE(baseView.empty());
-    EXPECT_NEAR(baseView.bottomCents(), -550.0, 1e-6);
-    EXPECT_NEAR(baseView.topCents(), 650.0, 1e-6);
+    EXPECT_NEAR(baseView.bottomCents(), -300.0, 1e-6);
+    EXPECT_NEAR(baseView.topCents(), 401.95500086538743, 1e-6);
     // The change section (Do -> La): its frame is extended to cover the
     // indicator — La sits 300 cents below Do, one margin further down.
     jims::ChangeIndicator model;

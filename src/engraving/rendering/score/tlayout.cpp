@@ -5091,20 +5091,9 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
             }
             guides.push_back({ LineF(lineStartX, gy, x2, gy), dashed, rgb });
         };
-        auto boundaryGuide = [&](double cents) {
-            const double gy = y + jimsSt->jimsYFromCents(cents, view) * _spatium;
-            const bool alreadyPresent
-                = std::any_of(guides.begin(), guides.end(), [&](const StaffLines::JimsGuideLine& existing) {
-                return std::abs(existing.line.y1() - gy) < 1e-6;
-            });
-            if (!alreadyPresent) {
-                guides.push_back({ LineF(lineStartX, gy, x2, gy), false, 0x000000 });
-            }
-        };
         // Kernel JI lines for the scaffold colors (fetched once).
         std::vector<jims::JiLine> jiLines;
-        const bool haveJi = jimsSt->jimsJiLines()
-                            && jims::jiLines(jimsSt->jimsStateJson(), jiLines);
+        const bool haveJi = jims::jiLines(jimsSt->jimsStateJson(), jiLines);
         jims::PeriodicOrigins origins;
         if (!jims::periodicOrigins(jimsSt->jimsStateJson(), origins)) {
             item->setJimsGuideLines({});
@@ -5142,12 +5131,13 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
                 for (double period = basePeriod; period < segment.upperCents; period += periodCents) {
                     if (haveJi) {
                         for (const jims::JiLine& ji : jiLines) {
-                            if (ji.visible) {
-                                const double cents = period + ji.cents;
-                                if (cents >= segment.lowerCents - epsilon
-                                    && cents <= segment.upperCents + epsilon) {
-                                    guide(cents, true, limitColor(ji.limit));
-                                }
+                            const double cents = period + ji.cents;
+                            const bool isFixedEdge = std::abs(cents - segment.lowerCents) <= epsilon
+                                                     || std::abs(cents - segment.upperCents) <= epsilon;
+                            if ((isFixedEdge || (jimsSt->jimsJiLines() && ji.visible))
+                                && cents >= segment.lowerCents - epsilon
+                                && cents <= segment.upperCents + epsilon) {
+                                guide(cents, true, limitColor(ji.limit));
                             }
                         }
                     } else if (!jimsSt->jimsJiLines()) {
@@ -5158,13 +5148,6 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
                         }
                     }
                 }
-                // A frame cut is itself a visible staff boundary even when
-                // it coincides with neither Do nor a Kernel JI scaffold row.
-                // Preserve an existing musical line at that ordinate;
-                // otherwise add one neutral presentation boundary. This is
-                // per rendered segment and never changes Kernel geometry.
-                boundaryGuide(segment.lowerCents);
-                boundaryGuide(segment.upperCents);
             }
         }
         item->setJimsGuideLines(guides);

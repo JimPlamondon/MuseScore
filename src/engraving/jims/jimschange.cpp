@@ -619,9 +619,6 @@ int reconcileExtents(Score* score)
             if (!st || !st->isJiMS()) {
                 continue;
             }
-            if (st->jimsExactDeclaredExtent()) {
-                continue;
-            }
             const bool bounded = i + 1 < starts.size();
             const Fraction end = bounded ? starts[i + 1] : Fraction(0, 1);
             String melody = u"{\"notes\":[";

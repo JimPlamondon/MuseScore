@@ -195,7 +195,7 @@ bool StaffType::operator==(const StaffType& st) const
     equal &= (m_jimsJiLines == st.m_jimsJiLines);
     equal &= (m_jimsScaleDotLabelMode == st.m_jimsScaleDotLabelMode);
     equal &= (m_jimsElideOctaves == st.m_jimsElideOctaves);
-    equal &= (m_jimsExactDeclaredExtent == st.m_jimsExactDeclaredExtent);
+    equal &= (m_jimsRatioLineExtentJson == st.m_jimsRatioLineExtentJson);
     equal &= (m_userMag == st.m_userMag);
     equal &= (m_yoffset == st.m_yoffset);
     equal &= (m_small == st.m_small);
@@ -1001,7 +1001,7 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
         }
     }
     const muse::String key = jimsStateJson() + u"|" + token + u"|" + melody
-                             + muse::String(u"|exact:%1|ind:").arg(m_jimsExactDeclaredExtent ? 1 : 0) + indicatorKey;
+                             + u"|ratio:" + m_jimsRatioLineExtentJson + u"|ind:" + indicatorKey;
     if (jimsFrameKey() != key) {
         // Milestone 4: EVERY melody — including the empty one — asks the
         // Kernel (frame_for_melody yields one whole period for no notes,
@@ -1013,7 +1013,7 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
             LOGE() << "JiMStaff: no declared tonic-ambit token; frame unavailable for staff " << staffIdx;
         } else {
             std::vector<jims::StaveSegment> segments;
-            if (jims::frameForMelody(jimsStateJson(), melody, token, segments, {}, m_jimsExactDeclaredExtent)) {
+            if (jims::frameForMelody(jimsStateJson(), melody, token, segments, {}, m_jimsRatioLineExtentJson)) {
                 for (const jims::StaveSegment& segment : segments) {
                     cached.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
                 }
@@ -1035,7 +1035,7 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
                     if (!extra.empty()) {
                         std::vector<jims::StaveSegment> covering;
                         if (jims::frameForMelody(jimsStateJson(), melody, token, covering, extra,
-                                                 m_jimsExactDeclaredExtent)) {
+                                                 m_jimsRatioLineExtentJson)) {
                             cached.clear();
                             for (const jims::StaveSegment& segment : covering) {
                                 cached.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
@@ -1426,8 +1426,7 @@ const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, sta
         }
     }
     const muse::String key = jimsStateJson() + u"|" + token + u"|" + melody
-                             + muse::String(u"|elide:1|min:1|exact:%1|ind:").arg(m_jimsExactDeclaredExtent ? 1 : 0)
-                             + indicatorKey;
+                             + u"|elide:1|min:1|ratio:" + m_jimsRatioLineExtentJson + u"|ind:" + indicatorKey;
     if (found != m_jimsFrameViews.end() && found->second.key == key) {
         return found->second;
     }
@@ -1441,7 +1440,7 @@ const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, sta
     auto deriveBands = [&](const std::vector<double>& extra, JimsFrameView& into) -> bool {
         jims::FrameBands bands;
         if (!jims::frameBandsForMelody(jimsStateJson(), melody, token, true, 1, bands, extra,
-                                       m_jimsExactDeclaredExtent)) {
+                                       m_jimsRatioLineExtentJson)) {
             return false;
         }
         into.bands.clear();

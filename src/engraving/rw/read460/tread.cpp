@@ -4039,8 +4039,8 @@ void TRead::read(StaffType* t, XmlReader& e, ReadContext& ctx)
             t->setJimsElideOctaves(mode == u"on" ? JimsElideOctaves::On
                                    : mode == u"off" ? JimsElideOctaves::Off
                                    : JimsElideOctaves::Auto);
-        } else if (tag == "jimsExactDeclaredExtent") {
-            t->setJimsExactDeclaredExtent(e.readBool());
+        } else if (tag == "jimsRatioLineExtent") {
+            t->setJimsRatioLineExtentJson(e.readText());
         } else if (tag == "durations") {
             t->setGenDurations(e.readBool());
         } else if (tag == "durationFontName") {

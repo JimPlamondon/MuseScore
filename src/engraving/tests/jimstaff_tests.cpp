@@ -173,7 +173,7 @@ TEST(JiMStaffTests, tonicBoundedLaModeFrameKeepsStoredExtentMinimum)
     EXPECT_NEAR(segments[1].upperCents, 2400.0, EPS);
 }
 
-TEST(JiMStaffTests, exactDeclaredExtentCanReturnASubperiodSoToDoFrame)
+TEST(JiMStaffTests, fixedRatioLineExtentCanReturnASubperiodSoToDoFrame)
 {
     const muse::String state
         =u"{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],"
@@ -183,10 +183,13 @@ TEST(JiMStaffTests, exactDeclaredExtentCanReturnASubperiodSoToDoFrame)
          u"\"reference\":\"none\"}";
     const muse::String melody = u"{\"notes\":[{\"nPer\":-2,\"nGen\":-1}]}";
     std::vector<jims::StaveSegment> segments;
-    ASSERT_TRUE(jims::frameForMelody(state, melody, u"tonic-bounded", segments, {}, true));
+    const muse::String ratioExtent
+        = u"{\"lower\":{\"period\":-1,\"ratio\":\"3/2\"},"
+          u"\"upper\":{\"period\":0,\"ratio\":\"1/1\"}}";
+    ASSERT_TRUE(jims::frameForMelody(state, melody, u"tonic-bounded", segments, {}, ratioExtent));
     ASSERT_EQ(segments.size(), 1u);
     EXPECT_FALSE(segments[0].whole);
-    EXPECT_NEAR(segments[0].lowerCents, 0.0, EPS);
+    EXPECT_NEAR(segments[0].lowerCents, 1.955000865387433, EPS);
     EXPECT_NEAR(segments[0].upperCents, 500.0, EPS);
 }
 
