@@ -36,7 +36,7 @@ InspectorSectionView {
         Repeater {
             model: [
                 { key: "tonics", label: qsTrc("inspector", "Tonic (mode centre)") },
-                { key: "keys", label: qsTrc("inspector", "Key (absolute pitch of Do0)") },
+                { key: "keys", label: qsTrc("inspector", "Key shift (changes the pitch of Do0)") },
                 { key: "scales", label: qsTrc("inspector", "Scale") }
             ]
             Column {
@@ -61,7 +61,7 @@ InspectorSectionView {
         StyledTextLabel {
             width: parent.width
             visible: !root.model.settings.referenceBound
-            text: qsTrc("inspector", "Bind Re0, the reference Re pitch, before choosing an absolute key. This binding applies to this staff.")
+            text: qsTrc("inspector", "Bind Re0, the reference Re pitch, before shifting key. This binding applies to this staff.")
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignLeft
         }
@@ -87,13 +87,19 @@ InspectorSectionView {
             onClicked: root.model.removeChange()
         }
         StyledTextLabel {
+            id: statusLabel
             width: parent.width
             visible: text.length > 0
-            text: (root.model.hasError || root.model.settings.reason ? "⚠ " : "") + (root.model.settings.reason || root.model.status || "")
+            text: (root.model.hasError || (!root.model.status && root.model.settings.reason) ? "⚠ " : "") + (root.model.status || root.model.settings.reason || "")
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignLeft
-            Accessible.role: Accessible.AlertMessage
-            Accessible.name: text
+            AccessibleItem {
+                accessibleParent: root.navigationPanel.accessible
+                visualItem: statusLabel
+                role: MUAccessible.Information
+                name: statusLabel.text
+                ignored: !statusLabel.visible
+            }
         }
         StyledTextLabel { text: qsTrc("inspector", "Hide empty octave bands (hollow stacks)") }
         StyledDropdown {

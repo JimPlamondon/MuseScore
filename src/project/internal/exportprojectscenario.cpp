@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "exportprojectscenario.h"
+#include "validatednotationexport.h"
 
 #include "global/io/fileinfo.h"
 #include "global/io/filestream.h"
@@ -404,6 +405,17 @@ Ret ExportProjectScenario::doExportLoop(const muse::io::path_t& scorePath, std::
     }
 
     while (true) {
+        const std::string suffix = io::suffix(scorePath);
+        if (suffix == "musicxml" || suffix == "xml" || suffix == "mxl" || suffix == "mei") {
+            Ret ret = writeValidatedNotationExport(scorePath, exportFunction);
+            if (ret || ret.code() == int(Ret::Code::Cancel)) {
+                return ret;
+            }
+            if (askForRetry(filename, ret.text())) {
+                continue;
+            }
+            return make_ret(Ret::Code::Cancel);
+        }
         io::FileStream outputFile(scorePath);
         outputFile.setMeta("file_path", scorePath.toStdString());
         if (!outputFile.open(FileStream::WriteOnly)) {

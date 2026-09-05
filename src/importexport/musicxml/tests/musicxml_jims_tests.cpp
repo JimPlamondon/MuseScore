@@ -33,6 +33,8 @@
 #include <algorithm>
 #include <climits>
 #include <functional>
+#include <QTemporaryDir>
+#include <QFile>
 
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/fret.h"
@@ -1122,6 +1124,23 @@ TEST_F(MusicXml_JiMS_Tests, exportFailsClosedWhenAJimsNoteLacksItsIdentity)
     EXPECT_FALSE(saveMxl(score, &mxl, &mxlError));
     EXPECT_EQ(mxlError, error);
     EXPECT_TRUE(mxl.data().empty());
+    QTemporaryDir directory;
+    ASSERT_TRUE(directory.isValid());
+    for (const auto& suffix : { "musicxml", "mxl" }) {
+        const QString path = directory.filePath(QString("score.%1").arg(suffix));
+        auto exportFile = [&]() {
+            return std::string(suffix) == "mxl" ? saveMxl(score, String(path)) : saveXml(score, String(path));
+        };
+        EXPECT_FALSE(exportFile());
+        EXPECT_FALSE(QFile::exists(path));
+        QFile file(path);
+        ASSERT_TRUE(file.open(QIODevice::WriteOnly));
+        file.write("previous valid export");
+        file.close();
+        EXPECT_FALSE(exportFile());
+        ASSERT_TRUE(file.open(QIODevice::ReadOnly));
+        EXPECT_EQ(file.readAll(), "previous valid export");
+    }
     delete score;
 }
 

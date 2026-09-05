@@ -74,7 +74,7 @@ Item {
             JimsTuningControl {
                 id: tuningControl
                 model: jimsTuning
-                navigationPanel: NavigationPanel { name: "TuningPopup"; section: tuningPopup.navigationSection; order: 1 }
+                navigationPanel: NavigationPanel { name: "TuningPopup"; section: tuningPopup.navigationSection; order: 1; direction: NavigationPanel.Vertical }
             }
         }
     }

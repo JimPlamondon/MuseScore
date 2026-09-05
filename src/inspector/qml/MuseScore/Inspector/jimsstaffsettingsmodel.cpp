@@ -107,7 +107,11 @@ void JimsStaffSettingsModel::loadProperties()
                 if (option.current) {
                     current = int(list.size());
                 }
-                list << QVariantMap { { "text", option.label.toQString() }, { "value", int(list.size()) } };
+                QString label = option.label.toQString();
+                if (QString::fromLatin1(key) == "keys") {
+                    label = muse::qtrc("inspector", "%1 (period shift: %2)").arg(label).arg(option.nPer);
+                }
+                list << QVariantMap { { "text", label }, { "value", int(list.size()) } };
             }
             m_settings[key] = list;
             m_settings[QString::fromLatin1(key) + "Index"] = current;
@@ -140,16 +144,12 @@ void JimsStaffSettingsModel::loadProperties()
             if (!cycle || !rotation) {
                 return;
             }
-            QStringList members;
-            for (const auto& member : rotation->memberLabels) {
-                members << member.toQString();
-            }
             if (cycle->current && rotation->current) {
                 currentScale = int(scales.size());
             }
-            scales << QVariantMap { { "text", name + ": " + members.join(' ') }, { "value", int(scales.size()) } };
+            scales << QVariantMap { { "text", name }, { "value", int(scales.size()) } };
             std::vector<muse::String> steps;
-            if (cycle != rotation && !cycle->current) {
+            if (cycle != rotation) {
                 steps.push_back(cycle->id);
             }
             steps.push_back(rotation->id);
@@ -175,7 +175,13 @@ void JimsStaffSettingsModel::finish(bool ok, const muse::String& error, const QS
         m_status = muse::qtrc("inspector", "This change could not be applied. The score is unchanged.");
     }
     emit statusChanged();
+    if (!m_status.isEmpty() && accessibilityController()) {
+        accessibilityController()->announce(m_status);
+    }
     if (ok) {
+        if (currentNotation() && currentNotation()->undoStack()) {
+            currentNotation()->undoStack()->stackChanged().notify();
+        }
         updateNotation();
     }
     loadProperties();
@@ -202,10 +208,20 @@ void JimsStaffSettingsModel::applyOption(const QString& group, int index)
     if (steps.empty()) {
         return;
     }
-    muse::String before, after, error;
-    jims::effectiveState(score, staff, measure, tick, before);
+    auto states = [&]() {
+        std::vector<muse::String> result;
+        for (staff_idx_t index = 0; index < score->nstaves(); ++index) {
+            muse::String state;
+            if (jims::effectiveState(score, index, measure, tick, state)) {
+                result.push_back(state);
+            }
+        }
+        return result;
+    };
+    const auto before = states();
+    muse::String error;
     bool ok = jims::applyChangeToAllJimsParts(score, measure, tick, steps, error);
-    jims::effectiveState(score, staff, measure, tick, after);
+    const auto after = states();
     finish(ok, error,
            before == after ? muse::qtrc("inspector", "Already selected; no change was needed.") : muse::qtrc("inspector",
                                                                                                              "Applied to all compatible parts at this position."));

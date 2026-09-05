@@ -70,14 +70,22 @@ double JimsTuningModel::cents() const
     return m_controller ? m_controller->currentGeneratorCents() : 0.0;
 }
 
+void JimsTuningModel::reportError(const QString& error)
+{
+    m_error = error;
+    if (accessibilityController()) {
+        accessibilityController()->announce(error);
+    }
+}
+
 bool JimsTuningModel::valid(double value)
 {
     if (std::isfinite(value) && value >= m_minimum && value <= m_maximum) {
         m_error.clear();
         return true;
     }
-    m_error = muse::qtrc("notation", "Enter a tuning between %1 and %2 cents.")
-              .arg(m_minimum, 0, 'f', 3).arg(m_maximum, 0, 'f', 3);
+    reportError(muse::qtrc("notation", "Enter a tuning between %1 and %2 cents.")
+                .arg(m_minimum, 0, 'f', 3).arg(m_maximum, 0, 'f', 3));
     emit changed();
     return false;
 }
@@ -111,7 +119,7 @@ void JimsTuningModel::preview(double value)
     const bool ok = m_controller->preview(value);
     m_busy = false;
     if (!ok) {
-        m_error = muse::qtrc("notation", "This score cannot use that tuning. The previous tuning is preserved.");
+        reportError(muse::qtrc("notation", "This score cannot use that tuning. The previous tuning is preserved."));
         cancel();
     }
     notifyNotation();
@@ -132,7 +140,7 @@ void JimsTuningModel::commit(double value)
         return;
     }
     if (!beginPreview()) {
-        m_error = muse::qtrc("notation", "Select a score with a compatible staff before changing tuning.");
+        reportError(muse::qtrc("notation", "Select a score with a compatible staff before changing tuning."));
         emit changed();
         return;
     }
@@ -142,7 +150,10 @@ void JimsTuningModel::commit(double value)
     m_busy = false;
     if (!ok) {
         m_controller->cancel();
-        m_error = muse::qtrc("notation", "Tuning could not be applied. The previous tuning is preserved.");
+        reportError(muse::qtrc("notation", "Tuning could not be applied. The previous tuning is preserved."));
+    }
+    if (ok && m_notation && m_notation->undoStack()) {
+        m_notation->undoStack()->stackChanged().notify();
     }
     notifyNotation();
 }
@@ -152,7 +163,7 @@ void JimsTuningModel::acceptText(const QString& text)
     bool ok = false;
     const double value = QLocale().toDouble(text, &ok);
     if (!ok) {
-        m_error = muse::qtrc("notation", "Enter a number in cents.");
+        reportError(muse::qtrc("notation", "Enter a number in cents."));
         emit changed();
         return;
     }

@@ -12,6 +12,7 @@
 #include "context/iglobalcontext.h"
 #include "notation/inotation.h"
 #include "engraving/jims/jimstuningcontroller.h"
+#include "accessibility/iaccessibilitycontroller.h"
 
 namespace mu::inspector {
 class JimsTuningModel : public QObject, public muse::async::Asyncable, public muse::Contextable
@@ -25,6 +26,7 @@ class JimsTuningModel : public QObject, public muse::async::Asyncable, public mu
     Q_PROPERTY(QString error READ error NOTIFY changed)
 public:
     muse::ContextInject<context::IGlobalContext> context = { this };
+    muse::ContextInject<muse::accessibility::IAccessibilityController> accessibilityController = { this };
     explicit JimsTuningModel(QObject* parent = nullptr);
     ~JimsTuningModel() override;
     Q_INVOKABLE void init();
@@ -45,6 +47,7 @@ private:
     void refresh();
     void notifyNotation();
     bool valid(double value);
+    void reportError(const QString& error);
     notation::INotationPtr m_notation;
     std::unique_ptr<engraving::jims::TuningController> m_controller;
     double m_minimum = 0.0;

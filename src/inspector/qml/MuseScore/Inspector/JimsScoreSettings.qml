@@ -19,7 +19,7 @@ InspectorSectionView {
         TextInputField {
         id: centsInput
         property bool escaping: false
-        onEscaped: { escaping = true; tuning.cancel(); inputField.text = tuning.cents.toLocaleString(Qt.locale(), "f", 3); Qt.callLater(function() { centsInput.escaping = false }) }
+        onEscaped: { escaping = true; tuning.cancel(); inputField.text = Qt.binding(function() { return centsInput.currentText }); Qt.callLater(function() { centsInput.escaping = false }) }
             width: parent.width
             currentText: tuning.cents.toLocaleString(Qt.locale(), "f", 3)
             navigation.panel: root.navigationPanel
@@ -29,12 +29,18 @@ InspectorSectionView {
             onTextEditingFinished: function(newText) { if (!escaping) tuning.acceptText(newText) }
         }
         StyledTextLabel {
+            id: tuningErrorLabel
             width: parent.width
             visible: tuning.error.length > 0
             text: "⚠ " + tuning.error
             wrapMode: Text.WordWrap
-            Accessible.role: Accessible.AlertMessage
-            Accessible.name: text
+            AccessibleItem {
+                accessibleParent: root.navigationPanel.accessible
+                visualItem: tuningErrorLabel
+                role: MUAccessible.Information
+                name: tuningErrorLabel.text
+                ignored: !tuningErrorLabel.visible
+            }
         }
         StyledTextLabel { text: qsTrc("inspector", "Melody part") }
         StyledDropdown {
@@ -72,11 +78,19 @@ InspectorSectionView {
             onClicked: expanded = !expanded
         }
         StyledTextLabel {
+            id: glossaryLabel
             width: parent.width
             visible: glossaryButton.expanded
             text: qsTrc("inspector", "M5: major fifth, the tuning generator. Cents: hundredths of a semitone. Re0: the reference Re pitch. Hollow stacks: empty octave bands hidden to save space. Prime-limit guide lines: reference pitches distinguished by labels and dash patterns. Scale dots: markers for notes in the chosen scale.")
             horizontalAlignment: Text.AlignLeft
             wrapMode: Text.WordWrap
+            AccessibleItem {
+                accessibleParent: root.navigationPanel.accessible
+                visualItem: glossaryLabel
+                role: MUAccessible.StaticText
+                name: glossaryLabel.text
+                ignored: !glossaryLabel.visible
+            }
         }
     }
 }

@@ -37,6 +37,7 @@
 
 #include <math.h>
 #include <set>
+#include <QSaveFile>
 
 #include "containers.h"
 #include "realfn.h"
@@ -9358,20 +9359,23 @@ bool saveXml(Score* score, IODevice* device, String* error)
         }
         return false;   // fail closed: nothing reaches the destination
     }
-    device->write(buf.data());
-    return true;
+    return device->write(buf.data()) == buf.data().size() && !device->hasError();
+}
+
+static bool writeCompleteExport(const String& name, const muse::ByteArray& data)
+{
+    QSaveFile file(name.toQString());
+    file.setDirectWriteFallback(false);
+    return file.open(QIODevice::WriteOnly)
+           && file.write(reinterpret_cast<const char*>(data.constData()), qint64(data.size())) == qint64(data.size())
+           && file.commit();
 }
 
 bool saveXml(Score* score, const String& name)
 {
-    File f(name);
-    if (!f.open(IODevice::WriteOnly)) {
-        return false;
-    }
-
-    bool res = saveXml(score, &f) && !f.hasError();
-    f.close();
-    return res;
+    muse::io::Buffer buffer;
+    buffer.open(IODevice::ReadWrite);
+    return saveXml(score, &buffer) && writeCompleteExport(name, buffer.data());
 }
 
 //---------------------------------------------------------
@@ -9445,22 +9449,21 @@ bool saveMxl(Score* score, IODevice* device, String* error)
     String fn = u"score.xml";
     const bool ok = writeMxlArchive(score, zip, fn, error);
     zip.close();
-    if (ok) {
-        device->write(archive.data());
-    }
-    return ok;
+    return ok && !zip.hasError() && device->write(archive.data()) == archive.data().size() && !device->hasError();
 }
 
 bool saveMxl(Score* score, const String& name)
 {
-    muse::ZipWriter zip(name);
+    muse::io::Buffer archive;
+    archive.open(IODevice::ReadWrite);
+    muse::ZipWriter zip(&archive);
 
     FileInfo fi(name);
     String fn = fi.completeBaseName() + u".xml";
     const bool ok = writeMxlArchive(score, zip, fn);
     zip.close();
 
-    return ok;
+    return ok && !zip.hasError() && writeCompleteExport(name, archive.data());
 }
 
 double ExportMusicXml::getTenthsFromInches(double inches) const

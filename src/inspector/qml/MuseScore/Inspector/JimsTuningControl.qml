@@ -26,12 +26,13 @@ Column {
     TextInputField {
         id: centsInput
         property bool escaping: false
-        onEscaped: { escaping = true; root.model.cancel(); inputField.text = root.model.cents.toLocaleString(Qt.locale(), "f", 3); Qt.callLater(function() { centsInput.escaping = false }) }
+        onEscaped: { escaping = true; root.model.cancel(); inputField.text = Qt.binding(function() { return centsInput.currentText }); Qt.callLater(function() { centsInput.escaping = false }) }
+        KeyNavigation.tab: slider
         width: parent.width
         currentText: root.model.cents.toLocaleString(Qt.locale(), 'f', 3)
         measureUnitsSymbol: qsTrc("notation", "cents")
         navigation.panel: root.navigationPanel
-        navigation.order: 1
+        navigation.row: 1
         navigation.accessible.name: qsTrc("notation", "Tuning in cents; 100 cents is one semitone")
         onTextEditingFinished: function(value) { if (!escaping) root.model.acceptText(value) }
     }
@@ -124,6 +125,16 @@ Column {
             navigation.accessible.name: qsTrc("notation", "Tuning in cents")
             wheelEnabled: true
             activeFocusOnTab: true
+            KeyNavigation.backtab: centsInput
+            Connections {
+                target: slider.navigation
+                function onActiveChanged() {
+                    if (slider.navigation.active) slider.forceActiveFocus()
+                }
+            }
+            Keys.onShortcutOverride: function(event) {
+                if (event.key === Qt.Key_PageUp || event.key === Qt.Key_PageDown) event.accepted = true
+            }
             onPressedChanged: {
                 if (pressed) root.model.beginPreview()
                 else root.model.commit(value)
@@ -162,16 +173,27 @@ Column {
         visible: root.showFigure
         width: parent.width
         text: qsTrc("notation", "Figure: Andrew Milne & Jim Plamondon, CC BY-SA 4.0")
-        font: ui.theme.bodySmallFont
+        font: ui.theme.bodyFont
         wrapMode: Text.WordWrap
     }
     StyledTextLabel {
+        id: errorLabel
         width: parent.width
         visible: root.model.error.length > 0
         text: "⚠ " + root.model.error
         color: ui.theme.fontPrimaryColor
         wrapMode: Text.WordWrap
         horizontalAlignment: Text.AlignLeft
-        Accessible.role: Accessible.AlertMessage
+        Loader {
+            active: errorLabel.visible
+            sourceComponent: Component {
+                AccessibleItem {
+                    accessibleParent: root.navigationPanel.accessible
+                    visualItem: errorLabel
+                    role: MUAccessible.Information
+                    name: errorLabel.text
+                }
+            }
+        }
     }
 }

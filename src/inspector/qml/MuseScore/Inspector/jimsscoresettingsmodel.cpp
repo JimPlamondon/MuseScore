@@ -57,6 +57,9 @@ void JimsScoreSettingsModel::setOption(const QString& name, const QVariant& valu
         score->undoChangeStyleVal(sid, value.toBool());
         score->endCmd();
     }
+    if (currentNotation()->undoStack()) {
+        currentNotation()->undoStack()->stackChanged().notify();
+    }
     updateNotation();
     loadProperties();
 }

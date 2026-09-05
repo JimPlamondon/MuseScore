@@ -3,6 +3,7 @@
 #pragma once
 #include "abstractinspectormodel.h"
 #include "engraving/jims/jimschangecontroller.h"
+#include "accessibility/iaccessibilitycontroller.h"
 
 namespace mu::inspector {
 class JimsStaffSettingsModel : public AbstractInspectorModel
@@ -14,6 +15,7 @@ class JimsStaffSettingsModel : public AbstractInspectorModel
     Q_PROPERTY(bool hasError READ hasError NOTIFY statusChanged)
     Q_PROPERTY(QString status READ status NOTIFY statusChanged)
 public:
+    muse::ContextInject<muse::accessibility::IAccessibilityController> accessibilityController = { this };
     JimsStaffSettingsModel(QObject* parent, const muse::modularity::ContextPtr& ctx, IElementRepositoryService* repository);
     QVariantMap settings() const { return m_settings; }
     bool hasError() const { return m_hasError; }
