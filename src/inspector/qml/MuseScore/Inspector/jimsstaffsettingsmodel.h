@@ -8,8 +8,8 @@ namespace mu::inspector {
 class JimsStaffSettingsModel : public AbstractInspectorModel
 {
     Q_OBJECT
-    QML_ELEMENT
-        QML_UNCREATABLE("Created by the inspector")
+    QML_ELEMENT;
+    QML_UNCREATABLE("Created by the inspector")
     Q_PROPERTY(QVariantMap settings READ settings NOTIFY settingsChanged)
     Q_PROPERTY(bool hasError READ hasError NOTIFY statusChanged)
     Q_PROPERTY(QString status READ status NOTIFY statusChanged)

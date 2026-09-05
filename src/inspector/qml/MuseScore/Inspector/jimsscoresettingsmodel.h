@@ -6,8 +6,8 @@ namespace mu::inspector {
 class JimsScoreSettingsModel : public AbstractInspectorModel
 {
     Q_OBJECT
-    QML_ELEMENT
-        QML_UNCREATABLE("Created by the inspector")
+    QML_ELEMENT;
+    QML_UNCREATABLE("Created by the inspector")
     Q_PROPERTY(QVariantMap settings READ settings NOTIFY settingsChanged)
 public:
     JimsScoreSettingsModel(QObject* parent, const muse::modularity::ContextPtr& ctx, IElementRepositoryService* repository);

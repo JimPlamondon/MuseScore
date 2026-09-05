@@ -17,7 +17,7 @@ namespace mu::inspector {
 class JimsTuningModel : public QObject, public muse::async::Asyncable, public muse::Contextable
 {
     Q_OBJECT
-    QML_ELEMENT
+    QML_ELEMENT;
     Q_PROPERTY(bool available READ available NOTIFY changed)
     Q_PROPERTY(double cents READ cents NOTIFY changed)
     Q_PROPERTY(double minimum READ minimum CONSTANT)
