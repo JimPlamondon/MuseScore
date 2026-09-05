@@ -239,6 +239,9 @@ void DockPageView::setDockOpen(const QString& dockName, bool open)
     } else {
         panel->open();
     }
+
+    // Explicitly opening a panel must also reveal an already-open background tab.
+    panel->makeCurrentTab();
 }
 
 void DockPageView::reorderSections()

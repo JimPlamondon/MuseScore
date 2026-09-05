@@ -293,3 +293,8 @@ void JimsStaffSettingsModel::setStaffOption(const QString& name, int value)
     score->endCmd();
     finish(true, {}, muse::qtrc("inspector", "Staff presentation updated."));
 }
+
+QColor JimsStaffSettingsModel::criticalColor() const
+{
+    return engravingConfiguration()->criticalColor().toQColor();
+}

@@ -187,12 +187,12 @@ Column {
         id: errorLabel
         width: parent.width
         visible: root.model.error.length > 0
-        text: "⚠ " + root.model.error
-        color: ui.theme.fontPrimaryColor
+        text: root.model.error.length > 0 ? "⚠ " + root.model.error : ""
+        color: root.model.criticalColor
         wrapMode: Text.WordWrap
         horizontalAlignment: Text.AlignLeft
         Loader {
-            active: errorLabel.visible
+            active: errorLabel.visible && errorLabel.enabled
             sourceComponent: Component {
                 AccessibleItem {
                     accessibleParent: root.navigationPanel.accessible

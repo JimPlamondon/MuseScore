@@ -181,3 +181,8 @@ void JimsTuningModel::cancel()
     m_busy = false;
     notifyNotation();
 }
+
+QColor JimsTuningModel::criticalColor() const
+{
+    return engravingConfiguration()->criticalColor().toQColor();
+}

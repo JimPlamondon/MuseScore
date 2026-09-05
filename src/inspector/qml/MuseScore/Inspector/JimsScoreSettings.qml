@@ -30,16 +30,21 @@ InspectorSectionView {
         }
         StyledTextLabel {
             id: tuningErrorLabel
+            color: tuning.criticalColor
             width: parent.width
             visible: tuning.error.length > 0
-            text: "⚠ " + tuning.error
+            text: tuning.error.length > 0 ? "⚠ " + tuning.error : ""
             wrapMode: Text.WordWrap
-            AccessibleItem {
-                accessibleParent: root.navigationPanel.accessible
-                visualItem: tuningErrorLabel
-                role: MUAccessible.Information
-                name: tuningErrorLabel.text
-                ignored: !tuningErrorLabel.visible
+            Loader {
+                active: tuningErrorLabel.visible && tuningErrorLabel.enabled
+                sourceComponent: Component {
+                    AccessibleItem {
+                        accessibleParent: root.navigationPanel.accessible
+                        visualItem: tuningErrorLabel
+                        role: MUAccessible.Information
+                        name: tuningErrorLabel.text
+                    }
+                }
             }
         }
         StyledTextLabel { text: qsTrc("inspector", "Melody part") }
@@ -84,12 +89,16 @@ InspectorSectionView {
             text: qsTrc("inspector", "M5: major fifth, the tuning generator. Cents: hundredths of a semitone. Re0: the reference Re pitch. Hollow stacks: empty octave bands hidden to save space. Prime-limit guide lines: reference pitches distinguished by labels and dash patterns. Scale dots: markers for notes in the chosen scale.")
             horizontalAlignment: Text.AlignLeft
             wrapMode: Text.WordWrap
-            AccessibleItem {
-                accessibleParent: root.navigationPanel.accessible
-                visualItem: glossaryLabel
-                role: MUAccessible.StaticText
-                name: glossaryLabel.text
-                ignored: !glossaryLabel.visible
+            Loader {
+                active: glossaryLabel.visible && glossaryLabel.enabled
+                sourceComponent: Component {
+                    AccessibleItem {
+                        accessibleParent: root.navigationPanel.accessible
+                        visualItem: glossaryLabel
+                        role: MUAccessible.StaticText
+                        name: glossaryLabel.text
+                    }
+                }
             }
         }
     }

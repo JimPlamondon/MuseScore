@@ -13,6 +13,8 @@
 #include "notation/inotation.h"
 #include "engraving/jims/jimstuningcontroller.h"
 #include "accessibility/iaccessibilitycontroller.h"
+#include "engraving/iengravingconfiguration.h"
+#include <QColor>
 
 namespace mu::inspector {
 class JimsTuningModel : public QObject, public muse::async::Asyncable, public muse::Contextable
@@ -23,8 +25,10 @@ class JimsTuningModel : public QObject, public muse::async::Asyncable, public mu
     Q_PROPERTY(double cents READ cents NOTIFY changed)
     Q_PROPERTY(double minimum READ minimum CONSTANT)
     Q_PROPERTY(double maximum READ maximum CONSTANT)
+    Q_PROPERTY(QColor criticalColor READ criticalColor NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
 public:
+    muse::GlobalInject<engraving::IEngravingConfiguration> engravingConfiguration;
     muse::ContextInject<context::IGlobalContext> context = { this };
     muse::ContextInject<muse::accessibility::IAccessibilityController> accessibilityController = { this };
     explicit JimsTuningModel(QObject* parent = nullptr);
@@ -40,6 +44,7 @@ public:
     double minimum() const { return m_minimum; }
     double maximum() const { return m_maximum; }
     QString error() const { return m_error; }
+    QColor criticalColor() const;
 signals:
     void changed();
 private:

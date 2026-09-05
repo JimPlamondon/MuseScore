@@ -88,17 +88,22 @@ InspectorSectionView {
         }
         StyledTextLabel {
             id: statusLabel
+            color: root.model.hasError || (!root.model.status && root.model.settings.reason) ? root.model.criticalColor : ui.theme.fontPrimaryColor
             width: parent.width
             visible: text.length > 0
             text: (root.model.hasError || (!root.model.status && root.model.settings.reason) ? "⚠ " : "") + (root.model.status || root.model.settings.reason || "")
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignLeft
-            AccessibleItem {
-                accessibleParent: root.navigationPanel.accessible
-                visualItem: statusLabel
-                role: MUAccessible.Information
-                name: statusLabel.text
-                ignored: !statusLabel.visible
+            Loader {
+                active: statusLabel.visible && statusLabel.enabled
+                sourceComponent: Component {
+                    AccessibleItem {
+                        accessibleParent: root.navigationPanel.accessible
+                        visualItem: statusLabel
+                        role: MUAccessible.Information
+                        name: statusLabel.text
+                    }
+                }
             }
         }
         StyledTextLabel { text: qsTrc("inspector", "Hide empty octave bands (hollow stacks)") }

@@ -4,6 +4,8 @@
 #include "abstractinspectormodel.h"
 #include "engraving/jims/jimschangecontroller.h"
 #include "accessibility/iaccessibilitycontroller.h"
+#include "engraving/iengravingconfiguration.h"
+#include <QColor>
 
 namespace mu::inspector {
 class JimsStaffSettingsModel : public AbstractInspectorModel
@@ -13,8 +15,10 @@ class JimsStaffSettingsModel : public AbstractInspectorModel
     QML_UNCREATABLE("Created by the inspector")
     Q_PROPERTY(QVariantMap settings READ settings NOTIFY settingsChanged)
     Q_PROPERTY(bool hasError READ hasError NOTIFY statusChanged)
+    Q_PROPERTY(QColor criticalColor READ criticalColor NOTIFY statusChanged)
     Q_PROPERTY(QString status READ status NOTIFY statusChanged)
 public:
+    muse::GlobalInject<engraving::IEngravingConfiguration> engravingConfiguration;
     muse::ContextInject<muse::accessibility::IAccessibilityController> accessibilityController = { this };
     JimsStaffSettingsModel(QObject* parent, const muse::modularity::ContextPtr& ctx, IElementRepositoryService* repository);
     QVariantMap settings() const { return m_settings; }
@@ -28,6 +32,7 @@ public:
     Q_INVOKABLE void bindReference(const QString& pitch);
     Q_INVOKABLE void removeChange();
     Q_INVOKABLE void setStaffOption(const QString& name, int value);
+    QColor criticalColor() const;
 signals:
     void settingsChanged();
     void statusChanged();

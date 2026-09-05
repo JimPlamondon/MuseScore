@@ -411,12 +411,6 @@ const UiActionList NotationUiActions::s_actions = {
              TranslatableString("action", "Choose a mode, key, or scale in Properties to insert a change at the selected position"),
              IconCode::Code::STAFF_TYPE_CHANGE
              ),
-    UiAction("jims-tuning",
-             mu::context::UiCtxProjectOpened,
-             mu::context::CTX_NOTATION_OPENED,
-             TranslatableString("action", "&JiMS Staff (tuning && changes)…"),
-             TranslatableString("action", "Adjust the JiMS generator width (M5) live")
-             ),
     UiAction("edit-style",
              mu::context::UiCtxProjectOpened,
              mu::context::CTX_NOTATION_OPENED,
