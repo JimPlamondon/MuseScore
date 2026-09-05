@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "notationuiactions.h"
+#include "engraving/jims/jimsstrings.h"
 
 #include <unordered_map>
 
@@ -406,7 +407,7 @@ const UiActionList NotationUiActions::s_actions = {
     UiAction("jims-change",
              mu::context::UiCtxProjectOpened,
              mu::context::CTX_NOTATION_OPENED,
-             TranslatableString("action", "Insert tonal change…"),
+             engraving::jims::changeActionName(),
              TranslatableString("action", "Choose a mode, key, or scale in Properties to insert a change at the selected position"),
              IconCode::Code::STAFF_TYPE_CHANGE
              ),
