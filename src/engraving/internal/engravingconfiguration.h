@@ -62,6 +62,7 @@ public:
     String iconsFontFamily() const override;
 
     Color defaultColor() const override;
+    bool isHighContrast() const override;
     Color scoreInversionColor() const override;
     Color lassoColor() const override;
     Color warningColor() const override;

@@ -21,6 +21,7 @@
  */
 
 #include "editstyle.h"
+#include "engraving/jims/jimsstrings.h"
 
 #include <QAnyStringView>
 #include <QButtonGroup>
@@ -98,7 +99,8 @@ static const QStringList ALL_PAGE_CODES {
     "chord-symbols",
     "fretboard-diagrams",
     "tablature-styles",
-    "text-styles"
+    "text-styles",
+    "jims"
 };
 
 static const QStringList ALL_TEXT_STYLE_SUBPAGE_CODES {
@@ -327,7 +329,24 @@ EditStyle::EditStyle(QWidget* parent)
     // Style widgets
     // ====================================================
 
+    auto* jimsPage = new QWidget(pageStack);
+    jimsPage->setObjectName("jimsStylePage");
+    auto* jimsLayout = new QVBoxLayout(jimsPage);
+    auto* jimsElide = new QCheckBox(muse::qtrc("notation/editstyle", "Elide empty octaves (hollow stacks)"), jimsPage);
+    jimsElide->setObjectName("jimsElide");
+    jimsElide->setToolTip(muse::qtrc("notation/editstyle",
+                                     "Hollow stacks leave a plain gap where an interior octave has no notes, like hiding empty staves."));
+    auto* jimsFirstSystem = new QCheckBox(muse::qtrc("notation/editstyle", "Show all octaves in the first system"), jimsPage);
+    jimsFirstSystem->setObjectName("jimsFirstSystem");
+    jimsLayout->addWidget(jimsElide);
+    jimsLayout->addWidget(jimsFirstSystem);
+    jimsLayout->addStretch();
+    pageStack->addWidget(jimsPage);
+    pageList->addItem(jims::featureName().toQString());
+
     styleWidgets = {
+        { StyleId::jimsElideEmptyOctaves, false, jimsElide, 0 },
+        { StyleId::jimsShowAllOctavesInFirstSystem, false, jimsFirstSystem, 0 },
         //   idx                --- showPercent      --- widget          --- resetButton
         { StyleId::figuredBassAlignment,    false, fbAlign,                 0 },
         { StyleId::figuredBassStyle,        false, fbStyle,                 0 },
@@ -1305,6 +1324,14 @@ void EditStyle::changeEvent(QEvent* event)
 void EditStyle::retranslate()
 {
     retranslateUi(this);
+    if (auto* page = findChild<QWidget*>("jimsStylePage")) {
+        pageList->item(pageStack->indexOf(page))->setText(jims::featureName().toQString());
+        auto* elide = page->findChild<QCheckBox*>("jimsElide");
+        elide->setText(muse::qtrc("notation/editstyle", "Elide empty octaves (hollow stacks)"));
+        elide->setToolTip(muse::qtrc("notation/editstyle",
+                                     "Hollow stacks leave a plain gap where an interior octave has no notes, like hiding empty staves."));
+        page->findChild<QCheckBox*>("jimsFirstSystem")->setText(muse::qtrc("notation/editstyle", "Show all octaves in the first system"));
+    }
 
     buttonApplyToAllParts->setText(muse::qtrc("notation/editstyle", "Apply to all parts"));
 

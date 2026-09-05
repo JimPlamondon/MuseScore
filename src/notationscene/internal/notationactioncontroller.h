@@ -150,6 +150,7 @@ private:
     void resetBeamMode();
 
     void openJimsTuningPanel();
+    void openJimsProperties();
     void openEditStyleDialog(const muse::actions::ActionData& args);
     void openPageSettingsDialog();
     void openStaffProperties();

@@ -22,6 +22,7 @@
 #include "notationactioncontroller.h"
 
 #include "jimstuningpanel.h"
+#include <QPointer>
 
 #include "io/file.h"
 
@@ -310,6 +311,7 @@ void NotationActionController::init()
     registerAction("append-fretframe", [this]() { addBoxes(BoxType::Fret, 1, AddBoxesTarget::AtEndOfScore); });
 
     registerAction("jims-tuning", &Controller::openJimsTuningPanel);
+    registerAction("jims-change", &Controller::openJimsProperties);
     registerAction("edit-style", &Controller::openEditStyleDialog);
     registerAction("page-settings", &Controller::openPageSettingsDialog);
     registerAction("staff-properties", &Controller::openStaffProperties);
@@ -1803,6 +1805,11 @@ void NotationActionController::resetBeamMode()
     }
 }
 
+void NotationActionController::openJimsProperties()
+{
+    dispatcher()->dispatch("dock-set-open", ActionData::make_arg2<QString, bool>("inspectorPanel", true));
+}
+
 void NotationActionController::openJimsTuningPanel()
 {
     // JiMStaff Milestone 3 (owner decision 1a): slider + numeric field,
@@ -1814,11 +1821,24 @@ void NotationActionController::openJimsTuningPanel()
         return;
     }
     auto notation = currentNotation();
-    auto* panel = new notationscene::JimsTuningPanel(score, [notation]() {
+    static QPointer<notationscene::JimsTuningPanel> panel;
+    static std::weak_ptr<INotation> panelNotation;
+    if (panel && panelNotation.lock() == notation) {
+        panel->show();
+        panel->raise();
+        panel->activateWindow();
+        return;
+    }
+    if (panel) {
+        panel->close();
+    }
+    panelNotation = notation;
+    panel = new notationscene::JimsTuningPanel(score, [notation]() {
         if (notation) {
             notation->notationChanged().notify();
         }
-    }, notation ? notation->notationChanged() : muse::async::Notification());
+    }, notation ? notation->notationChanged() : muse::async::Notification(),
+                                               notation ? notation->interaction()->selectionChanged() : muse::async::Notification());
     panel->setAttribute(Qt::WA_DeleteOnClose);
     panel->show();
     panel->raise();

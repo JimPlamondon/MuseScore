@@ -21,6 +21,8 @@
  */
 
 #include <gtest/gtest.h>
+#include <QFile>
+#include <QTemporaryDir>
 
 #include "io/file.h"
 
@@ -420,5 +422,55 @@ TEST_F(Mei_Tests, mei_tuplet_02) {
 
 TEST_F(Mei_Tests, mei_tuplet_03) {
     meiReadTest("tuplet-03");
+}
+TEST_F(Mei_Tests, missingStateIsExplainedAndDoesNotLeakIntoTheNextFileError)
+{
+    QFile source(QString::fromUtf8(iex_mei_tests_DATA_ROOT) + "/data/jims/jims-synthetic.mei");
+    ASSERT_TRUE(source.open(QIODevice::ReadOnly));
+    QByteArray xml = source.readAll();
+    int start = xml.indexOf("<extMeta>");
+    int end = xml.indexOf("</extMeta>", start);
+    ASSERT_GE(start, 0);
+    ASSERT_GT(end, start);
+    xml.remove(start, end + int(sizeof("</extMeta>") - 1) - start);
+    QTemporaryDir directory;
+    ASSERT_TRUE(directory.isValid());
+    QString path = directory.filePath("missing-state.mei");
+    QFile stripped(path);
+    ASSERT_TRUE(stripped.open(QIODevice::WriteOnly));
+    stripped.write(xml);
+    stripped.close();
+    muse::Ret received;
+    auto import = [&received](MasterScore* score, const muse::io::path_t& input) {
+        MeiReader reader(nullptr);
+        received = reader.read(score, input);
+        return received ? Err::NoError : Err::FileCriticallyCorrupted;
+    };
+    std::unique_ptr<MasterScore> refused(ScoreRW::readScore(String::fromQString(path), true, import));
+    EXPECT_FALSE(refused);
+    EXPECT_NE(received.text().find("required state record is missing"), std::string::npos);
+    MeiReader reader(nullptr);
+    muse::Ret missing = reader.read(nullptr, directory.filePath("does-not-exist.mei"));
+    EXPECT_FALSE(missing);
+    EXPECT_EQ(missing.text().find("required state record is missing"), std::string::npos);
+}
+
+TEST_F(Mei_Tests, unrelatedTypeTokenDoesNotClaimTheFileUsesTheProfile)
+{
+    QFile source(QString::fromUtf8(iex_mei_tests_DATA_ROOT) + "/data/label-01.mei");
+    ASSERT_TRUE(source.open(QIODevice::ReadOnly));
+    QByteArray xml = source.readAll();
+    xml.replace("<score>", "<score type=\"unrelated-jims-tag\">");
+    QTemporaryDir directory;
+    QFile output(directory.filePath("unrelated.mei"));
+    ASSERT_TRUE(output.open(QIODevice::WriteOnly));
+    output.write(xml);
+    output.close();
+    auto import = [](MasterScore* score, const muse::io::path_t& input) {
+        MeiReader reader(nullptr);
+        return reader.import(score, input);
+    };
+    std::unique_ptr<MasterScore> score(ScoreRW::readScore(String::fromQString(output.fileName()), true, import));
+    EXPECT_TRUE(score);
 }
 }

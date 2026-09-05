@@ -754,7 +754,7 @@ bool Harmony::edit(EditData& ed)
     String str = xmlText();
 
     if (m_harmonyType == HarmonyType::JIMS) {
-        m_isMisspelled = false;
+        m_isMisspelled = !isValidJimsName(plainText());
         return rv;
     }
 
@@ -821,8 +821,10 @@ void Harmony::endEdit(EditData& ed)
     setHarmony(s);
     setPlainText(harmonyName());
 
-    // disable spell check
-    m_isMisspelled = false;
+    // A refused JiMS edit keeps its explanation until the next valid edit.
+    if (m_harmonyType != HarmonyType::JIMS) {
+        m_isMisspelled = false;
+    }
 
     TextBase::endEdit(ed);
 
@@ -876,14 +878,8 @@ void Harmony::setHarmony(const String& s)
     m_realizedHarmony.setDirty(true);
 
     if (m_harmonyType == HarmonyType::JIMS) {
-        bool containsWhitespace = false;
-        for (size_t i = 0; i < s.size(); ++i) {
-            if (s.at(i).isSpace()) {
-                containsWhitespace = true;
-                break;
-            }
-        }
-        if (s.isEmpty() || containsWhitespace || s.contains(u'~')) {
+        m_isMisspelled = !isValidJimsName(s);
+        if (m_isMisspelled) {
             return;
         }
         muse::DeleteAll(m_chords);
@@ -1174,7 +1170,8 @@ const ParsedChord* Harmony::parsedForm()const
 
 Color Harmony::curColor(const rendering::PaintOptions& opt) const
 {
-    if (!opt.isPrinting && m_isMisspelled) {
+    if (!opt.isPrinting
+        && (m_harmonyType == HarmonyType::JIMS && cursor() && cursor()->editing() ? !isValidJimsName(plainText()) : m_isMisspelled)) {
         return configuration()->criticalColor();
     }
 
@@ -1337,8 +1334,31 @@ TranslatableString Harmony::typeUserName() const
 //   accessibleInfo
 //---------------------------------------------------------
 
+bool Harmony::isValidJimsName(const String& text)
+{
+    if (text.isEmpty() || text.contains(u'~')) {
+        return false;
+    }
+    for (size_t i = 0; i < text.size(); ++i) {
+        if (text.at(i).isSpace()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+String Harmony::jimsNameError() const
+{
+    return m_harmonyType == HarmonyType::JIMS && (cursor() && cursor()->editing() ? !isValidJimsName(plainText()) : m_isMisspelled)
+           ? muse::mtrc("engraving", "Chord name refused: use one nonempty name without spaces or ~. The previous name is preserved.")
+           : String();
+}
+
 String Harmony::accessibleInfo() const
 {
+    if (!jimsNameError().empty()) {
+        return jimsNameError();
+    }
     return String(u"%1: %2").arg(translatedTypeUserName(), harmonyName());
 }
 

@@ -56,6 +56,7 @@ class AbstractInspectorModel : public QObject, public muse::async::Asyncable, pu
     Q_PROPERTY(InspectorSectionType sectionType READ sectionType CONSTANT)
     Q_PROPERTY(InspectorModelType modelType READ modelType CONSTANT)
     Q_PROPERTY(bool isEmpty READ isEmpty NOTIFY isEmptyChanged)
+    Q_PROPERTY(bool hasJimsSelection READ hasJimsSelection NOTIFY isEmptyChanged)
 
     Q_PROPERTY(bool isSystemObjectBelowBottomStaff READ isSystemObjectBelowBottomStaff NOTIFY isSystemObjectBelowBottomStaffChanged)
     Q_PROPERTY(mu::inspector::CommonTypes::MeasurementUnits measurementUnits READ measurementUnits NOTIFY measurementUnitsChanged)
@@ -72,6 +73,8 @@ public:
 public:
     enum class InspectorSectionType {
         SECTION_UNDEFINED = -1,
+        SECTION_JIMS_STAFF,
+        SECTION_JIMS_SCORE,
         SECTION_GENERAL,
         SECTION_MEASURES,
         SECTION_EMPTY_STAVES,
@@ -178,6 +181,7 @@ public:
     static std::set<InspectorSectionType> sectionTypesByElementKeys(const ElementKeySet& elementKeySet, bool isRange,
                                                                     const QList<mu::engraving::EngravingItem*>& selectedElementList = {});
     virtual bool isEmpty() const;
+    bool hasJimsSelection() const;
 
     virtual void createProperties() = 0;
     virtual void loadProperties() = 0;
@@ -283,7 +287,9 @@ private:
                           std::function<void(const mu::engraving::Sid styleId,
                                              const
                                              QVariant
-                                             & newValue)> onStyleChangedCallBack = nullptr,
+                                             &
+                                             newValue)>
+                          onStyleChangedCallBack = nullptr,
                           std::function<void(const mu::engraving::Pid propertyId)> onPropertyResetCallBack = nullptr);
 
     mu::engraving::Sid styleIdByPropertyId(const mu::engraving::Pid pid) const;

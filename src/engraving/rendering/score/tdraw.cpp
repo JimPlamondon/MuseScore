@@ -2732,7 +2732,7 @@ void TDraw::draw(const Spacer* item, Painter* painter, const PaintOptions& opt)
 
     auto conf = item->configuration();
 
-    Pen pen(item->selected() ? conf->selectionColor() : conf->formattingColor(), item->spatium()* 0.3);
+    Pen pen(item->selected() ? conf->selectionColor() : conf->formattingColor(), item->spatium() * 0.3);
 
     painter->setPen(pen);
     painter->setBrush(BrushStyle::NoBrush);
@@ -2751,10 +2751,22 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
         // the one deliberate exception to the single-pen staff-line rule,
         // reached only when the JiMS layout branch populated guides.
         for (const StaffLines::JimsGuideLine& guide : item->jimsGuideLines()) {
-            Color color(guide.rgb >> 16 & 0xff, guide.rgb >> 8 & 0xff, guide.rgb & 0xff);
-            painter->setPen(Pen(color, item->lw(),
-                                guide.dashed ? PenStyle::DashLine : PenStyle::SolidLine,
-                                PenCapStyle::FlatCap));
+            Color color = item->style().value(guide.colorStyle).value<Color>();
+            if (!opt.isPrinting && item->configuration()->isHighContrast()) {
+                color = item->configuration()->defaultColor();
+            }
+            color = item->curColor(item->visible(), color, opt);
+            PenStyle pattern = guide.dashed ? PenStyle::DashLine : PenStyle::SolidLine;
+            switch (guide.primeLimit) {
+            case 5: pattern = PenStyle::DotLine;
+                break;
+            case 7: pattern = PenStyle::DashDotLine;
+                break;
+            case 11: pattern = PenStyle::DashDotDotLine;
+                break;
+            default: break;
+            }
+            painter->setPen(Pen(color, item->lw(), pattern, PenCapStyle::FlatCap));
             painter->drawLine(guide.line);
         }
 
@@ -2832,6 +2844,16 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                 if (jims::staffMetrics(jimsSt->jimsStateJson(), generatorCents, periodCents)) {
                     muse::String label = muse::String(u"M5= %1¢")
                                          .arg(muse::String::number(generatorCents, 1));
+                    std::set<int> visibleLimits;
+                    for (const auto& guide : item->jimsGuideLines()) {
+                        if (guide.primeLimit) {
+                            visibleLimits.insert(guide.primeLimit);
+                        }
+                    }
+                    for (int limit : visibleLimits) {
+                        const muse::String pattern = limit == 3 ? u"—" : limit == 5 ? u"··" : limit == 7 ? u"—·" : u"—··";
+                        label += muse::String(u"   %1: %2").arg(limit).arg(pattern);
+                    }
                     Font labelFont(u"Edwin", Font::Type::Text);
                     labelFont.setPointSizeF(10.0 * item->spatium() / item->defaultSpatium());
                     painter->setFont(labelFont);
@@ -3015,7 +3037,9 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                         RectF backing = textLayout.bounds.translated(PointF(x, baseline));
                                         backing.adjust(-inset, -inset, inset, inset);
                                         painter->setNoPen();
-                                        painter->setBrush(Brush(Color(255, 255, 255, 191)));
+                                        painter->setBrush(Brush(opt.invertColors && !opt.isPrinting ? Color(0, 0, 0, 191) : Color(255, 255,
+                                                                                                                                  255,
+                                                                                                                                  191)));
                                         painter->drawRect(backing);
                                         painter->setBrush(BrushStyle::NoBrush);
                                         painter->setPen(Pen(item->curColor(opt)));
@@ -3062,7 +3086,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                         crescentFill.arcTo(innerArc, 270.0, -180.0);
                         crescentFill.closeSubpath();
                         painter->setNoPen();
-                        painter->setBrush(Brush(Color::WHITE));
+                        painter->setBrush(Brush(opt.invertColors && !opt.isPrinting ? Color::BLACK : Color::WHITE));
                         painter->drawPath(crescentFill);
                         PainterPath crescentOutline;
                         crescentOutline.arcMoveTo(outerArc, 90.0);
@@ -3291,7 +3315,8 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     const double top = yOf(view.topCents());
                     const double bottom = yOf(view.bottomCents());
                     if (placement == ChangePlacement::MID_BAR) {
-                        painter->setPen(Pen(Color(128, 128, 128), flankWidth,
+                        painter->setPen(Pen(item->curColor(item->visible(), item->style().value(Sid::jimsMidBarFlankColor).value<Color>(),
+                                                           opt), flankWidth,
                                             PenStyle::DashLine, PenCapStyle::FlatCap));
                         painter->drawLine(LineF(x0, top, x0, bottom));
                         painter->drawLine(LineF(x0 + g.changeTerrainWidth, top,
@@ -3421,7 +3446,9 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                         const double hw = head.headHalfWidthCents / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * dist;
                         // Owner ruling (M5 gate, 2026-08-16): arrows in black ink,
                         // heavier than the tonic indicator, large head.
-                        const Color arrowInk = item->selected() ? item->curColor(opt) : Color(0, 0, 0);
+                        const Color arrowInk = opt.isPrinting ? Color::BLACK
+                                               : item->curColor(item->visible(),
+                                                                item->style().value(Sid::jimsChangeArrowColor).value<Color>(), opt);
                         for (const jims::ChangeArrow& a : model.arrows) {
                             const double yFrom = yOf(centsOf(a.from));
                             const double yTo = yOf(centsOf(a.to));

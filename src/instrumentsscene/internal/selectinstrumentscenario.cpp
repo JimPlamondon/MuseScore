@@ -93,6 +93,10 @@ muse::async::Promise<PartInstrumentListScoreOrder> SelectInstrumentsScenario::se
 
                 String instrumentId = String::fromStdString(map["instrumentId"].toString());
                 pi.instrumentTemplate = instrumentsRepository()->instrumentTemplate(instrumentId);
+                if (map["useJimsStaff"].toBool() && !pi.isExistingPart
+                    && pi.instrumentTemplate.staffGroup == engraving::StaffGroup::STANDARD) {
+                    pi.instrumentTemplate.staffTypePreset = engraving::StaffType::preset(engraving::StaffTypes::JIMS_12TET);
+                }
 
                 result.instruments << pi;
             }

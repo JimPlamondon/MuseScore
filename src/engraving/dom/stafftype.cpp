@@ -250,6 +250,7 @@ StaffTypes StaffType::type() const
 {
     static const std::map<String, StaffTypes> xmlNameToType {
         { u"stdNormal", StaffTypes::STANDARD },
+        { u"jims12tet", StaffTypes::JIMS_12TET },
 
         { u"perc1Line", StaffTypes::PERC_1LINE },
         { u"perc2Line", StaffTypes::PERC_2LINE },

@@ -1947,6 +1947,20 @@ bool NotationInteraction::dropSingle(const PointF& pos, Qt::KeyboardModifiers mo
         return false;
     }
 
+    if (edd.ed.dropElement->isActionIcon() && toActionIcon(edd.ed.dropElement)->actionCode() == "jims-change") {
+        staff_idx_t staffIndex = 0;
+        MeasureBase* base = score()->pos2measure(pos, &staffIndex, 0, nullptr, 0);
+        if (!base || !base->isMeasure() || !score()->staff(staffIndex)->staffType(base->tick())->isJiMS()) {
+            resetDropData();
+            return false;
+        }
+        select({ base }, SelectType::REPLACE, staffIndex);
+        resetDropData();
+        setDropTarget(nullptr);
+        dispatcher()->dispatch("jims-change");
+        return true;
+    }
+
     bool accepted = false;
 
     // If the drop position hasn't been set already through isDropAccepted's helper methods, use the mouse position
@@ -2321,6 +2335,25 @@ bool NotationInteraction::applyPaletteElement(mu::engraving::EngravingItem* elem
     const mu::engraving::Selection sel = score->selection();   // make a copy of selection state before applying the operation.
     if (sel.isNone()) {
         return false;
+    }
+
+    if (element->isActionIcon() && toActionIcon(element)->actionCode() == "jims-change") {
+        // Choosing an actual Kernel option in Properties creates the change as one undo step.
+        // Opening the chooser must not create an empty or guessed musical state.
+        bool compatible = false;
+        for (const EngravingItem* selected : sel.elements()) {
+            if (selected->staff() && selected->staff()->staffType(selected->tick())->isJiMS()) {
+                compatible = true;
+                break;
+            }
+        }
+        if (!compatible) {
+            interactive()->error(muse::trc("notation", "Cannot insert tonal change"),
+                                 muse::trc("notation", "Select a note or measure on a compatible staff first."));
+            return false;
+        }
+        dispatcher()->dispatch("jims-change");
+        return true;
     }
 
     startEdit(TranslatableString("undoableAction", "Apply palette element: %1").arg(element->typeUserName()));
@@ -3252,7 +3285,9 @@ bool NotationInteraction::prepareDropMeasureAnchorElement(const PointF& pos)
         measureRect.adjust(page->x(), page->y(), page->x(), page->y());
         edd.ed.pos = measureRect.center();
 
-        const bool dropAccepted = targetMeasure->acceptDrop(edd.ed);
+        const bool jimsChooser = dropElem->isActionIcon() && toActionIcon(dropElem)->actionCode() == "jims-change";
+        const bool dropAccepted
+            = jimsChooser ? score()->staff(staffIdx)->staffType(targetMeasure->tick())->isJiMS() : targetMeasure->acceptDrop(edd.ed);
         if (dropAccepted) {
             setAnchorLines({ LineF(pos, measureRect.topLeft()) });
         }

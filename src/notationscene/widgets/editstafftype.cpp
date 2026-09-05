@@ -197,7 +197,7 @@ void EditStaffType::setInstrument(const Instrument& instrument)
         }
         idx++;
     }
-    templateCombo->setCurrentIndex(-1);
+    templateCombo->setCurrentIndex(templateCombo->findData(int(staffType.type())));
 }
 
 void EditStaffType::enablePresets()
@@ -344,7 +344,14 @@ void EditStaffType::setValues()
     mu::engraving::StaffGroup group = staffType.group();
     int i = int(group);
     stack->setCurrentIndex(i);
-    groupName->setText(TConv::translatedUserName(group));
+    groupName->setText(staffType.isJiMS() ? staffType.name().toQString() : TConv::translatedUserName(group).toQString());
+    templateCombo->setCurrentIndex(templateCombo->findData(int(staffType.type())));
+    setWindowTitle(staffType.isJiMS()
+                   ? muse::qtrc("notation", "Edit staff type: %1").arg(staffType.name().toQString())
+                   : muse::qtrc("notation", "Edit staff type"));
+    for (QWidget* control : std::initializer_list<QWidget*> { lines, lineDistance, genClef, noteHeadScheme, label_3, label_4, label }) {
+        control->setVisible(!staffType.isJiMS());
+    }
 
     name->setText(staffType.name());
     lines->setValue(staffType.lines());

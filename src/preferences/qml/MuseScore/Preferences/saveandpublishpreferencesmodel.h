@@ -35,6 +35,7 @@ class SaveAndPublishPreferencesModel : public QObject, public muse::Contextable,
 {
     Q_OBJECT
     QML_ELEMENT;
+    Q_PROPERTY(bool warnOnJimsSave READ warnOnJimsSave WRITE setWarnOnJimsSave NOTIFY warnOnJimsSaveChanged)
 
     Q_PROPERTY(bool isAutoSaveEnabled READ isAutoSaveEnabled WRITE setAutoSaveEnabled NOTIFY autoSaveEnabledChanged)
     Q_PROPERTY(int autoSaveInterval READ autoSaveInterval WRITE setAutoSaveInterval NOTIFY autoSaveIntervalChanged)
@@ -47,6 +48,8 @@ public:
 
     Q_INVOKABLE void load();
 
+    bool warnOnJimsSave() const;
+    void setWarnOnJimsSave(bool value);
     bool isAutoSaveEnabled() const;
     int autoSaveInterval() const;
     bool alsoShareAudioCom() const;
@@ -57,6 +60,7 @@ public slots:
     void setAlsoShareAudioCom(bool share);
 
 signals:
+    void warnOnJimsSaveChanged();
     void autoSaveEnabledChanged(bool enabled);
     void autoSaveIntervalChanged(int minutes);
     void alsoShareAudioComChanged(int prompt);

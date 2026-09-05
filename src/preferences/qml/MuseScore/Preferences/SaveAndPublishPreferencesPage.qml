@@ -41,6 +41,19 @@ PreferencesPage {
         width: parent.width
         spacing: root.sectionsSpacing
 
+        CheckBox {
+            text: qsTrc("project/save", "Warn when saving JiMS notation")
+            checked: preferencesModel.warnOnJimsSave
+            onClicked: preferencesModel.warnOnJimsSave = !checked
+            navigation.panel: NavigationPanel {
+                name: "JimsSaveWarning"
+                section: root.navigationSection
+                order: root.navigationOrderStart
+            }
+            navigation.name: "JimsSaveWarning"
+            navigation.order: 1
+        }
+
         AutoSaveSection {
             isAutoSaveEnabled: preferencesModel.isAutoSaveEnabled
             autoSaveInterval: preferencesModel.autoSaveInterval

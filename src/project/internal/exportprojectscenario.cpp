@@ -381,12 +381,13 @@ bool ExportProjectScenario::shouldReplaceFile(const QString& filename) const
     return false;
 }
 
-bool ExportProjectScenario::askForRetry(const QString& filename) const
+bool ExportProjectScenario::askForRetry(const QString& filename, const std::string& detail) const
 {
     IInteractive::Result result = interactive()->questionSync(
         muse::trc("project/export", "Error"),
         muse::qtrc("project/export", "An error occurred while writing the file %1. Do you want to retry?")
-        .arg(filename).toStdString(), { IInteractive::Button::Retry, IInteractive::Button::Abort });
+        .arg(filename).toStdString() + (detail.empty() ? "" : "\n\n" + detail),
+        { IInteractive::Button::Retry, IInteractive::Button::Abort });
 
     return result.standardButton() == IInteractive::Button::Retry;
 }
@@ -431,7 +432,7 @@ Ret ExportProjectScenario::doExportLoop(const muse::io::path_t& scorePath, std::
                 return ret;
             }
 
-            if (askForRetry(filename)) {
+            if (askForRetry(filename, ret.text())) {
                 continue;
             } else {
                 return make_ret(Ret::Code::Cancel);

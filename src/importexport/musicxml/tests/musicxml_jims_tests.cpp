@@ -342,7 +342,7 @@ TEST_F(MusicXml_JiMS_Tests, midBarIndicatorElementsAlignWithTheirDisplayedStaffN
     ASSERT_TRUE(lines);
     size_t doLineCount = 0;
     for (const StaffLines::JimsGuideLine& guide : lines->jimsGuideLines()) {
-        if (!guide.dashed && guide.rgb == 0xE03030) {
+        if (!guide.dashed && guide.colorStyle == Sid::jimsDoLineColor) {
             ++doLineCount;
         }
     }
@@ -1112,8 +1112,16 @@ TEST_F(MusicXml_JiMS_Tests, exportFailsClosedWhenAJimsNoteLacksItsIdentity)
     }
     muse::io::Buffer buf;
     buf.open(muse::io::IODevice::WriteOnly);
-    EXPECT_FALSE(saveXml(score, &buf));
+    String error;
+    EXPECT_FALSE(saveXml(score, &buf, &error));
+    EXPECT_TRUE(error.contains(u"no lattice identity"));
     EXPECT_TRUE(buf.data().empty());
+    muse::io::Buffer mxl;
+    mxl.open(muse::io::IODevice::ReadWrite);
+    String mxlError;
+    EXPECT_FALSE(saveMxl(score, &mxl, &mxlError));
+    EXPECT_EQ(mxlError, error);
+    EXPECT_TRUE(mxl.data().empty());
     delete score;
 }
 

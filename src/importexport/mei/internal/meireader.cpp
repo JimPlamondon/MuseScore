@@ -36,7 +36,11 @@ using namespace mu::engraving;
 
 Ret MeiReader::read(MasterScore* score, const muse::io::path_t& path, const Options& options)
 {
+    Convert::logs.clear();
     Err result = this->import(score, path, options);
+    if (result != Err::NoError && !Convert::logs.empty()) {
+        return make_ret(result, Convert::logs.join(u"\n"));
+    }
     return (result == Err::NoError) ? muse::make_ok() : make_ret(result, path);
 }
 

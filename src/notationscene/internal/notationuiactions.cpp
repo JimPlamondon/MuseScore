@@ -396,6 +396,20 @@ const UiActionList NotationUiActions::s_actions = {
              TranslatableString("action", "More…"),
              TranslatableString("action", "Select similar elements with more options")
              ),
+    UiAction("jims-tuning-readout",
+             mu::context::UiCtxProjectOpened,
+             mu::context::CTX_NOTATION_OPENED,
+             TranslatableString("action", "Tuning readout (M5)"),
+             TranslatableString("action", "Show the current tuning in the note input toolbar"),
+             IconCode::Code::STAFF_TYPE_CHANGE
+             ),
+    UiAction("jims-change",
+             mu::context::UiCtxProjectOpened,
+             mu::context::CTX_NOTATION_OPENED,
+             TranslatableString("action", "Insert tonal change…"),
+             TranslatableString("action", "Choose a mode, key, or scale in Properties to insert a change at the selected position"),
+             IconCode::Code::STAFF_TYPE_CHANGE
+             ),
     UiAction("jims-tuning",
              mu::context::UiCtxProjectOpened,
              mu::context::CTX_NOTATION_OPENED,
@@ -1390,7 +1404,7 @@ const UiActionList NotationUiActions::s_actions = {
              mu::context::UiCtxProjectOpened,
              mu::context::CTX_NOTATION_OPENED,
              TranslatableString("action", "JiMS chord &name"),
-             TranslatableString("action", "Add text: JiMS chord name")
+             TranslatableString("action", "Add text: JiMS chord name (one name, without spaces or ~; text only)")
              ),
     UiAction("roman-numeral-text",
              mu::context::UiCtxProjectOpened,
@@ -3065,6 +3079,7 @@ const muse::ui::ToolConfig& NotationUiActions::defaultNoteInputBarConfig()
     static ToolConfig config;
     if (!config.isValid()) {
         config.items = {
+            { "jims-tuning-readout", true },
             { "note-input-by-note-name", true },
             { "note-input-by-duration", true },
             { "note-input-rhythm", false },

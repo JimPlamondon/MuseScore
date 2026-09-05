@@ -21,8 +21,10 @@
  */
 
 #include "instrumentsonscorelistmodel.h"
+#include "engraving/jims/jimsstrings.h"
 
 #include "async/notifylist.h"
+#include "settings.h"
 
 #include "log.h"
 
@@ -47,6 +49,7 @@ public:
     QString familyId;
     bool isSoloist = false;
     bool isExistingPart = false;
+    bool useJimsStaff = false;
     notation::InstrumentTemplate instrumentTemplate;
 };
 }
@@ -64,6 +67,10 @@ QVariant InstrumentsOnScoreListModel::data(const QModelIndex& index, int role) c
     }
 
     switch (role) {
+    case RoleUseJimsStaff:
+        return instrument->useJimsStaff;
+    case RoleCanChooseStaffType:
+        return !instrument->isExistingPart && instrument->instrumentTemplate.staffGroup == engraving::StaffGroup::STANDARD;
     case RoleName:
         return instrument->name;
     case RoleDescription:
@@ -85,6 +92,16 @@ bool InstrumentsOnScoreListModel::setData(const QModelIndex& index, const QVaria
     }
 
     switch (role) {
+    case RoleUseJimsStaff:
+        if (instrument->isExistingPart || instrument->instrumentTemplate.staffGroup != engraving::StaffGroup::STANDARD) {
+            return false;
+        }
+        instrument->useJimsStaff = value.toBool();
+        settings()->setSharedValue(Settings::Key("project", "project/preferredStaffType"),
+                                   Val(int(instrument->useJimsStaff ? engraving::StaffTypes::JIMS_12TET
+                                           : engraving::StaffTypes::STANDARD)));
+        emit dataChanged(index, index, { RoleUseJimsStaff });
+        return true;
     case RoleIsSoloist:
         instrument->isSoloist = value.toBool();
         {
@@ -111,6 +128,8 @@ QHash<int, QByteArray> InstrumentsOnScoreListModel::roleNames() const
     roles[RoleName] = "name";
     roles[RoleDescription] = "description";
     roles[RoleIsSoloist] = "isSoloist";
+    roles[RoleUseJimsStaff] = "useJimsStaff";
+    roles[RoleCanChooseStaffType] = "canChooseStaffType";
 
     return roles;
 }
@@ -221,6 +240,9 @@ void InstrumentsOnScoreListModel::addInstruments(const QStringList& instrumentId
         instrument->name = formatInstrumentTitle(templ.trackName, templ.trait);
         instrument->familyId = templ.familyId();
         instrument->instrumentTemplate = templ;
+        instrument->useJimsStaff = templ.staffGroup == engraving::StaffGroup::STANDARD
+                                   && settings()->value(Settings::Key("project", "project/preferredStaffType")).toInt()
+                                   == int(engraving::StaffTypes::JIMS_12TET);
 
         insertInstrument(items, instrument);
     }
@@ -255,6 +277,7 @@ QVariantList InstrumentsOnScoreListModel::instruments() const
         QVariantMap obj;
         obj["partId"] = instrument->partId.toQString();
         obj["isSoloist"] = instrument->isSoloist;
+        obj["useJimsStaff"] = instrument->useJimsStaff;
         obj["isExistingPart"] = instrument->isExistingPart;
         obj["instrumentId"] = instrument->isExistingPart ? instrument->id : instrument->instrumentTemplate.id.toQString();
 
@@ -404,4 +427,9 @@ void InstrumentsOnScoreListModel::removeCustomizedScoreOrder(const ScoreOrder& o
             break;
         }
     }
+}
+
+QString InstrumentsOnScoreListModel::jimsPresetName() const
+{
+    return mu::engraving::jims::presetName().toQString();
 }

@@ -202,7 +202,7 @@ private:
 } // namespace
 
 JimsTuningPanel::JimsTuningPanel(Score* score, std::function<void()> refreshView,
-                                 muse::async::Notification scoreChanged, QWidget* parent)
+                                 muse::async::Notification scoreChanged, muse::async::Notification selectionChanged, QWidget* parent)
     : QWidget(parent, Qt::Tool), m_refreshView(std::move(refreshView)), m_score(score)
 {
     setWindowTitle(QStringLiteral("JiMS Staff"));
@@ -246,6 +246,11 @@ JimsTuningPanel::JimsTuningPanel(Score* score, std::function<void()> refreshView
     connect(m_slider, &QSlider::sliderMoved, this, &JimsTuningPanel::onSliderMoved);
     connect(m_slider, &QSlider::sliderReleased, this, &JimsTuningPanel::onSliderReleased);
     connect(m_spin, &QDoubleSpinBox::editingFinished, this, &JimsTuningPanel::onSpinAccepted);
+
+    selectionChanged.onNotify(this, [this]() {
+        syncChangeSection();
+        syncElisionSection();
+    });
 
     // Undo/redo (and any other score change) resyncs the controls
     // (owner correction 2026-08-14: the staff updated, the slider
@@ -329,8 +334,6 @@ void JimsTuningPanel::buildChangeSection(QWidget* parent, QVBoxLayout* outer)
     auto* bottomRow = new QHBoxLayout();
     m_removeButton = new QPushButton(QStringLiteral("Remove change at this position"), m_changeBox);
     bottomRow->addWidget(m_removeButton);
-    auto* refresh = new QPushButton(QStringLiteral("Refresh"), m_changeBox);
-    bottomRow->addWidget(refresh);
     grid->addLayout(bottomRow);
 
     m_statusLabel = new QLabel(QString(), m_changeBox);
@@ -364,7 +367,6 @@ void JimsTuningPanel::buildChangeSection(QWidget* parent, QVBoxLayout* outer)
         }
     });
     connect(m_removeButton, &QPushButton::clicked, this, &JimsTuningPanel::onRemoveChange);
-    connect(refresh, &QPushButton::clicked, this, &JimsTuningPanel::syncChangeSection);
 }
 
 bool JimsTuningPanel::changeTarget(Measure*& measure, Fraction& tick, staff_idx_t& staffIdx) const

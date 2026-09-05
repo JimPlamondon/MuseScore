@@ -63,6 +63,7 @@ FocusableItem {
 
         NoteheadGroupSelector {
             id: noteHeadSection
+            visible: !root.headModel?.hasJimsSelection
 
             propertyItem: root.headModel ? root.headModel.headGroup : null
 
@@ -132,6 +133,7 @@ FocusableItem {
 
                 DropdownPropertyView {
                     id: noteHeadSystemSection
+                    visible: !root.headModel?.hasJimsSelection
 
                     titleText: qsTrc("inspector", "Notehead scheme")
                     propertyItem: root.headModel ? root.headModel.headSystem : null

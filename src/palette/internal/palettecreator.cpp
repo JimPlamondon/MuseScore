@@ -107,14 +107,14 @@ struct makeElementImplWrapper {
 
 // Specialised wrappers...
 #define IMPL_WRAPPER(T, P) \
-    template<> \
-    struct makeElementImplWrapper<T> { \
-        template<typename ... Args> \
-        static std::shared_ptr<T> makeElementImpl(mu::engraving::Score * score, Args && ... args) \
-        { \
-            return std::make_shared<T>(P, std::forward<Args>(args)...); \
-        } \
-    }; \
+        template<> \
+        struct makeElementImplWrapper<T> { \
+            template<typename ... Args> \
+            static std::shared_ptr<T> makeElementImpl(mu::engraving::Score * score, Args&& ... args) \
+            { \
+                return std::make_shared<T>(P, std::forward<Args>(args)...); \
+            } \
+        }; \
 
 IMPL_WRAPPER(Dynamic, score->dummy()->segment())
 IMPL_WRAPPER(MeasureRepeat, score->dummy()->segment())
@@ -565,6 +565,7 @@ PalettePtr PaletteCreator::newLayoutPalette(bool defaultPalette)
     sp->appendActionIcon(ActionIconType::TFRAME, "insert-textframe", FRAME_MAG);
     sp->appendActionIcon(ActionIconType::FFRAME, "insert-fretframe", FRAME_MAG);
     sp->appendActionIcon(ActionIconType::STAFF_TYPE_CHANGE, "insert-staff-type-change");
+    sp->appendActionIcon(ActionIconType::STAFF_TYPE_CHANGE, "jims-change");
     sp->appendActionIcon(ActionIconType::MEASURE, "insert-measure");
 
     return sp;
