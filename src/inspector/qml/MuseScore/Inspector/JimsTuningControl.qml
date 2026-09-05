@@ -27,7 +27,6 @@ Column {
         id: centsInput
         property bool escaping: false
         onEscaped: { escaping = true; root.model.cancel(); inputField.text = Qt.binding(function() { return centsInput.currentText }); Qt.callLater(function() { centsInput.escaping = false }) }
-        KeyNavigation.tab: slider
         width: parent.width
         currentText: root.model.cents.toLocaleString(Qt.locale(), 'f', 3)
         measureUnitsSymbol: qsTrc("notation", "cents")
@@ -50,6 +49,15 @@ Column {
         readonly property real split: 173 * factor
         readonly property real slot: 28
         readonly property real header: 100 * factor
+        NavigationPanel {
+            id: sliderPanel
+            name: "TuningContinuum"
+            section: root.navigationPanel.section
+            order: root.navigationPanel.order + 1
+            direction: NavigationPanel.Vertical
+            enabled: figure.visible && root.visible
+            accessible.name: qsTrc("notation", "Tuning continuum")
+        }
         // Preserve the owner's figure, split immediately before its integer cent stack.
         Item {
             width: figure.split
@@ -120,12 +128,11 @@ Column {
             to: root.model.maximum
             stepSize: 0.1
             value: root.model.cents
-            navigation.panel: root.navigationPanel
+            navigation.panel: sliderPanel
             navigation.row: 2
             navigation.accessible.name: qsTrc("notation", "Tuning in cents")
             wheelEnabled: true
             activeFocusOnTab: true
-            KeyNavigation.backtab: centsInput
             Connections {
                 target: slider.navigation
                 function onActiveChanged() {
