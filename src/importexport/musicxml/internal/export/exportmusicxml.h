@@ -30,8 +30,8 @@ class Score;
 }
 
 namespace mu::iex::musicxml {
-bool saveMxl(engraving::Score*, muse::io::IODevice*);
+bool saveMxl(engraving::Score*, muse::io::IODevice*, muse::String* error = nullptr);
 bool saveMxl(engraving::Score* score, const muse::String& name);
-bool saveXml(engraving::Score*, muse::io::IODevice*);
+bool saveXml(engraving::Score*, muse::io::IODevice*, muse::String* error = nullptr);
 bool saveXml(engraving::Score*, const muse::String&);
 }

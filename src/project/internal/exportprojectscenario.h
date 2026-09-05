@@ -84,7 +84,7 @@ private:
                                         bool isExportingOnlyOneScore, int pageIndex = -1) const;
 
     bool shouldReplaceFile(const QString& filename) const;
-    bool askForRetry(const QString& filename) const;
+    bool askForRetry(const QString& filename, const std::string& detail = {}) const;
 
     muse::Ret doExportLoop(const muse::io::path_t& path, std::function<muse::Ret(muse::io::IODevice&)> exportFunction) const;
 

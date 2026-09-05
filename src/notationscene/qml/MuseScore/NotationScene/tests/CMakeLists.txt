@@ -28,13 +28,21 @@ set(MODULE_TEST_SRC
 
     ${CMAKE_CURRENT_LIST_DIR}/environment.cpp
     ${CMAKE_CURRENT_LIST_DIR}/notationviewinputcontroller_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/jimsuimodel_tests.cpp
 )
 
 set(MODULE_TEST_LINK
     engraving
+    inspector_qml
+    muse_ui_qml
+    context
     notationscene_qml
 )
 
 set(MODULE_TEST_DATA_ROOT ${CMAKE_CURRENT_LIST_DIR})
 
 include(SetupGTest)
+
+target_compile_definitions(${MODULE_TEST} PRIVATE JIMS_UI_TEST_DATA_ROOT="${PROJECT_SOURCE_DIR}/src/engraving/tests")
+
+target_include_directories(${MODULE_TEST} PRIVATE ${PROJECT_SOURCE_DIR}/src/inspector)

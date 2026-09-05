@@ -39,6 +39,7 @@ class NoteInputBarModel : public muse::uicomponents::AbstractMenuModel, public Q
     Q_INTERFACES(QQmlParserStatus);
     QML_ELEMENT;
 
+    Q_PROPERTY(bool showJimsTuning READ showJimsTuning NOTIFY showJimsTuningChanged)
     Q_PROPERTY(bool isInputAllowed READ isInputAllowed NOTIFY isInputAllowedChanged)
 
     muse::GlobalInject<muse::ui::IUiConfiguration> uiConfiguration;
@@ -52,11 +53,14 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     bool isInputAllowed() const;
+    bool showJimsTuning() const { return m_showJimsTuning; }
 
 signals:
+    void showJimsTuningChanged();
     void isInputAllowedChanged();
 
 private:
+    bool m_showJimsTuning = true;
     enum NoteInputRoles {
         OrderRole = AbstractMenuModel::Roles::UserRole + 1,
         SectionRole

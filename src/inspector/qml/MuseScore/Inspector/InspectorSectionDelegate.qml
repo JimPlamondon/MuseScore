@@ -64,6 +64,8 @@ ExpandableBlank {
         }
 
         switch (root.sectionModel.sectionType) {
+        case AbstractInspectorModel.SECTION_JIMS_STAFF: return jimsStaffSection
+        case AbstractInspectorModel.SECTION_JIMS_SCORE: return jimsScoreSection
         case AbstractInspectorModel.SECTION_GENERAL: return generalSection
         case AbstractInspectorModel.SECTION_MEASURES: return measuresSection
         case AbstractInspectorModel.SECTION_EMPTY_STAVES: return emptyStavesSection
@@ -82,6 +84,22 @@ ExpandableBlank {
         return undefined
     }
 
+    Component {
+        id: jimsStaffSection
+        JimsStaffSettings {
+            model: root.sectionModel as JimsStaffSettingsModel
+            navigationPanel: root.navigationPanel
+            navigationRowStart: root.navigation.row + 1
+        }
+    }
+    Component {
+        id: jimsScoreSection
+        JimsScoreSettings {
+            model: root.sectionModel as JimsScoreSettingsModel
+            navigationPanel: root.navigationPanel
+            navigationRowStart: root.navigation.row + 1
+        }
+    }
     Component {
         id: generalSection
 

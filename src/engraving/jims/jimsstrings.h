@@ -13,8 +13,10 @@
 #define MU_ENGRAVING_JIMSSTRINGS_H
 
 #include "translation.h"
+#include "types/translatablestring.h"
 
 namespace mu::engraving::jims {
+inline muse::TranslatableString changeActionName() { return muse::TranslatableString("action", "JiMS change…"); }
 inline muse::String featureName() { return muse::mtrc("engraving", "JiMStaff"); }
 inline muse::String staffUserName() { return muse::mtrc("engraving", "JiMS staff"); }
 inline muse::String presetName() { return muse::mtrc("engraving", "JiMStaff 12-TET"); }

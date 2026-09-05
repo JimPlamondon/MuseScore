@@ -229,7 +229,10 @@ Ret MscLoader::loadMscz(MasterScore* masterScore, const MscReader& mscReader, rw
         for (Score* score : masterScore->scoreList()) {
             size_t scoreRepairs = 0;
             if (!jims::normalizeStoredPitchesAfterLoad(score, scoreRepairs, repairError)) {
-                return make_ret(Err::FileBadFormat, repairError);
+                return make_ret(Err::FileBadFormat,
+                                muse::mtrc("engraving",
+                                           "This score contains JiMS data that this version cannot read. The original file has not been changed. Open it in the JiMS version that saved it, and keep a native copy. Details: %1")
+                                .arg(repairError));
             }
             repairCount += scoreRepairs;
         }

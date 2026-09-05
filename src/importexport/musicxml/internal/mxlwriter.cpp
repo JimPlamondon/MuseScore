@@ -25,6 +25,7 @@
 #include "export/exportmusicxml.h"
 
 #include "log.h"
+#include "translation.h"
 
 using namespace mu::iex::musicxml;
 using namespace muse;
@@ -41,7 +42,11 @@ Ret MxlWriter::write(notation::INotationPtr notation, io::IODevice& destinationD
         return make_ret(Ret::Code::UnknownError);
     }
 
-    Ret ret = saveMxl(score, &destinationDevice);
-
-    return ret;
+    String error;
+    if (!saveMxl(score, &destinationDevice, &error)) {
+        return Ret(int(Ret::Code::UnknownError), error.empty()
+                   ? muse::trc("iex_musicxml", "The score could not be exported. Save a native MuseScore copy to preserve your work.")
+                   : error.toStdString());
+    }
+    return muse::make_ok();
 }

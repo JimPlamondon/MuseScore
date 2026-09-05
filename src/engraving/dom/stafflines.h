@@ -56,7 +56,8 @@ public:
     struct JimsGuideLine {
         LineF line;
         bool dashed = false;
-        int rgb = 0;        // 0xRRGGBB
+        Sid colorStyle = Sid::jimsDoLineColor;
+        int primeLimit = 0;
     };
     const std::vector<JimsGuideLine>& jimsGuideLines() const { return m_jimsGuideLines; }
     void setJimsGuideLines(const std::vector<JimsGuideLine>& l) { m_jimsGuideLines = l; }

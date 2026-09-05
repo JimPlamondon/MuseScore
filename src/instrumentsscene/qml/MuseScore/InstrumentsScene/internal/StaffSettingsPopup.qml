@@ -84,7 +84,7 @@ StyledPopupView {
 
                 navigation.panel: root.navigationPanel
                 navigation.row: 1
-                navigation.accessible.name: typeLabel.text + " " + currentValue
+                navigation.accessible.name: typeLabel.text + " " + currentText
 
                 currentIndex: staffTypesDropdown.indexOfValue(settingsModel.staffType)
                 model: settingsModel.allStaffTypes

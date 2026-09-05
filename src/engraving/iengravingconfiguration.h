@@ -52,6 +52,7 @@ public:
     virtual String iconsFontFamily() const = 0;
 
     virtual Color defaultColor() const = 0;
+    virtual bool isHighContrast() const { return false; }
     virtual Color scoreInversionColor() const = 0;
     virtual Color lassoColor() const = 0;
     virtual Color warningColor() const = 0;

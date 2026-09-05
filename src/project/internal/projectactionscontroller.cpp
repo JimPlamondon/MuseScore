@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "projectactionscontroller.h"
+#include "jimsstocklosswarning.h"
 
 #include <QBuffer>
 #include <QEventLoop>
@@ -1530,7 +1531,9 @@ void ProjectActionsController::warnJimsStockLossOnce(const INotationProjectPtr& 
                                          IInteractive::Option::WithIcon | IInteractive::Option::WithDontShowAgainCheckBox);
 
     result.onResolve(this, [this](const IInteractive::Result& res) {
-        configuration()->setShowJimsStockLossWarning(res.showAgain());
+        if (explicitlyDisabledStockLossWarning(res)) {
+            configuration()->setShowJimsStockLossWarning(false);
+        }
     });
 }
 

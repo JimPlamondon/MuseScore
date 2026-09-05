@@ -118,9 +118,13 @@ Item {
             required isSelected
             required property string name
             required property string description
+            required property bool useJimsStaff
+            required property bool canChooseStaffType
             required property bool isSoloist
             required property int index
             
+            height: canChooseStaffType ? 84 : 48
+
             navigation.name: name
             navigation.panel: instrumentsView.navigation
             navigation.row: 1 + index
@@ -133,9 +137,10 @@ Item {
                 id: itemTitleLabel
                 anchors.left: parent.left
                 anchors.leftMargin: 12
-                anchors.right: parent.right
+                anchors.right: soloistButton.visible ? soloistButton.left : parent.right
                 anchors.rightMargin: 4
-                anchors.verticalCenter: parent.verticalCenter
+                anchors.top: parent.top
+                anchors.topMargin: 10
 
                 horizontalAlignment: Text.AlignLeft
                 text:  item.isSoloist ? qsTrc("instruments", "Soloist:") + " " + item.name : item.name
@@ -143,10 +148,12 @@ Item {
             }
 
             FlatButton {
+                id: soloistButton
                 anchors.right: parent.right
                 anchors.leftMargin: 4
                 anchors.rightMargin: 4
-                anchors.verticalCenter: parent.verticalCenter
+                anchors.top: parent.top
+                anchors.topMargin: 4
 
                 isNarrow: true
 
@@ -161,6 +168,25 @@ Item {
                 onClicked: {
                     item.model.isSoloist = !item.model.isSoloist
                 }
+            }
+
+            StyledDropdown {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: 8
+                visible: item.canChooseStaffType
+                model: [
+                    { text: qsTrc("instruments", "Standard staff"), value: false },
+                    { text: root.instrumentsOnScoreModel.jimsPresetName, value: true }
+                ]
+                currentIndex: item.useJimsStaff ? 1 : 0
+                navigation.name: item.name + "StaffType"
+                navigation.panel: instrumentsView.navigation
+                navigation.row: 1 + item.index
+                navigation.column: 2
+                navigation.accessible.name: qsTrc("instruments", "Staff type for %1").arg(item.name)
+                onActivated: function(index, value) { item.model.useJimsStaff = value }
             }
 
             onClicked: {

@@ -143,6 +143,23 @@ bool MeiImporter::read(const muse::io::path_t& path)
 
     m_jimsNoteIds.clear();
     m_jims.capture(root);
+    if (!m_jims.present()) {
+        bool hasJimsCarrier = false;
+        for (pugi::xpath_node node : root.select_nodes("//*[@type]")) {
+            const String tokens = u" " + String(node.node().attribute("type").value()).simplified() + u" ";
+            for (const char* token : { "jims-melody-part", "jims-provenance", "jims-tonal-state", "jims-chord-name", "jims-tonic-ambit",
+                                       "jims-focused-review", "jims-adjudication" }) {
+                if (tokens.contains(u" " + String::fromUtf8(token) + u" ")) {
+                    hasJimsCarrier = true;
+                }
+            }
+        }
+        if (hasJimsCarrier) {
+            Convert::logs.push_back(muse::mtrc("iex_mei",
+                                               "JiMS data is incomplete: its required state record is missing. Import was stopped to avoid silently losing the notation. Use the original JiMS file."));
+            return false;
+        }
+    }
 
     success = success && this->readMeiHead(root);
 

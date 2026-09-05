@@ -37,6 +37,7 @@
 
 #include <math.h>
 #include <set>
+#include <QSaveFile>
 
 #include "containers.h"
 #include "realfn.h"
@@ -350,6 +351,7 @@ public:
     /// cannot be exported completely — the fail-closed plan (native JiMS
     /// MusicXML export, 2026-08-17).
     bool write(muse::io::IODevice* dev);
+    const String& error() const { return m_jimsPlan.error; }
     void credits(XmlWriter& xml);
     void moveToTick(const Fraction& t, const Fraction& stretch = { 1, 1 });
     void moveToTickIfNeed(const Fraction& t, track_idx_t track, const Fraction& measureTick);
@@ -9014,7 +9016,8 @@ bool ExportMusicXml::buildJimsExportPlan()
             return true;
         }
         if (insideFretDiagram) {
-            m_jimsPlan.error = u"JiMS export: a JiMS chord name cannot be attached to a conventional fret diagram";
+            m_jimsPlan.error = muse::mtrc("iex_musicxml",
+                                          "JiMS export: a JiMS chord name cannot be attached to a conventional fret diagram");
             return false;
         }
         const String name = harmony->harmonyName();
@@ -9028,7 +9031,8 @@ bool ExportMusicXml::buildJimsExportPlan()
         if (harmony->chords().size() != 1 || name.isEmpty() || containsWhitespace || name.contains(u'~')) {
             m_jimsPlan.error
                 =
-                    u"JiMS export: every JiMS harmony must carry exactly one nonempty whitespace-free canonical chord name and must not contain the superseded '~' marker";
+                    muse::mtrc("iex_musicxml",
+                               "JiMS export: every JiMS harmony must carry exactly one nonempty whitespace-free canonical chord name and must not contain the superseded '~' marker");
             return false;
         }
         m_jimsPlan.present = true;
@@ -9067,7 +9071,8 @@ bool ExportMusicXml::buildJimsExportPlan()
                 if (!jims::musicxmlStaffStateV3Xml(base->jimsStateJson(), staffNumber, f.stateXml, &err)
                     || !jims::musicxmlSharedStateV3Xml(base->jimsStateJson(), f.sharedStateXml, &err)) {
                     m_jimsPlan.error
-                        = String(u"JiMS export: Kernel refused the base state of staff %1: %2").arg(int(staffIdx) + 1).arg(err);
+                        = muse::mtrc("iex_musicxml",
+                                     "JiMS export: Kernel refused the base state of staff %1: %2").arg(int(staffIdx) + 1).arg(err);
                     return false;
                 }
                 m_jimsPlan.byPartTick[{ int(partIndex), 0 }].push_back(f);
@@ -9078,8 +9083,8 @@ bool ExportMusicXml::buildJimsExportPlan()
                         continue;
                     }
                     if (!baseJims) {
-                        m_jimsPlan.error = String(
-                            u"JiMS export: staff %1 carries a JiMS section at measure %2 without a JiMS base state at tick 0")
+                        m_jimsPlan.error = muse::mtrc("iex_musicxml",
+                                                      "JiMS export: staff %1 carries a JiMS section at measure %2 without a JiMS base state at tick 0")
                                            .arg(int(staffIdx) + 1).arg(m->no() + 1);
                         return false;
                     }
@@ -9089,12 +9094,13 @@ bool ExportMusicXml::buildJimsExportPlan()
                     String err;
                     if (!jims::musicxmlStaffStateV3Xml(state, staffNumber, f.stateXml, &err)
                         || !jims::musicxmlSharedStateV3Xml(state, f.sharedStateXml, &err)) {
-                        m_jimsPlan.error = String(u"JiMS export: Kernel refused the state at tick %1, staff %2: %3")
+                        m_jimsPlan.error = muse::mtrc("iex_musicxml", "JiMS export: Kernel refused the state at tick %1, staff %2: %3")
                                            .arg(carrier->tick().ticks()).arg(int(staffIdx) + 1).arg(err);
                         return false;
                     }
                     if (!jims::musicxmlChangeEventV3Xml(previousState, state, f.changeXml, &err)) {
-                        m_jimsPlan.error = String(u"JiMS export: Kernel could not classify the change at tick %1, staff %2: %3")
+                        m_jimsPlan.error = muse::mtrc("iex_musicxml",
+                                                      "JiMS export: Kernel could not classify the change at tick %1, staff %2: %3")
                                            .arg(carrier->tick().ticks()).arg(int(staffIdx) + 1).arg(err);
                         return false;
                     }
@@ -9134,8 +9140,8 @@ bool ExportMusicXml::buildJimsExportPlan()
                 continue;
             }
             if (tl.second != referenceTimeline) {
-                m_jimsPlan.error = String(u"JiMS export: parts %1 and %2 carry different JiMS state timelines; "
-                                          u"every JiMS part of a document must share one state timeline")
+                m_jimsPlan.error = muse::mtrc("iex_musicxml",
+                                              "JiMS export: parts %1 and %2 carry different JiMS state timelines; every JiMS part of a document must share one state timeline")
                                    .arg(referencePart + 1).arg(tl.first + 1);
                 return false;
             }
@@ -9153,7 +9159,8 @@ bool ExportMusicXml::buildJimsExportPlan()
                 if (st && st->isJiMS()) {
                     if (!n->hasJimsPitch()) {
                         m_jimsPlan.error
-                            = String(u"JiMS export: a note on JiMStaff %1 at tick %2 has no lattice identity").arg(int(n->staffIdx())
+                            = muse::mtrc("iex_musicxml",
+                                         "JiMS export: a note on staff %1 at tick %2 has no lattice identity").arg(int(n->staffIdx())
                                                                                                                    + 1).arg(
                                   n->tick().ticks());
                         return false;
@@ -9161,7 +9168,7 @@ bool ExportMusicXml::buildJimsExportPlan()
                     jims::SoundingPitch projection;
                     String error;
                     if (!jims::noteSoundingPitch(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(), projection, &error)) {
-                        m_jimsPlan.error = String(u"JiMS export: Kernel refused the note at tick %1 on staff %2: %3")
+                        m_jimsPlan.error = muse::mtrc("iex_musicxml", "JiMS export: Kernel refused the note at tick %1 on staff %2: %3")
                                            .arg(n->tick().ticks()).arg(int(n->staffIdx()) + 1).arg(error);
                         return false;
                     }
@@ -9341,28 +9348,34 @@ bool ExportMusicXml::write(muse::io::IODevice* dev)
  Return false on error.
  */
 
-bool saveXml(Score* score, IODevice* device)
+bool saveXml(Score* score, IODevice* device, String* error)
 {
     muse::io::Buffer buf;
     buf.open(muse::io::IODevice::WriteOnly);
     ExportMusicXml em(score);
     if (!em.write(&buf)) {
+        if (error) {
+            *error = em.error();
+        }
         return false;   // fail closed: nothing reaches the destination
     }
-    device->write(buf.data());
-    return true;
+    return device->write(buf.data()) == buf.data().size() && !device->hasError();
+}
+
+static bool writeCompleteExport(const String& name, const muse::ByteArray& data)
+{
+    QSaveFile file(name.toQString());
+    file.setDirectWriteFallback(false);
+    return file.open(QIODevice::WriteOnly)
+           && file.write(reinterpret_cast<const char*>(data.constData()), qint64(data.size())) == qint64(data.size())
+           && file.commit();
 }
 
 bool saveXml(Score* score, const String& name)
 {
-    File f(name);
-    if (!f.open(IODevice::WriteOnly)) {
-        return false;
-    }
-
-    bool res = saveXml(score, &f) && !f.hasError();
-    f.close();
-    return res;
+    muse::io::Buffer buffer;
+    buffer.open(IODevice::ReadWrite);
+    return saveXml(score, &buffer) && writeCompleteExport(name, buffer.data());
 }
 
 //---------------------------------------------------------
@@ -9384,7 +9397,7 @@ bool saveXml(Score* score, const String& name)
 //     </rootfiles>
 // </container>
 
-static bool writeMxlArchive(Score* score, muse::ZipWriter& zip, const String& filename)
+static bool writeMxlArchive(Score* score, muse::ZipWriter& zip, const String& filename, String* error = nullptr)
 {
     muse::io::Buffer cbuf;
     cbuf.open(muse::io::IODevice::ReadWrite);
@@ -9407,6 +9420,9 @@ static bool writeMxlArchive(Score* score, muse::ZipWriter& zip, const String& fi
     ExportMusicXml em(score);
     em.setMxl(true);
     if (!em.write(&dbuf)) {
+        if (error) {
+            *error = em.error();
+        }
         return false;   // fail closed
     }
     dbuf.seek(0);
@@ -9423,28 +9439,31 @@ static bool writeMxlArchive(Score* score, muse::ZipWriter& zip, const String& fi
     return true;
 }
 
-bool saveMxl(Score* score, IODevice* device)
+bool saveMxl(Score* score, IODevice* device, String* error)
 {
-    muse::ZipWriter zip(device);
+    muse::io::Buffer archive;
+    archive.open(IODevice::ReadWrite);
+    muse::ZipWriter zip(&archive);
 
     //anonymized filename since we don't know the actual one here
     String fn = u"score.xml";
-    const bool ok = writeMxlArchive(score, zip, fn);
+    const bool ok = writeMxlArchive(score, zip, fn, error);
     zip.close();
-
-    return ok;
+    return ok && !zip.hasError() && device->write(archive.data()) == archive.data().size() && !device->hasError();
 }
 
 bool saveMxl(Score* score, const String& name)
 {
-    muse::ZipWriter zip(name);
+    muse::io::Buffer archive;
+    archive.open(IODevice::ReadWrite);
+    muse::ZipWriter zip(&archive);
 
     FileInfo fi(name);
     String fn = fi.completeBaseName() + u".xml";
     const bool ok = writeMxlArchive(score, zip, fn);
     zip.close();
 
-    return ok;
+    return ok && !zip.hasError() && writeCompleteExport(name, archive.data());
 }
 
 double ExportMusicXml::getTenthsFromInches(double inches) const

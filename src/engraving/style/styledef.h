@@ -549,6 +549,14 @@ enum class Sid : short {
     // JiMStaff Milestone 8 (octave-band elision, presentation only —
     // MuseScore's hide-empty-staves shape): score-wide opt-in, default
     // off; the first system shows the whole stack by default.
+    jimsDoLineColor,
+    jimsMidFrameLineColor,
+    jimsJiLimit3Color,
+    jimsJiLimit5Color,
+    jimsJiLimit7Color,
+    jimsJiLimit11Color,
+    jimsChangeArrowColor,
+    jimsMidBarFlankColor,
     jimsElideEmptyOctaves,
     jimsShowAllOctavesInFirstSystem,
     enableIndentationOnFirstSystem,

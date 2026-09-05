@@ -27,6 +27,7 @@ import QtQuick
 import Muse.Ui
 import Muse.UiComponents
 import MuseScore.NotationScene
+import MuseScore.Inspector
 
 Item {
     id: root
@@ -47,6 +48,37 @@ Item {
         accessible.name: qsTrc("notation", "Note input toolbar")
     }
 
+    JimsTuningModel {
+        id: jimsTuning
+        Component.onCompleted: init()
+    }
+
+    FlatButton {
+        id: tuningButton
+        visible: jimsTuning.available && noteInputModel.showJimsTuning
+        width: gridView.isHorizontal ? 126 : 76
+        height: 32
+        text: "M5= " + jimsTuning.cents.toLocaleString(Qt.locale(), 'f', 1) + "¢"
+        transparent: true
+        toolTipTitle: qsTrc("notation", "Tuning — M5 (major fifth)")
+        toolTipDescription: qsTrc("notation", "Change tuning; 100 cents is one semitone. The score updates as you move the slider.")
+        navigation.panel: root.navigationPanel
+        navigation.order: 101
+        navigation.accessible.name: toolTipTitle + " " + text
+        onClicked: tuningPopup.toggleOpened()
+        StyledPopupView {
+            id: tuningPopup
+            contentWidth: 370
+            contentHeight: tuningControl.implicitHeight
+            onClosed: jimsTuning.cancel()
+            JimsTuningControl {
+                id: tuningControl
+                model: jimsTuning
+                navigationPanel: NavigationPanel { name: "TuningPopup"; section: tuningPopup.navigationSection; order: 1; direction: NavigationPanel.Vertical }
+            }
+        }
+    }
+
     NoteInputBarModel {
         id: noteInputModel
     }
@@ -61,11 +93,8 @@ Item {
 
             var requiredFreeSpace = gridView.cellWidth * 3 + gridView.rowSpacing * 4
 
-            if (root.maximumWidth - gridView.contentWidth < requiredFreeSpace) {
-                return gridView.contentWidth - requiredFreeSpace
-            }
-
-            return gridView.contentWidth
+            var available = root.maximumWidth - requiredFreeSpace - (tuningButton.visible ? tuningButton.width : 0)
+            return Math.max(gridView.cellWidth, Math.min(gridView.contentWidth, available))
         }
 
         function resolveVerticalGridViewHeight() {
@@ -75,11 +104,8 @@ Item {
 
             var requiredFreeSpace = gridView.cellHeight * 3 + gridView.rowSpacing * 4
 
-            if (root.maximumHeight - gridView.contentHeight < requiredFreeSpace) {
-                return gridView.contentHeight - requiredFreeSpace
-            }
-
-            return gridView.contentHeight
+            var available = root.maximumHeight - requiredFreeSpace - (tuningButton.visible ? tuningButton.height : 0)
+            return Math.max(gridView.cellHeight, Math.min(gridView.contentHeight, available))
         }
     }
 
@@ -224,6 +250,12 @@ Item {
             }
 
             AnchorChanges {
+                target: tuningButton
+                anchors.left: customizeButton.right
+                anchors.verticalCenter: root.verticalCenter
+            }
+
+            AnchorChanges {
                 target: customizeButton
                 anchors.left: gridView.right
                 anchors.verticalCenter: root.verticalCenter
@@ -240,6 +272,12 @@ Item {
                 sectionHeight: 1
                 rows: gridView.noLimit
                 columns: 2
+            }
+
+            AnchorChanges {
+                target: tuningButton
+                anchors.top: customizeButton.bottom
+                anchors.horizontalCenter: root.horizontalCenter
             }
 
             AnchorChanges {

@@ -144,7 +144,7 @@ protected:
     {
         int n = 0;
         for (const StaffLines::JimsGuideLine& g : lines->jimsGuideLines()) {
-            if (!g.dashed && g.rgb == 0xE03030) {
+            if (!g.dashed && g.colorStyle == Sid::jimsDoLineColor) {
                 ++n;
             }
         }
@@ -988,7 +988,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                 std::vector<double> redYs;
                 for (const StaffLines::JimsGuideLine& g : lines->jimsGuideLines()) {
                     const double cents = centsOfY(g.line.y1());
-                    if (!g.dashed && g.rgb == 0xE03030) {
+                    if (!g.dashed && g.colorStyle == Sid::jimsDoLineColor) {
                         ++red;
                         redYs.push_back(g.line.y1());
                         EXPECT_TRUE(isDoRow(cents, period, origins.doCentsAboveExtentLower))

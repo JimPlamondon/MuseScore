@@ -279,6 +279,8 @@ public:
     int subtype() const override { return static_cast<int>(harmonyType()); }
 
     TranslatableString typeUserName() const override;
+    static bool isValidJimsName(const String& text);
+    String jimsNameError() const;
     String accessibleInfo() const override;
     String generateScreenReaderInfo() const;
     String screenReaderInfo() const override;

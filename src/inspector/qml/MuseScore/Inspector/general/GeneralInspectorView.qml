@@ -99,6 +99,8 @@ InspectorSectionView {
                 Layout.fillWidth: true
                 Layout.maximumWidth: parent.width / 2
 
+                visible: !root.model?.hasJimsSelection
+
                 navigation.name: "Play"
                 navigation.panel: root.navigationPanel
                 navigation.row: root.navigationRow(4)

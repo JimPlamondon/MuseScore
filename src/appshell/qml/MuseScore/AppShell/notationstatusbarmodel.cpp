@@ -21,6 +21,7 @@
  */
 
 #include "notationstatusbarmodel.h"
+#include "engraving/dom/harmony.h"
 
 #include "types/translatablestring.h"
 
@@ -113,6 +114,13 @@ void NotationStatusBarModel::init()
 
 QString NotationStatusBarModel::accessibilityInfo() const
 {
+    const auto* item = m_notation ? m_notation->interaction()->selection()->element() : nullptr;
+    if (item && item->isHarmony()) {
+        const auto error = mu::engraving::toHarmony(item)->jimsNameError();
+        if (!error.empty()) {
+            return error.toQString();
+        }
+    }
     return accessibility() ? QString::fromStdString(accessibility()->accessibilityInfo().val) : QString();
 }
 
@@ -257,6 +265,7 @@ void NotationStatusBarModel::setNotation(const INotationPtr& notation)
         m_notation->viewState()->zoomPercentage().ch.disconnect(this);
         m_notation->viewState()->zoomType().ch.disconnect(this);
         m_notation->accessibility()->accessibilityInfo().ch.disconnect(this);
+        m_notation->interaction()->textEditingChanged().disconnect(this);
     }
 
     m_notation = notation;
@@ -290,6 +299,8 @@ void NotationStatusBarModel::setNotation(const INotationPtr& notation)
     });
 
     emit accessibilityInfoChanged();
+
+    notation->interaction()->textEditingChanged().onNotify(this, [this]() { emit accessibilityInfoChanged(); });
 
     notation->accessibility()->accessibilityInfo().ch.onReceive(this, [this](const std::string&) {
         emit accessibilityInfoChanged();

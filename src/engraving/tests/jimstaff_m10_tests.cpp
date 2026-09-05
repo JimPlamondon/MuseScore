@@ -343,6 +343,15 @@ TEST(Engraving_JiMStaffM10SATBTests, melodyDesignationDefaultsOverridesAndUndoRe
     ASSERT_TRUE(jims::tonicAmbitForMelody(score->staff(2)->staffType(Fraction(0, 1))->jimsStateJson(),
                                           melodyJson(tenor), tenorToken));
     ASSERT_FALSE(sopranoToken == tenorToken);
+    // The fixture already carries the singleton soprano's bounded token. Seed
+    // a different valid Kernel state so the positive-change assertion below
+    // tests a real transition rather than an idempotent derivation.
+    score->setJimsMelodyPart(jims::MelodyPart::Tenor);
+    ASSERT_GT(jims::deriveTonicAmbits(score), 0);
+    for (staff_idx_t i = 0; i < 4; ++i) {
+        ASSERT_TRUE(score->staff(i)->staffType(Fraction(0, 1))->jimsTonicAmbit() == tenorToken);
+    }
+    score->setJimsMelodyPart(jims::MelodyPart::Soprano);
     ASSERT_GT(jims::deriveTonicAmbits(score), 0);
     for (staff_idx_t i = 0; i < 4; ++i) {
         EXPECT_TRUE(score->staff(i)->staffType(Fraction(0, 1))->jimsTonicAmbit() == sopranoToken);

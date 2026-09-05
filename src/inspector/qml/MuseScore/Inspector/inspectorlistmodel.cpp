@@ -20,6 +20,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "inspectorlistmodel.h"
+#include "jimsstaffsettingsmodel.h"
+#include "jimsscoresettingsmodel.h"
 
 #include "general/generalsettingsmodel.h"
 #include "measures/measuressettingsmodel.h"
@@ -184,6 +186,12 @@ void InspectorListModel::setInspectorVisible(bool visible)
 
     if (visible) {
         updateElementList();
+        for (AbstractInspectorModel* model : m_modelList) {
+            if (model->sectionType() == InspectorSectionType::SECTION_JIMS_STAFF
+                || model->sectionType() == InspectorSectionType::SECTION_JIMS_SCORE) {
+                model->loadProperties();
+            }
+        }
 
         if (!m_changedPropertyIdSet.empty() || !m_changedStyleIdSet.empty()) {
             onScoreChanged(m_changedPropertyIdSet, m_changedStyleIdSet);
@@ -218,6 +226,12 @@ void InspectorListModel::createModelsBySectionType(const InspectorSectionTypeSet
         AbstractInspectorModel* newModel = nullptr;
 
         switch (sectionType) {
+        case InspectorSectionType::SECTION_JIMS_STAFF:
+            newModel = new JimsStaffSettingsModel(this, iocContext(), m_repository.get());
+            break;
+        case InspectorSectionType::SECTION_JIMS_SCORE:
+            newModel = new JimsScoreSettingsModel(this, iocContext(), m_repository.get());
+            break;
         case InspectorSectionType::SECTION_GENERAL:
             newModel = new GeneralSettingsModel(this, iocContext(), m_repository.get());
             break;

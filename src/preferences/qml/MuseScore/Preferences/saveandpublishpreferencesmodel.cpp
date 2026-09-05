@@ -84,3 +84,14 @@ void SaveAndPublishPreferencesModel::setAlsoShareAudioCom(bool share)
 
     projectConfiguration()->setAlsoShareAudioCom(share);
 }
+
+bool SaveAndPublishPreferencesModel::warnOnJimsSave() const
+{
+    return projectConfiguration()->showJimsStockLossWarning();
+}
+
+void SaveAndPublishPreferencesModel::setWarnOnJimsSave(bool value)
+{
+    projectConfiguration()->setShowJimsStockLossWarning(value);
+    emit warnOnJimsSaveChanged();
+}

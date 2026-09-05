@@ -44,6 +44,7 @@
 #include "dom/score.h"
 #include "dom/spanner.h"
 #include "dom/staff.h"
+#include "dom/stafftypechange.h"
 #include "dom/text.h"
 #include "dom/tie.h"
 #include "dom/tremolotwochord.h"
@@ -189,6 +190,27 @@ muse::Ret Read460::readScoreFile(Score* score, XmlReader& e, rw::ReadInOutData* 
     }
 
     ctx.clearOrphanedConnectors();
+
+    // Validate transported state even when a span contains no pitched notes.
+    // This precedes extent reconciliation and also covers JiMS changes on a
+    // staff whose initial type is conventional notation.
+    for (const Staff* staff : score->staves()) {
+        std::vector<const StaffType*> states { staff->staffType(Fraction(0, 1)) };
+        for (const Measure* measure = score->firstMeasure(); measure; measure = measure->nextMeasure()) {
+            for (const StaffTypeChange* carrier : jims::changeCarriers(measure, staff->idx())) {
+                states.push_back(carrier->staffType());
+            }
+        }
+        for (const StaffType* state : states) {
+            String error;
+            if (state && state->isJiMS() && !jims::validateState(state->jimsStateJson(), error)) {
+                return make_ret(Err::FileBadFormat,
+                                muse::mtrc("engraving",
+                                           "This score contains JiMS data that this version cannot read. The original file has not been changed. Open it in the JiMS version that saved it, and keep a native copy. Details: %1")
+                                .arg(error));
+            }
+        }
+    }
 
     // JiMS load transition: written notes become the exact per-staff extent;
     // empty SATB staves receive the Kernel's declared-range default. The

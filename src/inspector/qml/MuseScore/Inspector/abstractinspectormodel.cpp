@@ -20,6 +20,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "abstractinspectormodel.h"
+#include "engraving/dom/staff.h"
+#include "engraving/dom/stafftype.h"
 
 #include "engraving/dom/barline.h"
 #include "engraving/dom/dynamic.h"
@@ -380,6 +382,13 @@ InspectorSectionTypeSet AbstractInspectorModel::sectionTypesByElementKeys(const 
                                                                           const QList<mu::engraving::EngravingItem*>& selectedElementList)
 {
     InspectorSectionTypeSet types;
+    for (EngravingItem* item : selectedElementList) {
+        if (item && item->staff() && item->staff()->staffType(item->tick())->isJiMS()) {
+            types << InspectorSectionType::SECTION_JIMS_STAFF;
+            types << InspectorSectionType::SECTION_JIMS_SCORE;
+            break;
+        }
+    }
 
     for (const ElementKey& key : elementKeySet) {
         if (NOTATION_ELEMENT_MODEL_TYPES.contains(key.type)
@@ -727,7 +736,8 @@ PropertyItem* AbstractInspectorModel::buildPropertyItem(const mu::engraving::Pid
 PointFPropertyItem* AbstractInspectorModel::buildPointFPropertyItem(const mu::engraving::Pid& propertyId,
                                                                     std::function<void(const mu::engraving::Pid propertyId,
                                                                                        const QVariant& newValue)> onPropertyChangedCallBack,
-                                                                    std::function<void(const mu::engraving::Pid propertyId)> onPropertyResetCallBack)
+                                                                    std::function<void(const mu::engraving::Pid propertyId)>
+                                                                    onPropertyResetCallBack)
 {
     PointFPropertyItem* newPropertyItem = new PointFPropertyItem(propertyId, this);
 
@@ -912,4 +922,18 @@ void AbstractInspectorModel::updateNotation()
     }
 
     currentNotation()->notationChanged().notify();
+}
+
+bool AbstractInspectorModel::hasJimsSelection() const
+{
+    if (!m_repository) {
+        return false;
+    }
+    for (const auto* item : m_repository->takeAllElements()) {
+        const auto* staff = item ? item->staff() : nullptr;
+        if (staff && staff->staffType(item->tick())->isJiMS()) {
+            return true;
+        }
+    }
+    return false;
 }

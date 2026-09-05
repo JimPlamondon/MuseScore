@@ -242,6 +242,11 @@ muse::String EngravingConfiguration::iconsFontFamily() const
     return uiConfiguration() ? String::fromStdString(uiConfiguration()->iconsFontFamily()) : String();
 }
 
+bool EngravingConfiguration::isHighContrast() const
+{
+    return uiConfiguration() && uiConfiguration()->isHighContrast();
+}
+
 Color EngravingConfiguration::defaultColor() const
 {
     return Color::BLACK;

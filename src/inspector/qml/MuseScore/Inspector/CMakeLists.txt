@@ -24,6 +24,12 @@ qt_add_qml_module(inspector_qml
     URI MuseScore.Inspector
     VERSION 1.0
     SOURCES
+        jimsstaffsettingsmodel.cpp
+        jimsstaffsettingsmodel.h
+        jimsscoresettingsmodel.cpp
+        jimsscoresettingsmodel.h
+        jimstuningmodel.cpp
+        jimstuningmodel.h
         abstractinspectormodel.cpp
         abstractinspectormodel.h
         abstractinspectorproxymodel.cpp
@@ -238,6 +244,9 @@ qt_add_qml_module(inspector_qml
         types/voicetypes.h
 
     QML_FILES
+        JimsStaffSettings.qml
+        JimsScoreSettings.qml
+        JimsTuningControl.qml
         common/CheckBoxPropertyView.qml
         common/ColorSection.qml
         common/DirectionSection.qml
@@ -437,4 +446,9 @@ target_include_directories(inspector_qml PRIVATE
     text
     text/textstylepopup
     types
+)
+
+qt_add_shaders(inspector_qml inspector_jims_shaders
+    PREFIX "/qt/qml/MuseScore/Inspector"
+    FILES "shaders/jimsfigure.frag"
 )

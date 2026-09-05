@@ -5079,17 +5079,17 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         const double lineStartX = systemHead ? leftEdge : x1;
 
         std::vector<StaffLines::JimsGuideLine> guides;
-        auto guide = [&](double cents, bool dashed, int rgb) {
+        auto guide = [&](double cents, bool dashed, Sid colorStyle, int primeLimit = 0) {
             double gy = y + jimsSt->jimsYFromCents(cents, view) * _spatium;
             const bool alreadyPresent
                 = std::any_of(guides.begin(), guides.end(), [&](const StaffLines::JimsGuideLine& existing) {
                 return std::abs(existing.line.y1() - gy) < 1e-6
-                       && existing.dashed == dashed && existing.rgb == rgb;
+                       && existing.dashed == dashed && existing.colorStyle == colorStyle;
             });
             if (alreadyPresent) {
                 return;
             }
-            guides.push_back({ LineF(lineStartX, gy, x2, gy), dashed, rgb });
+            guides.push_back({ LineF(lineStartX, gy, x2, gy), dashed, colorStyle, primeLimit });
         };
         // Kernel JI lines for the scaffold colors (fetched once).
         std::vector<jims::JiLine> jiLines;
@@ -5103,10 +5103,10 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         }
         auto limitColor = [](int limit) {
             switch (limit) {
-            case 3: return 0x9040C0;
-            case 5: return 0x209040;
-            case 7: return 0x2060D0;
-            default: return 0x40A8E0;
+            case 3: return Sid::jimsJiLimit3Color;
+            case 5: return Sid::jimsJiLimit5Color;
+            case 7: return Sid::jimsJiLimit7Color;
+            default: return Sid::jimsJiLimit11Color;
             }
         };
         // Per segment: red Do-lines at every period boundary inside the
@@ -5124,7 +5124,7 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
                                                    / periodCents) * periodCents;
                 for (double boundary = firstBoundary; boundary <= segment.upperCents + epsilon;
                      boundary += periodCents) {
-                    guide(boundary, false, 0xE03030);
+                    guide(boundary, false, Sid::jimsDoLineColor);
                 }
                 const double basePeriod = origins.doCentsAboveExtentLower
                                           + std::floor((segment.lowerCents - origins.doCentsAboveExtentLower)
@@ -5136,7 +5136,7 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
                                 const double cents = period + ji.cents;
                                 if (cents >= segment.lowerCents - epsilon
                                     && cents <= segment.upperCents + epsilon) {
-                                    guide(cents, true, limitColor(ji.limit));
+                                    guide(cents, true, limitColor(ji.limit), ji.limit);
                                 }
                             }
                         }
@@ -5144,7 +5144,7 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
                         const double cents = period + periodCents / 2.0; // mid-frame line
                         if (cents >= segment.lowerCents - epsilon
                             && cents <= segment.upperCents + epsilon) {
-                            guide(cents, true, 0xE0C020);
+                            guide(cents, true, Sid::jimsMidFrameLineColor);
                         }
                     }
                 }

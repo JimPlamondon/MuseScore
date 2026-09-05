@@ -33,6 +33,8 @@
 #include <algorithm>
 #include <climits>
 #include <functional>
+#include <QTemporaryDir>
+#include <QFile>
 
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/fret.h"
@@ -342,7 +344,7 @@ TEST_F(MusicXml_JiMS_Tests, midBarIndicatorElementsAlignWithTheirDisplayedStaffN
     ASSERT_TRUE(lines);
     size_t doLineCount = 0;
     for (const StaffLines::JimsGuideLine& guide : lines->jimsGuideLines()) {
-        if (!guide.dashed && guide.rgb == 0xE03030) {
+        if (!guide.dashed && guide.colorStyle == Sid::jimsDoLineColor) {
             ++doLineCount;
         }
     }
@@ -1112,8 +1114,33 @@ TEST_F(MusicXml_JiMS_Tests, exportFailsClosedWhenAJimsNoteLacksItsIdentity)
     }
     muse::io::Buffer buf;
     buf.open(muse::io::IODevice::WriteOnly);
-    EXPECT_FALSE(saveXml(score, &buf));
+    String error;
+    EXPECT_FALSE(saveXml(score, &buf, &error));
+    EXPECT_TRUE(error.contains(u"no lattice identity"));
     EXPECT_TRUE(buf.data().empty());
+    muse::io::Buffer mxl;
+    mxl.open(muse::io::IODevice::ReadWrite);
+    String mxlError;
+    EXPECT_FALSE(saveMxl(score, &mxl, &mxlError));
+    EXPECT_EQ(mxlError, error);
+    EXPECT_TRUE(mxl.data().empty());
+    QTemporaryDir directory;
+    ASSERT_TRUE(directory.isValid());
+    for (const auto& suffix : { "musicxml", "mxl" }) {
+        const QString path = directory.filePath(QString("score.%1").arg(suffix));
+        auto exportFile = [&]() {
+            return std::string(suffix) == "mxl" ? saveMxl(score, String(path)) : saveXml(score, String(path));
+        };
+        EXPECT_FALSE(exportFile());
+        EXPECT_FALSE(QFile::exists(path));
+        QFile file(path);
+        ASSERT_TRUE(file.open(QIODevice::WriteOnly));
+        file.write("previous valid export");
+        file.close();
+        EXPECT_FALSE(exportFile());
+        ASSERT_TRUE(file.open(QIODevice::ReadOnly));
+        EXPECT_EQ(file.readAll(), "previous valid export");
+    }
     delete score;
 }
 

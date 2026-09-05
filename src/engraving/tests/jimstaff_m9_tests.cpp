@@ -438,7 +438,12 @@ TEST(Engraving_JiMStaffM9SATBTests, m9IntroducesNoDoAnchoredFramingLanguage)
         muse::String(ScoreRW::rootPath()) + u"/jimstaff_data/m9-dense-voices.mscx",
         forkRoot() + u"/src/engraving/jims/jimschangecontroller.h",
         forkRoot() + u"/src/engraving/jims/jimschangecontroller.cpp",
-        forkRoot() + u"/src/notationscene/internal/jimstuningpanel.cpp",
+        forkRoot() + u"/src/inspector/qml/MuseScore/Inspector/jimsstaffsettingsmodel.cpp",
+        forkRoot() + u"/src/inspector/qml/MuseScore/Inspector/jimsscoresettingsmodel.cpp",
+        forkRoot() + u"/src/inspector/qml/MuseScore/Inspector/jimstuningmodel.cpp",
+        forkRoot() + u"/src/inspector/qml/MuseScore/Inspector/JimsStaffSettings.qml",
+        forkRoot() + u"/src/inspector/qml/MuseScore/Inspector/JimsScoreSettings.qml",
+        forkRoot() + u"/src/inspector/qml/MuseScore/Inspector/JimsTuningControl.qml",
         satbTemplatePath(),
     };
     for (const muse::String& f : files) {

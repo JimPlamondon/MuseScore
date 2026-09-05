@@ -1669,3 +1669,27 @@ TEST(JiMStaffTests, changeIndicatorSemanticsPerFixtureMatchTheOwnerRules)
         delete score;
     }
 }
+
+TEST(JiMStaffTests, presetIdentitySurvivesTheStaffTypeLookup)
+{
+    const StaffType* jims = StaffType::preset(StaffTypes::JIMS_12TET);
+    ASSERT_NE(jims, nullptr);
+    ASSERT_TRUE(jims->isJiMS());
+    EXPECT_EQ(jims->type(), StaffTypes::JIMS_12TET);
+    EXPECT_NE(jims->type(), StaffType::preset(StaffTypes::STANDARD)->type());
+    EXPECT_EQ(StaffType::preset(jims->type())->name(), jims->name());
+}
+
+TEST(JiMStaffTests, guideColorDefaultsPreserveTheExistingPaletteAndAreStyleValues)
+{
+    MStyle style;
+    EXPECT_EQ(style.value(Sid::jimsDoLineColor).value<muse::draw::Color>(), muse::draw::Color(224, 48, 48));
+    EXPECT_EQ(style.value(Sid::jimsMidFrameLineColor).value<muse::draw::Color>(), muse::draw::Color(224, 192, 32));
+    EXPECT_EQ(style.value(Sid::jimsJiLimit3Color).value<muse::draw::Color>(), muse::draw::Color(144, 64, 192));
+    EXPECT_EQ(style.value(Sid::jimsJiLimit5Color).value<muse::draw::Color>(), muse::draw::Color(32, 144, 64));
+    EXPECT_EQ(style.value(Sid::jimsJiLimit7Color).value<muse::draw::Color>(), muse::draw::Color(32, 96, 208));
+    EXPECT_EQ(style.value(Sid::jimsJiLimit11Color).value<muse::draw::Color>(), muse::draw::Color(64, 168, 224));
+    style.set(Sid::jimsDoLineColor, muse::draw::Color(10, 20, 30));
+    EXPECT_EQ(style.value(Sid::jimsDoLineColor).value<muse::draw::Color>(), muse::draw::Color(10, 20, 30));
+    EXPECT_FALSE(style.isDefault(Sid::jimsDoLineColor));
+}
