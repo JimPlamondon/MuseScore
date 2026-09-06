@@ -1572,6 +1572,18 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
     score->doLayout();
     ASSERT_EQ(score->nstaves(), 4u);
 
+    // Empty staves carry centre anchors, not a written-note range. Their
+    // geometry must preserve the owner-confirmed half-period frame on reload.
+    auto expectEmptyFrames = [](MasterScore* checked) {
+        for (staff_idx_t idx = 0; idx < checked->nstaves(); ++idx) {
+            const StaffType* st = checked->staff(idx)->staffType(Fraction(0, 1));
+            const auto& segments = st->jimsFrameSegments();
+            ASSERT_FALSE(segments.empty());
+            EXPECT_NEAR(segments.front().lowerCents, -300.0, 1e-9);
+            EXPECT_NEAR(segments.back().upperCents, 300.0, 1e-9);
+        }
+    };
+    expectEmptyFrames(score);
     const JimsSnapshot before = snapshotOf(score);
     ASSERT_EQ(before.baseStates.size(), 4u);
     for (const String& s : before.baseStates) {
@@ -1580,11 +1592,11 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
 
     const String out = exportToScratch(score, "export-m9-satb-template.musicxml");
     const String xml = readAll(out);
-    EXPECT_EQ(xml.count(u"lower-n-per=\"3\" lower-n-gen=\"-5\" upper-n-per=\"4\" upper-n-gen=\"-5\""), 1);
-    EXPECT_EQ(xml.count(u"lower-n-per=\"2\" lower-n-gen=\"-4\" upper-n-per=\"3\" upper-n-gen=\"-4\""), 1);
-    EXPECT_EQ(xml.count(u"lower-n-per=\"1\" lower-n-gen=\"-3\" upper-n-per=\"2\" upper-n-gen=\"-3\""), 1);
-    EXPECT_EQ(xml.count(u"lower-n-per=\"2\" lower-n-gen=\"-6\" upper-n-per=\"3\" upper-n-gen=\"-6\""), 1)
-        << "each SATB voice must export its own Kernel-derived empty-staff extent";
+    EXPECT_EQ(xml.count(u"lower-n-per=\"0\" lower-n-gen=\"1\" upper-n-per=\"0\" upper-n-gen=\"1\""), 1);
+    EXPECT_EQ(xml.count(u"lower-n-per=\"-1\" lower-n-gen=\"2\" upper-n-per=\"-1\" upper-n-gen=\"2\""), 1);
+    EXPECT_EQ(xml.count(u"lower-n-per=\"-2\" lower-n-gen=\"3\" upper-n-per=\"-2\" upper-n-gen=\"3\""), 1);
+    EXPECT_EQ(xml.count(u"lower-n-per=\"-1\" lower-n-gen=\"0\" upper-n-per=\"-1\" upper-n-gen=\"0\""), 1)
+        << "each empty SATB voice exports only its exact lattice centre anchor";
 
     auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
         return importMusicXml(s, path.toQString(), false);
@@ -1596,6 +1608,7 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
     const JimsSnapshot after = snapshotOf(again);
     EXPECT_EQ(after.baseStates, before.baseStates);
     EXPECT_EQ(after.identities, before.identities);
+    expectEmptyFrames(again);
 
     // Re-export once more: no drift in anything JiMS owns. The one byte that
     // does move is stock MuseScore's part-group round trip — a re-imported
@@ -1615,10 +1628,10 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
         return out;
     };
     EXPECT_EQ(jimsLinesOf(xml2), jimsLinesOf(xml)) << "the JiMS content must not drift across a second round trip";
-    EXPECT_EQ(xml2.count(u"lower-n-per=\"3\" lower-n-gen=\"-5\" upper-n-per=\"4\" upper-n-gen=\"-5\""), 1);
-    EXPECT_EQ(xml2.count(u"lower-n-per=\"2\" lower-n-gen=\"-4\" upper-n-per=\"3\" upper-n-gen=\"-4\""), 1);
-    EXPECT_EQ(xml2.count(u"lower-n-per=\"1\" lower-n-gen=\"-3\" upper-n-per=\"2\" upper-n-gen=\"-3\""), 1);
-    EXPECT_EQ(xml2.count(u"lower-n-per=\"2\" lower-n-gen=\"-6\" upper-n-per=\"3\" upper-n-gen=\"-6\""), 1);
+    EXPECT_EQ(xml2.count(u"lower-n-per=\"0\" lower-n-gen=\"1\" upper-n-per=\"0\" upper-n-gen=\"1\""), 1);
+    EXPECT_EQ(xml2.count(u"lower-n-per=\"-1\" lower-n-gen=\"2\" upper-n-per=\"-1\" upper-n-gen=\"2\""), 1);
+    EXPECT_EQ(xml2.count(u"lower-n-per=\"-2\" lower-n-gen=\"3\" upper-n-per=\"-2\" upper-n-gen=\"3\""), 1);
+    EXPECT_EQ(xml2.count(u"lower-n-per=\"-1\" lower-n-gen=\"0\" upper-n-per=\"-1\" upper-n-gen=\"0\""), 1);
 
     delete again;
     delete score;
@@ -1646,10 +1659,10 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBScoreWideChangeKeepsOneSharedTimelineOnExport)
     EXPECT_EQ(xml.count(u"<jims:mode-rotation>5</jims:mode-rotation>"), 4)
         << "every one of the four parts must carry the change";
     // Every empty vocal staff retains its independent singer-range centre.
-    EXPECT_EQ(xml.count(u"lower-n-per=\"3\" lower-n-gen=\"-5\" upper-n-per=\"4\" upper-n-gen=\"-5\""), 2);
-    EXPECT_EQ(xml.count(u"lower-n-per=\"2\" lower-n-gen=\"-4\" upper-n-per=\"3\" upper-n-gen=\"-4\""), 2);
-    EXPECT_EQ(xml.count(u"lower-n-per=\"1\" lower-n-gen=\"-3\" upper-n-per=\"2\" upper-n-gen=\"-3\""), 2);
-    EXPECT_EQ(xml.count(u"lower-n-per=\"2\" lower-n-gen=\"-6\" upper-n-per=\"3\" upper-n-gen=\"-6\""), 2);
+    EXPECT_EQ(xml.count(u"lower-n-per=\"0\" lower-n-gen=\"1\" upper-n-per=\"0\" upper-n-gen=\"1\""), 2);
+    EXPECT_EQ(xml.count(u"lower-n-per=\"-1\" lower-n-gen=\"2\" upper-n-per=\"-1\" upper-n-gen=\"2\""), 2);
+    EXPECT_EQ(xml.count(u"lower-n-per=\"-2\" lower-n-gen=\"3\" upper-n-per=\"-2\" upper-n-gen=\"3\""), 2);
+    EXPECT_EQ(xml.count(u"lower-n-per=\"-1\" lower-n-gen=\"0\" upper-n-per=\"-1\" upper-n-gen=\"0\""), 2);
 
     delete score;
 }

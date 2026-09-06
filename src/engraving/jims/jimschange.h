@@ -106,12 +106,14 @@ int deriveTonicAmbits(Score* score);
 bool hasCompleteTonicAmbits(const Score* score);
 
 /// Load-time extent reconciliation: exact written-note bounds, or a
-/// Kernel-derived one-period default from the Part's declared amateur range.
-/// Staff types with an explicit exact-declared-extent override are preserved.
+/// Kernel-derived centre anchor from the Part's declared range.
 int reconcileExtents(Score* score);
 
-/// Reproject an empty vocal staff's default extent after its song state
-/// changes. Written staves and non-vocal staves are returned unchanged.
+/// Whether a span contains no written JiMS notes across all its voices.
+bool staffSpanIsEmpty(const Staff* staff, const Fraction& start, const Fraction& stop);
+
+/// Install an empty staff's declared range-centre anchor. Written staves
+/// retain their extent; changing key never changes the centre-note identity.
 bool defaultExtentForEmptyStaffSpan(const Staff* staff, const Fraction& start, const Fraction& stop, const muse::String& state,
                                     muse::String& updated);
 

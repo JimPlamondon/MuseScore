@@ -30,29 +30,6 @@ using namespace muse;
 
 namespace mu::engraving::jims {
 namespace {
-// Replace ONLY generator_cents in a state JSON, preserving every other
-// field byte-for-byte where possible. String-level surgery keeps the
-// Kernel-authored field order and content intact — this is transport,
-// not a musical-fact computation.
-String withGeneratorCents(const String& stateJson, double generatorCents)
-{
-    static const String marker = u"\"generator_cents\":";
-    size_t at = stateJson.indexOf(marker);
-    if (at == muse::nidx) {
-        return stateJson;
-    }
-    size_t from = at + marker.size();
-    size_t end = from;
-    while (end < stateJson.size()) {
-        Char c = stateJson.at(end);
-        if (c == u',' || c == u'}') {
-            break;
-        }
-        ++end;
-    }
-    return stateJson.left(from) + String::number(generatorCents, 12) + stateJson.mid(end);
-}
-
 // One undoable edit covering every JiMS span in the score: flip() swaps all
 // captured state JSONs at once, so undo/redo is a single step.
 class JimsChangeStaffStates : public UndoCommand
@@ -129,7 +106,7 @@ bool TuningController::collectSpans(std::vector<Span>& spans) const
                 if (el && el->isStaffTypeChange() && el->staffIdx() == staffIdx) {
                     StaffTypeChange* change = toStaffTypeChange(el);
                     if (change->staffType() && change->staffType()->isJiMS()) {
-                        spans.push_back({ staff, mb->tick(), change->staffType()->jimsStateJson() });
+                        spans.push_back({ staff, change->tick(), change->staffType()->jimsStateJson() });
                     }
                 }
             }
@@ -177,7 +154,12 @@ bool TuningController::applyToSpans(double generatorCents)
             restoreSpans(before);
             return false;
         }
-        type->setJimsStateJson(withGeneratorCents(type->jimsStateJson(), generatorCents));
+        String updated;
+        if (!retuneGenerator(type->jimsStateJson(), generatorCents, updated)) {
+            restoreSpans(before);
+            return false;
+        }
+        type->setJimsStateJson(updated);
     }
     size_t repairs = 0;
     String error;
@@ -292,7 +274,11 @@ bool TuningController::commit(double generatorCents)
     for (const Span& span : original) {
         staves.push_back(span.staff);
         ticks.push_back(span.tick);
-        states.push_back(withGeneratorCents(span.stateJson, generatorCents));
+        String updated;
+        if (!retuneGenerator(span.stateJson, generatorCents, updated)) {
+            return false;
+        }
+        states.push_back(updated);
     }
     // Preflight the complete target projection before opening the undo
     // transaction, then restore the original preview baseline.

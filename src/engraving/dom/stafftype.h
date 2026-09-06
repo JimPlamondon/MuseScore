@@ -299,6 +299,8 @@ public:
     const String& jimsRatioLineExtentJson() const { return m_jimsRatioLineExtentJson; }
     void setJimsRatioLineExtentJson(const String& value) { m_jimsRatioLineExtentJson = value; }
     bool jimsJiLines() const { return m_jimsJiLines; }
+    bool jimsExtentIsEmptyDefault() const { return m_jimsExtentIsEmptyDefault; }
+    void setJimsExtentIsEmptyDefault(bool value) { m_jimsExtentIsEmptyDefault = value; }
     void setJimsJiLines(bool val) { m_jimsJiLines = val; }
     // Derived frame cache (Kernel frame_for_melody result; keyed by the
     // state + melody it was computed from; NEVER serialized). Top cents
@@ -534,6 +536,9 @@ private:
     String m_jimsStateJson;
     String m_jimsTonicAmbit;
     bool m_jimsJiLines = false;
+    // Derived on load; copied with a span and swapped by extent undo commands.
+    // The first note replaces its empty centre anchor, rather than widening it.
+    bool m_jimsExtentIsEmptyDefault = true;
     JimsScaleDotLabelMode m_jimsScaleDotLabelMode = JimsScaleDotLabelMode::Auto;
     JimsElideOctaves m_jimsElideOctaves = JimsElideOctaves::Auto;
     String m_jimsRatioLineExtentJson;

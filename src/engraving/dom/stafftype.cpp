@@ -965,6 +965,9 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
     bool first = true;
     for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
          seg = seg->next1(SegmentType::ChordRest)) {
+        if (score->staff(staffIdx)->staffType(seg->tick()) != this) {
+            continue;
+        }
         for (track_idx_t track = staffIdx * VOICES; track < (staffIdx + 1) * VOICES; ++track) {
             EngravingItem* el = seg->element(track);
             if (el && el->isChord()) {
@@ -1000,11 +1003,12 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
         }
     }
     const muse::String key = jimsStateJson() + u"|" + token + u"|" + melody
+                             + (m_jimsExtentIsEmptyDefault ? u"|empty:1" : u"|empty:0")
                              + u"|ratio:" + m_jimsRatioLineExtentJson + u"|ind:" + indicatorKey;
     if (jimsFrameKey() != key) {
         // Milestone 4: EVERY melody — including the empty one — asks the
-        // Kernel (frame_for_melody yields one whole period for no notes,
-        // owner decision 1a). A changed input never reuses a stale
+        // Kernel (empty defaults span half P8 around their centre).
+        // A changed input never reuses a stale
         // successful frame: on failure the cache holds an empty frame
         // and a diagnostic is emitted; nothing is synthesized fork-side.
         std::vector<JimsSegment> cached;
@@ -1012,7 +1016,8 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
             LOGE() << "JiMStaff: no declared tonic-ambit token; frame unavailable for staff " << staffIdx;
         } else {
             std::vector<jims::StaveSegment> segments;
-            if (jims::frameForMelody(jimsStateJson(), melody, token, segments, {}, m_jimsRatioLineExtentJson)) {
+            if (jims::frameForMelody(jimsStateJson(), melody, token, segments, {}, m_jimsRatioLineExtentJson,
+                                     !m_jimsExtentIsEmptyDefault)) {
                 for (const jims::StaveSegment& segment : segments) {
                     cached.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
                 }
@@ -1034,7 +1039,7 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
                     if (!extra.empty()) {
                         std::vector<jims::StaveSegment> covering;
                         if (jims::frameForMelody(jimsStateJson(), melody, token, covering, extra,
-                                                 m_jimsRatioLineExtentJson)) {
+                                                 m_jimsRatioLineExtentJson, !m_jimsExtentIsEmptyDefault)) {
                             cached.clear();
                             for (const jims::StaveSegment& segment : covering) {
                                 cached.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
@@ -1209,7 +1214,7 @@ double StaffType::jimsYFromCents(double centsAboveDo, const JimsFrameView& view)
 // jimsEnsureFrame's whole-piece collector (document order, every voice of
 // the staff, main-chord notes with a JiMS identity), restricted to the
 // measures of one system. Pure transport — no musical fact is computed.
-static muse::String jimsCollectSystemMelody(const System* system, staff_idx_t staffIdx)
+static muse::String jimsCollectSystemMelody(const System* system, staff_idx_t staffIdx, const StaffType* staffType)
 {
     muse::String melody = u"{\"notes\":[";
     bool first = true;
@@ -1219,6 +1224,9 @@ static muse::String jimsCollectSystemMelody(const System* system, staff_idx_t st
         }
         for (const Segment* seg = toMeasure(mb)->first(SegmentType::ChordRest); seg;
              seg = seg->next(SegmentType::ChordRest)) {
+            if (system->score()->staff(staffIdx)->staffType(seg->tick()) != staffType) {
+                continue;
+            }
             for (track_idx_t track = staffIdx * VOICES; track < (staffIdx + 1) * VOICES; ++track) {
                 EngravingItem* el = seg->element(track);
                 if (el && el->isChord()) {
@@ -1264,7 +1272,7 @@ const StaffType::JimsFrameView& StaffType::jimsWholeFrameView(const Score* score
         const double periodCents = jimsPeriodCents();
         if (periodCents > 0.0) {
             band.lowestPeriodIndex = int(std::floor((band.lowerCents + 1e-6) / periodCents));
-            band.highestPeriodIndex = int(std::floor((band.upperCents - 1e-6) / periodCents));
+            band.highestPeriodIndex = int(std::floor((band.upperCents + 1e-6) / periodCents));
             // Milestone 8 (owner finding 2): the whole-piece frame's "[PitchN]:"
             // sits on the frame's lowest DRAWN tonic row and names THAT row's
             // octave — the same rule the Kernel applies to every band. Both
@@ -1368,7 +1376,7 @@ const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, sta
     if (m_jimsFrameFrozen && found != m_jimsFrameViews.end() && !found->second.bands.empty()) {
         return found->second;
     }
-    const muse::String melody = jimsCollectSystemMelody(system, staffIdx);
+    const muse::String melody = jimsCollectSystemMelody(system, staffIdx, this);
     const muse::String token = jimsTonicAmbit();
     // Owner rule 2026-08-19 (7b): the change indicator drawn against this
     // staff type's frame is part of the derivation input (see the whole-
@@ -1425,6 +1433,7 @@ const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, sta
         }
     }
     const muse::String key = jimsStateJson() + u"|" + token + u"|" + melody
+                             + (m_jimsExtentIsEmptyDefault ? u"|empty:1" : u"|empty:0")
                              + u"|elide:1|min:1|ratio:" + m_jimsRatioLineExtentJson + u"|ind:" + indicatorKey;
     if (found != m_jimsFrameViews.end() && found->second.key == key) {
         return found->second;
@@ -1439,7 +1448,7 @@ const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, sta
     auto deriveBands = [&](const std::vector<double>& extra, JimsFrameView& into) -> bool {
         jims::FrameBands bands;
         if (!jims::frameBandsForMelody(jimsStateJson(), melody, token, true, 1, bands, extra,
-                                       m_jimsRatioLineExtentJson)) {
+                                       m_jimsRatioLineExtentJson, !m_jimsExtentIsEmptyDefault)) {
             return false;
         }
         into.bands.clear();

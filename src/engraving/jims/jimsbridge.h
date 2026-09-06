@@ -34,6 +34,8 @@ bool noteCentsAboveExtentLower(const muse::String& stateJson, int nPer, int nGen
 bool widenExtent(const muse::String& stateJson, int nPer, int nGen, muse::String& updatedState);
 bool fitExtent(const muse::String& stateJson, const muse::String& melodyJson, muse::String& updatedState);
 bool defaultVocalExtent(const muse::String& stateJson, int lowKey, int highKey, const char* role, muse::String& updatedState);
+bool defaultInstrumentExtent(const muse::String& stateJson, int lowKey, int highKey, muse::String& updatedState);
+bool retuneGenerator(const muse::String& stateJson, double generatorCents, muse::String& updatedState);
 
 /// The Kernel's semantic notehead-class token for a generator coordinate
 /// (e.g. "conventional", "triangle-vertex-up").
@@ -224,7 +226,7 @@ bool connectorGlyph(ConnectorGlyph& out);
 
 bool frameForMelody(const muse::String& stateJson, const muse::String& melodyJson, const muse::String& extentToken,
                     std::vector<StaveSegment>& segments, const std::vector<double>& extraCents = {},
-                    const muse::String& ratioLineExtentJson = {});
+                    const muse::String& ratioLineExtentJson = {}, bool retainWrittenExtent = false);
 
 /// Milestone 8 (octave-band elision): the Kernel's BANDED frame for a
 /// melody through the same frame_for_melody op with the additive
@@ -247,7 +249,7 @@ struct FrameBands {
 };
 bool frameBandsForMelody(const muse::String& stateJson, const muse::String& melodyJson, const muse::String& extentToken,
                          bool elideEmptyPeriods, int minBandPeriods, FrameBands& out, const std::vector<double>& extraCents = {},
-                         const muse::String& ratioLineExtentJson = {});
+                         const muse::String& ratioLineExtentJson = {}, bool retainWrittenExtent = false);
 
 /// A quantization hit: the nearest realizable lattice pitch to a target
 /// cents height, with the Kernel compatibility pitch (step/alter/octave)

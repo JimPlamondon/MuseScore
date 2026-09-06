@@ -2732,7 +2732,7 @@ void TDraw::draw(const Spacer* item, Painter* painter, const PaintOptions& opt)
 
     auto conf = item->configuration();
 
-    Pen pen(item->selected() ? conf->selectionColor() : conf->formattingColor(), item->spatium()* 0.3);
+    Pen pen(item->selected() ? conf->selectionColor() : conf->formattingColor(), item->spatium() * 0.3);
 
     painter->setPen(pen);
     painter->setBrush(BrushStyle::NoBrush);
@@ -2923,6 +2923,8 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             };
             if (font && jims::scaleDots(jimsSt->jimsStateJson(), stacks)) {
                 for (const StaffType::JimsFrameBand& band : view.bands) {
+                    std::vector<double> drawnStacks;
+                    std::vector<double> drawnTonics;
                     for (const StaffType::JimsSegment& segment : band.segments) {
                         double basePeriod = origins.doCentsAboveExtentLower
                                             + std::floor((segment.lowerCents - origins.doCentsAboveExtentLower)
@@ -2934,6 +2936,12 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                 if (!dotStackIntersectsSegment(cents, stack.frontToBack, segment)) {
                                     continue;
                                 }
+                                if (std::any_of(drawnStacks.begin(), drawnStacks.end(), [&](double c) {
+                                    return std::abs(c - cents) < epsilon;
+                                })) {
+                                    continue;
+                                }
+                                drawnStacks.push_back(cents);
                                 double dy = yOf(cents);
                                 double dx = 0.0;
                                 for (int nGen : stack.frontToBack) {
@@ -2950,7 +2958,11 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                             if (haveTonic) {
                                 double cents = period + tonicCents;
                                 if (cents >= segment.lowerCents - epsilon
-                                    && cents <= segment.upperCents + epsilon) {
+                                    && cents <= segment.upperCents + epsilon
+                                    && std::none_of(drawnTonics.begin(), drawnTonics.end(), [&](double c) {
+                                    return std::abs(c - cents) < epsilon;
+                                })) {
+                                    drawnTonics.push_back(cents);
                                     // The tonic indicator per the settled
                                     // construction (JiMStudent_Spec 3.3):
                                     // hollow vertex-up square, thin pen,
@@ -2999,6 +3011,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     const double dotColLeft = dotCenterX - indicatorW;
                     const double dotColRight = dotCenterX + indicatorW;
                     for (const StaffType::JimsFrameBand& band : view.bands) {
+                        std::vector<double> drawnLabelStacks;
                         // The current-key label's row and text: the band's lowest
                         // drawn tonic row and THAT row's Kernel label (owner
                         // finding 2, 2026-08-18: octave numbers correct always and
@@ -3022,6 +3035,12 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                     if (!dotStackIntersectsSegment(cents, generators, segment)) {
                                         continue;
                                     }
+                                    if (std::any_of(drawnLabelStacks.begin(), drawnLabelStacks.end(), [&](double c) {
+                                        return std::abs(c - cents) < epsilon;
+                                    })) {
+                                        continue;
+                                    }
+                                    drawnLabelStacks.push_back(cents);
                                     muse::String leftText;
                                     muse::String rightText;
                                     if (labelMode != JimsScaleDotLabelMode::None) {

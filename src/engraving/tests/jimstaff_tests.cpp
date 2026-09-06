@@ -680,15 +680,15 @@ size_t ledgerLineCountOnStaff0(Score* score)
 }
 }
 
-// (a) An empty JiMS staff still has a Kernel-owned frame: exactly one
-// whole period, sourced from frame_for_melody (owner decision 1a), never
-// synthesized fork-side.
-TEST(JiMStaffTests, emptyJimsStaffFrameIsKernelOwnedOneWholePeriod)
+// Deleting every note preserves the in-session written frame. Loading the
+// resulting empty staff derives the half-P8 default from its declared range.
+TEST(JiMStaffTests, deletingAllNotesRetainsTheWrittenFrameUntilReload)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
     score->doLayout();
     ASSERT_FALSE(frameOf(score).empty());
+    const Segs before = frameOf(score);
 
     // Delete every chord on staff 0 through the ordinary edit path.
     score->startCmd(TranslatableString::untranslatable("JiMS test edit"));
@@ -709,11 +709,23 @@ TEST(JiMStaffTests, emptyJimsStaffFrameIsKernelOwnedOneWholePeriod)
     score->doLayout();
 
     Segs f = frameOf(score);
-    ASSERT_EQ(f.size(), 1u) << "empty staff = one Kernel segment, not an empty cache";
-    EXPECT_TRUE(f[0].whole);
-    EXPECT_NEAR(f[0].lowerCents, 0.0, EPS);
-    EXPECT_NEAR(f[0].upperCents, 1200.0, EPS);
-    EXPECT_TRUE(sameFrame(f, kernelFrameFor(score))) << "fork frame != Kernel frame";
+    EXPECT_TRUE(sameFrame(f, before)) << "deletion must not contract the frame during editing";
+    const StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
+    EXPECT_FALSE(st->jimsExtentIsEmptyDefault());
+    std::vector<jims::StaveSegment> retained;
+    ASSERT_TRUE(jims::frameForMelody(st->jimsStateJson(), u"{\"notes\":[]}", st->jimsTonicAmbit(),
+                                     retained, {}, {}, true));
+    ASSERT_EQ(f.size(), retained.size());
+    for (size_t i = 0; i < f.size(); ++i) {
+        EXPECT_NEAR(f[i].lowerCents, retained[i].lowerCents, EPS);
+        EXPECT_NEAR(f[i].upperCents, retained[i].upperCents, EPS);
+    }
+    jims::reconcileExtents(score); // the load-time fitting seam
+    score->setLayoutAll();
+    score->doLayout();
+    const Segs empty = frameOf(score);
+    ASSERT_FALSE(empty.empty());
+    EXPECT_NEAR(empty.back().upperCents - empty.front().lowerCents, st->jimsPeriodCents() / 2.0, EPS);
     delete score;
 }
 

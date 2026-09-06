@@ -113,6 +113,20 @@ bool defaultVocalExtent(const String& stateJson, int lowKey, int highKey, const 
         .arg(stateJson).arg(lowKey).arg(highKey).arg(String::fromAscii(role)), updatedState);
 }
 
+bool defaultInstrumentExtent(const String& stateJson, int lowKey, int highKey, String& updatedState)
+{
+    return updatedStateResult(
+        String(u"{\"abi\":2,\"op\":\"default_instrument_extent\",\"state\":%1,\"low_key\":%2,\"high_key\":%3}")
+        .arg(stateJson).arg(lowKey).arg(highKey), updatedState);
+}
+
+bool retuneGenerator(const String& stateJson, double generatorCents, String& updatedState)
+{
+    return updatedStateResult(
+        String(u"{\"abi\":2,\"op\":\"retune_generator\",\"state\":%1,\"generator_cents\":%2}")
+        .arg(stateJson).arg(String::number(generatorCents, 12)), updatedState);
+}
+
 bool noteheadToken(const String& stateJson, int nGen, String& token)
 {
     String envelope = String(u"{\"abi\":2,\"op\":\"notehead_class\",\"state\":%1,\"nGen\":%2}")
@@ -503,7 +517,7 @@ static String jimsExtraCentsJson(const std::vector<double>& extraCents)
 
 bool frameForMelody(const String& stateJson, const String& melodyJson,
                     const String& extentToken, std::vector<StaveSegment>& segments,
-                    const std::vector<double>& extraCents, const String& ratioLineExtentJson)
+                    const std::vector<double>& extraCents, const String& ratioLineExtentJson, bool retainWrittenExtent)
 {
     // Owner rule 2026-08-19 (7b): extra cents the frame must cover ride in
     // the same op's options; without them the envelope is byte-identical
@@ -512,7 +526,8 @@ bool frameForMelody(const String& stateJson, const String& melodyJson,
     if (!ratioLineExtentJson.isEmpty()) {
         options += String(u",\"ratio_extent\":%1").arg(ratioLineExtentJson);
     }
-    String envelope = extraCents.empty() && ratioLineExtentJson.isEmpty()
+    options += String(u",\"retain_written_extent\":%1").arg(String(retainWrittenExtent ? u"true" : u"false"));
+    String envelope = extraCents.empty() && ratioLineExtentJson.isEmpty() && !retainWrittenExtent
                       ? String(u"{\"abi\":2,\"op\":\"frame_for_melody\",\"state\":%1,\"melody\":%2,\"declared_extent\":\"%3\"}")
                       .arg(stateJson).arg(melodyJson).arg(extentToken)
                       : String(u"{\"abi\":2,\"op\":\"frame_for_melody\",\"state\":%1,\"melody\":%2,\"declared_extent\":\"%3\","
@@ -535,7 +550,8 @@ bool frameForMelody(const String& stateJson, const String& melodyJson,
 
 bool frameBandsForMelody(const String& stateJson, const String& melodyJson,
                          const String& extentToken, bool elideEmptyPeriods, int minBandPeriods,
-                         FrameBands& out, const std::vector<double>& extraCents, const String& ratioLineExtentJson)
+                         FrameBands& out, const std::vector<double>& extraCents, const String& ratioLineExtentJson,
+                         bool retainWrittenExtent)
 {
     String options = String(u"\"elide_empty_periods\":%1,\"min_band_periods\":%2,\"extra_cents\":%3")
                      .arg(String(elideEmptyPeriods ? u"true" : u"false"))
@@ -544,6 +560,7 @@ bool frameBandsForMelody(const String& stateJson, const String& melodyJson,
     if (!ratioLineExtentJson.isEmpty()) {
         options += String(u",\"ratio_extent\":%1").arg(ratioLineExtentJson);
     }
+    options += String(u",\"retain_written_extent\":%1").arg(String(retainWrittenExtent ? u"true" : u"false"));
     String envelope = String(
         u"{\"abi\":2,\"op\":\"frame_for_melody\",\"state\":%1,\"melody\":%2,\"declared_extent\":\"%3\","
         u"\"options\":{%4}}")

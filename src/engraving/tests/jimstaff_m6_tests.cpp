@@ -781,6 +781,113 @@ TEST(JiMStaffTests, stateChangeAtomicallyReinterpretsAFullTieAtExactFrequency)
     delete score;
 }
 
+TEST(JiMStaffTests, stateChangeKeepsAnExistingFullTieIdentityAtTheSameReference)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/m5-key-up.mscx");
+    ASSERT_TRUE(score);
+    Measure* m2 = measureNo(score, 2);
+    ASSERT_TRUE(m2);
+    String error;
+    // The fixture's key carrier changes Re0 from key 62 to key 55. Remove it
+    // through the controller so the two sides of this regression share one
+    // reference before the mode-only edit under test.
+    ASSERT_TRUE(jims::removeChange(score, 0, m2, error)) << error.toStdString();
+    score->doLayout();
+
+    auto notes = jimsNotes(score);
+    ASSERT_GE(notes.size(), 5u);
+    Note* start = notes[3];
+    Note* continuation = notes[4];
+    const String sameState = jimsStaffType(score)->jimsStateJson();
+    ASSERT_EQ(start->staff()->staffTypeForElement(start)->jimsStateJson(), sameState);
+    ASSERT_EQ(continuation->staff()->staffTypeForElement(continuation)->jimsStateJson(), sameState);
+    double generatorCents = 0.0;
+    double periodCents = 0.0;
+    ASSERT_TRUE(jims::staffMetrics(sameState, generatorCents, periodCents));
+    EXPECT_DOUBLE_EQ(generatorCents, 700.0);
+    EXPECT_DOUBLE_EQ(periodCents, 1200.0);
+
+    jims::SoundingPitch established;
+    ASSERT_TRUE(jims::noteSoundingPitch(sameState, -6, 12, established));
+    const int establishedTpc = step2tpc(int(String(u"CDEFGAB").indexOf(Char(established.step))),
+                                        AccidentalVal(established.alter));
+    for (Note* note : { start, continuation }) {
+        note->setJimsPitch(-6, 12);
+        note->setPitch(established.midiKey, establishedTpc, establishedTpc);
+        note->setTuning(established.centsOffset);
+    }
+    Tie* tie = Factory::createTie(score->dummy());
+    tie->setStartNote(start);
+    tie->setEndNote(continuation);
+    tie->setTrack(start->track());
+    tie->setTick(start->tick());
+    tie->setTick2(continuation->tick());
+    score->startCmd(TranslatableString::untranslatable("same-reference tie fixture"));
+    score->undoAddElement(tie);
+    score->endCmd();
+    ASSERT_TRUE(start->tieForNonPartial());
+    ASSERT_EQ(start->tieForNonPartial()->endNote(), continuation);
+
+    ASSERT_TRUE(jims::applyChange(score, 0, m2, u"mode:1", error)) << error.toStdString();
+    const StaffType* newState = continuation->staff()->staffTypeForElement(continuation);
+    ASSERT_TRUE(newState);
+    EXPECT_TRUE(newState->jimsStateJson().contains(u"\"key_number\":62"));
+    EXPECT_TRUE(newState->jimsStateJson().contains(u"\"generator_cents\":700.0"));
+    jims::SoundingPitch projected;
+    ASSERT_TRUE(jims::noteSoundingPitch(newState->jimsStateJson(), -6, 12, projected));
+    EXPECT_EQ(start->jimsNPer(), -6);
+    EXPECT_EQ(start->jimsNGen(), 12);
+    EXPECT_EQ(continuation->jimsNPer(), -6);
+    EXPECT_EQ(continuation->jimsNGen(), 12);
+    EXPECT_NEAR(projected.frequencyHz, established.frequencyHz, 1e-9);
+    EXPECT_EQ(continuation->pitch(), projected.midiKey);
+    EXPECT_NEAR(continuation->tuning(), projected.centsOffset, 1e-9);
+
+    score->undoRedo(true, nullptr);
+    score->doLayout();
+    EXPECT_EQ(continuation->jimsNPer(), -6);
+    EXPECT_EQ(continuation->jimsNGen(), 12);
+    EXPECT_EQ(continuation->pitch(), established.midiKey);
+    EXPECT_NEAR(continuation->tuning(), established.centsOffset, 1e-9);
+    score->undoRedo(false, nullptr);
+    score->doLayout();
+    EXPECT_EQ(continuation->jimsNPer(), -6);
+    EXPECT_EQ(continuation->jimsNGen(), 12);
+    EXPECT_EQ(continuation->pitch(), projected.midiKey);
+    EXPECT_NEAR(continuation->tuning(), projected.centsOffset, 1e-9);
+
+    const String path(u"tie-identity-regression-roundtrip.mscx");
+    ASSERT_TRUE(ScoreRW::saveScore(score, path));
+    Score* reopened = ScoreRW::readScore(path, true);
+    ASSERT_TRUE(reopened);
+    auto reopenedNotes = jimsNotes(reopened);
+    ASSERT_GE(reopenedNotes.size(), 5u);
+    const Fraction tieStartTick = start->tick();
+    const Fraction tieContinuationTick = continuation->tick();
+    Note* reopenedContinuation = nullptr;
+    for (Note* candidate : reopenedNotes) {
+        Tie* incoming = candidate->tieBackNonPartial();
+        if (candidate->tick() == tieContinuationTick && incoming && incoming->startNote()
+            && incoming->startNote()->tick() == tieStartTick) {
+            reopenedContinuation = candidate;
+            break;
+        }
+    }
+    ASSERT_TRUE(reopenedContinuation);
+    ASSERT_TRUE(reopenedContinuation->tieBackNonPartial());
+    ASSERT_TRUE(reopenedContinuation->tieBackNonPartial()->startNote());
+    EXPECT_EQ(reopenedContinuation->jimsNPer(), -6);
+    EXPECT_EQ(reopenedContinuation->jimsNGen(), 12);
+    jims::SoundingPitch reopenedProjection;
+    ASSERT_TRUE(jims::noteSoundingPitch(reopenedContinuation->staff()->staffTypeForElement(reopenedContinuation)->jimsStateJson(),
+                                        reopenedContinuation->jimsNPer(), reopenedContinuation->jimsNGen(), reopenedProjection));
+    EXPECT_NEAR(reopenedProjection.frequencyHz, established.frequencyHz, 1e-9);
+    EXPECT_EQ(reopenedContinuation->pitch(), reopenedProjection.midiKey);
+    EXPECT_NEAR(reopenedContinuation->tuning(), reopenedProjection.centsOffset, 1e-9);
+    delete reopened;
+    delete score;
+}
+
 TEST(JiMStaffTests, syntheticTwoMeasureCommonTonePersistsItsExactContinuation)
 {
     Score* score = syntheticCommonToneScore();

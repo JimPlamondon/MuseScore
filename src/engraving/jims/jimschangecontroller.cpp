@@ -95,6 +95,12 @@ bool projectionFor(const std::vector<StateEdit>& edits, Note* note, SoundingPitc
             || !noteSoundingPitch(firstState, first->jimsNPer(), first->jimsNGen(), established, &error)) {
             return false;
         }
+        // A mode edit can leave the known lattice note sounding unchanged.
+        // Preserve that identity before considering a different continuation.
+        if (noteSoundingPitch(state, note->jimsNPer(), note->jimsNGen(), projection, &error)
+            && std::abs(projection.frequencyHz - established.frequencyHz) < 1e-9) {
+            return true;
+        }
         return noteContinuation(state, established.frequencyHz, projection, &error);
     }
     return noteSoundingPitch(state, note->jimsNPer(), note->jimsNGen(), projection, &error);
@@ -186,6 +192,7 @@ class JimsChangeStateAt : public UndoCommand
     Staff* m_staff = nullptr;
     Fraction m_tick;
     String m_state;
+    bool m_emptyDefault;
 
     void flip(EditData*) override
     {
@@ -194,15 +201,19 @@ class JimsChangeStateAt : public UndoCommand
             return;
         }
         String previous = st->jimsStateJson();
+        const bool previousEmpty = st->jimsExtentIsEmptyDefault();
         st->setJimsStateJson(m_state);
+        st->setJimsExtentIsEmptyDefault(m_emptyDefault);
         m_state = previous;
+        m_emptyDefault = previousEmpty;
         m_staff->staffTypeListChanged(m_tick);
         m_staff->score()->setLayoutAll();
     }
 
 public:
     JimsChangeStateAt(Staff* staff, const Fraction& tick, String state)
-        : m_staff(staff), m_tick(tick), m_state(std::move(state)) {}
+        : m_staff(staff), m_tick(tick), m_state(std::move(state)),
+        m_emptyDefault(staffSpanIsEmpty(staff, tick, nextCarrierTick(staff->score(), staff->idx(), tick))) {}
     UNDO_NAME("JimsChangeStateAt")
     UNDO_CHANGED_OBJECTS({ m_staff })
 };
@@ -311,7 +322,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
     }
     if (!defaultExtentForEmptyStaffSpan(score->staff(staffIdx), tick,
                                         nextCarrierTick(score, staffIdx, tick), next, next)) {
-        error = mtrc("engraving", "the JiMS Kernel could not derive the empty vocal-staff extent");
+        error = mtrc("engraving", "the JiMS Kernel could not derive the empty staff centre");
         return false;
     }
     if (next == current) {
@@ -347,7 +358,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
                 return false;
             }
             if (!defaultExtentForEmptyStaffSpan(staff, tick, nextCarrierTick(score, staffIdx, tick), bound, bound)) {
-                error = mtrc("engraving", "the JiMS Kernel could not derive the empty vocal-staff extent");
+                error = mtrc("engraving", "the JiMS Kernel could not derive the empty staff centre");
                 return false;
             }
             if (bound != st->jimsStateJson()) {
@@ -405,6 +416,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
         stc->setTrack(staffIdx * VOICES);
         StaffType* st = new StaffType(*effective);
         st->setJimsStateJson(next);
+        st->setJimsExtentIsEmptyDefault(staffSpanIsEmpty(staff, tick, nextCarrierTick(score, staffIdx, tick)));
         stc->setStaffType(st, true);
         score->undoAddElement(stc);
     }
@@ -492,7 +504,7 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& t
         }
         if (!defaultExtentForEmptyStaffSpan(staff, tick,
                                             nextCarrierTick(score, staffIdx, tick), next, next)) {
-            error = mtrc("engraving", "staff %1: the JiMS Kernel could not derive the empty vocal-staff extent")
+            error = mtrc("engraving", "staff %1: the JiMS Kernel could not derive the empty staff centre")
                     .arg(int(staffIdx) + 1);
             return false;
         }
@@ -530,6 +542,7 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& t
             stc->setTrack(p.staffIdx * VOICES);
             StaffType* st = new StaffType(*p.effective);
             st->setJimsStateJson(p.next);
+            st->setJimsExtentIsEmptyDefault(staffSpanIsEmpty(p.staff, tick, nextCarrierTick(score, p.staffIdx, tick)));
             stc->setStaffType(st, true);
             score->undoAddElement(stc);
         }

@@ -10,7 +10,9 @@
 #include <functional>
 
 #include "engraving/dom/chord.h"
+#include "engraving/dom/factory.h"
 #include "engraving/dom/instrument.h"
+#include "engraving/dom/input.h"
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/measure.h"
 #include "engraving/dom/note.h"
@@ -20,6 +22,7 @@
 #include "engraving/dom/staff.h"
 #include "engraving/dom/stafflines.h"
 #include "engraving/dom/stafftype.h"
+#include "engraving/dom/stafftypechange.h"
 #include "engraving/dom/system.h"
 #include "engraving/editing/editscoreproperties.h"
 #include "engraving/jims/jimsbridge.h"
@@ -130,6 +133,73 @@ size_t tuningLabelCount(const StaffLines* lines)
 }
 }
 
+TEST(Engraving_JiMStaffM10SATBTests, tuningUpdatesMidMeasureCarriersAndCancelRestoresThem)
+{
+    MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
+    ASSERT_TRUE(score);
+    Measure* measure = score->firstMeasure();
+    const Fraction tick = measure->tick() + Fraction(1, 4);
+    String error;
+    ASSERT_TRUE(jims::applyChange(score, 0, measure, tick, u"mode:1", error)) << error.toStdString();
+    const StaffType* base = score->staff(0)->staffType(Fraction(0, 1));
+    const StaffType* middle = score->staff(0)->staffType(tick);
+    ASSERT_NE(base, middle);
+    const String beforeBase = base->jimsStateJson();
+    const String beforeMiddle = middle->jimsStateJson();
+    jims::TuningController controller(score, 0);
+    ASSERT_TRUE(controller.beginPreview());
+    ASSERT_TRUE(controller.preview(696.0));
+    EXPECT_DOUBLE_EQ(generatorCents(base), 696.0);
+    EXPECT_DOUBLE_EQ(generatorCents(middle), 696.0);
+    controller.cancel();
+    EXPECT_EQ(base->jimsStateJson(), beforeBase);
+    EXPECT_EQ(middle->jimsStateJson(), beforeMiddle);
+    ASSERT_TRUE(controller.beginPreview());
+    ASSERT_TRUE(controller.commit(710.0));
+    EXPECT_DOUBLE_EQ(generatorCents(base), 710.0);
+    EXPECT_DOUBLE_EQ(generatorCents(middle), 710.0);
+    score->undoRedo(true, nullptr);
+    EXPECT_EQ(base->jimsStateJson(), beforeBase);
+    EXPECT_EQ(middle->jimsStateJson(), beforeMiddle);
+    score->undoRedo(false, nullptr);
+    EXPECT_DOUBLE_EQ(generatorCents(middle), 710.0);
+    delete score;
+}
+
+TEST(Engraving_JiMStaffM10SATBTests, tuningCrossesNoteOrderWithoutChangingLatticeIdentities)
+{
+    MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m9-satb-mixed.mscx");
+    ASSERT_TRUE(score);
+    jims::TuningController controller(score, 0);
+    ASSERT_TRUE(controller.beginPreview());
+    ASSERT_TRUE(controller.commit(696.0));
+    const std::vector<Note*> notes = notesOn(score, 0);
+    ASSERT_GE(notes.size(), 2u);
+    for (size_t i = 0; i < notes.size(); ++i) {
+        notes[i]->setJimsPitch(i % 2 ? 0 : -7, i % 2 ? 0 : 12);
+    }
+    jims::reconcileExtents(score);
+    const String before = score->staff(0)->staffType(Fraction(0, 1))->jimsStateJson();
+    ASSERT_TRUE(controller.beginPreview());
+    ASSERT_TRUE(controller.preview(710.0));
+    for (size_t i = 0; i < notes.size(); ++i) {
+        EXPECT_EQ(notes[i]->jimsNPer(), i % 2 ? 0 : -7);
+        EXPECT_EQ(notes[i]->jimsNGen(), i % 2 ? 0 : 12);
+    }
+    ASSERT_TRUE(controller.commit(710.0));
+    const auto* type = score->staff(0)->staffType(Fraction(0, 1));
+    double first = 0.0;
+    double second = 0.0;
+    ASSERT_TRUE(jims::noteCentsAboveExtentLower(type->jimsStateJson(), -7, 12, first));
+    ASSERT_TRUE(jims::noteCentsAboveExtentLower(type->jimsStateJson(), 0, 0, second));
+    EXPECT_GT(first, second);
+    score->undoRedo(true, nullptr);
+    EXPECT_EQ(type->jimsStateJson(), before);
+    score->undoRedo(false, nullptr);
+    EXPECT_DOUBLE_EQ(generatorCents(type), 710.0);
+    delete score;
+}
+
 TEST(Engraving_JiMStaffM10SATBTests, tuningFromAnyVoiceIsSharedAndOneUndoStepPreservesEveryExtent)
 {
     MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
@@ -227,6 +297,86 @@ TEST(Engraving_JiMStaffM10SATBTests, tuningIndicatorAppearsOnlyOnTheTopVisibleJi
     delete score;
 }
 
+TEST(Engraving_JiMStaffM10SATBTests, referenceChangesPreserveWrittenAndEmptyStaffGeometry)
+{
+    const String paths[] = { satbTemplatePath(), ScoreRW::rootPath() + u"/jimstaff_data/m9-satb-mixed.mscx" };
+    for (const String& path : paths) {
+        for (double generator : { 686.0, 696.0, 720.0 }) {
+            MasterScore* score = ScoreRW::readScore(path, true);
+            ASSERT_TRUE(score);
+            jims::TuningController controller(score, 0);
+            ASSERT_TRUE(controller.beginPreview());
+            ASSERT_TRUE(controller.commit(generator));
+            std::vector<StaffType::JimsFrameView> before;
+            std::vector<String> extents;
+            for (staff_idx_t i = 0; i < score->nstaves(); ++i) {
+                const StaffType* type = score->staff(i)->staffType(Fraction(0, 1));
+                before.push_back(type->jimsWholeFrameView(score, i));
+                extents.push_back(extentXml(type->jimsStateJson()));
+            }
+            const auto writtenNotes = notesOn(score, 0);
+            std::vector<std::pair<int, int> > identities;
+            for (const Note* note : writtenNotes) {
+                identities.push_back({ note->jimsNPer(), note->jimsNGen() });
+            }
+            for (const String& key : { String(u"key:0:2"), String(u"key:-1:3"), String(u"key:1:-7") }) {
+                String error;
+                ASSERT_TRUE(jims::applyChangeToAllJimsParts(score, score->firstMeasure(), { key }, error))
+                    << error.toStdString();
+                score->doLayout();
+                for (staff_idx_t i = 0; i < score->nstaves(); ++i) {
+                    const StaffType* type = score->staff(i)->staffType(Fraction(0, 1));
+                    EXPECT_EQ(extentXml(type->jimsStateJson()), extents[i]);
+                    const auto& after = type->jimsWholeFrameView(score, i);
+                    EXPECT_NEAR(after.bottomCents(), before[i].bottomCents(), 1e-6);
+                    EXPECT_NEAR(after.topCents(), before[i].topCents(), 1e-6);
+                }
+                for (size_t i = 0; i < writtenNotes.size(); ++i) {
+                    EXPECT_EQ(writtenNotes[i]->jimsNPer(), identities[i].first);
+                    EXPECT_EQ(writtenNotes[i]->jimsNGen(), identities[i].second);
+                }
+                score->undoRedo(true, nullptr);
+                score->doLayout();
+            }
+            delete score;
+        }
+    }
+}
+
+TEST(Engraving_JiMStaffM10SATBTests, firstNoteReplacesEmptyCentreAndUndoRestoresIt)
+{
+    MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
+    ASSERT_TRUE(score);
+    StaffType* type = score->staff(0)->staffType(Fraction(0, 1));
+    ASSERT_TRUE(type->jimsExtentIsEmptyDefault());
+    const String before = type->jimsStateJson();
+    String expected;
+    ASSERT_TRUE(jims::fitExtent(before, u"{\"notes\":[{\"nPer\":0,\"nGen\":0}]}", expected));
+    InputState& input = score->inputState();
+    input.setTrack(0);
+    input.setSegment(score->tick2segment(Fraction(0, 1), false, SegmentType::ChordRest));
+    input.setDuration(DurationType::V_QUARTER);
+    input.setNoteEntryMode(true);
+    score->startCmd(TranslatableString::untranslatable("First JiMS note"));
+    score->cmdAddPitch(5 * 7 + 1, false, false); // Host letter input for Re0's default D4.
+    score->endCmd();
+    score->doLayout();
+    ASSERT_EQ(notesOn(score, 0).size(), 1u);
+    EXPECT_EQ(extentXml(type->jimsStateJson()), extentXml(expected));
+    EXPECT_FALSE(type->jimsExtentIsEmptyDefault());
+    const auto& view = type->jimsWholeFrameView(score, 0);
+    EXPECT_NEAR(view.bottomCents(), -type->jimsPeriodCents() / 4.0, 1e-6);
+    EXPECT_NEAR(view.topCents(), type->jimsPeriodCents() / 4.0, 1e-6);
+    score->undoRedo(true, nullptr);
+    EXPECT_EQ(type->jimsStateJson(), before);
+    EXPECT_TRUE(type->jimsExtentIsEmptyDefault());
+    EXPECT_TRUE(notesOn(score, 0).empty());
+    score->undoRedo(false, nullptr);
+    EXPECT_EQ(extentXml(type->jimsStateJson()), extentXml(expected));
+    EXPECT_FALSE(type->jimsExtentIsEmptyDefault());
+    delete score;
+}
+
 TEST(Engraving_JiMStaffM10SATBTests, everyEmptyVocalStaffUsesItsKernelRangeCentre)
 {
     MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
@@ -234,7 +384,7 @@ TEST(Engraving_JiMStaffM10SATBTests, everyEmptyVocalStaffUsesItsKernelRangeCentr
     ASSERT_EQ(score->nstaves(), 4u);
     EXPECT_EQ(jims::reconcileExtents(score), 0) << "native load must already reconcile every empty vocal extent";
     const char* roles[4] = { "soprano", "alto", "tenor", "bass" };
-    const double expectedDoOrigins[4] = { 900.0, 200.0, 700.0, 400.0 };
+    const double expectedDoOrigins[4] = { 300.0, 800.0, 100.0, 1000.0 };
     for (staff_idx_t i = 0; i < 4; ++i) {
         ASSERT_TRUE(notesOn(score, i).empty()) << "rests do not make a written extent";
         Staff* staff = score->staff(i);
@@ -271,6 +421,55 @@ TEST(Engraving_JiMStaffM10SATBTests, everyEmptyVocalStaffUsesItsKernelRangeCentr
                                              instrument->maxPitchA(), roles[i], expected));
         const muse::String after = extentXml(type->jimsStateJson());
         EXPECT_TRUE(after == extentXml(expected)) << "each transposed empty staff must use its Kernel default";
+    }
+    delete score;
+}
+
+// A later empty section must not acquire the written range of an earlier one.
+TEST(Engraving_JiMStaffM10SATBTests, eachStaffTypeSpanCollectsOnlyItsOwnNotes)
+{
+    MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m9-satb-mixed.mscx");
+    ASSERT_TRUE(score);
+    Staff* staff = score->staff(0);
+    Measure* second = score->firstMeasure()->nextMeasure();
+    ASSERT_TRUE(second);
+    const std::vector<Note*> notes = notesOn(score, 0);
+    ASSERT_FALSE(notes.empty());
+    score->startCmd(TranslatableString::untranslatable("Create an empty JiMS section"));
+    std::vector<Chord*> later;
+    for (Note* note : notes) {
+        if (note->tick() >= second->tick()) {
+            if (std::find(later.begin(), later.end(), note->chord()) == later.end()) {
+                later.push_back(note->chord());
+            }
+        } else {
+            note->setJimsPitch(-3, 0);
+        }
+    }
+    for (Chord* chord : later) {
+        score->deleteItem(chord);
+    }
+    score->endCmd();
+    auto* carrier = Factory::createStaffTypeChange(second);
+    carrier->setParent(second);
+    carrier->setTrack(0);
+    carrier->setStaffType(new StaffType(*staff->staffType(Fraction(0, 1))), true);
+    score->addElement(carrier);
+    jims::reconcileExtents(score);
+    score->setLayoutAll();
+    score->doLayout();
+    const StaffType* empty = staff->staffType(second->tick());
+    ASSERT_NE(empty, staff->staffType(Fraction(0, 1)));
+    ASSERT_TRUE(empty->jimsExtentIsEmptyDefault());
+    for (bool elide : { false, true }) {
+        score->style().set(Sid::jimsElideEmptyOctaves, elide);
+        score->style().set(Sid::jimsShowAllOctavesInFirstSystem, false);
+        score->setLayoutAll();
+        score->doLayout();
+        const auto& view = empty->jimsFrameView(score, 0, second->system());
+        ASSERT_EQ(view.bands.size(), 1u);
+        EXPECT_NEAR(view.bottomCents(), -empty->jimsPeriodCents() / 4.0, 1e-6);
+        EXPECT_NEAR(view.topCents(), empty->jimsPeriodCents() / 4.0, 1e-6);
     }
     delete score;
 }

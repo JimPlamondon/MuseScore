@@ -376,32 +376,25 @@ TEST(Engraving_JiMStaffM9SATBTests, m9EveryStaffIsAJimsStaffCarryingItsRangeDeri
     delete score;
 }
 
-TEST(Engraving_JiMStaffM9SATBTests, m9DefaultFramesAreOneKernelPeriodPositionedByDeclaredRanges)
+TEST(Engraving_JiMStaffM9SATBTests, m9EmptyFramesAreHalfPeriodAtTheirDeclaredCentreNotes)
 {
     MasterScore* score = openShippedTemplate();
     ASSERT_TRUE(score);
     score->doLayout();
     ASSERT_EQ(score->nstaves(), 4u);
-
-    // The recovered fixed-ratio contract draws an empty staff from the Do
-    // below its stored lower endpoint to the following Do. Its label names
-    // that bottom row, not the first tonic above the stored endpoint.
-    const char16_t* expected[4] = { u"C4", u"C3", u"C3", u"C2" };
-    const double expectedLower[4] = { -300.0, -1000.0, -500.0, -800.0 };
+    const int centreNPer[4] = { 0, -1, -2, -1 };
+    const int centreNGen[4] = { 1, 2, 3, 0 };
     for (staff_idx_t i = 0; i < 4; ++i) {
         const StaffType* st = score->staff(i)->staffType(Fraction(0, 1));
         ASSERT_TRUE(st && st->isJiMS());
+        double centre = 0.0;
+        ASSERT_TRUE(jims::noteCentsAboveExtentLower(st->jimsStateJson(), centreNPer[i], centreNGen[i], centre));
         const StaffType::JimsFrameView& view = st->jimsWholeFrameView(score, i);
-        ASSERT_EQ(view.bands.size(), 1u) << "staff " << i << " must draw one band";
-        EXPECT_NEAR(view.bands[0].lowerCents, expectedLower[i], 1e-6)
-            << "staff " << i << " must start at the preceding fixed Do line";
-        EXPECT_NEAR(view.bands[0].upperCents - view.bands[0].lowerCents, 1200.0, 1e-6)
-            << "staff " << i << " must span exactly one period";
-        EXPECT_TRUE(view.bands[0].tonicLabel == muse::String(expected[i]))
-            << "staff " << i << " must name its bottom Do row; got "
-            << view.bands[0].tonicLabel.toStdString();
+        ASSERT_EQ(view.bands.size(), 1u);
+        EXPECT_NEAR(view.bands[0].lowerCents, centre - st->jimsPeriodCents() / 4.0, 1e-6);
+        EXPECT_NEAR(view.bands[0].upperCents, centre + st->jimsPeriodCents() / 4.0, 1e-6);
+        EXPECT_TRUE(st->jimsExtentIsEmptyDefault());
     }
-
     delete score;
 }
 
@@ -425,8 +418,8 @@ TEST(Engraving_JiMStaffM9SATBTests, m9WrittenStavesUseTheirOwnMelodyFrameWhileUn
         const StaffType* st = score->staff(i)->staffType(Fraction(0, 1));
         const StaffType::JimsFrameView& v = st->jimsWholeFrameView(score, i);
         ASSERT_EQ(v.bands.size(), 1u) << "staff " << i;
-        EXPECT_NEAR(v.bands[0].upperCents - v.bands[0].lowerCents, 1200.0, 1e-6)
-            << "unwritten staff " << i << " must keep its one-period range default";
+        EXPECT_NEAR(v.bands[0].upperCents - v.bands[0].lowerCents, st->jimsPeriodCents() / 2.0, 1e-6)
+            << "unwritten staff " << i << " must keep its half-period range default";
     }
 
     delete score;

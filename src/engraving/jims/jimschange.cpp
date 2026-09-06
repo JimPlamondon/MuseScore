@@ -34,6 +34,7 @@ class ChangeJimsExtent : public UndoCommand
     Staff* m_staff = nullptr;
     Fraction m_tick;
     String m_state;
+    bool m_emptyDefault = false;
 
     void flip(EditData*) override
     {
@@ -42,8 +43,11 @@ class ChangeJimsExtent : public UndoCommand
             return;
         }
         String previous = st->jimsStateJson();
+        const bool previousEmptyDefault = st->jimsExtentIsEmptyDefault();
         st->setJimsStateJson(m_state);
+        st->setJimsExtentIsEmptyDefault(m_emptyDefault);
         m_state = previous;
+        m_emptyDefault = previousEmptyDefault;
         m_staff->staffTypeListChanged(m_tick);
         m_staff->score()->setLayoutAll();
     }
@@ -557,17 +561,10 @@ static const char* vocalRole(const Part* part)
     return nullptr;
 }
 
-bool defaultExtentForEmptyStaffSpan(const Staff* staff, const Fraction& start,
-                                    const Fraction& stop, const String& state,
-                                    String& updated)
+bool staffSpanIsEmpty(const Staff* staff, const Fraction& start, const Fraction& stop)
 {
-    updated = state;
     if (!staff || !staff->score()) {
         return false;
-    }
-    const char* role = vocalRole(staff->part());
-    if (!role) {
-        return true;
     }
     const staff_idx_t staffIdx = staff->idx();
     for (const Segment* seg = staff->score()->firstSegment(SegmentType::ChordRest); seg;
@@ -585,14 +582,34 @@ bool defaultExtentForEmptyStaffSpan(const Staff* staff, const Fraction& start,
             }
             for (const Note* note : toChord(el)->notes()) {
                 if (note->hasJimsPitch()) {
-                    return true;
+                    return false;
                 }
             }
         }
     }
+    return true;
+}
+
+bool defaultExtentForEmptyStaffSpan(const Staff* staff, const Fraction& start,
+                                    const Fraction& stop, const String& state,
+                                    String& updated)
+{
+    updated = state;
+    if (!staff || !staff->score()) {
+        return false;
+    }
+    if (!staffSpanIsEmpty(staff, start, stop)) {
+        return true;
+    }
+    const char* role = vocalRole(staff->part());
     const Instrument* instrument = staff->part()->instrument();
-    return instrument
-           && defaultVocalExtent(state, instrument->minPitchA(), instrument->maxPitchA(), role, updated);
+    if (!instrument) {
+        return defaultInstrumentExtent(state, 0, 127, updated);
+    }
+    if (role) {
+        return defaultVocalExtent(state, instrument->minPitchA(), instrument->maxPitchA(), role, updated);
+    }
+    return defaultInstrumentExtent(state, instrument->minPitchA(), instrument->maxPitchA(), updated);
 }
 
 int reconcileExtents(Score* score)
@@ -656,6 +673,9 @@ int reconcileExtents(Score* score)
                 ok = defaultExtentForEmptyStaffSpan(staff, starts[i], bounded ? end : Fraction(-1, 1),
                                                     st->jimsStateJson(), updated);
             }
+            if (ok) {
+                st->setJimsExtentIsEmptyDefault(first);
+            }
             if (ok && updated != st->jimsStateJson()) {
                 st->setJimsStateJson(updated);
                 ++changed;
@@ -675,8 +695,12 @@ bool widenExtentForNote(Note* note)
         return false;
     }
     String updated;
-    const bool changed = widenExtent(st->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), updated)
-                         && updated != st->jimsStateJson();
+    const bool wasEmpty = st->jimsExtentIsEmptyDefault();
+    const bool ok = wasEmpty
+                    ? fitExtent(st->jimsStateJson(),
+                                String(u"{\"notes\":[{\"nPer\":%1,\"nGen\":%2}]}").arg(note->jimsNPer()).arg(note->jimsNGen()), updated)
+                    : widenExtent(st->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), updated);
+    const bool changed = ok && (wasEmpty || updated != st->jimsStateJson());
     if (changed) {
         note->score()->undo(new ChangeJimsExtent(note->staff(), note->tick(), updated));
     }
