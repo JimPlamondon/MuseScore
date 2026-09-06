@@ -195,6 +195,7 @@ bool StaffType::operator==(const StaffType& st) const
     equal &= (m_jimsJiLines == st.m_jimsJiLines);
     equal &= (m_jimsScaleDotLabelMode == st.m_jimsScaleDotLabelMode);
     equal &= (m_jimsElideOctaves == st.m_jimsElideOctaves);
+    equal &= (m_jimsRatioLineExtentJson == st.m_jimsRatioLineExtentJson);
     equal &= (m_userMag == st.m_userMag);
     equal &= (m_yoffset == st.m_yoffset);
     equal &= (m_small == st.m_small);
@@ -848,8 +849,10 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
     const double gap = 0.25 * spatium;
     std::vector<jims::LabeledDotStack> stacks;
     const bool haveLabels = jims::scaleDotLabels(m_jimsStateJson, stacks);
-    // Current-key label "[PitchN]:" left of the tonic indicator (owner spec
-    // 2026-08-17): reserve its advance (plus one space) in the left bands.
+    // Current-key label "[PitchN]:" to the right of Do's scale dot (owner
+    // corrections 2026-08-30): its established home is inside the open
+    // curve of the crescent clef. It contributes to change-terrain width,
+    // but MUST NOT reserve a header label band or move the scale-dot stack.
     jims::TonicPitchLabel key;
     double keyAdvance = jims::tonicPitchLabel(m_jimsStateJson, key)
                         ? jims::pitchLabelLayout(key.label + u": ", labelFont, engravingFont).advance : 0.0;
@@ -900,10 +903,6 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
 
     const JimsScaleDotLabelMode mode = jimsResolvedScaleDotLabelMode();
     if (mode == JimsScaleDotLabelMode::None || !haveLabels) {
-        if (keyAdvance > 0.0) {
-            g.leftLabelBand = keyAdvance + gap;
-            g.headerWidth += g.leftLabelBand;
-        }
         g.headerWidth += g.braceWidth;
         return g;
     }
@@ -927,8 +926,8 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
             maxRight = std::max(maxRight, fm.horizontalAdvance(rightText));
         }
     }
-    if (maxLeft > 0.0 || keyAdvance > 0.0) {
-        g.leftLabelBand = maxLeft + keyAdvance + gap;
+    if (maxLeft > 0.0) {
+        g.leftLabelBand = maxLeft + gap;
     }
     if (maxRight > 0.0 && mode == JimsScaleDotLabelMode::Split) {
         g.rightLabelBand = maxRight + gap;
@@ -1000,7 +999,8 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
                             .arg(a.to.ordinate).arg(a.to.periodOffset);
         }
     }
-    const muse::String key = jimsStateJson() + u"|" + token + u"|" + melody + u"|ind:" + indicatorKey;
+    const muse::String key = jimsStateJson() + u"|" + token + u"|" + melody
+                             + u"|ratio:" + m_jimsRatioLineExtentJson + u"|ind:" + indicatorKey;
     if (jimsFrameKey() != key) {
         // Milestone 4: EVERY melody — including the empty one — asks the
         // Kernel (frame_for_melody yields one whole period for no notes,
@@ -1012,7 +1012,7 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
             LOGE() << "JiMStaff: no declared tonic-ambit token; frame unavailable for staff " << staffIdx;
         } else {
             std::vector<jims::StaveSegment> segments;
-            if (jims::frameForMelody(jimsStateJson(), melody, token, segments)) {
+            if (jims::frameForMelody(jimsStateJson(), melody, token, segments, {}, m_jimsRatioLineExtentJson)) {
                 for (const jims::StaveSegment& segment : segments) {
                     cached.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
                 }
@@ -1033,7 +1033,8 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
                                                       : std::vector<double>();
                     if (!extra.empty()) {
                         std::vector<jims::StaveSegment> covering;
-                        if (jims::frameForMelody(jimsStateJson(), melody, token, covering, extra)) {
+                        if (jims::frameForMelody(jimsStateJson(), melody, token, covering, extra,
+                                                 m_jimsRatioLineExtentJson)) {
                             cached.clear();
                             for (const jims::StaveSegment& segment : covering) {
                                 cached.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
@@ -1423,7 +1424,8 @@ const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, sta
                             .arg(a.to.ordinate).arg(a.to.periodOffset);
         }
     }
-    const muse::String key = jimsStateJson() + u"|" + token + u"|" + melody + u"|elide:1|min:1|ind:" + indicatorKey;
+    const muse::String key = jimsStateJson() + u"|" + token + u"|" + melody
+                             + u"|elide:1|min:1|ratio:" + m_jimsRatioLineExtentJson + u"|ind:" + indicatorKey;
     if (found != m_jimsFrameViews.end() && found->second.key == key) {
         return found->second;
     }
@@ -1436,7 +1438,8 @@ const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, sta
     view.gapLd = ld > 0.0 ? score->style().styleS(Sid::staffDistance).val() / ld : 0.0;
     auto deriveBands = [&](const std::vector<double>& extra, JimsFrameView& into) -> bool {
         jims::FrameBands bands;
-        if (!jims::frameBandsForMelody(jimsStateJson(), melody, token, true, 1, bands, extra)) {
+        if (!jims::frameBandsForMelody(jimsStateJson(), melody, token, true, 1, bands, extra,
+                                       m_jimsRatioLineExtentJson)) {
             return false;
         }
         into.bands.clear();

@@ -319,6 +319,32 @@ TEST(Engraving_JiMStaffM10SATBTests, extentGrowsOnlyUntilSaveAndContractsOnlyOnR
     delete reloaded;
 }
 
+TEST(Engraving_JiMStaffM10SATBTests, ratioLineExtentSurvivesWhileLatticeCoverageReconciles)
+{
+    MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m9-satb-mixed.mscx");
+    ASSERT_TRUE(score);
+    StaffType* type = score->staff(0)->staffType(Fraction(0, 1));
+    ASSERT_TRUE(type && type->isJiMS());
+    const std::vector<Note*> notes = notesOn(score, 0);
+    ASSERT_FALSE(notes.empty());
+
+    String declared;
+    ASSERT_TRUE(jims::widenExtent(type->jimsStateJson(), -10, notes.front()->jimsNGen(), declared));
+    ASSERT_NE(declared, type->jimsStateJson());
+    type->setJimsStateJson(declared);
+    const String ratioExtent
+        = u"{\"lower\":{\"period\":-1,\"ratio\":\"3/2\"},"
+          u"\"upper\":{\"period\":0,\"ratio\":\"1/1\"}}";
+    type->setJimsRatioLineExtentJson(ratioExtent);
+
+    EXPECT_EQ(jims::reconcileExtents(score), 1);
+    EXPECT_NE(type->jimsStateJson(), declared)
+        << "lattice extent remains note-coverage data even with a fixed display extent";
+    EXPECT_EQ(type->jimsRatioLineExtentJson(), ratioExtent)
+        << "reconciling note coverage must not alter the fixed ratio-line display extent";
+    delete score;
+}
+
 TEST(Engraving_JiMStaffM10SATBTests, melodyDesignationDefaultsOverridesAndUndoRedoDrivesOneSongWideAmbit)
 {
     MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m9-satb-hymn.mscx");

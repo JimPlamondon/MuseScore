@@ -154,6 +154,26 @@ TEST(JiMStaffTests, tonicBoundedLaModeFrameKeepsStoredExtentMinimum)
     EXPECT_NEAR(segments[1].upperCents, 2400.0, EPS);
 }
 
+TEST(JiMStaffTests, fixedRatioLineExtentCanReturnASubperiodSoToDoFrame)
+{
+    const muse::String state
+        =u"{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],"
+         u"\"collection_rotation\":0,\"mode_rotation\":0,\"generator_cents\":700.0,\"period_cents\":1200.0,"
+         u"\"embedding\":{\"large_steps\":5,\"small_steps\":2},"
+         u"\"extent\":{\"lower\":{\"nPer\":-2,\"nGen\":-1},\"upper\":{\"nPer\":-1,\"nGen\":-2}},"
+         u"\"reference\":\"none\"}";
+    const muse::String melody = u"{\"notes\":[{\"nPer\":-2,\"nGen\":-1}]}";
+    std::vector<jims::StaveSegment> segments;
+    const muse::String ratioExtent
+        = u"{\"lower\":{\"period\":-1,\"ratio\":\"3/2\"},"
+          u"\"upper\":{\"period\":0,\"ratio\":\"1/1\"}}";
+    ASSERT_TRUE(jims::frameForMelody(state, melody, u"tonic-bounded", segments, {}, ratioExtent));
+    ASSERT_EQ(segments.size(), 1u);
+    EXPECT_FALSE(segments[0].whole);
+    EXPECT_NEAR(segments[0].lowerCents, 1.955000865387433, EPS);
+    EXPECT_NEAR(segments[0].upperCents, 500.0, EPS);
+}
+
 // The tuning metrics seam feeding the "M5= <cents>¢" label reports the
 // state's own widths, never a fork-side constant.
 TEST(JiMStaffTests, staffMetricsReportTheStateWidths)
@@ -957,10 +977,10 @@ TEST(JiMStaffTests, scaleDotLabelHeaderGeometryIsSharedAndModeAware)
 
     st->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::None);
     auto none = st->jimsHeaderGeometry(sp, sp);
-    // Label mode None still reserves the current-key label "[PitchN]: "
-    // left of the tonic row (owner spec 2026-08-17) — and nothing else.
+    // The recovered owner correction places the current-key label inside
+    // the crescent, without a label band that would move the dot stack.
     EXPECT_GT(none.keyLabelAdvance, 0.0);
-    EXPECT_NEAR(none.leftLabelBand, none.keyLabelAdvance + 0.25 * sp, 1e-6);
+    EXPECT_EQ(none.leftLabelBand, 0.0);
     EXPECT_EQ(none.rightLabelBand, 0.0);
     EXPECT_GT(none.headerWidth, 0.0);
 

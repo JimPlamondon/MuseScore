@@ -383,18 +383,23 @@ TEST(Engraving_JiMStaffM9SATBTests, m9DefaultFramesAreOneKernelPeriodPositionedB
     score->doLayout();
     ASSERT_EQ(score->nstaves(), 4u);
 
-    // The Kernel's own answer, not the encoding string: one band, one whole
-    // period, and the tonic row the Kernel names for it.
-    const char16_t* expected[4] = { u"C5", u"C4", u"C4", u"C3" };
+    // The recovered fixed-ratio contract draws an empty staff from the Do
+    // below its stored lower endpoint to the following Do. Its label names
+    // that bottom row, not the first tonic above the stored endpoint.
+    const char16_t* expected[4] = { u"C4", u"C3", u"C3", u"C2" };
+    const double expectedLower[4] = { -300.0, -1000.0, -500.0, -800.0 };
     for (staff_idx_t i = 0; i < 4; ++i) {
         const StaffType* st = score->staff(i)->staffType(Fraction(0, 1));
         ASSERT_TRUE(st && st->isJiMS());
         const StaffType::JimsFrameView& view = st->jimsWholeFrameView(score, i);
         ASSERT_EQ(view.bands.size(), 1u) << "staff " << i << " must draw one band";
+        EXPECT_NEAR(view.bands[0].lowerCents, expectedLower[i], 1e-6)
+            << "staff " << i << " must start at the preceding fixed Do line";
         EXPECT_NEAR(view.bands[0].upperCents - view.bands[0].lowerCents, 1200.0, 1e-6)
             << "staff " << i << " must span exactly one period";
         EXPECT_TRUE(view.bands[0].tonicLabel == muse::String(expected[i]))
-            << "staff " << i << " sits at the wrong Kernel-derived range default";
+            << "staff " << i << " must name its bottom Do row; got "
+            << view.bands[0].tonicLabel.toStdString();
     }
 
     delete score;

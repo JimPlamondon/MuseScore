@@ -223,7 +223,8 @@ struct ConnectorGlyph {
 bool connectorGlyph(ConnectorGlyph& out);
 
 bool frameForMelody(const muse::String& stateJson, const muse::String& melodyJson, const muse::String& extentToken,
-                    std::vector<StaveSegment>& segments, const std::vector<double>& extraCents = {});
+                    std::vector<StaveSegment>& segments, const std::vector<double>& extraCents = {},
+                    const muse::String& ratioLineExtentJson = {});
 
 /// Milestone 8 (octave-band elision): the Kernel's BANDED frame for a
 /// melody through the same frame_for_melody op with the additive
@@ -245,7 +246,8 @@ struct FrameBands {
     int omittedPeriodCount = 0;
 };
 bool frameBandsForMelody(const muse::String& stateJson, const muse::String& melodyJson, const muse::String& extentToken,
-                         bool elideEmptyPeriods, int minBandPeriods, FrameBands& out, const std::vector<double>& extraCents = {});
+                         bool elideEmptyPeriods, int minBandPeriods, FrameBands& out, const std::vector<double>& extraCents = {},
+                         const muse::String& ratioLineExtentJson = {});
 
 /// A quantization hit: the nearest realizable lattice pitch to a target
 /// cents height, with the Kernel compatibility pitch (step/alter/octave)
