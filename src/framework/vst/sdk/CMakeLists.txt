@@ -50,10 +50,12 @@ include(GetPlatformInfo)
 include(GetCompilerInfo)
 include(GetBuildType)
 
+# Public SDK headers require the same build mode as the compiled SDK.
+# Export it to consumers, including test plug-ins that derive from FObject.
 if (BUILD_IS_DEBUG)
-    target_compile_definitions(vst3sdk PRIVATE DEVELOPMENT)
+    target_compile_definitions(vst3sdk PUBLIC DEVELOPMENT)
 else()
-    target_compile_definitions(vst3sdk PRIVATE RELEASE)
+    target_compile_definitions(vst3sdk PUBLIC RELEASE)
 endif()
 
 if (OS_IS_WIN)
