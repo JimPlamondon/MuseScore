@@ -78,7 +78,7 @@ bool projectionFor(const std::vector<StateEdit>& edits, Note* note, SoundingPitc
     const StaffType* current = note->staff() ? note->staff()->staffTypeForElement(note) : nullptr;
     const String state = edit ? edit->state : (current ? current->jimsStateJson() : String());
     if (state.isEmpty()) {
-        error = u"a linked JiMS note has no effective JiMS state";
+        error = mtrc("engraving", "a linked JiMS note has no effective JiMS state");
         return false;
     }
 
@@ -133,7 +133,7 @@ bool prepareNoteEdits(Score* score, const std::vector<StateEdit>& stateEdits,
                             continue;
                         }
                         if (note->incomingPartialTie() || note->outgoingPartialTie()) {
-                            error = u"a path-dependent partial tie crosses the JiMS state span; the edit was not applied";
+                            error = mtrc("engraving", "a path-dependent partial tie crosses the JiMS state span; the edit was not applied");
                             return false;
                         }
                         SoundingPitch projection;
@@ -143,7 +143,7 @@ bool prepareNoteEdits(Score* score, const std::vector<StateEdit>& stateEdits,
                         for (EngravingObject* linkedObject : note->linkList()) {
                             Note* linked = toNote(linkedObject);
                             if (!linked->hasJimsPitch()) {
-                                error = u"a linked note disagrees about JiMS identity; the edit was not applied";
+                                error = mtrc("engraving", "a linked note disagrees about JiMS identity; the edit was not applied");
                                 return false;
                             }
                             SoundingPitch linkedProjection;
@@ -151,7 +151,7 @@ bool prepareNoteEdits(Score* score, const std::vector<StateEdit>& stateEdits,
                                 return false;
                             }
                             if (!sameProjection(projection, linkedProjection)) {
-                                error = u"linked notes require conflicting JiMS projections; the edit was not applied";
+                                error = mtrc("engraving", "linked notes require conflicting JiMS projections; the edit was not applied");
                                 return false;
                             }
                             seen.insert(linked);
@@ -269,7 +269,7 @@ bool canInsertChange(const Score* score, staff_idx_t staffIdx, const Measure* me
 {
     String state;
     if (!effectiveState(score, staffIdx, measure, tick, state)) {
-        reason = u"not a JiMStaff";
+        reason = mtrc("engraving", "not a JiMStaff");
         return false;
     }
     if (tick.isZero()) {
@@ -279,11 +279,11 @@ bool canInsertChange(const Score* score, staff_idx_t staffIdx, const Measure* me
         return true;        // the JiMS carrier is updated in place
     }
     if (anyCarrierAt(measure, staffIdx, tick)) {
-        reason = u"this position already carries a non-JiMS staff type change on this staff";
+        reason = mtrc("engraving", "this position already carries a non-JiMS staff type change on this staff");
         return false;
     }
     if (!measure->canAddStaffTypeChange(staffIdx, tick - measure->tick())) {
-        reason = u"MuseScore refuses a staff type change at this position";
+        reason = mtrc("engraving", "MuseScore refuses a staff type change at this position");
         return false;
     }
     return true;
@@ -311,7 +311,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
     }
     if (!defaultExtentForEmptyStaffSpan(score->staff(staffIdx), tick,
                                         nextCarrierTick(score, staffIdx, tick), next, next)) {
-        error = u"the JiMS Kernel could not derive the empty vocal-staff extent";
+        error = mtrc("engraving", "the JiMS Kernel could not derive the empty vocal-staff extent");
         return false;
     }
     if (next == current) {
@@ -347,7 +347,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
                 return false;
             }
             if (!defaultExtentForEmptyStaffSpan(staff, tick, nextCarrierTick(score, staffIdx, tick), bound, bound)) {
-                error = u"the JiMS Kernel could not derive the empty vocal-staff extent";
+                error = mtrc("engraving", "the JiMS Kernel could not derive the empty vocal-staff extent");
                 return false;
             }
             if (bound != st->jimsStateJson()) {
@@ -426,7 +426,7 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& t
     // widened from staff-wide to score-wide, and taking a LIST of choice ids
     // so one user gesture that is several Kernel choices is still one step.
     if (!score || !measure) {
-        error = u"no score or measure";
+        error = mtrc("engraving", "no score or measure");
         return false;
     }
     if (choiceIds.empty()) {
@@ -436,7 +436,7 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& t
         // A reference names what ONE staff's Re0 is, so it stays staff-wide
         // (owner decision 9). Routing it here would widen it by inference.
         if (choiceId.startsWith(u"bind:")) {
-            error = u"a reference binding is staff-wide; apply it to one staff";
+            error = mtrc("engraving", "a reference binding is staff-wide; apply it to one staff");
             return false;
         }
     }
@@ -464,15 +464,15 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& t
         if (!canInsertChange(score, staffIdx, measure, tick, reason)) {
             const StaffType* here = staff->staffType(tick);
             if (!here || !here->isJiMS()) {
-                reason = u"this measure already carries a non-JiMS staff type change on this staff";
+                reason = mtrc("engraving", "this measure already carries a non-JiMS staff type change on this staff");
             }
-            error = String(u"staff %1: %2").arg(int(staffIdx) + 1).arg(reason);
+            error = mtrc("engraving", "staff %1: %2").arg(int(staffIdx) + 1).arg(reason);
             return false;
         }
         String current;
         const StaffType* effective = nullptr;
         if (!effectiveState(score, staffIdx, measure, tick, current, &effective)) {
-            error = String(u"staff %1: no JiMS state in force at this position").arg(int(staffIdx) + 1);
+            error = mtrc("engraving", "staff %1: no JiMS state in force at this position").arg(int(staffIdx) + 1);
             return false;
         }
         // The Kernel applies the issued ids, in order, to THIS target's own
@@ -485,14 +485,14 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& t
             String out;
             String err;
             if (!applyStateChange(next, choiceId, out, err)) {
-                error = String(u"staff %1: %2").arg(int(staffIdx) + 1).arg(err);
+                error = mtrc("engraving", "staff %1: %2").arg(int(staffIdx) + 1).arg(err);
                 return false;
             }
             next = out;
         }
         if (!defaultExtentForEmptyStaffSpan(staff, tick,
                                             nextCarrierTick(score, staffIdx, tick), next, next)) {
-            error = String(u"staff %1: the JiMS Kernel could not derive the empty vocal-staff extent")
+            error = mtrc("engraving", "staff %1: the JiMS Kernel could not derive the empty vocal-staff extent")
                     .arg(int(staffIdx) + 1);
             return false;
         }
@@ -548,14 +548,14 @@ bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fr
 {
     const StaffTypeChange* stc = changeCarrierAt(measure, staffIdx, tick);
     if (!stc) {
-        error = u"no JiMS change at this position";
+        error = mtrc("engraving", "no JiMS change at this position");
         return false;
     }
     Staff* staff = score->staff(staffIdx);
     const Fraction before = Fraction::fromTicks(std::max(0, tick.ticks() - 1));
     const StaffType* previousType = staff ? staff->staffType(before) : nullptr;
     if (!previousType || !previousType->isJiMS()) {
-        error = u"no preceding JiMS state can replace this change";
+        error = mtrc("engraving", "no preceding JiMS state can replace this change");
         return false;
     }
     const std::vector<StateEdit> stateEdits {
@@ -576,7 +576,7 @@ bool normalizeStoredPitchesAfterLoad(Score* score, size_t& repairs, String& erro
 {
     repairs = 0;
     if (!score) {
-        error = u"no score to normalize";
+        error = mtrc("engraving", "no score to normalize");
         return false;
     }
     std::vector<StateEdit> stateEdits;

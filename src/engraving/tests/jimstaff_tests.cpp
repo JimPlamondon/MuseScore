@@ -1675,6 +1675,7 @@ TEST(JiMStaffTests, presetIdentitySurvivesTheStaffTypeLookup)
     const StaffType* jims = StaffType::preset(StaffTypes::JIMS_12TET);
     ASSERT_NE(jims, nullptr);
     ASSERT_TRUE(jims->isJiMS());
+    EXPECT_TRUE(jims->jimsJiLines());
     EXPECT_EQ(jims->type(), StaffTypes::JIMS_12TET);
     EXPECT_NE(jims->type(), StaffType::preset(StaffTypes::STANDARD)->type());
     EXPECT_EQ(StaffType::preset(jims->type())->name(), jims->name());

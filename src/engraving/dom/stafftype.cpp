@@ -1895,11 +1895,12 @@ void StaffType::initStaffTypes(const Color& defaultColor)
     // JiMStaff 12-TET (Milestone 1): a STANDARD-group variant spanning one
     // 1200-cent period across 13 staff locations (100 cents = one line
     // distance). Clef, key signatures, and ledger lines are suppressed;
-    // the three JiMS guide lines are drawn by the JiMS StaffLines branch.
+    // Kernel-selected ratio-lines are drawn by the JiMS StaffLines branch.
     // Keep in sync with StaffTypes::JIMS_12TET.
     StaffType jims(StaffGroup::STANDARD, u"jims12tet", jims::presetName(),
                    13, 0, 1, false, true, false, true, false, false, false, defaultColor);
     jims.setJiMS(true);
+    jims.setJimsJiLines(true);
     // Kernel-owned default section state: White collection, Do-mode,
     // 12-TET, one Do-bounded period from register 4 (JiMStaffStateV1).
     jims.setJimsStateJson(String::fromUtf8(
