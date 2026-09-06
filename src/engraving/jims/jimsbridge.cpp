@@ -10,6 +10,7 @@
 #include <cmath>
 
 #include "serialization/json.h"
+#include "translation.h"
 
 #include "jims_musescore_bridge.h"
 
@@ -56,7 +57,7 @@ bool validateState(const String& stateJson, String& error)
     std::string err;
     JsonDocument doc = JsonDocument::fromJson(response.toUtf8(), &err);
     if (!err.empty()) {
-        error = String(u"bridge returned no JSON");
+        error = mtrc("engraving", "bridge returned no JSON");
         return false;
     }
     JsonObject root = doc.rootObject();
@@ -248,7 +249,7 @@ static bool stringResult(const String& response, String& out, String* error)
     JsonDocument doc = JsonDocument::fromJson(response.toUtf8(), &err);
     if (!err.empty()) {
         if (error) {
-            *error = u"bridge returned no JSON";
+            *error = mtrc("engraving", "bridge returned no JSON");
         }
         return false;
     }
@@ -314,7 +315,7 @@ static bool readSoundingPitch(const String& response, SoundingPitch& out, String
         if (error) {
             std::string err;
             JsonDocument doc = JsonDocument::fromJson(response.toUtf8(), &err);
-            *error = err.empty() ? doc.rootObject().value("error").toString() : String(u"bridge returned no JSON");
+            *error = err.empty() ? doc.rootObject().value("error").toString() : mtrc("engraving", "bridge returned no JSON");
         }
         return false;
     }
@@ -325,7 +326,7 @@ static bool readSoundingPitch(const String& response, SoundingPitch& out, String
                              "reference_key_number", "reference_frequency_hz", "anchor" }) {
         if (!o.contains(key)) {
             if (error) {
-                *error = String(u"note_sounding_pitch answer lacks %1").arg(String::fromAscii(key));
+                *error = mtrc("engraving", "note_sounding_pitch answer lacks %1").arg(String::fromAscii(key));
             }
             return false;
         }
@@ -346,7 +347,7 @@ static bool readSoundingPitch(const String& response, SoundingPitch& out, String
         || std::abs(out.centsOffset) > 50.0 + 1e-9 || step.size() != 1
         || String(u"CDEFGAB").indexOf(step.at(0)) == muse::nidx) {
         if (error) {
-            *error = u"note_sounding_pitch answer out of range";
+            *error = mtrc("engraving", "note_sounding_pitch answer out of range");
         }
         return false;
     }
@@ -434,7 +435,7 @@ bool changeIndicator(const String& oldStateJson, const String& newStateJson, Cha
         if (error) {
             std::string err;
             JsonDocument doc = JsonDocument::fromJson(response.toUtf8(), &err);
-            *error = err.empty() ? doc.rootObject().value("error").toString() : String(u"bridge returned no JSON");
+            *error = err.empty() ? doc.rootObject().value("error").toString() : mtrc("engraving", "bridge returned no JSON");
         }
         return false;
     }
@@ -688,7 +689,7 @@ bool applyStateChange(const String& stateJson, const String& choiceId, String& n
     std::string err;
     JsonDocument doc = JsonDocument::fromJson(response.toUtf8(), &err);
     if (!err.empty()) {
-        error = u"bridge returned no JSON";
+        error = mtrc("engraving", "bridge returned no JSON");
         return false;
     }
     JsonObject root = doc.rootObject();
@@ -702,7 +703,7 @@ bool applyStateChange(const String& stateJson, const String& choiceId, String& n
     static const String marker(u"\"result\":");
     const size_t at = response.indexOf(marker);
     if (at == muse::nidx || !response.endsWith(u"}")) {
-        error = u"bridge envelope has no result";
+        error = mtrc("engraving", "bridge envelope has no result");
         return false;
     }
     newStateJson = response.mid(at + marker.size(), response.size() - (at + marker.size()) - 1);
