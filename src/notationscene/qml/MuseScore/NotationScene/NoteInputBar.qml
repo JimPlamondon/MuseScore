@@ -61,7 +61,7 @@ Item {
         text: "M5= " + jimsTuning.cents.toLocaleString(Qt.locale(), 'f', 1) + "¢"
         transparent: true
         toolTipTitle: qsTrc("notation", "Tuning — M5 (major fifth)")
-        toolTipDescription: qsTrc("notation", "Change tuning; 100 cents is one semitone. The score updates as you move the slider.")
+        toolTipDescription: qsTrc("notation", "Change tuning in cents. The score updates as you move the slider.")
         navigation.panel: root.navigationPanel
         navigation.order: 101
         navigation.accessible.name: toolTipTitle + " " + text

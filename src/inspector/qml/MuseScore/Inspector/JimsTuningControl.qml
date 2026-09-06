@@ -32,7 +32,7 @@ Column {
         measureUnitsSymbol: qsTrc("notation", "cents")
         navigation.panel: root.navigationPanel
         navigation.row: 1
-        navigation.accessible.name: qsTrc("notation", "Tuning in cents; 100 cents is one semitone")
+        navigation.accessible.name: qsTrc("notation", "Tuning in cents; 1200 cents is a 2:1 frequency ratio")
         onTextEditingFinished: function(value) { if (!escaping) root.model.acceptText(value) }
     }
     StyledTextLabel {

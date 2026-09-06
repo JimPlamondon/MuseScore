@@ -86,7 +86,7 @@ InspectorSectionView {
             id: glossaryLabel
             width: parent.width
             visible: glossaryButton.expanded
-            text: qsTrc("inspector", "M5: major fifth, the tuning generator. Cents: hundredths of a semitone. Re0: the reference Re pitch. Hollow stacks: empty octave bands hidden to save space. Prime-limit guide lines: reference pitches distinguished by labels and dash patterns. Scale dots: markers for notes in the chosen scale.")
+            text: qsTrc("inspector", "M5: major fifth, the tuning generator. Cents: pitch distance measured logarithmically; 1200 cents is a 2:1 frequency ratio. Re0: the reference Re pitch. Hollow stacks: empty octave bands hidden to save space. Prime-limit guide lines: reference pitches distinguished by labels and dash patterns. Scale dots: markers for notes in the chosen scale.")
             horizontalAlignment: Text.AlignLeft
             wrapMode: Text.WordWrap
             Loader {
