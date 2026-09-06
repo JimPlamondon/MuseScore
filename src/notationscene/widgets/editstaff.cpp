@@ -44,6 +44,7 @@
 #include "engraving/dom/text.h"
 #include "engraving/dom/utils.h"
 #include "engraving/editing/undo.h"
+#include "engraving/jims/jimsstrings.h"
 
 #include "log.h"
 
@@ -193,7 +194,7 @@ void EditStaff::updateStaffType(const mu::engraving::StaffType& staffType)
     showTimesig->setChecked(staffType.genTimesig());
     showBarlines->setChecked(staffType.showBarlines());
     invisible->setChecked(staffType.invisible());
-    staffGroupName->setText(staffType.isJiMS() ? staffType.name().toQString() : staffType.translatedGroupName().toQString());
+    staffGroupName->setText(staffType.isJiMS() ? jims::presetName().toQString() : staffType.translatedGroupName().toQString());
     for (QWidget* control : std::initializer_list<QWidget*> { lines, lineDistance, showClef, labelLineDist, labelNumOfLines }) {
         control->setVisible(!staffType.isJiMS());
     }

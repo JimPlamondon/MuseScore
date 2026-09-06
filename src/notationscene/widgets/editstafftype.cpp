@@ -26,6 +26,7 @@
 #include "engraving/dom/staff.h"
 #include "engraving/dom/stringdata.h"
 #include "engraving/style/textstyle.h"
+#include "engraving/jims/jimsstrings.h"
 
 #include "engraving/types/typesconv.h"
 #include "engraving/compat/scoreaccess.h"
@@ -310,16 +311,17 @@ void EditStaffType::setValues()
     mu::engraving::StaffGroup group = staffType.group();
     int i = int(group);
     stack->setCurrentIndex(i);
-    groupName->setText(staffType.isJiMS() ? staffType.name().toQString() : TConv::translatedUserName(group).toQString());
+    groupName->setText(staffType.isJiMS() ? jims::presetName().toQString() : TConv::translatedUserName(group).toQString());
     templateCombo->setCurrentIndex(templateCombo->findData(int(staffType.type())));
     setWindowTitle(staffType.isJiMS()
-                   ? muse::qtrc("notation", "Edit staff type: %1").arg(staffType.name().toQString())
+                   ? muse::qtrc("notation", "Edit staff type: %1").arg(jims::presetName().toQString())
                    : muse::qtrc("notation", "Edit staff type"));
     for (QWidget* control : std::initializer_list<QWidget*> { lines, lineDistance, genClef, noteHeadScheme, label_3, label_4, label }) {
         control->setVisible(!staffType.isJiMS());
     }
 
     name->setText(staffType.name());
+    name->setPlaceholderText(staffType.isJiMS() ? jims::presetName().toQString() : QString());
     lines->setValue(staffType.lines());
     lineDistance->setValue(staffType.lineDistance().val());
     genClef->setChecked(staffType.genClef());
