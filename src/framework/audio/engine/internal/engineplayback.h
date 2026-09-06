@@ -80,6 +80,8 @@ public:
 
     RetVal<AudioInputParams> inputParams(const TrackSequenceId sequenceId, const TrackId trackId) const override;
     void setInputParams(const TrackSequenceId sequenceId, const TrackId trackId, const AudioInputParams& params) override;
+    void setInputParamPlain(const TrackSequenceId sequenceId, const TrackId trackId, const AudioResourceId& resourceId, uint32_t paramId,
+                            double plain) override;
     async::Channel<TrackSequenceId, TrackId, AudioInputParams> inputParamsChanged() const override;
 
     void processInput(const TrackSequenceId sequenceId, const TrackId trackId) const override;

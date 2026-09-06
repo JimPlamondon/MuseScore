@@ -57,8 +57,13 @@ public:
     VstComponentHandler();
     virtual ~VstComponentHandler() = default;
 
-    async::Channel<PluginParamId, PluginParamValue> pluginParamChanged() const;
+    async::Channel<PluginParamId, PluginParamValue, PluginParamChangeGeneration> pluginParamChanged() const;
     async::Notification pluginParamsChanged() const;
+
+    // This generation is raised synchronously by performEdit() on the editor
+    // thread, before its cross-thread channel delivery is queued.
+    bool hasPendingParamChange() const;
+    bool acknowledgeParamChange(PluginParamChangeGeneration generation);
 
     // Suppress pluginParamsChanged() while applying config programmatically,
     // to avoid triggering a rescan of the state we are currently writing
@@ -70,8 +75,10 @@ private:
     Steinberg::tresult endEdit(Steinberg::Vst::ParamID id) override;
     Steinberg::tresult restartComponent(Steinberg::int32 flags) override;
 
-    async::Channel<PluginParamId, PluginParamValue> m_paramChanged;
+    async::Channel<PluginParamId, PluginParamValue, PluginParamChangeGeneration> m_paramChanged;
     async::Notification m_paramsChangedNotify;
+    std::atomic<PluginParamChangeGeneration> m_paramChangeGeneration = 0;
+    std::atomic<PluginParamChangeGeneration> m_acknowledgedParamChangeGeneration = 0;
 
     Steinberg::FUnknownPtr<VstAdvancedHandler> m_advancedHandler = nullptr;
 };

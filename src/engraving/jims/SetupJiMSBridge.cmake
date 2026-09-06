@@ -7,17 +7,23 @@
 # outputs into this repository.
 
 function(setup_jims_bridge target)
-    set(JIMS_ROOT "$ENV{JIMS_ROOT}")
-    if (NOT JIMS_ROOT)
-        set(JIMS_ROOT "/Users/jim/Developer/JiMS/GitHub/jims")
+    # Preserve the selected checkout across automatic CMake reconfiguration.
+    # The environment supplies the initial default; -DJIMS_ROOT changes an
+    # existing build explicitly.
+    if (NOT DEFINED JIMS_ROOT)
+        set(JIMS_ROOT "$ENV{JIMS_ROOT}")
+        if (NOT JIMS_ROOT)
+            set(JIMS_ROOT "/Users/jim/Developer/JiMS/GitHub/jims")
+        endif()
     endif()
+    set(JIMS_ROOT "${JIMS_ROOT}" CACHE PATH "JiMS Kernel checkout used by this build")
     set(JIMS_WORKSPACE "${JIMS_ROOT}/Libraries/jims")
     set(JIMS_BRIDGE_CRATE "${JIMS_WORKSPACE}/crates/jims-musescore-bridge")
 
     if (NOT EXISTS "${JIMS_BRIDGE_CRATE}/Cargo.toml")
         message(FATAL_ERROR
                 "JiMS bridge crate not found at ${JIMS_BRIDGE_CRATE}. "
-                "Set JIMS_ROOT to a jims checkout whose main contains "
+                "Configure with -DJIMS_ROOT=<path> to select a jims checkout whose main contains "
                 "crates/jims-musescore-bridge (JiMStaff Milestone 1).")
     endif()
 

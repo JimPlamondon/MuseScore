@@ -15,6 +15,10 @@
 using namespace mu::inspector;
 using namespace mu::engraving;
 
+namespace {
+const muse::audio::AudioResourceId JIMSYNTH_RESOURCE_ID = "JiMSynth";
+}
+
 JimsTuningModel::JimsTuningModel(QObject* parent)
     : QObject(parent), muse::Contextable(muse::iocCtxForQmlObject(this))
 {
@@ -29,6 +33,11 @@ JimsTuningModel::~JimsTuningModel()
 void JimsTuningModel::init()
 {
     context()->currentNotationChanged().onNotify(this, [this]() { setNotation(); });
+    if (playbackController()) {
+        playbackController()->currentTrackSequenceIdChanged().onNotify(this, [this]() { syncLiveGenerator(); });
+        playbackController()->inputResourceChanged().onNotify(this, [this]() { syncLiveGenerator(); });
+        playbackController()->trackAdded().onReceive(this, [this](muse::audio::TrackId) { syncLiveGenerator(); });
+    }
     setNotation();
 }
 
@@ -62,6 +71,7 @@ void JimsTuningModel::refresh()
             }
         }
     }
+    syncLiveGenerator();
     emit changed();
 }
 
@@ -110,6 +120,33 @@ void JimsTuningModel::notifyNotation()
     emit changed();
 }
 
+bool JimsTuningModel::isCurrentNotation() const
+{
+    return m_notation && m_notation == context()->currentNotation();
+}
+
+void JimsTuningModel::setLiveGenerator(double value)
+{
+    if (m_generatorParamId == 0 || !std::isfinite(value) || !isCurrentNotation() || !playbackController()) {
+        return;
+    }
+    playbackController()->setInputParamPlainForResource(m_notation, JIMSYNTH_RESOURCE_ID, m_generatorParamId, value);
+}
+
+void JimsTuningModel::syncLiveGenerator()
+{
+    if (!m_controller) {
+        m_generatorParamId = 0;
+        return;
+    }
+    std::vector<jims::ToneDiamondSetting> settings;
+    uint32_t generatorParamId = 0;
+    uint32_t xParamId = 0;
+    uint32_t yParamId = 0;
+    m_generatorParamId = jims::toneDiamondSettings(settings, generatorParamId, xParamId, yParamId) ? generatorParamId : 0;
+    setLiveGenerator(cents());
+}
+
 void JimsTuningModel::preview(double value)
 {
     if (!valid(value) || !beginPreview()) {
@@ -121,6 +158,9 @@ void JimsTuningModel::preview(double value)
     if (!ok) {
         reportError(muse::qtrc("notation", "This score cannot use that tuning. The previous tuning is preserved."));
         cancel();
+    }
+    if (ok) {
+        setLiveGenerator(value);
     }
     notifyNotation();
 }
@@ -150,10 +190,14 @@ void JimsTuningModel::commit(double value)
     m_busy = false;
     if (!ok) {
         m_controller->cancel();
+        setLiveGenerator(cents());
         reportError(muse::qtrc("notation", "Tuning could not be applied. The previous tuning is preserved."));
     }
     if (ok && m_notation && m_notation->undoStack()) {
         m_notation->undoStack()->stackChanged().notify();
+    }
+    if (ok) {
+        setLiveGenerator(value);
     }
     notifyNotation();
 }
@@ -179,6 +223,7 @@ void JimsTuningModel::cancel()
     m_controller->cancel();
     m_previewing = false;
     m_busy = false;
+    setLiveGenerator(m_originalCents);
     notifyNotation();
 }
 

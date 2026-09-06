@@ -23,6 +23,9 @@ set(MODULE_TEST muse_audio_tests)
 set(MODULE_TEST_SRC
     ${CMAKE_CURRENT_LIST_DIR}/rpcpacker_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/alignbuffer_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/sequenceio_tests.cpp
 )
+
+set(MODULE_TEST_LINK muse_audio)
 
 include(SetupGTest)

@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include "global/async/channel.h"
 #include "global/async/notification.h"
 
 #include "vsttypes.h"
@@ -47,6 +48,11 @@ public:
 
     virtual void updatePluginConfig(const muse::audio::AudioUnitConfig& config) = 0;
     virtual void refreshConfig() = 0;
+    // An untagged refresh is allowed only if no editor parameter delivery is
+    // pending. A tagged refresh acknowledges that exact delivered edit.
+    virtual void requestConfigRefresh() = 0;
+    virtual void requestConfigRefresh(PluginParamChangeGeneration deliveredGeneration) = 0;
+    virtual async::Channel<PluginParamId, PluginParamValue, PluginParamChangeGeneration> pluginParamChanged() const = 0;
     virtual async::Channel<muse::audio::AudioUnitConfig> pluginSettingsChanged() const = 0;
 };
 }

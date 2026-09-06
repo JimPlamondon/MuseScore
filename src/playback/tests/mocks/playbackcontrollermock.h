@@ -42,8 +42,11 @@ public:
 
     MOCK_METHOD(muse::audio::TrackSequenceId, currentTrackSequenceId, (), (const, override));
     MOCK_METHOD(muse::async::Notification, currentTrackSequenceIdChanged, (), (const, override));
+    MOCK_METHOD(muse::async::Notification, inputResourceChanged, (), (const, override));
 
     MOCK_METHOD(const InstrumentTrackIdMap&, instrumentTrackIdMap, (), (const, override));
+    MOCK_METHOD(void, setInputParamPlainForResource,
+                (const notation::INotationPtr&, const muse::audio::AudioResourceId&, uint32_t, double), (override));
 
     MOCK_METHOD(const AuxTrackIdMap&, auxTrackIdMap, (), (const, override));
 

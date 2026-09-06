@@ -75,8 +75,11 @@ public:
 
     muse::audio::TrackSequenceId currentTrackSequenceId() const override;
     muse::async::Notification currentTrackSequenceIdChanged() const override;
+    muse::async::Notification inputResourceChanged() const override { return m_inputResourceChanged; }
 
     const InstrumentTrackIdMap& instrumentTrackIdMap() const override;
+    void setInputParamPlainForResource(const notation::INotationPtr& notation, const muse::audio::AudioResourceId& resourceId,
+                                       uint32_t paramId, double plain) override;
     const AuxTrackIdMap& auxTrackIdMap() const override;
 
     muse::async::Channel<muse::audio::TrackId> trackAdded() const override;
@@ -246,6 +249,7 @@ private:
     muse::midi::tick_t m_currentTick = 0;
     notation::Tempo m_currentTempo;
 
+    muse::async::Notification m_inputResourceChanged;
     muse::async::Channel<muse::audio::TrackId> m_trackAdded;
     muse::async::Channel<muse::audio::TrackId> m_trackRemoved;
 

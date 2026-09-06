@@ -23,6 +23,8 @@ set(MODULE_TEST notationscene_qml_tests)
 set(MODULE_TEST_SRC
     ${PROJECT_SOURCE_DIR}/src/engraving/tests/utils/scorerw.cpp
     ${PROJECT_SOURCE_DIR}/src/engraving/tests/utils/scorerw.h
+    ${PROJECT_SOURCE_DIR}/src/framework/stubs/shortcuts/shortcutsregisterstub.cpp
+    ${PROJECT_SOURCE_DIR}/src/framework/stubs/shortcuts/shortcutsregisterstub.h
 
     ${CMAKE_CURRENT_LIST_DIR}/mocks/controlledviewmock.h
 
@@ -31,12 +33,16 @@ set(MODULE_TEST_SRC
     ${CMAKE_CURRENT_LIST_DIR}/jimsuimodel_tests.cpp
 )
 
+find_package(Qt6 REQUIRED COMPONENTS Test)
+
 set(MODULE_TEST_LINK
     engraving
     inspector_qml
     muse_ui_qml
     context
     notationscene_qml
+    Qt::Quick
+    Qt::Test
 )
 
 set(MODULE_TEST_DATA_ROOT ${CMAKE_CURRENT_LIST_DIR})

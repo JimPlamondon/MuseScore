@@ -21,7 +21,12 @@
  */
 #pragma once
 
+#include <array>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <optional>
 
 #include "audio/engine/internal/synthesizers/abstractsynthesizer.h"
 #include "audio/engine/iaudioengineconfiguration.h"
@@ -37,6 +42,64 @@
 #include "vsttypes.h"
 
 namespace muse::vst {
+namespace detail {
+// Loading a VST3 happens asynchronously. Keep only the latest requested
+// value for each host parameter while that one synth instance is loading;
+// this is state, not an automation-event history.
+class PendingHostParameterQueue
+{
+public:
+    static constexpr size_t MAX_PARAMETERS = 32;
+
+    bool enqueue(uint32_t paramId, double plain)
+    {
+        if (!std::isfinite(plain)) {
+            return false;
+        }
+        for (size_t i = 0; i < m_size; ++i) {
+            if (m_values[i].paramId == paramId) {
+                m_values[i].plain = plain;
+                return true;
+            }
+        }
+        if (m_size == m_values.size()) {
+            return false;
+        }
+        m_values[m_size++] = { paramId, plain };
+        return true;
+    }
+
+    template<typename Apply>
+    void replay(Apply apply)
+    {
+        const std::array<Value, MAX_PARAMETERS> values = m_values;
+        const size_t size = m_size;
+        clear();
+        for (size_t i = 0; i < size; ++i) {
+            apply(values[i].paramId, values[i].plain);
+        }
+    }
+
+    void clear()
+    {
+        m_size = 0;
+    }
+
+    size_t size() const
+    {
+        return m_size;
+    }
+
+private:
+    struct Value {
+        uint32_t paramId = 0;
+        double plain = 0.0;
+    };
+    std::array<Value, MAX_PARAMETERS> m_values {};
+    size_t m_size = 0;
+};
+}
+
 class VstSynthesiser : public muse::audio::synth::AbstractSynthesizer
 {
     GlobalInject<audio::engine::IAudioEngineConfiguration> config;
@@ -50,6 +113,7 @@ public:
     void init(const audio::OutputSpec& spec);
 
     bool isValid() const override;
+    bool setHostParameterPlain(uint32_t paramId, double plain) override;
 
     //! JiMSynth VST3 workstream: a VST instrument is ready to play only once
     //! its module has loaded and the audio client/sequencer have been set up
@@ -85,6 +149,9 @@ private:
 
     void toggleVolumeGain(const bool isActive);
     void configureMpeInput();
+    void requestConfigRefreshAfterPersistentDelivery();
+    bool applyHostParameterPlain(uint32_t paramId, double plain);
+    void replayPendingHostParameters();
     audio::samples_t processSequence(const VstSequencer::EventSequence& sequence, const audio::samples_t sequenceSampleOffset,
                                      const audio::samples_t samples, float* buffer);
 
@@ -102,6 +169,8 @@ private:
 
     bool m_inited = false;
     bool m_loadFailed = false;
+    detail::PendingHostParameterQueue m_pendingHostParameters;
+    std::optional<PluginParamChangeGeneration> m_pendingPersistentEditorGeneration;
     bool m_useDynamicEvents = false;
     double m_mpePitchBendRangeSemitones = 0.0;
 

@@ -277,6 +277,29 @@ const IPlaybackController::InstrumentTrackIdMap& PlaybackController::instrumentT
     return m_instrumentTrackIdMap;
 }
 
+void PlaybackController::setInputParamPlainForResource(const notation::INotationPtr& notation, const AudioResourceId& resourceId,
+                                                       uint32_t paramId, double plain)
+{
+    if (m_notation != notation) {
+        return;
+    }
+    const auto settings = audioSettings();
+    if (!settings) {
+        return;
+    }
+    const TrackSequenceId sequenceId = currentTrackSequenceId();
+    if (sequenceId < 0) {
+        return;
+    }
+    for (const auto& [instrumentTrackId, audioTrackId] : m_instrumentTrackIdMap) {
+        const AudioInputParams& params = settings->trackInputParams(instrumentTrackId);
+        if (params.resourceMeta.type == AudioResourceType::VstPlugin
+            && params.resourceMeta.id == resourceId) {
+            playback()->setInputParamPlain(sequenceId, audioTrackId, resourceId, paramId, plain);
+        }
+    }
+}
+
 const IPlaybackController::AuxTrackIdMap& PlaybackController::auxTrackIdMap() const
 {
     return m_auxTrackIdMap;
@@ -1354,9 +1377,13 @@ void PlaybackController::subscribeOnAudioParamsChanges()
 
         if (search != m_instrumentTrackIdMap.end()) {
             const AudioResourceMeta& oldMeta = audioSettings()->trackInputParams(search->first).resourceMeta;
+            const bool resourceChanged = oldMeta.type != params.resourceMeta.type || oldMeta.id != params.resourceMeta.id;
             onAudioResourceChanged(trackId, search->first, oldMeta, params.resourceMeta);
 
             audioSettings()->setTrackInputParams(search->first, params);
+            if (resourceChanged) {
+                m_inputResourceChanged.notify();
+            }
         }
     });
 

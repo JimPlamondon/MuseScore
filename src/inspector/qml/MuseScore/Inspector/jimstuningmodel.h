@@ -11,6 +11,7 @@
 #include "async/asyncable.h"
 #include "context/iglobalcontext.h"
 #include "notation/inotation.h"
+#include "playback/iplaybackcontroller.h"
 #include "engraving/jims/jimstuningcontroller.h"
 #include "accessibility/iaccessibilitycontroller.h"
 #include "engraving/iengravingconfiguration.h"
@@ -30,6 +31,7 @@ class JimsTuningModel : public QObject, public muse::async::Asyncable, public mu
 public:
     muse::GlobalInject<engraving::IEngravingConfiguration> engravingConfiguration;
     muse::ContextInject<context::IGlobalContext> context = { this };
+    muse::ContextInject<playback::IPlaybackController> playbackController = { this };
     muse::ContextInject<muse::accessibility::IAccessibilityController> accessibilityController = { this };
     explicit JimsTuningModel(QObject* parent = nullptr);
     ~JimsTuningModel() override;
@@ -51,6 +53,9 @@ private:
     void setNotation();
     void refresh();
     void notifyNotation();
+    void syncLiveGenerator();
+    void setLiveGenerator(double value);
+    bool isCurrentNotation() const;
     bool valid(double value);
     void reportError(const QString& error);
     notation::INotationPtr m_notation;
@@ -58,6 +63,7 @@ private:
     double m_minimum = 0.0;
     double m_maximum = 0.0;
     double m_originalCents = 0.0;
+    uint32_t m_generatorParamId = 0;
     bool m_previewing = false;
     bool m_busy = false;
     QString m_error;

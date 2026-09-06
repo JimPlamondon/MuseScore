@@ -55,9 +55,11 @@ public:
 
     virtual muse::audio::TrackSequenceId currentTrackSequenceId() const = 0;
     virtual muse::async::Notification currentTrackSequenceIdChanged() const = 0;
+    virtual muse::async::Notification inputResourceChanged() const { return {}; }
 
     using InstrumentTrackIdMap = std::unordered_map<engraving::InstrumentTrackId, muse::audio::TrackId>;
     virtual const InstrumentTrackIdMap& instrumentTrackIdMap() const = 0;
+    virtual void setInputParamPlainForResource(const notation::INotationPtr&, const muse::audio::AudioResourceId&, uint32_t, double) {}
 
     using AuxTrackIdMap = std::map<muse::audio::aux_channel_idx_t, muse::audio::TrackId>;
     virtual const AuxTrackIdMap& auxTrackIdMap() const = 0;

@@ -70,6 +70,7 @@ enum class Method {
 
     GetInputParams,
     SetInputParams,
+    SetInputParamPlain,
     GetInputProcessingProgress,
     // notification
     InputParamsChanged,
@@ -159,6 +160,7 @@ inline std::string to_string(Method m)
 
     case Method::GetInputParams: return "GetInputParams";
     case Method::SetInputParams: return "SetInputParams";
+    case Method::SetInputParamPlain: return "SetInputParamPlain";
     case Method::GetInputProcessingProgress: return "GetInputProcessingProgress";
     case Method::InputParamsChanged: return "InputParamsChanged";
 

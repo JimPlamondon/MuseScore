@@ -58,6 +58,7 @@ public:
     const AudioInputParams& inputParams() const override;
     void applyInputParams(const AudioInputParams& requiredParams) override;
     async::Channel<AudioInputParams> inputParamsChanged() const override;
+    void setInputParamPlain(uint32_t paramId, double plain) override;
 
     void prepareToPlay() override;
     bool readyToPlay() const override;

@@ -339,6 +339,50 @@ bool VstAudioClient::handleParamChange(const ParamChangeEvent& param)
     return true;
 }
 
+bool VstAudioClient::handlePersistentParamChange(const ParamChangeEvent& param)
+{
+    if (!std::isfinite(param.value) || param.value < 0.0 || param.value > 1.0
+        || m_pluginParamInfoMap.find(param.paramId) == m_pluginParamInfoMap.end()) {
+        return false;
+    }
+
+    ensureActivity();
+    if (!m_isActive) {
+        return false;
+    }
+
+    rememberPersistentParam(param);
+    ++m_persistentStateGeneration;
+    addParamChange(param);
+    EventTrace::instance().param(this, param);
+
+    // A stopped score has no render callback to consume the VST queue. Apply
+    // the score-owned value through a silent parameter-only process so a
+    // subsequent component-state scan persists it without requiring play.
+    if (!isPlaying()) {
+        if (!processIdleParamChange(param)) {
+            return false;
+        }
+        m_persistentStateDeliveredGeneration = m_persistentStateGeneration;
+        return true;
+    }
+
+    m_persistentStateRefreshPending = true;
+    return true;
+}
+
+bool VstAudioClient::takePersistentStateRefreshRequest()
+{
+    if (m_persistentStateRefreshPending
+        || m_persistentStateDeliveredGeneration != m_persistentStateGeneration
+        || m_persistentStateRefreshRequestedGeneration == m_persistentStateGeneration) {
+        return false;
+    }
+
+    m_persistentStateRefreshRequestedGeneration = m_persistentStateGeneration;
+    return true;
+}
+
 bool VstAudioClient::handleDynamicTonalityProfile(const mpe::DynamicTonalityProfileEvent& profile, bool force)
 {
     if (m_profileTransactionPending
@@ -375,6 +419,7 @@ void VstAudioClient::flushSound()
     if (m_playingNotes.empty() && m_playingParams.empty()) {
         m_inputEvents.clear();
         m_inputParamChanges.clearQueue();
+        restagePersistentParams();
         m_profileTransactionPending = false;
         return;
     }
@@ -404,6 +449,7 @@ void VstAudioClient::flushSound()
     }
 
     m_playingParams.clear();
+    restagePersistentParams();
 }
 
 VstNoteExpressionCapabilities VstAudioClient::noteExpressionCapabilities() const
@@ -494,6 +540,11 @@ audio::samples_t VstAudioClient::process(float* output, samples_t samplesPerChan
     if (processor->process(m_processData) != Steinberg::kResultOk) {
         EventTrace::instance().process(this, playbackPositionSamples, samplesPerChannel, 0.f, false);
         return 0;
+    }
+
+    if (m_persistentStateRefreshPending) {
+        m_persistentStateRefreshPending = false;
+        m_persistentStateDeliveredGeneration = m_persistentStateGeneration;
     }
 
     m_needUpdateState = false;
@@ -843,7 +894,10 @@ void VstAudioClient::disableActivity()
     }
 
     if (m_needUpdateState) {
-        processor->process(m_processData);
+        if (processor->process(m_processData) == Steinberg::kResultOk && m_persistentStateRefreshPending) {
+            m_persistentStateRefreshPending = false;
+            m_persistentStateDeliveredGeneration = m_persistentStateGeneration;
+        }
         m_needUpdateState = false;
     }
 
@@ -883,4 +937,64 @@ void VstAudioClient::addParamChange(const ParamChangeEvent& param)
     if (queue) {
         queue->addPoint(0, param.value, dummyIdx);
     }
+}
+
+void VstAudioClient::rememberPersistentParam(const ParamChangeEvent& param)
+{
+    const auto existing = std::find_if(m_persistentParams.begin(), m_persistentParams.end(),
+                                       [&param](const ParamChangeEvent& value) {
+        return value.paramId == param.paramId;
+    });
+    if (existing != m_persistentParams.end()) {
+        existing->value = param.value;
+        return;
+    }
+    m_persistentParams.push_back(param);
+}
+
+void VstAudioClient::restagePersistentParams()
+{
+    for (const ParamChangeEvent& param : m_persistentParams) {
+        addParamChange(param);
+    }
+}
+
+bool VstAudioClient::processIdleParamChange(const ParamChangeEvent& param)
+{
+    IAudioProcessorPtr processor = pluginProcessor();
+    if (!processor) {
+        return false;
+    }
+
+    // Do not consume the live render queue while the score is stopped. JiMSynth
+    // accepts zero-frame parameter-only calls and applies their events to its
+    // state, so an editor close can serialize the new value without advancing
+    // an audition block or discarding its note events.
+    VstParameterChanges parameterOnlyChanges;
+    parameterOnlyChanges.setMaxParameters(1);
+    Steinberg::int32 pointIndex = 0;
+    Steinberg::Vst::IParamValueQueue* queue = parameterOnlyChanges.addParameterData(param.paramId, pointIndex);
+    if (!queue || queue->addPoint(0, param.value, pointIndex) != Steinberg::kResultTrue) {
+        return false;
+    }
+
+    // HostProcessData owns its buffer arrays, so it cannot be copied for an
+    // isolated flush. The processor consumes the base VST ProcessData API.
+    Steinberg::Vst::ProcessData parameterOnlyData {};
+    parameterOnlyData.numSamples = 0;
+    parameterOnlyData.inputEvents = nullptr;
+    parameterOnlyData.inputParameterChanges = &parameterOnlyChanges;
+    parameterOnlyData.outputEvents = nullptr;
+    parameterOnlyData.processContext = &m_processContext;
+
+    if (processor->process(parameterOnlyData) != Steinberg::kResultOk) {
+        return false;
+    }
+    return true;
+}
+
+bool VstAudioClient::isPlaying() const
+{
+    constexpr uint32_t playingFlag = static_cast<uint32_t>(VstProcessContext::kPlaying);
+    return (m_processContext.state & playingFlag) != 0;
 }

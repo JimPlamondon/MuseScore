@@ -81,6 +81,9 @@ jobs:
         echo "JIMS_ROOT=${{ github.workspace }}/jims-kernel" | tee -a $GITHUB_ENV
         cargo --version
 
+    - name: Verify JiMS Kernel checkout persistence
+      run: python3 tools/test_jims_bridge_configure.py
+
     - name: Build
       env:
         GITHUB_EVENT_NAME: ${{ github.event_name }}

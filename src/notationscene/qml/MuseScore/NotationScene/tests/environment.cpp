@@ -28,10 +28,37 @@
 
 #include "engraving/dom/instrtemplate.h"
 #include "engraving/dom/mscore.h"
+#include "modularity/ioc.h"
+#include "shortcuts/ishortcutsregister.h"
+#include "stubs/shortcuts/shortcutsregisterstub.h"
+#include "ui/internal/navigationcontroller.h"
+
+namespace {
+class ShortcutRegisterTestModule : public muse::modularity::IModuleSetup
+{
+public:
+    std::string moduleName() const override { return "jims_tuning_test_shortcuts"; }
+    void registerExports() override
+    {
+        ioc()->registerExport<muse::shortcuts::IShortcutsRegister>(moduleName(), new muse::shortcuts::ShortcutsRegisterStub());
+    }
+};
+
+class NavigationTestModule : public muse::modularity::IModuleSetup
+{
+public:
+    std::string moduleName() const override { return "jims_tuning_test_navigation"; }
+    void registerExports() override
+    {
+        ioc()->registerExport<muse::ui::INavigationController>(moduleName(), new muse::ui::NavigationController(nullptr));
+    }
+};
+}
 
 static muse::testing::SuiteEnvironment notation_se
     = muse::testing::SuiteEnvironment()
-      .setDependencyModules({ new muse::draw::DrawModule(), new mu::engraving::EngravingModule() })
+      .setDependencyModules({ new muse::draw::DrawModule(), new mu::engraving::EngravingModule(), new ShortcutRegisterTestModule(),
+                              new NavigationTestModule() })
       .setPostInit([]() {
     LOGI() << "notationscene_qml tests suite post init";
 

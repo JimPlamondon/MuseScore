@@ -21,6 +21,8 @@
  */
 #pragma once
 
+#include <cstdint>
+
 #include "audioplugins/audiopluginstypes.h"
 
 #include "../ivstplugininstance.h"
@@ -53,6 +55,13 @@ public:
 
     bool handleEvent(const VstEvent& event);
     bool handleParamChange(const ParamChangeEvent& param);
+    // A score-owned value must survive transport flushes. Unlike automation
+    // and note-expression parameter events, it is not reset to the plug-in
+    // default when playback stops.
+    bool handlePersistentParamChange(const ParamChangeEvent& param);
+    // Returns true once a score-owned editor value has been accepted by the
+    // processor and a component-state scan can safely serialize it.
+    bool takePersistentStateRefreshRequest();
     bool handleDynamicTonalityProfile(const mpe::DynamicTonalityProfileEvent& profile, bool force = false);
     bool hasDynamicTonalityProfile() const { return m_profileHost.hasCurrentProfile(); }
 
@@ -88,6 +97,10 @@ private:
     void flushBuffers();
 
     void addParamChange(const ParamChangeEvent& param);
+    void rememberPersistentParam(const ParamChangeEvent& param);
+    void restagePersistentParams();
+    bool processIdleParamChange(const ParamChangeEvent& param);
+    bool isPlaying() const;
     bool deliverDynamicTonalityProfile(const mpe::DynamicTonalityProfileEvent& profile, bool force);
 
     bool m_isActive = false;
@@ -109,6 +122,11 @@ private:
 
     VstActiveNotes m_playingNotes;
     std::vector<PluginParamId> m_playingParams;
+    std::vector<ParamChangeEvent> m_persistentParams;
+    bool m_persistentStateRefreshPending = false;
+    uint64_t m_persistentStateGeneration = 0;
+    uint64_t m_persistentStateDeliveredGeneration = 0;
+    uint64_t m_persistentStateRefreshRequestedGeneration = 0;
 
     std::unordered_map<PluginParamId, PluginParamInfo> m_pluginParamInfoMap;
     VstDynamicTonalityProfileHost m_profileHost;

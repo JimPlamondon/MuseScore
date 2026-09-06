@@ -21,11 +21,12 @@
  */
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <array>
+#include <cstdint>
 #include <cstring>
 
-#pragma pack(push, 1)
 #include "audio/common/audiotypes.h"
-#pragma pack(pop)
 
 #include "audio/common/rpc/rpcpacker.h"
 #include "audio/common/rpc/irpcchannel.h"
@@ -41,20 +42,40 @@ class Audio_RpcPackerTests : public ::testing::Test
 public:
 };
 
-template<typename ... Fields>
-static constexpr size_t sum_sizeof()
+static size_t align_up(size_t value, size_t alignment)
 {
-    size_t s = (0 + ... + sizeof(Fields));
-    return s;
+    return (value + alignment - 1) / alignment * alignment;
 }
 
 template<typename T, typename ... Fields>
-static constexpr void KNOWN_FIELDS(const T&, const Fields&...)
+static void KNOWN_FIELDS(const T& object, const Fields&... fields)
 {
-    //! NOTE If the asserted, it means the size of the type or structure has changed
-    //! and you need to improve the packing and unpacking functions
-    //! and write the new size in the test.
-    static_assert(sizeof(T) == sum_sizeof<Fields...>());
+    // Every serialized field must account for the native object layout,
+    // including native ABI alignment.  Sorting by member address lets callers
+    // name fields in wire order while avoiding translation-unit-only packing of
+    // production types.
+    struct FieldLayout {
+        size_t offset;
+        size_t size;
+        size_t alignment;
+    };
+    const uintptr_t objectBegin = reinterpret_cast<uintptr_t>(&object);
+    std::array<FieldLayout, sizeof...(Fields)> layout = { FieldLayout {
+                                                              static_cast<size_t>(reinterpret_cast<uintptr_t>(&fields) - objectBegin),
+                                                              sizeof(Fields),
+                                                              alignof(Fields),
+                                                          } ... };
+    std::sort(layout.begin(), layout.end(), [](const FieldLayout& lhs, const FieldLayout& rhs) {
+        return lhs.offset < rhs.offset;
+    });
+
+    size_t expectedOffset = 0;
+    for (const FieldLayout& field : layout) {
+        expectedOffset = align_up(expectedOffset, field.alignment);
+        EXPECT_EQ(field.offset, expectedOffset);
+        expectedOffset += field.size;
+    }
+    EXPECT_EQ(sizeof(T), align_up(expectedOffset, alignof(T)));
 }
 
 TEST_F(Audio_RpcPackerTests, OutputSpec)
@@ -227,6 +248,30 @@ TEST_F(Audio_RpcPackerTests, AudioParams)
     EXPECT_TRUE(ok);
     EXPECT_TRUE(origin.in == unpacked.in);
     EXPECT_TRUE(origin.out == unpacked.out);
+}
+
+TEST_F(Audio_RpcPackerTests, InputParameterPlainPayload)
+{
+    const TrackSequenceId sequenceId = 11;
+    const TrackId trackId = 22;
+    const AudioResourceId resourceId = "JiMSynth";
+    const uint32_t parameterId = 0x4A530020u;
+    const double plainValue = 690.125;
+
+    ByteArray data = RpcPacker::pack(sequenceId, trackId, resourceId, parameterId, plainValue);
+    TrackSequenceId unpackedSequenceId = -1;
+    TrackId unpackedTrackId = -1;
+    AudioResourceId unpackedResourceId;
+    uint32_t unpackedParameterId = 0;
+    double unpackedPlainValue = 0.0;
+
+    ASSERT_TRUE(RpcPacker::unpack(data, unpackedSequenceId, unpackedTrackId, unpackedResourceId,
+                                  unpackedParameterId, unpackedPlainValue));
+    EXPECT_EQ(unpackedSequenceId, sequenceId);
+    EXPECT_EQ(unpackedTrackId, trackId);
+    EXPECT_EQ(unpackedResourceId, resourceId);
+    EXPECT_EQ(unpackedParameterId, parameterId);
+    EXPECT_DOUBLE_EQ(unpackedPlainValue, plainValue);
 }
 
 TEST_F(Audio_RpcPackerTests, SoundPreset)

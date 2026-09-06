@@ -335,6 +335,19 @@ void EngineRpcController::init()
         playback()->setInputParams(seqId, trackId, params);
     });
 
+    onLongMethod(Method::SetInputParamPlain, [this](const Msg& msg) {
+        ONLY_AUDIO_RPC_THREAD;
+        TrackSequenceId seqId = 0;
+        TrackId trackId = 0;
+        AudioResourceId resourceId;
+        uint32_t paramId = 0;
+        double plain = 0.0;
+        IF_ASSERT_FAILED(RpcPacker::unpack(msg.data, seqId, trackId, resourceId, paramId, plain)) {
+            return;
+        }
+        playback()->setInputParamPlain(seqId, trackId, resourceId, paramId, plain);
+    });
+
     onLongMethod(Method::ProcessInput, [this](const Msg& msg) {
         ONLY_AUDIO_RPC_THREAD;
         TrackSequenceId seqId = 0;

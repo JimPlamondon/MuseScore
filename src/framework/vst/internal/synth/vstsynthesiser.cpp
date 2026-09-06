@@ -25,6 +25,8 @@
 
 #include "log.h"
 
+#include <cmath>
+
 using namespace muse;
 using namespace muse::vst;
 using namespace muse::audio::synth;
@@ -63,6 +65,7 @@ VstSynthesiser::VstSynthesiser(const TrackId trackId, const muse::audio::AudioIn
 
 VstSynthesiser::~VstSynthesiser()
 {
+    m_pendingHostParameters.clear();
     instancesRegister()->unregisterInstrPlugin(m_params.resourceMeta.id, m_trackId);
 }
 
@@ -78,6 +81,17 @@ void VstSynthesiser::init(const OutputSpec& spec)
 
     m_vstAudioClient->init(AudioPluginType::Instrument, m_pluginPtr);
 
+    // Subscribe before loading or replaying values. A synchronous load or an
+    // idle replay may request a config scan immediately.
+    m_pluginPtr->pluginSettingsChanged().onReceive(this, [this](const muse::audio::AudioUnitConfig& newConfig) {
+        if (m_params.configuration == newConfig) {
+            return;
+        }
+
+        m_params.configuration = newConfig;
+        m_paramsChanges.send(m_params);
+    });
+
     // Hand the saved configuration (component/controller state) over now: a
     // not-yet-loaded instance applies it inside load() before it reports
     // completion, so the plug-in starts in its saved state; an already
@@ -89,6 +103,7 @@ void VstSynthesiser::init(const OutputSpec& spec)
             // loadingCompleted fired for a failed load: nothing will ever be
             // set up, so stop waiters from waiting on this track.
             m_loadFailed = true;
+            m_pendingHostParameters.clear();
             m_readyToPlayChanged.notify();
             return;
         }
@@ -117,7 +132,28 @@ void VstSynthesiser::init(const OutputSpec& spec)
             }
         }
         m_perNotePitchAdapter.configure(pitchConfig);
+        m_pluginPtr->pluginParamChanged().onReceive(this, [this](PluginParamId id, PluginParamValue normalized,
+                                                                 PluginParamChangeGeneration generation) {
+            // Editor values are normalized already. Treat them as score-owned
+            // state so a stop flush cannot restore JiMSynth's default.
+            if (m_vstAudioClient->handlePersistentParamChange({ id, normalized })) {
+                // This exact main-thread edit may be acknowledged only after
+                // the audio client reports its processor delivery.
+                m_pendingPersistentEditorGeneration = generation;
+                requestConfigRefreshAfterPersistentDelivery();
+            } else if (m_pendingPersistentEditorGeneration) {
+                // A newer refused edit must wait for an earlier accepted edit
+                // still in the processor queue; that delivery will acknowledge
+                // the newest editor generation.
+                m_pendingPersistentEditorGeneration = generation;
+            } else {
+                // No processor delivery is outstanding, so this editor state
+                // can be serialized immediately and clear its edit token.
+                m_pluginPtr->requestConfigRefresh(generation);
+            }
+        });
         m_inited = true;
+        replayPendingHostParameters();
         m_readyToPlayChanged.notify();
     };
 
@@ -126,15 +162,6 @@ void VstSynthesiser::init(const OutputSpec& spec)
     } else {
         m_pluginPtr->loadingCompleted().onNotify(this, onPluginLoaded);
     }
-
-    m_pluginPtr->pluginSettingsChanged().onReceive(this, [this](const muse::audio::AudioUnitConfig& newConfig) {
-        if (m_params.configuration == newConfig) {
-            return;
-        }
-
-        m_params.configuration = newConfig;
-        m_paramsChanges.send(m_params);
-    });
 
     m_sequencer.setOnOffStreamFlushed([this]() {
         m_vstAudioClient->flushSound();
@@ -168,6 +195,47 @@ bool VstSynthesiser::isValid() const
     }
 
     return m_pluginPtr->isLoaded();
+}
+
+bool VstSynthesiser::setHostParameterPlain(uint32_t paramId, double plain)
+{
+    ONLY_AUDIO_ENGINE_THREAD;
+    if (!std::isfinite(plain)) {
+        return false;
+    }
+    if (!m_inited) {
+        return !m_loadFailed && m_pendingHostParameters.enqueue(paramId, plain);
+    }
+    const bool applied = applyHostParameterPlain(paramId, plain);
+    if (applied) {
+        requestConfigRefreshAfterPersistentDelivery();
+    }
+    return applied;
+}
+
+bool VstSynthesiser::applyHostParameterPlain(uint32_t paramId, double plain)
+{
+    PluginControllerPtr controller = m_pluginPtr ? m_pluginPtr->controller() : nullptr;
+    if (!controller) {
+        return false;
+    }
+    const double normalized = controller->plainParamToNormalized(paramId, plain);
+    if (!std::isfinite(normalized) || normalized < 0.0 || normalized > 1.0
+        || controller->setParamNormalized(paramId, normalized) != Steinberg::kResultOk) {
+        return false;
+    }
+    return m_vstAudioClient->handlePersistentParamChange(ParamChangeEvent { paramId, normalized });
+}
+
+void VstSynthesiser::replayPendingHostParameters()
+{
+    bool appliedAny = false;
+    m_pendingHostParameters.replay([this, &appliedAny](uint32_t paramId, double plain) {
+        appliedAny = applyHostParameterPlain(paramId, plain) || appliedAny;
+    });
+    if (appliedAny) {
+        requestConfigRefreshAfterPersistentDelivery();
+    }
 }
 
 bool VstSynthesiser::readyToPlay() const
@@ -233,8 +301,23 @@ void VstSynthesiser::setIsActive(const bool isActive)
     toggleVolumeGain(isActive);
     m_vstAudioClient->setIsPlaying(isActive);
     m_vstAudioClient->setIsActive(isActive);
+    requestConfigRefreshAfterPersistentDelivery();
     if (isActive) {
         configureMpeInput();
+    }
+}
+
+void VstSynthesiser::requestConfigRefreshAfterPersistentDelivery()
+{
+    if (!m_pluginPtr || !m_vstAudioClient->takePersistentStateRefreshRequest()) {
+        return;
+    }
+
+    if (m_pendingPersistentEditorGeneration) {
+        m_pluginPtr->requestConfigRefresh(*m_pendingPersistentEditorGeneration);
+        m_pendingPersistentEditorGeneration.reset();
+    } else {
+        m_pluginPtr->requestConfigRefresh();
     }
 }
 
@@ -290,6 +373,7 @@ void VstSynthesiser::setOutputSpec(const audio::OutputSpec& spec)
 
     if (m_inited) {
         m_vstAudioClient->setOutputSpec(spec);
+        requestConfigRefreshAfterPersistentDelivery();
     }
 }
 
@@ -388,5 +472,7 @@ samples_t VstSynthesiser::processSequence(const VstSequencer::EventSequence& seq
         return 0;
     }
 
-    return m_vstAudioClient->process(buffer, samples, m_currentPositionSamples);
+    const samples_t processed = m_vstAudioClient->process(buffer, samples, m_currentPositionSamples);
+    requestConfigRefreshAfterPersistentDelivery();
+    return processed;
 }

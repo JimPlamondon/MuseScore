@@ -45,9 +45,24 @@ VstComponentHandler::VstComponentHandler()
 {
 }
 
-Channel<PluginParamId, PluginParamValue> VstComponentHandler::pluginParamChanged() const
+Channel<PluginParamId, PluginParamValue, PluginParamChangeGeneration> VstComponentHandler::pluginParamChanged() const
 {
     return m_paramChanged;
+}
+
+bool VstComponentHandler::hasPendingParamChange() const
+{
+    return m_paramChangeGeneration.load(std::memory_order_acquire)
+           != m_acknowledgedParamChangeGeneration.load(std::memory_order_acquire);
+}
+
+bool VstComponentHandler::acknowledgeParamChange(PluginParamChangeGeneration generation)
+{
+    if (m_paramChangeGeneration.load(std::memory_order_acquire) != generation) {
+        return false;
+    }
+    m_acknowledgedParamChangeGeneration.store(generation, std::memory_order_release);
+    return true;
 }
 
 Notification VstComponentHandler::pluginParamsChanged() const
@@ -67,8 +82,9 @@ Steinberg::tresult VstComponentHandler::beginEdit(Steinberg::Vst::ParamID /*id*/
 
 Steinberg::tresult VstComponentHandler::performEdit(Steinberg::Vst::ParamID id, Steinberg::Vst::ParamValue valueNormalized)
 {
-    if (!m_advancedHandler->suppressNotify()) {
-        m_paramChanged.send(id, valueNormalized);
+    if (!m_advancedHandler->suppressNotify() && m_paramChanged.isConnected()) {
+        const PluginParamChangeGeneration generation = m_paramChangeGeneration.fetch_add(1, std::memory_order_acq_rel) + 1;
+        m_paramChanged.send(id, valueNormalized, generation);
     }
 
     return Steinberg::kResultOk;

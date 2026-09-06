@@ -22,6 +22,7 @@
 #ifndef MUSE_VST_VSTTYPES_H
 #define MUSE_VST_VSTTYPES_H
 
+#include <cstdint>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -64,6 +65,7 @@ using PluginViewPtr = Steinberg::IPtr<Steinberg::IPlugView>;
 using PluginParamInfo = Steinberg::Vst::ParameterInfo;
 using PluginParamId = Steinberg::Vst::ParamID;
 using PluginParamValue = Steinberg::Vst::ParamValue;
+using PluginParamChangeGeneration = uint64_t;
 using PluginPreset = Steinberg::Vst::PresetFile;
 using ControlIdx = Steinberg::Vst::CtrlNumber;
 using IAudioProcessorPtr = Steinberg::FUnknownPtr<Steinberg::Vst::IAudioProcessor>;

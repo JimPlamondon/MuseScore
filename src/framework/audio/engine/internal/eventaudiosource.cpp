@@ -165,6 +165,14 @@ const AudioInputParams& EventAudioSource::inputParams() const
     return m_params;
 }
 
+void EventAudioSource::setInputParamPlain(uint32_t paramId, double plain)
+{
+    ONLY_AUDIO_ENGINE_THREAD;
+    if (m_synth) {
+        m_synth->setHostParameterPlain(paramId, plain);
+    }
+}
+
 void EventAudioSource::applyInputParams(const AudioInputParams& requiredParams)
 {
     IF_ASSERT_FAILED(m_outputSpec.isValid()) {

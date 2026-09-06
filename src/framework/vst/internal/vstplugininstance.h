@@ -63,6 +63,8 @@ public:
 
     void updatePluginConfig(const muse::audio::AudioUnitConfig& config) override;
     void refreshConfig() override;
+    void requestConfigRefresh() override;
+    void requestConfigRefresh(PluginParamChangeGeneration deliveredGeneration) override;
 
     void load();
 
@@ -71,6 +73,7 @@ public:
 
     async::Notification loadingCompleted() const override;
 
+    async::Channel<PluginParamId, PluginParamValue, PluginParamChangeGeneration> pluginParamChanged() const override;
     async::Channel<muse::audio::AudioUnitConfig> pluginSettingsChanged() const override;
 
 private:
@@ -78,6 +81,7 @@ private:
     void rescanParams();
     void setPluginConfig(const muse::audio::AudioUnitConfig& config);
     void doSetPluginConfig(const muse::audio::AudioUnitConfig& config);
+    bool hasPendingEditorParamDelivery() const;
 
     VstPluginInstanceId m_id = 0;
     muse::audio::AudioResourceId m_resourceId;

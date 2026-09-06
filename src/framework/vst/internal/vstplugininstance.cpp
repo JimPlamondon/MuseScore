@@ -58,8 +58,15 @@ VstPluginInstance::VstPluginInstance(const muse::audio::AudioResourceId& resourc
     m_id = ++s_lastId;
 
     m_componentHandlerPtr->pluginParamsChanged().onNotify(this, [this]() {
+        // Defer only an actual editor value that has not reached the
+        // processor. setDirty/preset notifications still rescan immediately.
+        if (hasPendingEditorParamDelivery()) {
+            return;
+        }
         Async::call(this, [this]() {
-            rescanParams();
+            if (!hasPendingEditorParamDelivery()) {
+                rescanParams();
+            }
         }, m_mainThreadId);
     });
 }
@@ -416,7 +423,41 @@ void VstPluginInstance::refreshConfig()
 {
     ONLY_MAIN_THREAD(threadSecurer);
 
+    // Editor close waits only for a real in-flight editor value. A permanent
+    // channel subscription must not suppress preset/full-state persistence.
+    if (hasPendingEditorParamDelivery()) {
+        return;
+    }
     rescanParams();
+}
+
+void VstPluginInstance::requestConfigRefresh()
+{
+    ONLY_AUDIO_THREAD(threadSecurer);
+
+    Async::call(this, [this]() {
+        if (!hasPendingEditorParamDelivery()) {
+            rescanParams();
+        }
+    }, m_mainThreadId);
+}
+
+void VstPluginInstance::requestConfigRefresh(PluginParamChangeGeneration deliveredGeneration)
+{
+    ONLY_AUDIO_THREAD(threadSecurer);
+
+    Async::call(this, [this, deliveredGeneration]() {
+        // A delayed request may acknowledge only the exact editor edit that
+        // reached the processor. A newer main-thread edit remains pending.
+        if (m_componentHandlerPtr->acknowledgeParamChange(deliveredGeneration)) {
+            rescanParams();
+        }
+    }, m_mainThreadId);
+}
+
+bool VstPluginInstance::hasPendingEditorParamDelivery() const
+{
+    return m_componentHandlerPtr->hasPendingParamChange();
 }
 
 bool VstPluginInstance::isValid() const
@@ -438,6 +479,13 @@ bool VstPluginInstance::isLoaded() const
 Notification VstPluginInstance::loadingCompleted() const
 {
     return m_loadingCompleted;
+}
+
+async::Channel<PluginParamId, PluginParamValue, PluginParamChangeGeneration> VstPluginInstance::pluginParamChanged() const
+{
+    ONLY_AUDIO_THREAD(threadSecurer);
+
+    return m_componentHandlerPtr->pluginParamChanged();
 }
 
 async::Channel<muse::audio::AudioUnitConfig> VstPluginInstance::pluginSettingsChanged() const
