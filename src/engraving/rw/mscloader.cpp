@@ -34,7 +34,7 @@
 #include "../dom/audio.h"
 #include "../dom/excerpt.h"
 #include "../dom/imageStore.h"
-#include "../jims/jimschangecontroller.h"
+#include "../melo/melochangecontroller.h"
 
 #include "engraving/automation/iautomation.h"
 

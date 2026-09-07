@@ -44,7 +44,7 @@
 #include "engraving/dom/text.h"
 #include "engraving/dom/utils.h"
 #include "engraving/editing/undo.h"
-#include "engraving/jims/jimsstrings.h"
+#include "engraving/melo/melostrings.h"
 
 #include "log.h"
 

@@ -24,7 +24,7 @@
 
 #include "../dom/score.h"
 #include "../dom/scoreorder.h"
-#include "../jims/jimschange.h"
+#include "../melo/melochange.h"
 
 using namespace mu::engraving;
 

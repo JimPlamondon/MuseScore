@@ -29,7 +29,7 @@
 #include "../dom/note.h"
 #include "../dom/staff.h"
 #include "../dom/stafftype.h"
-#include "../jims/jimsbridge.h"
+#include "../melo/melobridge.h"
 #include "../dom/sig.h"
 
 #include "utils/arrangementutils.h"

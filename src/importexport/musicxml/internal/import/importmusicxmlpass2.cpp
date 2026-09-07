@@ -92,7 +92,7 @@
 #include "engraving/dom/volta.h"
 #include "engraving/editing/transpose.h"
 #include "engraving/engravingerrors.h"
-#include "engraving/jims/jimschangecontroller.h"
+#include "engraving/melo/melochangecontroller.h"
 
 #include "importmusicxmllogger.h"
 #include "importmusicxmlnoteduration.h"

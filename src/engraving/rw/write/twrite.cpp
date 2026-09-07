@@ -2782,7 +2782,7 @@ void TWrite::write(const Staff* item, XmlWriter& xml, WriteContext& ctx)
         xml.tag("isStaffVisible", item->visible());
     }
 
-    // JiMS MusicXML interchange carriers, transported verbatim (jims/jimsinterchange.h).
+    // JiMS MusicXML interchange carriers, transported verbatim (melo/melointerchange.h).
     for (const melo::TuningTrajectory& t : item->meloTuningTrajectories()) {
         XmlWriter::Attributes tattrs = { { "tick", t.tick.toString() } };
         if (!t.placement.isEmpty()) {

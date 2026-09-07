@@ -66,27 +66,27 @@ target_sources(engraving PRIVATE
     engravingmodule.cpp
     engravingmodule.h
     engravingerrors.h
-    jims/jimsbridge.cpp
-    jims/jimsbridge.h
-    jims/jimspitchlabel.cpp
-    jims/jimspitchlabel.h
-    jims/jimschange.cpp
-    jims/jimschange.h
-    jims/jimschangecontroller.cpp
-    jims/jimschangecontroller.h
-    jims/jimstuningcontroller.cpp
-    jims/jimstuningcontroller.h
-    jims/jimsstrings.h
-    jims/jimsinterchange.h
+    melo/melobridge.cpp
+    melo/melobridge.h
+    melo/melopitchlabel.cpp
+    melo/melopitchlabel.h
+    melo/melochange.cpp
+    melo/melochange.h
+    melo/melochangecontroller.cpp
+    melo/melochangecontroller.h
+    melo/melotuningcontroller.cpp
+    melo/melotuningcontroller.h
+    melo/melostrings.h
+    melo/melointerchange.h
 )
 
 # Keep the JiMS sources out of unity batches: their addition would reshuffle
 # the upstream unity groups, which collide the two 'compat' namespaces.
-set_source_files_properties(jims/jimsbridge.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE)
-set_source_files_properties(jims/jimspitchlabel.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE)
-set_source_files_properties(jims/jimschange.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE)
-set_source_files_properties(jims/jimschangecontroller.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE)
-set_source_files_properties(jims/jimstuningcontroller.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE)
+set_source_files_properties(melo/melobridge.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE)
+set_source_files_properties(melo/melopitchlabel.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE)
+set_source_files_properties(melo/melochange.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE)
+set_source_files_properties(melo/melochangecontroller.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE)
+set_source_files_properties(melo/melotuningcontroller.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE)
 
 target_sources(engraving PRIVATE
     engravingproject.cpp
@@ -442,7 +442,7 @@ target_link_libraries(engraving PRIVATE muse::draw)
 # JiMStaff Milestone 1: build and link the melo-musescore-bridge C ABI
 # staticlib (Apache-2.0, from the JiMS Kernel repository) — the license/ABI
 # seam through which every JiMS musical fact reaches this fork.
-include(${CMAKE_CURRENT_LIST_DIR}/jims/SetupJiMSBridge.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/melo/SetupMeloBridge.cmake)
 setup_jims_bridge(engraving)
 
 if (MUSE_QT_SUPPORT)

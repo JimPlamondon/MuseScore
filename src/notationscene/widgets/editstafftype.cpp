@@ -26,7 +26,7 @@
 #include "engraving/dom/staff.h"
 #include "engraving/dom/stringdata.h"
 #include "engraving/style/textstyle.h"
-#include "engraving/jims/jimsstrings.h"
+#include "engraving/melo/melostrings.h"
 
 #include "engraving/types/typesconv.h"
 #include "engraving/compat/scoreaccess.h"

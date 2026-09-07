@@ -24,12 +24,12 @@ qt_add_qml_module(inspector_qml
     URI MuseScore.Inspector
     VERSION 1.0
     SOURCES
-        jimsstaffsettingsmodel.cpp
-        jimsstaffsettingsmodel.h
-        jimsscoresettingsmodel.cpp
-        jimsscoresettingsmodel.h
-        jimstuningmodel.cpp
-        jimstuningmodel.h
+        melostaffsettingsmodel.cpp
+        melostaffsettingsmodel.h
+        meloscoresettingsmodel.cpp
+        meloscoresettingsmodel.h
+        melotuningmodel.cpp
+        melotuningmodel.h
         abstractinspectormodel.cpp
         abstractinspectormodel.h
         abstractinspectorproxymodel.cpp
@@ -450,5 +450,5 @@ target_include_directories(inspector_qml PRIVATE
 
 qt_add_shaders(inspector_qml inspector_jims_shaders
     PREFIX "/qt/qml/MuseScore/Inspector"
-    FILES "shaders/jimsfigure.frag"
+    FILES "shaders/melofigure.frag"
 )

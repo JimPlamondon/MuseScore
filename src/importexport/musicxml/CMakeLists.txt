@@ -39,8 +39,8 @@ target_sources(iex_musicxml PRIVATE
     internal/import/importmusicxmlpass1.h
     internal/import/importmusicxmlpass2.cpp
     internal/import/importmusicxmlpass2.h
-    internal/import/importmusicxmljims.cpp
-    internal/import/importmusicxmljims.h
+    internal/import/importmusicxmlmelo.cpp
+    internal/import/importmusicxmlmelo.h
     internal/import/musicxmlpart.cpp
     internal/import/musicxmlpart.h
     internal/import/musicxmltupletstate.cpp

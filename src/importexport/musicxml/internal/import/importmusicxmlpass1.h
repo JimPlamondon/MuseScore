@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "importmusicxmljims.h"
+#include "importmusicxmlmelo.h"
 
 #include "global/serialization/xmlstreamreader.h"
 #include "musicxmltupletstate.h"

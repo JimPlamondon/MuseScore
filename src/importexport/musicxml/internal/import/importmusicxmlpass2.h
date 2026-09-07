@@ -26,7 +26,7 @@
 #include <optional>
 
 #include "importmusicxmlpass1.h"
-#include "engraving/jims/jimsinterchange.h"
+#include "engraving/melo/melointerchange.h"
 #include "../shared/musicxmlsupport.h"
 #include "../shared/musicxmltypes.h"
 #include "musicxmltupletstate.h"

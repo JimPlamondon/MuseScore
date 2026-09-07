@@ -33,7 +33,7 @@
 // TODO LVI 2011-10-30: determine how to report export errors.
 // Currently all output (both debug and error reports) are done using LOGD.
 
-#include "engraving/jims/jimsstrings.h"
+#include "engraving/melo/melostrings.h"
 #include "exportmusicxml.h"
 
 #include <math.h>
@@ -113,8 +113,8 @@
 #include "engraving/dom/spanner.h"
 #include "engraving/dom/staff.h"
 #include "engraving/dom/stafftype.h"
-#include "engraving/jims/jimsbridge.h"
-#include "engraving/jims/jimschange.h"
+#include "engraving/melo/melobridge.h"
+#include "engraving/melo/melochange.h"
 #include "engraving/dom/stafftypechange.h"
 #include "engraving/dom/stem.h"
 #include "engraving/dom/stringdata.h"

@@ -64,7 +64,7 @@ jobs:
 
     # musescore-jims: the engraving module links the JiMS Kernel's
     # melo-musescore-bridge staticlib (built by cargo during CMake configure,
-    # see src/engraving/jims/SetupJiMSBridge.cmake). The Kernel repository is
+    # see src/engraving/melo/SetupMeloBridge.cmake). The Kernel repository is
     # private: JIMS_KERNEL_TOKEN is a fine-grained PAT with read-only
     # Contents access to JimPlamondon/melopresto, stored as a repository secret.
     - name: Clone MeloPresto Kernel (melopresto)
@@ -82,12 +82,12 @@ jobs:
         cargo --version
 
     - name: Verify JiMS Kernel checkout persistence
-      run: python3 tools/test_jims_bridge_configure.py
+      run: python3 tools/test_melo_bridge_configure.py
 
     - name: Verify MeloPresto interface label authority
       run: |
-        python3 tools/jims/check_jims_strings.py
-        python3 -m unittest discover -s tools/jims/tests
+        python3 tools/melo/check_melo_strings.py
+        python3 -m unittest discover -s tools/melo/tests
 
     - name: Build
       env:
