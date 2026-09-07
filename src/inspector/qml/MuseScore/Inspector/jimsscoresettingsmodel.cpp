@@ -40,7 +40,7 @@ void JimsScoreSettingsModel::setOption(const QString& name, const QVariant& valu
         if (!valid || part < 0 || part > 3 || part == int(score->jimsMelodyPart())) {
             return;
         }
-        score->startCmd(muse::TranslatableString("undoableAction", "Change JiMS melody part"));
+        score->startCmd(mu::engraving::jims::changeMelodyPartAction());
         score->undo(new ChangeJimsMelodyPart(score, jims::MelodyPart(part)));
         score->endCmd();
     } else {

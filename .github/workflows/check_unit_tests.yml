@@ -84,6 +84,11 @@ jobs:
     - name: Verify JiMS Kernel checkout persistence
       run: python3 tools/test_jims_bridge_configure.py
 
+    - name: Verify MeloPresto interface label authority
+      run: |
+        python3 tools/jims/check_jims_strings.py
+        python3 -m unittest discover -s tools/jims/tests
+
     - name: Build
       env:
         GITHUB_EVENT_NAME: ${{ github.event_name }}

@@ -1730,6 +1730,9 @@ TEST(JiMStaffTests, presetIdentitySurvivesTheStaffTypeLookup)
     EXPECT_EQ(jims->type(), StaffTypes::JIMS_12TET);
     EXPECT_NE(jims->type(), StaffType::preset(StaffTypes::STANDARD)->type());
     EXPECT_EQ(StaffType::preset(jims->type())->name(), jims->name());
+    EXPECT_EQ(jims->name(), u"MeloPresto Staff 12-TET");
+    EXPECT_EQ(jims->xmlName(), u"jims12tet");
+    EXPECT_EQ(StaffType::presetFromXmlName(u"jims12tet"), jims);
 }
 
 TEST(JiMStaffTests, guideColorDefaultsPreserveTheExistingPaletteAndAreStyleValues)

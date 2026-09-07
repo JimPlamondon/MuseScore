@@ -35,6 +35,7 @@ class SaveAndPublishPreferencesModel : public QObject, public muse::Contextable,
 {
     Q_OBJECT
     QML_ELEMENT;
+    Q_PROPERTY(QString warnWhenSavingNotationLabel READ warnWhenSavingNotationLabel CONSTANT)
     Q_PROPERTY(bool warnOnJimsSave READ warnOnJimsSave WRITE setWarnOnJimsSave NOTIFY warnOnJimsSaveChanged)
 
     Q_PROPERTY(bool isAutoSaveEnabled READ isAutoSaveEnabled WRITE setAutoSaveEnabled NOTIFY autoSaveEnabledChanged)
@@ -48,6 +49,7 @@ public:
 
     Q_INVOKABLE void load();
 
+    QString warnWhenSavingNotationLabel() const;
     bool warnOnJimsSave() const;
     void setWarnOnJimsSave(bool value);
     bool isAutoSaveEnabled() const;

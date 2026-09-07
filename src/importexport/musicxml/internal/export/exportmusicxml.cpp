@@ -33,6 +33,7 @@
 // TODO LVI 2011-10-30: determine how to report export errors.
 // Currently all output (both debug and error reports) are done using LOGD.
 
+#include "engraving/jims/jimsstrings.h"
 #include "exportmusicxml.h"
 
 #include <math.h>
@@ -9016,8 +9017,7 @@ bool ExportMusicXml::buildJimsExportPlan()
             return true;
         }
         if (insideFretDiagram) {
-            m_jimsPlan.error = muse::mtrc("iex_musicxml",
-                                          "JiMS export: a JiMS chord name cannot be attached to a conventional fret diagram");
+            m_jimsPlan.error = mu::engraving::jims::exportChordFretDiagram();
             return false;
         }
         const String name = harmony->harmonyName();
@@ -9031,8 +9031,7 @@ bool ExportMusicXml::buildJimsExportPlan()
         if (harmony->chords().size() != 1 || name.isEmpty() || containsWhitespace || name.contains(u'~')) {
             m_jimsPlan.error
                 =
-                    muse::mtrc("iex_musicxml",
-                               "JiMS export: every JiMS harmony must carry exactly one nonempty whitespace-free canonical chord name and must not contain the superseded '~' marker");
+                    mu::engraving::jims::exportChordNameInvalid();
             return false;
         }
         m_jimsPlan.present = true;
@@ -9071,8 +9070,7 @@ bool ExportMusicXml::buildJimsExportPlan()
                 if (!jims::musicxmlStaffStateV3Xml(base->jimsStateJson(), staffNumber, f.stateXml, &err)
                     || !jims::musicxmlSharedStateV3Xml(base->jimsStateJson(), f.sharedStateXml, &err)) {
                     m_jimsPlan.error
-                        = muse::mtrc("iex_musicxml",
-                                     "JiMS export: Kernel refused the base state of staff %1: %2").arg(int(staffIdx) + 1).arg(err);
+                        = mu::engraving::jims::exportBaseStateRefused().arg(int(staffIdx) + 1).arg(err);
                     return false;
                 }
                 m_jimsPlan.byPartTick[{ int(partIndex), 0 }].push_back(f);
@@ -9083,8 +9081,7 @@ bool ExportMusicXml::buildJimsExportPlan()
                         continue;
                     }
                     if (!baseJims) {
-                        m_jimsPlan.error = muse::mtrc("iex_musicxml",
-                                                      "JiMS export: staff %1 carries a JiMS section at measure %2 without a JiMS base state at tick 0")
+                        m_jimsPlan.error = mu::engraving::jims::exportMissingBaseState()
                                            .arg(int(staffIdx) + 1).arg(m->no() + 1);
                         return false;
                     }
@@ -9094,13 +9091,12 @@ bool ExportMusicXml::buildJimsExportPlan()
                     String err;
                     if (!jims::musicxmlStaffStateV3Xml(state, staffNumber, f.stateXml, &err)
                         || !jims::musicxmlSharedStateV3Xml(state, f.sharedStateXml, &err)) {
-                        m_jimsPlan.error = muse::mtrc("iex_musicxml", "JiMS export: Kernel refused the state at tick %1, staff %2: %3")
+                        m_jimsPlan.error = mu::engraving::jims::exportStateRefused()
                                            .arg(carrier->tick().ticks()).arg(int(staffIdx) + 1).arg(err);
                         return false;
                     }
                     if (!jims::musicxmlChangeEventV3Xml(previousState, state, f.changeXml, &err)) {
-                        m_jimsPlan.error = muse::mtrc("iex_musicxml",
-                                                      "JiMS export: Kernel could not classify the change at tick %1, staff %2: %3")
+                        m_jimsPlan.error = mu::engraving::jims::exportChangeUnclassified()
                                            .arg(carrier->tick().ticks()).arg(int(staffIdx) + 1).arg(err);
                         return false;
                     }
@@ -9140,8 +9136,7 @@ bool ExportMusicXml::buildJimsExportPlan()
                 continue;
             }
             if (tl.second != referenceTimeline) {
-                m_jimsPlan.error = muse::mtrc("iex_musicxml",
-                                              "JiMS export: parts %1 and %2 carry different JiMS state timelines; every JiMS part of a document must share one state timeline")
+                m_jimsPlan.error = mu::engraving::jims::exportTimelinesDiffer()
                                    .arg(referencePart + 1).arg(tl.first + 1);
                 return false;
             }
@@ -9159,16 +9154,15 @@ bool ExportMusicXml::buildJimsExportPlan()
                 if (st && st->isJiMS()) {
                     if (!n->hasJimsPitch()) {
                         m_jimsPlan.error
-                            = muse::mtrc("iex_musicxml",
-                                         "JiMS export: a note on staff %1 at tick %2 has no lattice identity").arg(int(n->staffIdx())
-                                                                                                                   + 1).arg(
+                            = mu::engraving::jims::exportMissingLatticeIdentity().arg(int(n->staffIdx())
+                                                                                      + 1).arg(
                                   n->tick().ticks());
                         return false;
                     }
                     jims::SoundingPitch projection;
                     String error;
                     if (!jims::noteSoundingPitch(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(), projection, &error)) {
-                        m_jimsPlan.error = muse::mtrc("iex_musicxml", "JiMS export: Kernel refused the note at tick %1 on staff %2: %3")
+                        m_jimsPlan.error = mu::engraving::jims::exportNoteRefused()
                                            .arg(n->tick().ticks()).arg(int(n->staffIdx()) + 1).arg(error);
                         return false;
                     }
