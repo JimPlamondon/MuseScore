@@ -159,7 +159,7 @@ NoteVal Score::noteValForPosition(Position pos, AccidentalType at, bool& error)
                 // midpoint resolves toward the lower-pitched band); the
                 // whole-piece view is today's single affine inverse.
                 const System* system = pos.segment && pos.segment->measure() ? pos.segment->measure()->system() : nullptr;
-                const StaffType::JimsFrameView& view = jimsSt->jimsFrameView(st->score(), st->idx(), system);
+                const StaffType::MeloFrameView& view = jimsSt->jimsFrameView(st->score(), st->idx(), system);
                 // `line` counts half line-distances below the staff top.
                 const double cents = view.bands.size() <= 1
                                      ? jimsSt->jimsFrameTopCents()

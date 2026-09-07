@@ -219,7 +219,7 @@ private:
     UIDRegister* m_uids;
 
     /// JiMS MEI carriage (mei-jims profile)
-    JimsMeiImporter m_jims;
+    MeloMeiImporter m_jims;
     std::map<std::string, engraving::Note*> m_jimsNoteIds;
 
     /** A flag indicating the file has MuseScore EIDs as xml:ids */

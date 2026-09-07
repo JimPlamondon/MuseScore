@@ -665,12 +665,12 @@ void TDraw::draw(const BagpipeEmbellishment* item, Painter* painter, const Paint
 }
 
 static void drawDots(const BarLine* item, Painter* painter, double x,
-                     const std::vector<BarLine::LayoutData::JimsDotRows>* dotRows = nullptr)
+                     const std::vector<BarLine::LayoutData::MeloDotRows>* dotRows = nullptr)
 {
     double spatium = item->spatium();
 
     if (dotRows) {                          // Milestone 8: a JiMStaff band's own dot rows, per band
-        for (const BarLine::LayoutData::JimsDotRows& rows : *dotRows) {
+        for (const BarLine::LayoutData::MeloDotRows& rows : *dotRows) {
             item->drawSymbol(SymId::repeatDot, painter, PointF(x, rows.y1));
             item->drawSymbol(SymId::repeatDot, painter, PointF(x, rows.y2));
         }
@@ -724,7 +724,7 @@ static void drawTips(const BarLine* item, double y1, double y2, Painter* painter
 // draws every form once per band, never across the gap between bands;
 // dotRows, when given, are the repeat-dot rows of that band).
 static void drawBarLineForm(const BarLine* item, double y1, double y2,
-                            const std::vector<BarLine::LayoutData::JimsDotRows>* dotRows, Painter* painter,
+                            const std::vector<BarLine::LayoutData::MeloDotRows>* dotRows, Painter* painter,
                             const mu::engraving::rendering::PaintOptions& opt)
 {
     switch (item->barLineType()) {
@@ -2750,7 +2750,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
         // JiMStaff (Milestone 1): each guide line carries its own style —
         // the one deliberate exception to the single-pen staff-line rule,
         // reached only when the JiMS layout branch populated guides.
-        for (const StaffLines::JimsGuideLine& guide : item->jimsGuideLines()) {
+        for (const StaffLines::MeloGuideLine& guide : item->jimsGuideLines()) {
             Color color = item->style().value(guide.colorStyle).value<Color>();
             if (!opt.isPrinting && item->configuration()->isHighContrast()) {
                 color = item->configuration()->defaultColor();
@@ -2790,7 +2790,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             // Milestone 8: the explicit view for THIS system — every band
             // draws its own header (crescents, dots, tonic indicators,
             // labels); the whole-piece legacy view is one band.
-            const StaffType::JimsFrameView& view
+            const StaffType::MeloFrameView& view
                 = jimsSt->jimsFrameView(item->score(), item->staffIdx(), item->measure()->system());
             const double periodCents = jimsSt->jimsPeriodCents();
             if (view.empty() || periodCents <= 0.0) {
@@ -2802,7 +2802,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             };
             const double periodH = (periodCents / StaffType::JIMS_CENTS_PER_LINE_DISTANCE) * dist;
             const double clefRy = periodH / 2.0;
-            const StaffType::JimsHeaderGeometry headerGeom
+            const StaffType::MeloHeaderGeometry headerGeom
                 = jimsSt->jimsHeaderGeometry(_spatium, item->score()->style().defaultSpatium(), &view);
             const double clefRx = headerGeom.clefRx;
             const double indicatorW = headerGeom.indicatorW;
@@ -2903,7 +2903,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             // segment; testing only the moving centre loses So at a pure 3/2
             // edge (and likewise Fa at its fixed boundary).
             auto dotStackIntersectsSegment = [&](double cents, const std::vector<int>& generators,
-                                                 const StaffType::JimsSegment& segment) {
+                                                 const StaffType::MeloSegment& segment) {
                 if (!font) {
                     return false;
                 }
@@ -2922,10 +2922,10 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                 return inkBottom >= segmentTop - epsilon && inkTop <= segmentBottom + epsilon;
             };
             if (font && jims::scaleDots(jimsSt->jimsStateJson(), stacks)) {
-                for (const StaffType::JimsFrameBand& band : view.bands) {
+                for (const StaffType::MeloFrameBand& band : view.bands) {
                     std::vector<double> drawnStacks;
                     std::vector<double> drawnTonics;
-                    for (const StaffType::JimsSegment& segment : band.segments) {
+                    for (const StaffType::MeloSegment& segment : band.segments) {
                         double basePeriod = origins.doCentsAboveExtentLower
                                             + std::floor((segment.lowerCents - origins.doCentsAboveExtentLower)
                                                          / periodCents) * periodCents;
@@ -2994,14 +2994,14 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             // left, sharp side right with a semi-transparent white
             // backing that dims but never erases the lines beneath.
             {
-                const JimsScaleDotLabelMode labelMode = jimsSt->jimsResolvedScaleDotLabelMode();
+                const MeloScaleDotLabelMode labelMode = jimsSt->jimsResolvedScaleDotLabelMode();
                 std::vector<jims::LabeledDotStack> labelStacks;
                 // Current-key label "[PitchN]:" left of the tonic indicator's
                 // row (owner spec 2026-08-17) — Kernel-derived; drawn even
                 // when class labels are off.
                 jims::TonicPitchLabel keyLabel;
                 const bool haveKeyLabel = haveTonic && jims::tonicPitchLabel(jimsSt->jimsStateJson(), keyLabel);
-                if ((labelMode != JimsScaleDotLabelMode::None || haveKeyLabel)
+                if ((labelMode != MeloScaleDotLabelMode::None || haveKeyLabel)
                     && jims::scaleDotLabels(jimsSt->jimsStateJson(), labelStacks)) {
                     Font labelFont(u"Edwin", Font::Type::Text);
                     labelFont.setPointSizeF(9.0 * item->spatium() / item->defaultSpatium());
@@ -3010,7 +3010,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     const double inset = 0.15 * _spatium;
                     const double dotColLeft = dotCenterX - indicatorW;
                     const double dotColRight = dotCenterX + indicatorW;
-                    for (const StaffType::JimsFrameBand& band : view.bands) {
+                    for (const StaffType::MeloFrameBand& band : view.bands) {
                         std::vector<double> drawnLabelStacks;
                         // The current-key label's row and text: the band's lowest
                         // drawn tonic row and THAT row's Kernel label (owner
@@ -3019,7 +3019,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                         const double lowestTonicRow = double(band.labelPeriodIndex) * periodCents
                                                       + origins.tonicCentsAboveExtentLower;
                         const muse::String keyText = band.tonicLabel.isEmpty() ? keyLabel.label : band.tonicLabel;
-                        for (const StaffType::JimsSegment& segment : band.segments) {
+                        for (const StaffType::MeloSegment& segment : band.segments) {
                             double basePeriod = origins.doCentsAboveExtentLower
                                                 + std::floor((segment.lowerCents - origins.doCentsAboveExtentLower)
                                                              / periodCents) * periodCents;
@@ -3043,9 +3043,9 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                     drawnLabelStacks.push_back(cents);
                                     muse::String leftText;
                                     muse::String rightText;
-                                    if (labelMode != JimsScaleDotLabelMode::None) {
+                                    if (labelMode != MeloScaleDotLabelMode::None) {
                                         for (const jims::LabeledDotMember& member : stack.members) {
-                                            const bool leftSide = (labelMode == JimsScaleDotLabelMode::Left)
+                                            const bool leftSide = (labelMode == MeloScaleDotLabelMode::Left)
                                                                   || member.nGen <= 0;
                                             muse::String& side = leftSide ? leftText : rightText;
                                             if (!side.isEmpty()) {
@@ -3115,8 +3115,8 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             // intersects the segment. Each crescent is clipped to the
             // segment band and closed by a horizontal line wherever a
             // segment edge cuts through it (the patent mechanism, J4.001).
-            for (const StaffType::JimsFrameBand& band : view.bands) {
-                for (const StaffType::JimsSegment& segment : band.segments) {
+            for (const StaffType::MeloFrameBand& band : view.bands) {
+                for (const StaffType::MeloSegment& segment : band.segments) {
                     double periodFloor = origins.doCentsAboveExtentLower
                                          + std::floor((segment.lowerCents - origins.doCentsAboveExtentLower)
                                                       / periodCents + epsilon) * periodCents;
@@ -3219,8 +3219,8 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             // printed page keeps the gap free of any marker (owner ruling 2a).
             if (view.banded && view.bands.size() > 1 && view.omittedPeriodCount > 0
                 && !opt.isPrinting && item->score()->showUnprintable()) {
-                const StaffType::JimsFrameBand& upper = view.bands.back();          // topmost band
-                const StaffType::JimsFrameBand& lower = view.bands[view.bands.size() - 2];
+                const StaffType::MeloFrameBand& upper = view.bands.back();          // topmost band
+                const StaffType::MeloFrameBand& lower = view.bands[view.bands.size() - 2];
                 const double gapTopY = topY + (upper.yTopLd + upper.heightLd()) * dist;
                 const double gapBottomY = topY + lower.yTopLd * dist;
                 const muse::String text = view.omittedPeriodCount == 1
@@ -3265,7 +3265,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                 // in this measure. They are the same at a bar boundary; inside
                 // a bar the measure keeps its starting frame, so using the
                 // incoming frame would detach every element from its note-line.
-                const StaffType::JimsFrameView& view
+                const StaffType::MeloFrameView& view
                     = displayedSt->jimsFrameView(item->score(), item->staffIdx(), item->measure()->system());
                 const double periodCents = displayedSt->jimsPeriodCents();
                 if (!view.empty() && periodCents > 0.0) {
@@ -3276,7 +3276,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     auto yOf = [&](double cents) {
                         return topY + displayedSt->jimsYFromCents(cents, view) * _spatium;
                     };
-                    const StaffType::JimsHeaderGeometry g
+                    const StaffType::MeloHeaderGeometry g
                         = changeSt->jimsHeaderGeometry(_spatium, item->score()->style().defaultSpatium());
                     const double indicatorW = g.indicatorW;
                     // Terrain columns, left to right, from the measure's left edge.
@@ -3305,8 +3305,8 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                             out.push_back(centsOf(p));
                             return out;
                         }
-                        for (const StaffType::JimsFrameBand& band : view.bands) {
-                            for (const StaffType::JimsSegment& segment : band.segments) {
+                        for (const StaffType::MeloFrameBand& band : view.bands) {
+                            for (const StaffType::MeloSegment& segment : band.segments) {
                                 const double segBase = origins.doCentsAboveExtentLower
                                                        + std::floor((segment.lowerCents - origins.doCentsAboveExtentLower)
                                                                     / periodCents + eps) * periodCents;

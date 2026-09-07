@@ -97,7 +97,7 @@ private:
     muse::async::Notification m_changed;
 };
 }
-class JimsUiModelTests : public ::testing::Test
+class MeloUiModelTests : public ::testing::Test
 {
 protected:
     void SetUp() override
@@ -130,7 +130,7 @@ protected:
     std::shared_ptr<testing::NiceMock<playback::PlaybackControllerMock> > playback;
     ElementRepositoryService repository;
 };
-TEST_F(JimsUiModelTests, StaffSectionsAreRelevantOnlyForCompatibleSelection) {
+TEST_F(MeloUiModelTests, StaffSectionsAreRelevantOnlyForCompatibleSelection) {
     auto* selected = selectMeasure(0);
     ElementKeySet keys { AbstractInspectorModel::makeKey(selected) };
     auto sections = AbstractInspectorModel::sectionTypesByElementKeys(keys, false, { selected });
@@ -143,9 +143,9 @@ TEST_F(JimsUiModelTests, StaffSectionsAreRelevantOnlyForCompatibleSelection) {
     EXPECT_FALSE(sections.count(InspectorSectionType::SECTION_JIMS_STAFF));
     *score->staff(0)->staffType(Fraction(0, 1)) = original;
 }
-TEST_F(JimsUiModelTests, StaffPresentationIsUndoableAndPreservesMusicalState) {
+TEST_F(MeloUiModelTests, StaffPresentationIsUndoableAndPreservesMusicalState) {
     selectMeasure(0);
-    JimsStaffSettingsModel model(nullptr, muse::modularity::globalCtx(), &repository);
+    MeloStaffSettingsModel model(nullptr, muse::modularity::globalCtx(), &repository);
     model.context.set(global);
     model.loadProperties();
     ASSERT_TRUE(model.settings()["available"].toBool());
@@ -153,7 +153,7 @@ TEST_F(JimsUiModelTests, StaffPresentationIsUndoableAndPreservesMusicalState) {
     int undo = score->undoStack()->size();
     model.setStaffOption("labels", 3);
     EXPECT_EQ(score->undoStack()->size(), undo + 1);
-    EXPECT_EQ(score->staff(0)->staffType(Fraction(0, 1))->jimsScaleDotLabelMode(), JimsScaleDotLabelMode::Split);
+    EXPECT_EQ(score->staff(0)->staffType(Fraction(0, 1))->jimsScaleDotLabelMode(), MeloScaleDotLabelMode::Split);
     EXPECT_EQ(score->staff(0)->staffType(Fraction(0, 1))->jimsStateJson(), before);
     model.setStaffOption("labels", 3);
     EXPECT_EQ(score->undoStack()->size(), undo + 1);
@@ -161,9 +161,9 @@ TEST_F(JimsUiModelTests, StaffPresentationIsUndoableAndPreservesMusicalState) {
     model.loadProperties();
     EXPECT_EQ(model.settings()["labels"].toInt(), 0);
 }
-TEST_F(JimsUiModelTests, SelectionRefreshClearsOldFeedbackAndChangesTheTarget) {
+TEST_F(MeloUiModelTests, SelectionRefreshClearsOldFeedbackAndChangesTheTarget) {
     selectMeasure(0);
-    JimsStaffSettingsModel model(nullptr, muse::modularity::globalCtx(), &repository);
+    MeloStaffSettingsModel model(nullptr, muse::modularity::globalCtx(), &repository);
     model.context.set(global);
     model.loadProperties();
     auto first = model.settings()["target"].toString();
@@ -176,9 +176,9 @@ TEST_F(JimsUiModelTests, SelectionRefreshClearsOldFeedbackAndChangesTheTarget) {
     EXPECT_TRUE(model.settings()["hasChange"].toBool());
     EXPECT_FALSE(model.settings()["indicator"].toString().isEmpty());
 }
-TEST_F(JimsUiModelTests, KeyChoicesDistinguishEveryPeriod) {
+TEST_F(MeloUiModelTests, KeyChoicesDistinguishEveryPeriod) {
     selectMeasure(0);
-    JimsStaffSettingsModel model(nullptr, muse::modularity::globalCtx(), &repository);
+    MeloStaffSettingsModel model(nullptr, muse::modularity::globalCtx(), &repository);
     model.context.set(global);
     model.loadProperties();
     const auto choices = model.settings()["keys"].toList();
@@ -191,7 +191,7 @@ TEST_F(JimsUiModelTests, KeyChoicesDistinguishEveryPeriod) {
     }
     EXPECT_EQ(labels.size(), choices.size());
 }
-TEST_F(JimsUiModelTests, ScaleChoiceReconcilesOtherPartsAndReportsTheMutation) {
+TEST_F(MeloUiModelTests, ScaleChoiceReconcilesOtherPartsAndReportsTheMutation) {
     global->setCurrentNotation(nullptr);
     score.reset(ScoreRW::readScore(muse::String::fromUtf8(JIMS_UI_TEST_DATA_ROOT) + u"/jimstaff_data/m9-satb-hymn.mscx", true));
     ASSERT_TRUE(score);
@@ -204,7 +204,7 @@ TEST_F(JimsUiModelTests, ScaleChoiceReconcilesOtherPartsAndReportsTheMutation) {
     ASSERT_TRUE(jims::applyChangeToAllJimsParts(score.get(), measure, { u"scale:cycle:double-harmonic-minor" },
                                                 error)) << error.toStdString();
     ASSERT_TRUE(jims::removeChange(score.get(), 0, measure, error)) << error.toStdString();
-    JimsStaffSettingsModel model(nullptr, muse::modularity::globalCtx(), &repository);
+    MeloStaffSettingsModel model(nullptr, muse::modularity::globalCtx(), &repository);
     model.context.set(global);
     model.loadProperties();
     ASSERT_EQ(model.settings()["scalesIndex"].toInt(), 0);
@@ -231,8 +231,8 @@ TEST_F(JimsUiModelTests, ScaleChoiceReconcilesOtherPartsAndReportsTheMutation) {
         }
     }
 }
-TEST_F(JimsUiModelTests, TuningRejectsInvalidAndNoOpGesturesWithoutUndoEntries) {
-    JimsTuningModel model;
+TEST_F(MeloUiModelTests, TuningRejectsInvalidAndNoOpGesturesWithoutUndoEntries) {
+    MeloTuningModel model;
     model.context.set(global);
     model.playbackController.set(playback);
     model.init();
@@ -252,9 +252,9 @@ TEST_F(JimsUiModelTests, TuningRejectsInvalidAndNoOpGesturesWithoutUndoEntries) 
     EXPECT_NEAR(model.cents(), original, 1e-8);
     EXPECT_EQ(score->undoStack()->size(), undo);
 }
-TEST_F(JimsUiModelTests, TuningAnnouncesEachRefusalOnceAndRefreshesSilently) {
+TEST_F(MeloUiModelTests, TuningAnnouncesEachRefusalOnceAndRefreshesSilently) {
     auto announcements = std::make_shared<TestAnnouncements>();
-    JimsTuningModel model;
+    MeloTuningModel model;
     model.context.set(global);
     model.playbackController.set(playback);
     model.accessibilityController.set(announcements);
@@ -270,8 +270,8 @@ TEST_F(JimsUiModelTests, TuningAnnouncesEachRefusalOnceAndRefreshesSilently) {
     EXPECT_TRUE(model.error().isEmpty());
     EXPECT_EQ(announcements->messages.size(), 2);
 }
-TEST_F(JimsUiModelTests, TuningCommitsOnceAndCancelsWhenSwitchingScores) {
-    JimsTuningModel model;
+TEST_F(MeloUiModelTests, TuningCommitsOnceAndCancelsWhenSwitchingScores) {
+    MeloTuningModel model;
     model.context.set(global);
     model.playbackController.set(playback);
     model.init();
@@ -290,7 +290,7 @@ TEST_F(JimsUiModelTests, TuningCommitsOnceAndCancelsWhenSwitchingScores) {
     ASSERT_TRUE(jims::staffMetrics(score->staff(0)->staffType(Fraction(0, 1))->jimsStateJson(), cents, period));
     EXPECT_NEAR(cents, original, 1e-8);
 }
-TEST_F(JimsUiModelTests, TuningRoutesLiveGeneratorOnlyForTheCurrentScore)
+TEST_F(MeloUiModelTests, TuningRoutesLiveGeneratorOnlyForTheCurrentScore)
 {
     std::vector<jims::ToneDiamondSetting> settings;
     uint32_t generatorParamId = 0;
@@ -313,7 +313,7 @@ TEST_F(JimsUiModelTests, TuningRoutesLiveGeneratorOnlyForTheCurrentScore)
 
     muse::async::Notification resourceChanged;
     ON_CALL(*playback, inputResourceChanged()).WillByDefault(testing::Return(resourceChanged));
-    JimsTuningModel model;
+    MeloTuningModel model;
     model.context.set(global);
     model.playbackController.set(playback);
     model.init();
@@ -357,7 +357,7 @@ TEST_F(JimsUiModelTests, TuningRoutesLiveGeneratorOnlyForTheCurrentScore)
     EXPECT_EQ(routed.back().notation, nextNotation);
     EXPECT_DOUBLE_EQ(routed.back().value, 690.0);
 }
-TEST_F(JimsUiModelTests, RejectedCommitRestoresLiveTuningAfterAValidPreview)
+TEST_F(MeloUiModelTests, RejectedCommitRestoresLiveTuningAfterAValidPreview)
 {
     Note* boundaryNote = nullptr;
     for (Segment* segment = score->firstSegment(SegmentType::ChordRest); segment;
@@ -380,7 +380,7 @@ TEST_F(JimsUiModelTests, RejectedCommitRestoresLiveTuningAfterAValidPreview)
     .WillByDefault([&routed](const notation::INotationPtr&, const muse::audio::AudioResourceId&, uint32_t, double value) {
         routed.push_back(value);
     });
-    JimsTuningModel model;
+    MeloTuningModel model;
     model.context.set(global);
     model.playbackController.set(playback);
     model.init();
@@ -397,9 +397,9 @@ TEST_F(JimsUiModelTests, RejectedCommitRestoresLiveTuningAfterAValidPreview)
     EXPECT_EQ(boundaryNote->jimsNPer(), -1);
     EXPECT_EQ(boundaryNote->jimsNGen(), 11);
 }
-TEST_F(JimsUiModelTests, TuningControlMouseDragPreviewsCommitsOneUndoAndEscCancels)
+TEST_F(MeloUiModelTests, TuningControlMouseDragPreviewsCommitsOneUndoAndEscCancels)
 {
-    JimsTuningModel model;
+    MeloTuningModel model;
     model.context.set(global);
     model.init();
     ASSERT_TRUE(model.available());
@@ -463,9 +463,9 @@ TEST_F(JimsUiModelTests, TuningControlMouseDragPreviewsCommitsOneUndoAndEscCance
     EXPECT_NEAR(model.cents(), original, 0.1);
     EXPECT_EQ(score->undoStack()->size(), undoBefore + 1);
 }
-TEST_F(JimsUiModelTests, ScorePresentationDoesNotChangeMusicalStateAndUndoes) {
+TEST_F(MeloUiModelTests, ScorePresentationDoesNotChangeMusicalStateAndUndoes) {
     selectMeasure(0);
-    JimsScoreSettingsModel model(nullptr, muse::modularity::globalCtx(), &repository);
+    MeloScoreSettingsModel model(nullptr, muse::modularity::globalCtx(), &repository);
     model.context.set(global);
     model.loadProperties();
     auto state = score->staff(0)->staffType(Fraction(0, 1))->jimsStateJson();

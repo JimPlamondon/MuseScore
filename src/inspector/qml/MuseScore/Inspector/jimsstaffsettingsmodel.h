@@ -8,7 +8,7 @@
 #include <QColor>
 
 namespace mu::inspector {
-class JimsStaffSettingsModel : public AbstractInspectorModel
+class MeloStaffSettingsModel : public AbstractInspectorModel
 {
     Q_OBJECT
     QML_ELEMENT;
@@ -20,7 +20,7 @@ class JimsStaffSettingsModel : public AbstractInspectorModel
 public:
     muse::GlobalInject<engraving::IEngravingConfiguration> engravingConfiguration;
     muse::ContextInject<muse::accessibility::IAccessibilityController> accessibilityController = { this };
-    JimsStaffSettingsModel(QObject* parent, const muse::modularity::ContextPtr& ctx, IElementRepositoryService* repository);
+    MeloStaffSettingsModel(QObject* parent, const muse::modularity::ContextPtr& ctx, IElementRepositoryService* repository);
     QVariantMap settings() const { return m_settings; }
     bool hasError() const { return m_hasError; }
     QString status() const { return m_status; }

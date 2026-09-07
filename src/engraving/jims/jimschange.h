@@ -74,7 +74,7 @@ double courtesyTerrainWidth(const Measure* measure);
 /// the frame origin (a multiple of the period); scale-change dot stacks are
 /// instantiated per period and do not depend on it. Falls back to the
 /// stack's lowest period for an empty view.
-double changeAnchorPeriodCents(const StaffType::JimsFrameView& view, const ChangeIndicator& model, double periodCents,
+double changeAnchorPeriodCents(const StaffType::MeloFrameView& view, const ChangeIndicator& model, double periodCents,
                                double doCentsAboveExtentLower = 0.0);
 
 /// The change indicator drawn against THIS staff type's frame — the one
@@ -94,7 +94,7 @@ bool changeIndicatorsTouchingStaffType(const Score* score, staff_idx_t staffIdx,
 /// best Do-line anchor was chosen — empty when the indicator fits. The
 /// frame is then re-derived covering them (Kernel `extra_cents`), so the
 /// staff extends to include the whole indicator.
-std::vector<double> changeIndicatorOverflowCents(const StaffType::JimsFrameView& view, const ChangeIndicator& model, double periodCents,
+std::vector<double> changeIndicatorOverflowCents(const StaffType::MeloFrameView& view, const ChangeIndicator& model, double periodCents,
                                                  double doCentsAboveExtentLower = 0.0);
 
 /// Derive one song-wide tonic ambit from the explicitly designated melody

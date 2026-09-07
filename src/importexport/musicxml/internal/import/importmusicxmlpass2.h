@@ -501,7 +501,7 @@ private:
     int m_divs = 0;                        // the current divisions value
     engraving::Score* m_score = nullptr;              // the score
     MusicXmlParserPass1& m_pass1;          // the pass1 results
-    JimsImportContext m_jims;              // native JiMS import: resolved prefix + buffered states
+    MeloImportContext m_jims;              // native JiMS import: resolved prefix + buffered states
     engraving::Err m_jimsError = engraving::Err::NoError;   // fatal JiMS condition, returned by parse()
     MusicXmlLogger* m_logger = nullptr;    // Error logger
     muse::String m_errors;                       // Errors to present to the user

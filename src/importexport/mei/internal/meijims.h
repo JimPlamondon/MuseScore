@@ -54,7 +54,7 @@ static constexpr const char* JIMS_MEI_NS = "urn:jims:mei:1";
 static constexpr const char* JIMS_MUSICXML_NS = "urn:jims:musicxml:4";
 
 /// Export-side plan and emission.
-class JimsMeiExporter
+class MeloMeiExporter
 {
 public:
     bool buildPlan(const engraving::Score* score);
@@ -113,7 +113,7 @@ private:
 };
 
 /// Import-side capture and application.
-class JimsMeiImporter
+class MeloMeiImporter
 {
 public:
     /// Stash the extMeta jm:record (if any) and the staffDef id -> @n map.

@@ -227,10 +227,10 @@ void InspectorListModel::createModelsBySectionType(const InspectorSectionTypeSet
 
         switch (sectionType) {
         case InspectorSectionType::SECTION_JIMS_STAFF:
-            newModel = new JimsStaffSettingsModel(this, iocContext(), m_repository.get());
+            newModel = new MeloStaffSettingsModel(this, iocContext(), m_repository.get());
             break;
         case InspectorSectionType::SECTION_JIMS_SCORE:
-            newModel = new JimsScoreSettingsModel(this, iocContext(), m_repository.get());
+            newModel = new MeloScoreSettingsModel(this, iocContext(), m_repository.get());
             break;
         case InspectorSectionType::SECTION_GENERAL:
             newModel = new GeneralSettingsModel(this, iocContext(), m_repository.get());

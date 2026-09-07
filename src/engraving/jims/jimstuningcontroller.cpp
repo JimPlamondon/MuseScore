@@ -33,9 +33,9 @@ namespace mu::engraving::jims {
 namespace {
 // One undoable edit covering every JiMS span in the score: flip() swaps all
 // captured state JSONs at once, so undo/redo is a single step.
-class JimsChangeStaffStates : public UndoCommand
+class MeloChangeStaffStates : public UndoCommand
 {
-    OBJECT_ALLOCATOR(engraving, JimsChangeStaffStates)
+    OBJECT_ALLOCATOR(engraving, MeloChangeStaffStates)
 
     std::vector<Staff*> m_staves;
     std::vector<Fraction> m_ticks;
@@ -59,10 +59,10 @@ class JimsChangeStaffStates : public UndoCommand
     }
 
 public:
-    JimsChangeStaffStates(std::vector<Staff*> staves, std::vector<Fraction> ticks, std::vector<String> states)
+    MeloChangeStaffStates(std::vector<Staff*> staves, std::vector<Fraction> ticks, std::vector<String> states)
         : m_staves(std::move(staves)), m_ticks(std::move(ticks)), m_states(std::move(states)) {}
 
-    UNDO_NAME("JimsChangeStaffStates")
+    UNDO_NAME("MeloChangeStaffStates")
     std::vector<EngravingObject*> objectItems() const override
     {
         std::vector<EngravingObject*> objects;
@@ -289,7 +289,7 @@ bool TuningController::commit(double generatorCents)
     restoreSpans(original);
     const auto t0 = std::chrono::steady_clock::now();
     m_score->startCmd(mu::engraving::jims::changeTuningAction());
-    m_score->undo(new JimsChangeStaffStates(std::move(staves), std::move(ticks), std::move(states)));
+    m_score->undo(new MeloChangeStaffStates(std::move(staves), std::move(ticks), std::move(states)));
     size_t repairs = 0;
     String error;
     if (!normalizeStoredPitchesAfterLoad(m_score, repairs, error, true, true)) {

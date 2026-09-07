@@ -48,7 +48,7 @@ Item {
         accessible.name: qsTrc("notation", "Note input toolbar")
     }
 
-    JimsTuningModel {
+    MeloTuningModel {
         id: jimsTuning
         Component.onCompleted: init()
     }

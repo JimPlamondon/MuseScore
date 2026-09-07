@@ -389,7 +389,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9EmptyFramesAreHalfPeriodAtTheirDeclaredCen
         ASSERT_TRUE(st && st->isJiMS());
         double centre = 0.0;
         ASSERT_TRUE(jims::noteCentsAboveExtentLower(st->jimsStateJson(), centreNPer[i], centreNGen[i], centre));
-        const StaffType::JimsFrameView& view = st->jimsWholeFrameView(score, i);
+        const StaffType::MeloFrameView& view = st->jimsWholeFrameView(score, i);
         ASSERT_EQ(view.bands.size(), 1u);
         EXPECT_NEAR(view.bands[0].lowerCents, centre - st->jimsPeriodCents() / 4.0, 1e-6);
         EXPECT_NEAR(view.bands[0].upperCents, centre + st->jimsPeriodCents() / 4.0, 1e-6);
@@ -409,14 +409,14 @@ TEST(Engraving_JiMStaffM9SATBTests, m9WrittenStavesUseTheirOwnMelodyFrameWhileUn
     // frame; staves 1..3 are empty and keep their range-derived defaults.
     ASSERT_FALSE(notesOn(score, 0).empty());
     const StaffType* written = score->staff(0)->staffType(Fraction(0, 1));
-    const StaffType::JimsFrameView& wv = written->jimsWholeFrameView(score, 0);
+    const StaffType::MeloFrameView& wv = written->jimsWholeFrameView(score, 0);
     EXPECT_GT(wv.bands.size() ? (wv.bands.back().upperCents - wv.bands.front().lowerCents) : 0.0, 1200.0)
         << "a written staff must use its melody-derived frame";
 
     for (staff_idx_t i = 1; i < 4; ++i) {
         EXPECT_TRUE(notesOn(score, i).empty()) << "staff " << i << " is meant to be unwritten";
         const StaffType* st = score->staff(i)->staffType(Fraction(0, 1));
-        const StaffType::JimsFrameView& v = st->jimsWholeFrameView(score, i);
+        const StaffType::MeloFrameView& v = st->jimsWholeFrameView(score, i);
         ASSERT_EQ(v.bands.size(), 1u) << "staff " << i;
         EXPECT_NEAR(v.bands[0].upperCents - v.bands[0].lowerCents, st->jimsPeriodCents() / 2.0, 1e-6)
             << "unwritten staff " << i << " must keep its half-period range default";

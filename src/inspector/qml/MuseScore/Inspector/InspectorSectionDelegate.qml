@@ -87,7 +87,7 @@ ExpandableBlank {
     Component {
         id: jimsStaffSection
         JimsStaffSettings {
-            model: root.sectionModel as JimsStaffSettingsModel
+            model: root.sectionModel as MeloStaffSettingsModel
             navigationPanel: root.navigationPanel
             navigationRowStart: root.navigation.row + 1
         }
@@ -95,7 +95,7 @@ ExpandableBlank {
     Component {
         id: jimsScoreSection
         JimsScoreSettings {
-            model: root.sectionModel as JimsScoreSettingsModel
+            model: root.sectionModel as MeloScoreSettingsModel
             navigationPanel: root.navigationPanel
             navigationRowStart: root.navigation.row + 1
         }

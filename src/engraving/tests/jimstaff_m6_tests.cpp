@@ -184,7 +184,7 @@ Score* syntheticCommonToneScore()
 // (CHROMATIC), Alt+Shift = collection member (DIATONIC), Ctrl = one period
 // (OCTAVE) — every answer from the Kernel step_pitch op, identity and
 // compatibility pitch changed together, undoable.
-TEST(JiMStaffTests, m6KeyboardStepsMoveOnTheLatticeThroughTheKernel)
+TEST(MeloStaffTests, m6KeyboardStepsMoveOnTheLatticeThroughTheKernel)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -246,7 +246,7 @@ TEST(JiMStaffTests, m6KeyboardStepsMoveOnTheLatticeThroughTheKernel)
 // Binding Requirement 3 (Decision 1a): a copied/cloned note keeps its
 // lattice identity and forgets its cached cents; a range copy/paste keeps
 // every identity in order.
-TEST(JiMStaffTests, m6CopiedAndPastedNotesKeepTheirLatticeIdentity)
+TEST(MeloStaffTests, m6CopiedAndPastedNotesKeepTheirLatticeIdentity)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -312,7 +312,7 @@ TEST(JiMStaffTests, m6CopiedAndPastedNotesKeepTheirLatticeIdentity)
 
 // Binding Requirement 4: the change controller inserts, compounds, and
 // removes the measure's carrier from Kernel-returned states only.
-TEST(JiMStaffTests, m6ChangeControllerAuthorsCarriersFromKernelStates)
+TEST(MeloStaffTests, m6ChangeControllerAuthorsCarriersFromKernelStates)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -408,7 +408,7 @@ TEST(JiMStaffTests, m6ChangeControllerAuthorsCarriersFromKernelStates)
     delete score;
 }
 
-TEST(JiMStaffTests, midBarChangeStartsAtTheSelectedExactTick)
+TEST(MeloStaffTests, midBarChangeStartsAtTheSelectedExactTick)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -484,7 +484,7 @@ TEST(JiMStaffTests, midBarChangeStartsAtTheSelectedExactTick)
     delete score;
 }
 
-TEST(JiMStaffTests, twoMidBarChangesCanOccupyOneMeasure)
+TEST(MeloStaffTests, twoMidBarChangesCanOccupyOneMeasure)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -521,7 +521,7 @@ TEST(JiMStaffTests, twoMidBarChangesCanOccupyOneMeasure)
     delete score;
 }
 
-TEST(JiMStaffTests, silentMidBarChangeCreatesATimingOnlyLayoutAnchor)
+TEST(MeloStaffTests, silentMidBarChangeCreatesATimingOnlyLayoutAnchor)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -543,7 +543,7 @@ TEST(JiMStaffTests, silentMidBarChangeCreatesATimingOnlyLayoutAnchor)
     delete score;
 }
 
-TEST(JiMStaffTests, midBarIndicatorHasTwoGreyDashedBarWidthFlanks)
+TEST(MeloStaffTests, midBarIndicatorHasTwoGreyDashedBarWidthFlanks)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -593,7 +593,7 @@ TEST(JiMStaffTests, midBarIndicatorHasTwoGreyDashedBarWidthFlanks)
     delete score;
 }
 
-TEST(JiMStaffTests, midBarIndicatorElementsAlignWithTheDisplayedStaffNoteLines)
+TEST(MeloStaffTests, midBarIndicatorElementsAlignWithTheDisplayedStaffNoteLines)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -623,7 +623,7 @@ TEST(JiMStaffTests, midBarIndicatorElementsAlignWithTheDisplayedStaffNoteLines)
     ASSERT_TRUE(changedStaffType);
     ASSERT_NE(changedStaffType, displayedStaffType);
 
-    const StaffType::JimsFrameView& view
+    const StaffType::MeloFrameView& view
         = displayedStaffType->jimsFrameView(score, 0, measure->system());
     ASSERT_FALSE(view.empty());
     jims::PeriodicOrigins origins;
@@ -693,7 +693,7 @@ TEST(JiMStaffTests, midBarIndicatorElementsAlignWithTheDisplayedStaffNoteLines)
 // bound to 62 (bind at measure 1 = the base staff type), then at measure 2
 // mode Do->La and key Do0->La0 — the accepted m5-key-mode semantics
 // (kinds key, mode; one arrow up; La wrapped) fall out unchanged.
-TEST(JiMStaffTests, m6WorkedExampleAuthoredThroughTheControllerMatchesM5)
+TEST(MeloStaffTests, m6WorkedExampleAuthoredThroughTheControllerMatchesM5)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -720,7 +720,7 @@ TEST(JiMStaffTests, m6WorkedExampleAuthoredThroughTheControllerMatchesM5)
     delete score;
 }
 
-TEST(JiMStaffTests, stateChangeAtomicallyReinterpretsAFullTieAtExactFrequency)
+TEST(MeloStaffTests, stateChangeAtomicallyReinterpretsAFullTieAtExactFrequency)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/m5-key-up.mscx");
     ASSERT_TRUE(score);
@@ -781,7 +781,7 @@ TEST(JiMStaffTests, stateChangeAtomicallyReinterpretsAFullTieAtExactFrequency)
     delete score;
 }
 
-TEST(JiMStaffTests, stateChangeKeepsAnExistingFullTieIdentityAtTheSameReference)
+TEST(MeloStaffTests, stateChangeKeepsAnExistingFullTieIdentityAtTheSameReference)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/m5-key-up.mscx");
     ASSERT_TRUE(score);
@@ -888,7 +888,7 @@ TEST(JiMStaffTests, stateChangeKeepsAnExistingFullTieIdentityAtTheSameReference)
     delete score;
 }
 
-TEST(JiMStaffTests, syntheticTwoMeasureCommonTonePersistsItsExactContinuation)
+TEST(MeloStaffTests, syntheticTwoMeasureCommonTonePersistsItsExactContinuation)
 {
     Score* score = syntheticCommonToneScore();
     ASSERT_TRUE(score);
@@ -920,7 +920,7 @@ TEST(JiMStaffTests, syntheticTwoMeasureCommonTonePersistsItsExactContinuation)
     delete score;
 }
 
-TEST(JiMStaffTests, writeSyntheticCommonToneAcceptanceScore)
+TEST(MeloStaffTests, writeSyntheticCommonToneAcceptanceScore)
 {
     const char* outDir = std::getenv("JIMS_NOTE_CONFORMANCE_OUT");
     if (!outDir) {
@@ -933,7 +933,7 @@ TEST(JiMStaffTests, writeSyntheticCommonToneAcceptanceScore)
     delete score;
 }
 
-TEST(JiMStaffTests, consecutiveStateChangesKeepAMultiSegmentTieExact)
+TEST(MeloStaffTests, consecutiveStateChangesKeepAMultiSegmentTieExact)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/m5-key-up.mscx");
     ASSERT_TRUE(score);
@@ -990,7 +990,7 @@ TEST(JiMStaffTests, consecutiveStateChangesKeepAMultiSegmentTieExact)
     delete score;
 }
 
-TEST(JiMStaffTests, projectionFailureRollsBackStateAndEveryStoredField)
+TEST(MeloStaffTests, projectionFailureRollsBackStateAndEveryStoredField)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/m5-key-up.mscx");
     ASSERT_TRUE(score);
@@ -1010,7 +1010,7 @@ TEST(JiMStaffTests, projectionFailureRollsBackStateAndEveryStoredField)
     delete score;
 }
 
-TEST(JiMStaffTests, linkedNotesReceiveOneCoherentProjection)
+TEST(MeloStaffTests, linkedNotesReceiveOneCoherentProjection)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/m5-key-up.mscx");
     ASSERT_TRUE(score);
@@ -1030,7 +1030,7 @@ TEST(JiMStaffTests, linkedNotesReceiveOneCoherentProjection)
     delete score;
 }
 
-TEST(JiMStaffTests, stateProjectionSpanStopsAtTheNextIndependentCarrier)
+TEST(MeloStaffTests, stateProjectionSpanStopsAtTheNextIndependentCarrier)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/m5-key-up.mscx");
     ASSERT_TRUE(score);
@@ -1068,7 +1068,7 @@ TEST(JiMStaffTests, stateProjectionSpanStopsAtTheNextIndependentCarrier)
     delete score;
 }
 
-TEST(JiMStaffTests, ambiguousPartialTieAcrossStateBoundaryIsRefusedWithoutMutation)
+TEST(MeloStaffTests, ambiguousPartialTieAcrossStateBoundaryIsRefusedWithoutMutation)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/m5-key-up.mscx");
     ASSERT_TRUE(score);
@@ -1103,7 +1103,7 @@ TEST(JiMStaffTests, ambiguousPartialTieAcrossStateBoundaryIsRefusedWithoutMutati
 // established through the Kernel entry seam (Note::setNval), not read off
 // a stock-clef line position (a JiMStaff has no clef; its lines are 50 cents
 // apart). D-sharp typed = D#4 = identity (-4, 7); E-flat = (3, -5); C = (1, -2).
-TEST(JiMStaffTests, m6LetterEntryEstablishesTheKernelIdentityOfTheNamedNote)
+TEST(MeloStaffTests, m6LetterEntryEstablishesTheKernelIdentityOfTheNamedNote)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/jims-template.mscx");
     ASSERT_TRUE(score);
@@ -1148,7 +1148,7 @@ TEST(JiMStaffTests, m6LetterEntryEstablishesTheKernelIdentityOfTheNamedNote)
     delete score;
 }
 
-TEST(JiMStaffTests, conventionalEntryUsesTheEffectivePostChangeState)
+TEST(MeloStaffTests, conventionalEntryUsesTheEffectivePostChangeState)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/jims-template.mscx");
     ASSERT_TRUE(score);
@@ -1186,7 +1186,7 @@ TEST(JiMStaffTests, conventionalEntryUsesTheEffectivePostChangeState)
 // Shift+letter), insert mode Do->La and key Do0->La0 at bar 2 through the
 // change controller — then save; the harness renders and hashes it against
 // jims-evidence/m5-acceptance/m5-key-mode/initial-1.png.
-TEST(JiMStaffTests, m6WriteEditingScenario)
+TEST(MeloStaffTests, m6WriteEditingScenario)
 {
     const char* gate = std::getenv("JIMS_M6_SCENARIO");
     if (!gate || std::string(gate) != "1") {
