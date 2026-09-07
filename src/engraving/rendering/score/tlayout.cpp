@@ -5092,10 +5092,10 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
             guides.push_back({ LineF(lineStartX, gy, x2, gy), dashed, colorStyle, primeLimit });
         };
         // Kernel JI lines for the scaffold colors (fetched once).
-        std::vector<jims::JiLine> jiLines;
-        const bool haveJi = jims::jiLines(jimsSt->jimsStateJson(), jiLines);
-        jims::PeriodicOrigins origins;
-        if (!jims::periodicOrigins(jimsSt->jimsStateJson(), origins)) {
+        std::vector<melo::JiLine> jiLines;
+        const bool haveJi = melo::jiLines(jimsSt->jimsStateJson(), jiLines);
+        melo::PeriodicOrigins origins;
+        if (!melo::periodicOrigins(jimsSt->jimsStateJson(), origins)) {
             item->setJimsGuideLines({});
             item->setLines({});
             return;
@@ -5130,7 +5130,7 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
                                                        / periodCents) * periodCents;
                 for (double period = basePeriod; period < segment.upperCents; period += periodCents) {
                     if (haveJi) {
-                        for (const jims::JiLine& ji : jiLines) {
+                        for (const melo::JiLine& ji : jiLines) {
                             const double cents = period + ji.cents;
                             const bool isFixedEdge = std::abs(cents - segment.lowerCents) <= epsilon
                                                      || std::abs(cents - segment.upperCents) <= epsilon;

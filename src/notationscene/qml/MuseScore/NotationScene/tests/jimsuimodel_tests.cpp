@@ -201,9 +201,9 @@ TEST_F(MeloUiModelTests, ScaleChoiceReconcilesOtherPartsAndReportsTheMutation) {
     selectMeasure(1);
     Measure* measure = score->firstMeasure()->nextMeasure();
     muse::String error;
-    ASSERT_TRUE(jims::applyChangeToAllJimsParts(score.get(), measure, { u"scale:cycle:double-harmonic-minor" },
+    ASSERT_TRUE(melo::applyChangeToAllJimsParts(score.get(), measure, { u"scale:cycle:double-harmonic-minor" },
                                                 error)) << error.toStdString();
-    ASSERT_TRUE(jims::removeChange(score.get(), 0, measure, error)) << error.toStdString();
+    ASSERT_TRUE(melo::removeChange(score.get(), 0, measure, error)) << error.toStdString();
     MeloStaffSettingsModel model(nullptr, muse::modularity::globalCtx(), &repository);
     model.context.set(global);
     model.loadProperties();
@@ -214,8 +214,8 @@ TEST_F(MeloUiModelTests, ScaleChoiceReconcilesOtherPartsAndReportsTheMutation) {
     EXPECT_EQ(score->undoStack()->size(), undo + 1);
     EXPECT_FALSE(model.status().contains("no change"));
     for (staff_idx_t staff = 0; staff < 4; ++staff) {
-        jims::StateChangeOptions options;
-        ASSERT_TRUE(jims::changeOptions(score.get(), staff, measure, options));
+        melo::StateChangeOptions options;
+        ASSERT_TRUE(melo::changeOptions(score.get(), staff, measure, options));
         for (const auto& cycle : options.cycles) {
             if (cycle.id == u"scale:cycle:diatonic") {
                 EXPECT_TRUE(cycle.current) << staff;
@@ -223,8 +223,8 @@ TEST_F(MeloUiModelTests, ScaleChoiceReconcilesOtherPartsAndReportsTheMutation) {
         }
     }
     score->undoRedo(true, nullptr);
-    jims::StateChangeOptions options;
-    ASSERT_TRUE(jims::changeOptions(score.get(), 1, measure, options));
+    melo::StateChangeOptions options;
+    ASSERT_TRUE(melo::changeOptions(score.get(), 1, measure, options));
     for (const auto& cycle : options.cycles) {
         if (cycle.id == u"scale:cycle:double-harmonic-minor") {
             EXPECT_TRUE(cycle.current);
@@ -287,16 +287,16 @@ TEST_F(MeloUiModelTests, TuningCommitsOnceAndCancelsWhenSwitchingScores) {
     global->setCurrentNotation(nullptr);
     EXPECT_FALSE(model.available());
     double cents = 0, period = 0;
-    ASSERT_TRUE(jims::staffMetrics(score->staff(0)->staffType(Fraction(0, 1))->jimsStateJson(), cents, period));
+    ASSERT_TRUE(melo::staffMetrics(score->staff(0)->staffType(Fraction(0, 1))->jimsStateJson(), cents, period));
     EXPECT_NEAR(cents, original, 1e-8);
 }
 TEST_F(MeloUiModelTests, TuningRoutesLiveGeneratorOnlyForTheCurrentScore)
 {
-    std::vector<jims::ToneDiamondSetting> settings;
+    std::vector<melo::ToneDiamondSetting> settings;
     uint32_t generatorParamId = 0;
     uint32_t xParamId = 0;
     uint32_t yParamId = 0;
-    ASSERT_TRUE(jims::toneDiamondSettings(settings, generatorParamId, xParamId, yParamId));
+    ASSERT_TRUE(melo::toneDiamondSettings(settings, generatorParamId, xParamId, yParamId));
 
     struct RoutedValue {
         notation::INotationPtr notation;
@@ -374,7 +374,7 @@ TEST_F(MeloUiModelTests, RejectedCommitRestoresLiveTuningAfterAValidPreview)
     boundaryNote->setJimsPitch(-1, 11);
     size_t repairs = 0;
     muse::String error;
-    ASSERT_TRUE(jims::normalizeStoredPitchesAfterLoad(score.get(), repairs, error, false));
+    ASSERT_TRUE(melo::normalizeStoredPitchesAfterLoad(score.get(), repairs, error, false));
     std::vector<double> routed;
     ON_CALL(*playback, setInputParamPlainForResource(testing::_, testing::_, testing::_, testing::_))
     .WillByDefault([&routed](const notation::INotationPtr&, const muse::audio::AudioResourceId&, uint32_t, double value) {

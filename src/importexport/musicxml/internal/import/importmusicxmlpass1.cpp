@@ -1564,7 +1564,7 @@ void MusicXmlParserPass1::identification()
             m_score->setMetaTag(u"source", m_e.readText());
         } else if (m_jims.hasJims() && m_jims.isJimsElement(m_e.name(), "provenance")) {
             // Native JiMS import: transported carrier (owner decision 2026-08-19).
-            engraving::jims::Provenance prov;
+            engraving::melo::Provenance prov;
             String error;
             if (m_jims.parseProvenance(m_e, prov, error)) {
                 m_score->setJimsProvenance(prov);
@@ -1573,9 +1573,9 @@ void MusicXmlParserPass1::identification()
                 m_jimsProvenanceError = true;
             }
         } else if (m_jims.hasJims() && m_jims.isJimsElement(m_e.name(), "melody-part")) {
-            engraving::jims::MelodyPart part = engraving::jims::MelodyPart::Soprano;
+            engraving::melo::MelodyPart part = engraving::melo::MelodyPart::Soprano;
             const String token = m_e.readText().trimmed();
-            if (engraving::jims::melodyPartFromToken(token, part)) {
+            if (engraving::melo::melodyPartFromToken(token, part)) {
                 m_score->setJimsMelodyPart(part);
             } else {
                 m_logger->logError(String(u"invalid jims:melody-part '%1'").arg(token), &m_e);

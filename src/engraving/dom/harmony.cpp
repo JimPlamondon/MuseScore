@@ -1324,7 +1324,7 @@ TranslatableString Harmony::typeUserName() const
     case HarmonyType::NASHVILLE:
         return TranslatableString("engraving", "Nashville number");
     case HarmonyType::JIMS:
-        return mu::engraving::jims::chordName();
+        return mu::engraving::melo::chordName();
     case HarmonyType::STANDARD:
         break;
     }

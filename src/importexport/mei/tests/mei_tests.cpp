@@ -138,7 +138,7 @@ TEST_F(Mei_Tests, mei_jims_roundtrip_01) {
     }
     EXPECT_GT(pitched, 0);
     EXPECT_EQ(pitched, identified);
-    EXPECT_EQ(score->jimsMelodyPart(), engraving::jims::MelodyPart::Soprano);
+    EXPECT_EQ(score->jimsMelodyPart(), engraving::melo::MelodyPart::Soprano);
     ASSERT_EQ(score->jimsProvenance().resources.size(), size_t(1));
     EXPECT_TRUE(score->jimsProvenance().strictFallback);
     EXPECT_EQ(staff->jimsTuningTrajectories().size(), size_t(1));

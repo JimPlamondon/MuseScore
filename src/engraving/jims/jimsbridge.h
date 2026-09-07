@@ -16,7 +16,7 @@
 #include "mpe/events.h"
 #include "types/string.h"
 
-namespace mu::engraving::jims {
+namespace mu::engraving::melo {
 /// Bridge availability: the linked C ABI answers version 1.
 bool available();
 

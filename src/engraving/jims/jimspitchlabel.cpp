@@ -17,7 +17,7 @@
 using namespace muse;
 using namespace muse::draw;
 
-namespace mu::engraving::jims {
+namespace mu::engraving::melo {
 static const std::pair<String, SymId> ACCIDENTALS[] = {
     { u"\U0001D12B", SymId::accidentalDoubleFlat },
     { u"\U0001D12A", SymId::accidentalDoubleSharp },

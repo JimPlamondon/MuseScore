@@ -41,7 +41,7 @@
 #include "../types/fraction.h"
 #include "../types/types.h"
 
-namespace mu::engraving::jims {
+namespace mu::engraving::melo {
 /// Explicit score-wide SATB melody designation. Soprano is the native and
 /// MusicXML default; no value is inferred from part order or note content.
 enum class MelodyPart : unsigned char {

@@ -19,7 +19,7 @@ MeloStaffSettingsModel::MeloStaffSettingsModel(QObject* parent, const muse::modu
     : AbstractInspectorModel(parent, ctx, repository)
 {
     setSectionType(InspectorSectionType::SECTION_JIMS_STAFF);
-    setTitle(jims::staffUserName().toQString());
+    setTitle(melo::staffUserName().toQString());
 }
 
 void MeloStaffSettingsModel::requestElements()
@@ -61,7 +61,7 @@ void MeloStaffSettingsModel::loadProperties()
     Measure* measure = nullptr;
     Fraction tick;
     staff_idx_t staff = 0;
-    bool valid = target(score, measure, tick, staff) && jims::changeOptions(score, staff, measure, tick, m_options);
+    bool valid = target(score, measure, tick, staff) && melo::changeOptions(score, staff, measure, tick, m_options);
     const QString identity = valid ? QString::number(quintptr(score)) + ":" + QString::number(staff) + ":"
                              + QString::number(tick.ticks()) : QString();
     if (identity != m_targetIdentity) {
@@ -78,15 +78,15 @@ void MeloStaffSettingsModel::loadProperties()
                                                                                                      - measure->tick()).ticks()).arg(staff
                                                                                                                                      + 1);
         m_settings["referenceBound"] = m_options.referenceBound;
-        m_settings["hasChange"] = jims::changeCarrierAt(measure, staff, tick) != nullptr;
+        m_settings["hasChange"] = melo::changeCarrierAt(measure, staff, tick) != nullptr;
         if (m_settings["hasChange"].toBool()) {
             QString description = muse::qtrc("inspector", "This position carries a change.");
             if (!tick.isZero()) {
                 const StaffType* before = score->staff(staff)->staffType(Fraction::fromTicks(tick.ticks() - 1));
                 const StaffType* here = score->staff(staff)->staffType(tick);
-                jims::ChangeIndicator indicator;
+                melo::ChangeIndicator indicator;
                 muse::String why;
-                if (before && here && jims::changeIndicator(before->jimsStateJson(), here->jimsStateJson(), indicator, &why)) {
+                if (before && here && melo::changeIndicator(before->jimsStateJson(), here->jimsStateJson(), indicator, &why)) {
                     description = indicator.empty() ? muse::qtrc("inspector",
                                                                  "This position carries a metadata-only change, so no indicator is drawn.")
                                   : muse::qtrc("inspector", "A tonal change indicator is drawn at this position.");
@@ -100,7 +100,7 @@ void MeloStaffSettingsModel::loadProperties()
         const StaffType* base = score->staff(staff)->staffType(Fraction(0, 1));
         m_settings["elision"] = int(base->jimsElideOctaves());
         m_settings["labels"] = int(base->jimsScaleDotLabelMode());
-        auto choices = [this](const char* key, const std::vector<jims::StateChangeOption>& options) {
+        auto choices = [this](const char* key, const std::vector<melo::StateChangeOption>& options) {
             QVariantList list;
             int current = -1;
             for (const auto& option : options) {
@@ -118,10 +118,10 @@ void MeloStaffSettingsModel::loadProperties()
         };
         choices("tonics", m_options.tonics);
         choices("keys", m_options.keyTargets);
-        const jims::StateChangeOption* diatonic = nullptr;
-        const jims::StateChangeOption* harmonic = nullptr;
-        const jims::StateChangeOption* zero = nullptr;
-        const jims::StateChangeOption* minor = nullptr;
+        const melo::StateChangeOption* diatonic = nullptr;
+        const melo::StateChangeOption* harmonic = nullptr;
+        const melo::StateChangeOption* zero = nullptr;
+        const melo::StateChangeOption* minor = nullptr;
         for (const auto& option : m_options.cycles) {
             if (option.id == u"scale:cycle:diatonic") {
                 diatonic = &option;
@@ -140,7 +140,7 @@ void MeloStaffSettingsModel::loadProperties()
         }
         QVariantList scales;
         int currentScale = -1;
-        auto addScale = [&](QString name, const jims::StateChangeOption* cycle, const jims::StateChangeOption* rotation) {
+        auto addScale = [&](QString name, const melo::StateChangeOption* cycle, const melo::StateChangeOption* rotation) {
             if (!cycle || !rotation) {
                 return;
             }
@@ -161,7 +161,7 @@ void MeloStaffSettingsModel::loadProperties()
         m_settings["scales"] = scales;
         m_settings["scalesIndex"] = currentScale;
         muse::String why;
-        m_settings["canChange"] = jims::canInsertChange(score, staff, measure, tick, why);
+        m_settings["canChange"] = melo::canInsertChange(score, staff, measure, tick, why);
         m_settings["reason"] = why.toQString();
     }
     emit settingsChanged();
@@ -212,7 +212,7 @@ void MeloStaffSettingsModel::applyOption(const QString& group, int index)
         std::vector<muse::String> result;
         for (staff_idx_t index = 0; index < score->nstaves(); ++index) {
             muse::String state;
-            if (jims::effectiveState(score, index, measure, tick, state)) {
+            if (melo::effectiveState(score, index, measure, tick, state)) {
                 result.push_back(state);
             }
         }
@@ -220,7 +220,7 @@ void MeloStaffSettingsModel::applyOption(const QString& group, int index)
     };
     const auto before = states();
     muse::String error;
-    bool ok = jims::applyChangeToAllJimsParts(score, measure, tick, steps, error);
+    bool ok = melo::applyChangeToAllJimsParts(score, measure, tick, steps, error);
     const auto after = states();
     finish(ok, error,
            before == after ? muse::qtrc("inspector", "Already selected; no change was needed.") : muse::qtrc("inspector",
@@ -243,7 +243,7 @@ void MeloStaffSettingsModel::bindReference(const QString& pitch)
     if (!target(score, measure, tick, staff)) {
         return;
     }
-    bool ok = jims::applyChange(score, staff, measure, tick, muse::String(u"bind:reference-pitch:%1").arg(value), error);
+    bool ok = melo::applyChange(score, staff, measure, tick, muse::String(u"bind:reference-pitch:%1").arg(value), error);
     finish(ok, error, muse::qtrc("inspector", "Reference pitch bound for this staff."));
 }
 
@@ -257,7 +257,7 @@ void MeloStaffSettingsModel::removeChange()
         return;
     }
     muse::String error;
-    bool ok = jims::removeChange(score, staff, measure, tick, error);
+    bool ok = melo::removeChange(score, staff, measure, tick, error);
     finish(ok, error, muse::qtrc("inspector", "Change removed from this staff."));
 }
 

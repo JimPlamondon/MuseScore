@@ -12,7 +12,7 @@ MeloScoreSettingsModel::MeloScoreSettingsModel(QObject* parent, const muse::modu
     : AbstractInspectorModel(parent, ctx, repository)
 {
     setSectionType(InspectorSectionType::SECTION_JIMS_SCORE);
-    setTitle(muse::qtrc("inspector", "%1 score").arg(jims::featureName().toQString()));
+    setTitle(muse::qtrc("inspector", "%1 score").arg(melo::featureName().toQString()));
 }
 
 void MeloScoreSettingsModel::requestElements() { m_elementList = m_repository->takeAllElements(); }
@@ -40,8 +40,8 @@ void MeloScoreSettingsModel::setOption(const QString& name, const QVariant& valu
         if (!valid || part < 0 || part > 3 || part == int(score->jimsMelodyPart())) {
             return;
         }
-        score->startCmd(mu::engraving::jims::changeMelodyPartAction());
-        score->undo(new ChangeJimsMelodyPart(score, jims::MelodyPart(part)));
+        score->startCmd(mu::engraving::melo::changeMelodyPartAction());
+        score->undo(new ChangeJimsMelodyPart(score, melo::MelodyPart(part)));
         score->endCmd();
     } else {
         if (name != "elide" && name != "firstSystem") {

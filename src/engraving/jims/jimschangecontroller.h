@@ -24,7 +24,7 @@ class StaffType;
 class StaffTypeChange;
 }
 
-namespace mu::engraving::jims {
+namespace mu::engraving::melo {
 /// The effective JiMS state at `measure` on `staffIdx`: the carrier's state
 /// when the measure carries a JiMS change, otherwise the staff type in
 /// force at the measure's tick. False when the staff is not a JiMStaff.

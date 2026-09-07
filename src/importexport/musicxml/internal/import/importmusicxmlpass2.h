@@ -663,7 +663,7 @@ private:
     std::pair<int, int> m_swing = { 0, 0 };
     std::vector<engraving::EngravingItem*> m_elems;
     engraving::Fraction m_offset;
-    std::optional<engraving::jims::TuningTrajectory> m_jimsTrajectory;   // native JiMS import: transported carrier
+    std::optional<engraving::melo::TuningTrajectory> m_jimsTrajectory;   // native JiMS import: transported carrier
     engraving::track_idx_t m_track = muse::nidx;
 };
 

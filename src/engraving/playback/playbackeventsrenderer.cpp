@@ -76,7 +76,7 @@ static void appendDynamicTonalityProfile(const EngravingItem* item, PlaybackEven
 
     DynamicTonalityProfileEvent profile;
     String error;
-    if (jims::vst3ProfileTransaction(staffType->jimsStateJson(), 0, 0, 0, profile, &error)) {
+    if (melo::vst3ProfileTransaction(staffType->jimsStateJson(), 0, 0, 0, profile, &error)) {
         events.emplace_back(std::move(profile));
     } else {
         LOGE() << "JiMS VST3 profile preparation failed: " << error;

@@ -88,7 +88,7 @@ void SaveAndPublishPreferencesModel::setAlsoShareAudioCom(bool share)
 
 QString SaveAndPublishPreferencesModel::warnWhenSavingNotationLabel() const
 {
-    return engraving::jims::warnWhenSavingNotation().toQString();
+    return engraving::melo::warnWhenSavingNotation().toQString();
 }
 
 bool SaveAndPublishPreferencesModel::warnOnJimsSave() const

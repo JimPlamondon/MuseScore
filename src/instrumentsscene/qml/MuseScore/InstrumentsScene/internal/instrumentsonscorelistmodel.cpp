@@ -431,5 +431,5 @@ void InstrumentsOnScoreListModel::removeCustomizedScoreOrder(const ScoreOrder& o
 
 QString InstrumentsOnScoreListModel::jimsPresetName() const
 {
-    return mu::engraving::jims::presetName().toQString();
+    return mu::engraving::melo::presetName().toQString();
 }

@@ -1021,7 +1021,7 @@ SymId Note::noteHead() const
         const StaffType* jimsSt = st->staffTypeForElement(chord());
         if (jimsSt && jimsSt->isJiMS()) {
             muse::String token;
-            if (jims::noteheadToken(jimsSt->jimsStateJson(), m_jimsNGen, token)) {
+            if (melo::noteheadToken(jimsSt->jimsStateJson(), m_jimsNGen, token)) {
                 if (token == u"triangle-vertex-up") {
                     headGroup = NoteHeadGroup::HEAD_TRIANGLE_UP;
                 } else if (token == u"triangle-vertex-down") {
@@ -2958,17 +2958,17 @@ void Note::verticalDrag(EditData& ed)
             // Anchor at the drag-START cents: the total pointer offset
             // maps to one target, however many events arrive.
             const double targetCents = ned->jimsStartCents - ed.moveDelta.y() * centsPerSp;
-            jims::PitchHit hit;
-            if (jims::nearestPitch(jimsSt->jimsStateJson(), targetCents,
+            melo::PitchHit hit;
+            if (melo::nearestPitch(jimsSt->jimsStateJson(), targetCents,
                                    true, ned->jimsStartNPer, ned->jimsStartNGen, hit)) {
                 if (hit.nPer != m_jimsNPer || hit.nGen != m_jimsNGen) {
-                    jims::SoundingPitch projection;
-                    if (jims::noteSoundingPitch(jimsSt->jimsStateJson(), hit.nPer, hit.nGen, projection)) {
+                    melo::SoundingPitch projection;
+                    if (melo::noteSoundingPitch(jimsSt->jimsStateJson(), hit.nPer, hit.nGen, projection)) {
                         const int newTpc = step2tpc(int(muse::String(u"CDEFGAB").indexOf(muse::Char(projection.step))),
                                                     AccidentalVal(projection.alter));
                         for (Note* nn : tiedNotes()) {
                             nn->setJimsPitch(projection.nPer, projection.nGen);
-                            jims::widenExtentForNote(nn);
+                            melo::widenExtentForNote(nn);
                             nn->setPitch(projection.midiKey, newTpc, newTpc);
                             nn->setTuning(projection.centsOffset);
                             nn->triggerLayout();
@@ -3127,13 +3127,13 @@ void Note::updateRelLine(int absLine, bool undoable)
     // JiMStaff (Milestone 1): a note with a lattice identity on a JiMS
     // staff is placed by its Kernel-derived cents-above-Do through the
     // single StaffType seam — never by the diatonic step arithmetic
-    // above. The cents value is the Kernel's (jims::noteCentsAboveExtentLower);
+    // above. The cents value is the Kernel's (melo::noteCentsAboveExtentLower);
     // this branch only projects it to y.
     if (st->isJiMS() && hasJimsPitch()) {
         st->jimsEnsureFrame(score(), staffIdx());
         if (!m_jimsCentsValid) {
             double cents = 0.0;
-            if (jims::noteCentsAboveExtentLower(st->jimsStateJson(), m_jimsNPer, m_jimsNGen, cents)) {
+            if (melo::noteCentsAboveExtentLower(st->jimsStateJson(), m_jimsNPer, m_jimsNGen, cents)) {
                 setJimsCentsAboveDo(cents);
             }
         }
@@ -3162,7 +3162,7 @@ double Note::jimsPosY(const StaffType* st) const
 {
     double y = st->jimsYFromCents(m_jimsCentsAboveDo) * spatium();
     muse::String token;
-    if (jims::noteheadToken(st->jimsStateJson(), m_jimsNGen, token)) {
+    if (melo::noteheadToken(st->jimsStateJson(), m_jimsNGen, token)) {
         if (token == u"triangle-vertex-up") {
             y -= headHeight() / 6.0;
         } else if (token == u"triangle-vertex-down") {
@@ -3240,12 +3240,12 @@ void Note::setNval(const NoteVal& nval, Fraction tick)
                 const char letter = "CDEFGAB"[tpc2step(tpcNow)];
                 const int alter = int(tpc2alter(tpcNow));
                 const int octave = (m_pitch - alter) / 12 - 1;
-                jims::SoundingPitch projection;
-                if (jims::entryFromStandardPitch(jimsSt->jimsStateJson(), letter, alter, octave, projection)) {
+                melo::SoundingPitch projection;
+                if (melo::entryFromStandardPitch(jimsSt->jimsStateJson(), letter, alter, octave, projection)) {
                     const int step = int(String(u"CDEFGAB").indexOf(Char(projection.step)));
                     const int tpc = step2tpc(step, AccidentalVal(projection.alter));
                     setJimsPitch(projection.nPer, projection.nGen);
-                    jims::widenExtentForNote(this);
+                    melo::widenExtentForNote(this);
                     setPitch(projection.midiKey, tpc, tpc);
                     setTuning(projection.centsOffset);
                 }

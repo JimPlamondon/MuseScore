@@ -342,7 +342,7 @@ EditStyle::EditStyle(QWidget* parent)
     jimsLayout->addWidget(jimsFirstSystem);
     jimsLayout->addStretch();
     pageStack->addWidget(jimsPage);
-    pageList->addItem(jims::featureName().toQString());
+    pageList->addItem(melo::featureName().toQString());
 
     styleWidgets = {
         { StyleId::jimsElideEmptyOctaves, false, jimsElide, 0 },
@@ -1325,7 +1325,7 @@ void EditStyle::retranslate()
 {
     retranslateUi(this);
     if (auto* page = findChild<QWidget*>("jimsStylePage")) {
-        pageList->item(pageStack->indexOf(page))->setText(jims::featureName().toQString());
+        pageList->item(pageStack->indexOf(page))->setText(melo::featureName().toQString());
         auto* elide = page->findChild<QCheckBox*>("jimsElide");
         elide->setText(muse::qtrc("notation/editstyle", "Elide empty octaves (hollow stacks)"));
         elide->setToolTip(muse::qtrc("notation/editstyle",

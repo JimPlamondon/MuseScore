@@ -189,10 +189,10 @@ TEST(Vst_ExactPitchRpcTests, newWriterNewReaderRoundTripsExactPitchInsideNoteEve
     // Inside a NoteEvent followed by its ExpressionContext (the peek must
     // not confuse the tail with the articulations map) and inside a
     // PlaybackEventsMap mixing stock and JiMS notes.
-    NoteEvent jims(100, 50, 0, 0, 3100, 3000, ArticulationMap(), 2.0, 0.0f, PitchCurve(), sampleExact());
+    NoteEvent melo(100, 50, 0, 0, 3100, 3000, ArticulationMap(), 2.0, 0.0f, PitchCurve(), sampleExact());
     NoteEvent stock(1000, 500, 0, 0, 4200, 3000, ArticulationMap(), 2.0, 0.0f, PitchCurve());
     PlaybackEventsMap map;
-    map[100].push_back(jims);
+    map[100].push_back(melo);
     map[100].push_back(stock);
     map[1000].push_back(stock);
     PlaybackEventsMap unpacked;
@@ -201,7 +201,7 @@ TEST(Vst_ExactPitchRpcTests, newWriterNewReaderRoundTripsExactPitchInsideNoteEve
     ASSERT_EQ(unpacked[100].size(), 2u);
     const NoteEvent& j = std::get<NoteEvent>(unpacked[100][0]);
     const NoteEvent& s = std::get<NoteEvent>(unpacked[100][1]);
-    EXPECT_TRUE(j == jims);
+    EXPECT_TRUE(j == melo);
     EXPECT_TRUE(s == stock);
     ASSERT_TRUE(j.pitchCtx().exactPitch.has_value());
     EXPECT_FALSE(s.pitchCtx().exactPitch.has_value());

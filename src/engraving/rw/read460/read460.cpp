@@ -64,10 +64,10 @@
 using namespace mu::engraving;
 using namespace mu::engraving::read460;
 
-static jims::ReviewValue readJimsReviewValue(XmlReader& e)
+static melo::ReviewValue readJimsReviewValue(XmlReader& e)
 {
-    using Kind = jims::ReviewValue::Kind;
-    jims::ReviewValue v;
+    using Kind = melo::ReviewValue::Kind;
+    melo::ReviewValue v;
     v.name = e.attribute("n");
     const AsciiStringView tag = e.name();
     if (tag == "o" || tag == "a") {
@@ -92,9 +92,9 @@ static jims::ReviewValue readJimsReviewValue(XmlReader& e)
 }
 
 /// Read the JiMS evidentiary review record (jims/jimsreview.h).
-static jims::ReviewRecord readJimsReview(XmlReader& e)
+static melo::ReviewRecord readJimsReview(XmlReader& e)
 {
-    jims::ReviewRecord review;
+    melo::ReviewRecord review;
     review.schema = e.attribute("schema");
     while (e.readNextStartElement()) {
         const AsciiStringView tag = e.name();
@@ -105,7 +105,7 @@ static jims::ReviewRecord readJimsReview(XmlReader& e)
         } else if (tag == "focusedReviewReason") {
             review.focusedReviewReasons.push_back(e.readText());
         } else if (tag == "audit") {
-            jims::ReviewAudit a;
+            melo::ReviewAudit a;
             a.changeId = e.attribute("id");
             a.date = e.attribute("date");
             a.phase = e.attribute("phase");
@@ -118,7 +118,7 @@ static jims::ReviewRecord readJimsReview(XmlReader& e)
             }
             review.audits.push_back(a);
         } else if (tag == "adjudication") {
-            jims::ReviewAdjudication adj;
+            melo::ReviewAdjudication adj;
             adj.annotId = e.attribute("id");
             adj.outcome = e.attribute("outcome");
             adj.reviewer = e.attribute("reviewer");
@@ -197,13 +197,13 @@ muse::Ret Read460::readScoreFile(Score* score, XmlReader& e, rw::ReadInOutData* 
     for (const Staff* staff : score->staves()) {
         std::vector<const StaffType*> states { staff->staffType(Fraction(0, 1)) };
         for (const Measure* measure = score->firstMeasure(); measure; measure = measure->nextMeasure()) {
-            for (const StaffTypeChange* carrier : jims::changeCarriers(measure, staff->idx())) {
+            for (const StaffTypeChange* carrier : melo::changeCarriers(measure, staff->idx())) {
                 states.push_back(carrier->staffType());
             }
         }
         for (const StaffType* state : states) {
             String error;
-            if (state && state->isJiMS() && !jims::validateState(state->jimsStateJson(), error)) {
+            if (state && state->isJiMS() && !melo::validateState(state->jimsStateJson(), error)) {
                 return make_ret(Err::FileBadFormat,
                                 muse::mtrc("engraving",
                                            "This score contains JiMS data that this version cannot read. The original file has not been changed. Open it in the JiMS version that saved it, and keep a native copy. Details: %1")
@@ -216,9 +216,9 @@ muse::Ret Read460::readScoreFile(Score* score, XmlReader& e, rw::ReadInOutData* 
     // empty SATB staves receive the Kernel's declared-range default. The
     // designated melody supplies the one song-wide tonic ambit only for a
     // legacy/incomplete score. An explicit transported token is authoritative.
-    jims::reconcileExtents(score);
-    if (!jims::hasCompleteTonicAmbits(score)) {
-        jims::deriveTonicAmbits(score);
+    melo::reconcileExtents(score);
+    if (!melo::hasCompleteTonicAmbits(score)) {
+        melo::deriveTonicAmbits(score);
     }
 
     if (data) {
@@ -294,11 +294,11 @@ bool Read460::readScoreTag(Score* score, XmlReader& e, ReadContext& ctx)
             String name = e.attribute("name");
             score->setMetaTag(name, e.readText());
         } else if (tag == "jimsProvenance") {
-            jims::Provenance prov;
+            melo::Provenance prov;
             prov.strictFallback = e.intAttribute("strict", 0) != 0;
             while (e.readNextStartElement()) {
                 if (e.name() == "resource") {
-                    jims::ProvenanceResource r;
+                    melo::ProvenanceResource r;
                     r.role = e.attribute("role");
                     r.uri = e.attribute("uri");
                     r.mediaType = e.attribute("mediaType");
@@ -313,8 +313,8 @@ bool Read460::readScoreTag(Score* score, XmlReader& e, ReadContext& ctx)
         } else if (tag == "jimsReview") {
             score->setJimsReview(readJimsReview(e));
         } else if (tag == "jimsMelodyPart") {
-            jims::MelodyPart part = jims::MelodyPart::Soprano;
-            if (jims::melodyPartFromToken(e.readText().trimmed(), part)) {
+            melo::MelodyPart part = melo::MelodyPart::Soprano;
+            if (melo::melodyPartFromToken(e.readText().trimmed(), part)) {
                 score->setJimsMelodyPart(part);
             }
         } else if (tag == "Order") {

@@ -44,7 +44,7 @@
 
 #include "../types/fraction.h"
 
-namespace mu::engraving::jims {
+namespace mu::engraving::melo {
 /// One node of the typed review value tree (the .mscz and MEI encodings
 /// share this shape; see the jm value elements of the mei-jims profile).
 struct ReviewValue {
@@ -125,4 +125,4 @@ struct ReviewRecord {
 
     bool operator!=(const ReviewRecord& o) const { return !(*this == o); }
 };
-} // namespace mu::engraving::jims
+} // namespace mu::engraving::melo

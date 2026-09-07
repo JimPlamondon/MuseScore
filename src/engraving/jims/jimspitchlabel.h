@@ -21,7 +21,7 @@ namespace muse::draw {
 class Painter;
 }
 
-namespace mu::engraving::jims {
+namespace mu::engraving::melo {
 struct PitchLabelParts {
     muse::String beforeAccidental;
     muse::String afterAccidental;

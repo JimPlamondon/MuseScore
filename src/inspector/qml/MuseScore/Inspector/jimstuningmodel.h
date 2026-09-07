@@ -59,7 +59,7 @@ private:
     bool valid(double value);
     void reportError(const QString& error);
     notation::INotationPtr m_notation;
-    std::unique_ptr<engraving::jims::TuningController> m_controller;
+    std::unique_ptr<engraving::melo::TuningController> m_controller;
     double m_minimum = 0.0;
     double m_maximum = 0.0;
     double m_originalCents = 0.0;

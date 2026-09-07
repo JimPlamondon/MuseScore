@@ -143,7 +143,7 @@ public:
     engraving::Err parse(const muse::ByteArray& data);
     engraving::Err parse();
     muse::String errors() const { return m_errors; }
-    const MeloImportContext& jims() const { return m_jims; }
+    const MeloImportContext& melo() const { return m_jims; }
     bool jimsProvenanceError() const { return m_jimsProvenanceError; }
     void scorePartwise();
     void identification();

@@ -46,7 +46,7 @@ private:
     QString m_status;
     bool m_hasError = false;
     QString m_targetIdentity;
-    engraving::jims::StateChangeOptions m_options;
+    engraving::melo::StateChangeOptions m_options;
     std::vector<std::vector<muse::String> > m_scaleSteps;
 };
 }

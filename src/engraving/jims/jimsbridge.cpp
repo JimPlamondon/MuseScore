@@ -16,7 +16,7 @@
 
 using namespace muse;
 
-namespace mu::engraving::jims {
+namespace mu::engraving::melo {
 static String callBridge(const String& envelope)
 {
     ByteArray utf8 = envelope.toUtf8();

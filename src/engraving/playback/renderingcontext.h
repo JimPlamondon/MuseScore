@@ -155,9 +155,9 @@ struct NominalNoteCtx {
         if (note->hasJimsPitch() && note->staff()) {
             const StaffType* st = note->staff()->staffTypeForElement(note);
             if (st && st->isJiMS()) {
-                jims::SoundingPitch sp;
+                melo::SoundingPitch sp;
                 muse::String error;
-                if (jims::noteSoundingPitch(st->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), sp, &error)) {
+                if (melo::noteSoundingPitch(st->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), sp, &error)) {
                     if (exactPitch) {
                         // The same Kernel answer, lossless: frequency, the
                         // transport key + full residual cents, and the

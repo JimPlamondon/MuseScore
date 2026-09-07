@@ -1307,16 +1307,16 @@ static double jimsChangeTerrainExtra(const Segment* f, const Segment* ns)
     // of its system and whose successor carries a JiMS change: reserve it
     // before the closing barline (the pair last-content -> end barline).
     if (f->measure() == ns->measure() && (ns->segmentType() & SegmentType::EndBarLine)) {
-        return jims::courtesyTerrainWidth(ns->measure());
+        return melo::courtesyTerrainWidth(ns->measure());
     }
     if (f->measure() == ns->measure()) {
-        const double terrain = jims::changeTerrainWidthAt(ns->measure(), ns->tick());
+        const double terrain = melo::changeTerrainWidthAt(ns->measure(), ns->tick());
         return terrain > 0.0 ? terrain + ns->style().styleMM(Sid::barNoteDistance) : 0.0;
     }
     if (ns->tick() != ns->measure()->tick()) {
         return 0.0;
     }
-    return jims::changeTerrainWidth(ns->measure());
+    return melo::changeTerrainWidth(ns->measure());
 }
 
 double HorizontalSpacing::minHorizontalDistance(const Segment* f, const Segment* ns, double squeezeFactor)

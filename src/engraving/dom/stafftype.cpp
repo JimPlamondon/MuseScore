@@ -809,8 +809,8 @@ MeloScaleDotLabelMode StaffType::jimsResolvedScaleDotLabelMode() const
     double periodCents = 0.0;
     double minCents = 0.0;
     double maxCents = 0.0;
-    if (!jims::staffMetrics(m_jimsStateJson, generatorCents, periodCents)
-        || !jims::labelLegibilityRange(minCents, maxCents)) {
+    if (!melo::staffMetrics(m_jimsStateJson, generatorCents, periodCents)
+        || !melo::labelLegibilityRange(minCents, maxCents)) {
         return MeloScaleDotLabelMode::None;
     }
     return (generatorCents > minCents && generatorCents < maxCents)
@@ -847,22 +847,22 @@ StaffType::MeloHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
     FontMetrics fm(labelFont);
     const IEngravingFontPtr engravingFont = m_score ? m_score->engravingFont() : nullptr;
     const double gap = 0.25 * spatium;
-    std::vector<jims::LabeledDotStack> stacks;
-    const bool haveLabels = jims::scaleDotLabels(m_jimsStateJson, stacks);
+    std::vector<melo::LabeledDotStack> stacks;
+    const bool haveLabels = melo::scaleDotLabels(m_jimsStateJson, stacks);
     // Current-key label "[PitchN]:" to the right of Do's scale dot (owner
     // corrections 2026-08-30): its established home is inside the open
     // curve of the crescent clef. It contributes to change-terrain width,
     // but MUST NOT reserve a header label band or move the scale-dot stack.
-    jims::TonicPitchLabel key;
-    double keyAdvance = jims::tonicPitchLabel(m_jimsStateJson, key)
-                        ? jims::pitchLabelLayout(key.label + u": ", labelFont, engravingFont).advance : 0.0;
+    melo::TonicPitchLabel key;
+    double keyAdvance = melo::tonicPitchLabel(m_jimsStateJson, key)
+                        ? melo::pitchLabelLayout(key.label + u": ", labelFont, engravingFont).advance : 0.0;
     if (view && keyAdvance > 0.0) {
         // Milestone 8: reserve for the widest band label of this system (the
         // whole-piece view is one band carrying its own row's label).
         for (const MeloFrameBand& band : view->bands) {
             if (!band.tonicLabel.isEmpty()) {
                 keyAdvance = std::max(keyAdvance,
-                                      jims::pitchLabelLayout(band.tonicLabel + u": ", labelFont, engravingFont).advance);
+                                      melo::pitchLabelLayout(band.tonicLabel + u": ", labelFont, engravingFont).advance);
             }
         }
     }
@@ -874,8 +874,8 @@ StaffType::MeloHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
         // should be the same too; moving Grey labels right emphasised
         // difference). The right band stays zero.
         double widest = 0.0;
-        for (const jims::LabeledDotStack& stack : stacks) {
-            for (const jims::LabeledDotMember& member : stack.members) {
+        for (const melo::LabeledDotStack& stack : stacks) {
+            for (const melo::LabeledDotMember& member : stack.members) {
                 widest = std::max(widest, fm.horizontalAdvance(member.label));
             }
         }
@@ -908,10 +908,10 @@ StaffType::MeloHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
     }
     double maxLeft = 0.0;
     double maxRight = 0.0;
-    for (const jims::LabeledDotStack& stack : stacks) {
+    for (const melo::LabeledDotStack& stack : stacks) {
         String leftText;
         String rightText;
-        for (const jims::LabeledDotMember& member : stack.members) {
+        for (const melo::LabeledDotMember& member : stack.members) {
             const bool leftSide = (mode == MeloScaleDotLabelMode::Left) || member.nGen <= 0;
             String& side = leftSide ? leftText : rightText;
             if (!side.isEmpty()) {
@@ -990,14 +990,14 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
     // staff type's frame (its own section start) is part of the derivation
     // input — when no Do-line keeps it on the staff, the frame is re-derived
     // covering it. Its old and new states are the key's extra ingredient.
-    jims::ChangeIndicator intoThis;
-    const bool hasIndicator = jims::changeIndicatorsTouchingStaffType(score, staffIdx, this, intoThis);
+    melo::ChangeIndicator intoThis;
+    const bool hasIndicator = melo::changeIndicatorsTouchingStaffType(score, staffIdx, this, intoThis);
     muse::String indicatorKey;
     if (hasIndicator) {
-        for (const jims::ChangePoint& p : intoThis.tonicIndicators) {
+        for (const melo::ChangePoint& p : intoThis.tonicIndicators) {
             indicatorKey += muse::String(u"t%1/%2;").arg(p.ordinate).arg(p.periodOffset);
         }
-        for (const jims::ChangeArrow& a : intoThis.arrows) {
+        for (const melo::ChangeArrow& a : intoThis.arrows) {
             indicatorKey += muse::String(u"a%1/%2>%3/%4;").arg(a.from.ordinate).arg(a.from.periodOffset)
                             .arg(a.to.ordinate).arg(a.to.periodOffset);
         }
@@ -1015,10 +1015,10 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
         if (token.isEmpty()) {
             LOGE() << "JiMStaff: no declared tonic-ambit token; frame unavailable for staff " << staffIdx;
         } else {
-            std::vector<jims::StaveSegment> segments;
-            if (jims::frameForMelody(jimsStateJson(), melody, token, segments, {}, m_jimsRatioLineExtentJson,
+            std::vector<melo::StaveSegment> segments;
+            if (melo::frameForMelody(jimsStateJson(), melody, token, segments, {}, m_jimsRatioLineExtentJson,
                                      !m_jimsExtentIsEmptyDefault)) {
-                for (const jims::StaveSegment& segment : segments) {
+                for (const melo::StaveSegment& segment : segments) {
                     cached.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
                 }
                 if (hasIndicator && jimsPeriodCents() > 0.0) {
@@ -1031,17 +1031,17 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
                         band.upperCents = cached.back().upperCents;
                     }
                     provisional.bands.push_back(band);
-                    jims::PeriodicOrigins origins;
-                    const std::vector<double> extra = jims::periodicOrigins(jimsStateJson(), origins)
-                                                      ? jims::changeIndicatorOverflowCents(
+                    melo::PeriodicOrigins origins;
+                    const std::vector<double> extra = melo::periodicOrigins(jimsStateJson(), origins)
+                                                      ? melo::changeIndicatorOverflowCents(
                         provisional, intoThis, jimsPeriodCents(), origins.doCentsAboveExtentLower)
                                                       : std::vector<double>();
                     if (!extra.empty()) {
-                        std::vector<jims::StaveSegment> covering;
-                        if (jims::frameForMelody(jimsStateJson(), melody, token, covering, extra,
+                        std::vector<melo::StaveSegment> covering;
+                        if (melo::frameForMelody(jimsStateJson(), melody, token, covering, extra,
                                                  m_jimsRatioLineExtentJson, !m_jimsExtentIsEmptyDefault)) {
                             cached.clear();
-                            for (const jims::StaveSegment& segment : covering) {
+                            for (const melo::StaveSegment& segment : covering) {
                                 cached.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
                             }
                         }
@@ -1071,7 +1071,7 @@ double StaffType::jimsPeriodCents() const
 {
     double generatorCents = 0.0;
     double periodCents = 0.0;
-    if (!isJiMS() || !jims::staffMetrics(jimsStateJson(), generatorCents, periodCents)) {
+    if (!isJiMS() || !melo::staffMetrics(jimsStateJson(), generatorCents, periodCents)) {
         return 0.0;
     }
     return periodCents;
@@ -1279,8 +1279,8 @@ const StaffType::MeloFrameView& StaffType::jimsWholeFrameView(const Score* score
             // the row and the label come from the Kernel (tonic_cents_above_do,
             // tonic_pitch_label with period_index); nothing is inferred here.
             band.labelPeriodIndex = band.lowestPeriodIndex;
-            jims::PeriodicOrigins origins;
-            if (jims::periodicOrigins(jimsStateJson(), origins)) {
+            melo::PeriodicOrigins origins;
+            if (melo::periodicOrigins(jimsStateJson(), origins)) {
                 for (int k = band.lowestPeriodIndex; k <= band.highestPeriodIndex; ++k) {
                     const double row = double(k) * periodCents + origins.tonicCentsAboveExtentLower;
                     if (row >= band.lowerCents - 1e-6 && row <= band.upperCents + 1e-6) {
@@ -1289,8 +1289,8 @@ const StaffType::MeloFrameView& StaffType::jimsWholeFrameView(const Score* score
                     }
                 }
             }
-            jims::TonicPitchLabel label;
-            if (jims::tonicPitchLabelInPeriod(jimsStateJson(), band.labelPeriodIndex, label)) {
+            melo::TonicPitchLabel label;
+            if (melo::tonicPitchLabelInPeriod(jimsStateJson(), band.labelPeriodIndex, label)) {
                 band.tonicLabel = label.label;
             }
         }
@@ -1381,8 +1381,8 @@ const StaffType::MeloFrameView& StaffType::jimsFrameView(const Score* score, sta
     // Owner rule 2026-08-19 (7b): the change indicator drawn against this
     // staff type's frame is part of the derivation input (see the whole-
     // piece derivation); it only matters on the system that draws it.
-    jims::ChangeIndicator intoThis;
-    auto appendIndicator = [&](const jims::ChangeIndicator& model) {
+    melo::ChangeIndicator intoThis;
+    auto appendIndicator = [&](const melo::ChangeIndicator& model) {
         for (const muse::String& kind : model.kinds) {
             if (std::find(intoThis.kinds.begin(), intoThis.kinds.end(), kind) == intoThis.kinds.end()) {
                 intoThis.kinds.push_back(kind);
@@ -1395,19 +1395,19 @@ const StaffType::MeloFrameView& StaffType::jimsFrameView(const Score* score, sta
     };
     const Staff* staff = score->staff(staffIdx);
     for (const Measure* measure = fm; measure; measure = measure->nextMeasure()) {
-        jims::ChangeIndicator model;
+        melo::ChangeIndicator model;
         const StaffType* terrainStaffType = nullptr;
-        if (jims::midSystemChangeIndicator(measure, staffIdx, model, &terrainStaffType)
+        if (melo::midSystemChangeIndicator(measure, staffIdx, model, &terrainStaffType)
             && terrainStaffType == this) {
             appendIndicator(model);
         }
-        for (const StaffTypeChange* carrier : jims::changeCarriers(measure, staffIdx)) {
+        for (const StaffTypeChange* carrier : melo::changeCarriers(measure, staffIdx)) {
             if (carrier->rtick().isZero()) {
                 continue;
             }
             const Fraction before = Fraction::fromTicks(std::max(0, carrier->tick().ticks() - 1));
             if (staff && staff->staffType(before) == this
-                && jims::midBarChangeIndicator(carrier, model, nullptr)) {
+                && melo::midBarChangeIndicator(carrier, model, nullptr)) {
                 appendIndicator(model);
             }
         }
@@ -1415,19 +1415,19 @@ const StaffType::MeloFrameView& StaffType::jimsFrameView(const Score* score, sta
             break;
         }
     }
-    jims::ChangeIndicator courtesy;
+    melo::ChangeIndicator courtesy;
     const StaffType* courtesyStaffType = nullptr;
-    if (jims::courtesyChangeIndicator(lm, staffIdx, courtesy, &courtesyStaffType)
+    if (melo::courtesyChangeIndicator(lm, staffIdx, courtesy, &courtesyStaffType)
         && courtesyStaffType == this) {
         appendIndicator(courtesy);
     }
     const bool hasIndicator = !intoThis.empty();
     muse::String indicatorKey;
     if (hasIndicator) {
-        for (const jims::ChangePoint& p : intoThis.tonicIndicators) {
+        for (const melo::ChangePoint& p : intoThis.tonicIndicators) {
             indicatorKey += muse::String(u"t%1/%2;").arg(p.ordinate).arg(p.periodOffset);
         }
-        for (const jims::ChangeArrow& a : intoThis.arrows) {
+        for (const melo::ChangeArrow& a : intoThis.arrows) {
             indicatorKey += muse::String(u"a%1/%2>%3/%4;").arg(a.from.ordinate).arg(a.from.periodOffset)
                             .arg(a.to.ordinate).arg(a.to.periodOffset);
         }
@@ -1446,15 +1446,15 @@ const StaffType::MeloFrameView& StaffType::jimsFrameView(const Score* score, sta
     const double ld = m_lineDistance.val();
     view.gapLd = ld > 0.0 ? score->style().styleS(Sid::staffDistance).val() / ld : 0.0;
     auto deriveBands = [&](const std::vector<double>& extra, MeloFrameView& into) -> bool {
-        jims::FrameBands bands;
-        if (!jims::frameBandsForMelody(jimsStateJson(), melody, token, true, 1, bands, extra,
+        melo::FrameBands bands;
+        if (!melo::frameBandsForMelody(jimsStateJson(), melody, token, true, 1, bands, extra,
                                        m_jimsRatioLineExtentJson, !m_jimsExtentIsEmptyDefault)) {
             return false;
         }
         into.bands.clear();
-        for (const jims::FrameBand& kb : bands.bands) {
+        for (const melo::FrameBand& kb : bands.bands) {
             MeloFrameBand band;
-            for (const jims::StaveSegment& segment : kb.segments) {
+            for (const melo::StaveSegment& segment : kb.segments) {
                 band.segments.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
             }
             band.lowerCents = kb.lowerCents;
@@ -1480,9 +1480,9 @@ const StaffType::MeloFrameView& StaffType::jimsFrameView(const Score* score, sta
         LOGE() << "JiMStaff: no declared tonic-ambit token; banded frame unavailable for staff " << staffIdx;
     } else if (deriveBands({}, view)) {
         if (hasIndicator && jimsPeriodCents() > 0.0) {
-            jims::PeriodicOrigins origins;
-            const std::vector<double> extra = jims::periodicOrigins(jimsStateJson(), origins)
-                                              ? jims::changeIndicatorOverflowCents(
+            melo::PeriodicOrigins origins;
+            const std::vector<double> extra = melo::periodicOrigins(jimsStateJson(), origins)
+                                              ? melo::changeIndicatorOverflowCents(
                 view, intoThis, jimsPeriodCents(), origins.doCentsAboveExtentLower)
                                               : std::vector<double>();
             if (!extra.empty()) {
@@ -1909,20 +1909,20 @@ void StaffType::initStaffTypes(const Color& defaultColor)
     // distance). Clef, key signatures, and ledger lines are suppressed;
     // Kernel-selected ratio-lines are drawn by the JiMS StaffLines branch.
     // Keep in sync with StaffTypes::JIMS_12TET.
-    StaffType jims(StaffGroup::STANDARD, u"jims12tet", jims::presetName(),
+    StaffType melo(StaffGroup::STANDARD, u"jims12tet", melo::presetName(),
                    13, 0, 1, false, true, false, true, false, false, false, defaultColor);
-    jims.setJiMS(true);
-    jims.setJimsJiLines(true);
+    melo.setJiMS(true);
+    melo.setJimsJiLines(true);
     // Kernel-owned default section state: White collection, Do-mode,
     // 12-TET, one Do-bounded period from register 4 (JiMStaffStateV1).
-    jims.setJimsStateJson(String::fromUtf8(
+    melo.setJimsStateJson(String::fromUtf8(
                               "{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],"
                               "\"collection_rotation\":0,\"mode_rotation\":0,"
                               "\"generator_cents\":700.0,\"period_cents\":1200.0,"
                               "\"embedding\":{\"large_steps\":5,\"small_steps\":2},"
                               "\"extent\":{\"lower\":{\"nPer\":1,\"nGen\":-2},\"upper\":{\"nPer\":2,\"nGen\":-2}},"
                               "\"reference\":\"none\",\"tonic_ambit\":\"tonic-bounded\"}"));
-    m_presets.push_back(jims);
+    m_presets.push_back(melo);
 }
 /* *INDENT-ON* */
 } // namespace mu::engraving

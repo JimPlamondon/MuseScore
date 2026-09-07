@@ -29,7 +29,7 @@
 
 using namespace muse;
 
-namespace mu::engraving::jims {
+namespace mu::engraving::melo {
 namespace {
 // One undoable edit covering every JiMS span in the score: flip() swaps all
 // captured state JSONs at once, so undo/redo is a single step.
@@ -288,7 +288,7 @@ bool TuningController::commit(double generatorCents)
     }
     restoreSpans(original);
     const auto t0 = std::chrono::steady_clock::now();
-    m_score->startCmd(mu::engraving::jims::changeTuningAction());
+    m_score->startCmd(mu::engraving::melo::changeTuningAction());
     m_score->undo(new MeloChangeStaffStates(std::move(staves), std::move(ticks), std::move(states)));
     size_t repairs = 0;
     String error;

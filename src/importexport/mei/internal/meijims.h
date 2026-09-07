@@ -137,7 +137,7 @@ private:
     pugi::xml_document m_recordDoc;
     pugi::xml_node m_record;
     std::map<std::string, int> m_staffDefN;    // staffDef xml:id -> @n
-    std::vector<engraving::jims::ProvenanceResource> m_provResources;
+    std::vector<engraving::melo::ProvenanceResource> m_provResources;
     struct ChangeEntry {
         muse::String date;
         muse::String phase;
