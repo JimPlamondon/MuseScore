@@ -45,3 +45,14 @@ jobs:
           git diff
           exit 1
         fi
+
+  melo_identity_assets:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v6
+    - name: Verify canonical icon masters and centralized names
+      run: |
+        python3 tools/melo/generate_app_icons.py --check
+        python3 tools/melo/check_melo_strings.py
+        python3 -m unittest discover -s tools/melo/tests
+        python3 tools/melo/test_enriched_to_melo_mscx.py

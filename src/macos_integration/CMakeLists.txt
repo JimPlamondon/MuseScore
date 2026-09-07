@@ -52,6 +52,7 @@ target_link_libraries(MuseScoreQuickLookPreviewExtension PRIVATE
 )
 
 target_include_directories(MuseScoreQuickLookPreviewExtension PRIVATE
+    ${PROJECT_BINARY_DIR}
     ${PROJECT_SOURCE_DIR}/src
 
     ${MUSE_FRAMEWORK_PATH}
@@ -76,6 +77,7 @@ target_compile_options(MuseScoreQuickLookPreviewExtension PRIVATE
 )
 
 target_link_options(MuseScoreQuickLookPreviewExtension PRIVATE
+    "SHELL:-Xlinker -headerpad_max_install_names"
     "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xlinker -e>"
     "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xlinker _NSExtensionMain>"
 )
@@ -86,12 +88,12 @@ set_target_properties(MuseScoreQuickLookPreviewExtension PROPERTIES
     XCODE_ATTRIBUTE_WRAPPER_EXTENSION appex
     XCODE_ATTRIBUTE_GENERATE_PKGINFO_FILE YES
     MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist"
-    MACOSX_BUNDLE_BUNDLE_NAME "MuseScoreQuickLookPreviewExtension"
+    MACOSX_BUNDLE_BUNDLE_NAME "${MELO_SCORE_APP_NAME} Preview"
     MACOSX_BUNDLE_BUNDLE_VERSION "${CMAKE_BUILD_NUMBER}"
     MACOSX_BUNDLE_COPYRIGHT "Copyright © 1999-2026 MuseScore Limited. Published under the GNU General Public License version 3."
-    MACOSX_BUNDLE_GUI_IDENTIFIER "org.musescore.MuseScore.QuickLookPreviewExtension"
+    MACOSX_BUNDLE_GUI_IDENTIFIER "${MELO_SCORE_APP_ID}.quicklook"
     MACOSX_BUNDLE_LONG_VERSION_STRING "${MUSE_APP_VERSION}"
-    MACOSX_BUNDLE_SHORT_VERSION_STRING "${MUSE_APP_VERSION}"
+    MACOSX_BUNDLE_SHORT_VERSION_STRING "${MELO_SCORE_APP_VERSION}"
     OSX_ARCHITECTURES ""
 )
 

@@ -31,7 +31,7 @@ import MuseScore.Preferences
 Page {
     id: root
 
-    title: qsTrc("appshell/gettingstarted", "Welcome to MuseScore Studio")
+    title: qsTrc("appshell/gettingstarted", "Welcome to %1").arg(Qt.application.displayName)
     explanation: qsTrc("appshell/gettingstarted", "Let’s get started by choosing a theme.")
 
     titleContentSpacing: model.isFollowSystemThemeAvailable ? 24 : 28

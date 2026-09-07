@@ -141,7 +141,7 @@ TEST_F(Project_TemplatesRepositoryTest, Templates)
         "/path/to/user/templates/without/categories_json/BBB.mscx"
     };
 
-    std::vector<std::string> filters = { "*.mscz", "*.mscx" };
+    std::vector<std::string> filters = { "*.meloscore", "*.mscz", "*.mscx" };
     ON_CALL(*m_fileSystem, scanFiles(otherUserTemplatesDir, filters, ScanMode::FilesInCurrentDirAndSubdirs))
     .WillByDefault(Return(RetVal<io::paths_t>::make_ok(otherUserTemplates)));
 

@@ -41,7 +41,7 @@ bool AppUpdateScenario::needCheckForUpdate() const
 
 void AppUpdateScenario::checkForUpdate(bool manual)
 {
-    if (m_checkInProgress) {
+    if (!configuration()->isAppUpdatable() || m_checkInProgress) {
         return;
     }
 

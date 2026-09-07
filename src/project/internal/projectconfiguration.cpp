@@ -67,8 +67,8 @@ static const Settings::Key SHOW_MELO_STOCK_LOSS_WARNING(module_name, "project/sh
 static const Settings::Key DISABLE_VERSION_CHECKING(module_name, "project/disableVersionChecking");
 static const Settings::Key CREATE_BACKUP_BEFORE_SAVING(module_name, "project/createBackupBeforeSaving");
 
-static const std::string DEFAULT_FILE_SUFFIX(".mscz");
-static const std::string DEFAULT_FILE_FILTER("*.mscz");
+static const std::string DEFAULT_FILE_SUFFIX(".meloscore");
+static const std::string DEFAULT_FILE_FILTER("*.meloscore");
 
 ProjectConfiguration::ProjectConfiguration(const muse::modularity::ContextPtr& iocCtx)
     : muse::Contextable(iocCtx)
@@ -735,7 +735,7 @@ muse::io::path_t ProjectConfiguration::projectBackupPath(const muse::io::path_t&
     muse::io::path_t projectDir = io::absoluteDirpath(projectPath);
     muse::io::path_t projectName = io::filename(projectPath);
 
-    return projectDir + "/.mscbackup/." + projectName + "~";
+    return projectDir + "/.melopresto-backup/." + projectName + "~";
 }
 
 bool ProjectConfiguration::showCloudIsNotAvailableWarning() const

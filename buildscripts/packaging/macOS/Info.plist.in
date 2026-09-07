@@ -2,116 +2,41 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>${MELO_SCORE_APP_NAME} uses this folder for your scores, templates, soundfonts and plugins.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
-
-	<key>UTExportedTypeDeclarations</key>
-	<array>
-		<!-- MuseScore documents -->
-		<dict>
-			<key>UTTypeIdentifier</key>
-			<string>org.musescore.mscz</string>
-			<key>UTTypeDescription</key>
-			<string>MuseScore File</string>
-			<key>UTTypeIconFile</key>
-			<string>MsczIcon.icns</string>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>public.data</string>
-				<string>public.content</string>
-			</array>
-			<key>UTTypeTagSpecification</key>
-			<dict>
-				<key>public.filename-extension</key>
-				<array>
-					<string>mscz</string>
-				</array>
-				<key>public.mime-type</key>
-				<array>
-					<string>application/x-musescore</string>
-				</array>
-			</dict>
-		</dict>
-		<dict>
-			<key>UTTypeIdentifier</key>
-			<string>org.musescore.mscx</string>
-			<key>UTTypeDescription</key>
-			<string>MuseScore Uncompressed File</string>
-			<key>UTTypeIconFile</key>
-			<string>MscxIcon.icns</string>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>public.data</string>
-				<string>public.content</string>
-			</array>
-			<key>UTTypeTagSpecification</key>
-			<dict>
-				<key>public.filename-extension</key>
-				<array>
-					<string>mscx</string>
-				</array>
-				<key>public.mime-type</key>
-				<array>
-					<string>application/x-musescore+xml</string>
-				</array>
-			</dict>
-		</dict>
-		<dict>
-			<key>UTTypeIdentifier</key>
-			<string>org.musescore.mscs</string>
-			<key>UTTypeDescription</key>
-			<string>MuseScore Stand-alone File</string>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>public.data</string>
-				<string>public.content</string>
-			</array>
-			<key>UTTypeTagSpecification</key>
-			<dict>
-				<key>public.filename-extension</key>
-				<array>
-					<string>mscs</string>
-				</array>
-				<key>public.mime-type</key>
-				<array>
-					<string>application/x-musescore+xml</string>
-				</array>
-			</dict>
-		</dict>
-		<dict>
-			<key>UTTypeIdentifier</key>
-			<string>org.musescore.mscz,</string>
-			<key>UTTypeDescription</key>
-			<string>MuseScore Backup File</string>
-			<key>UTTypeIconFile</key>
-			<string>MsczIcon.icns</string>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>public.data</string>
-				<string>public.content</string>
-			</array>
-			<key>UTTypeTagSpecification</key>
-			<dict>
-				<key>public.filename-extension</key>
-				<array>
-					<string>mscz~</string>
-				</array>
-				<key>public.mime-type</key>
-				<array>
-					<string>application/x-musescore</string>
-				</array>
-			</dict>
-		</dict>
-	</array>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleTypeName</key>
+			<string>MeloPresto Score document</string>
+			<key>CFBundleTypeIconFile</key>
+			<string>MeloPrestoScoreDocument.icns</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.melopresto.score.document</string>
+				<string>com.melopresto.score.backup</string>
+			</array>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>meloscore</string>
+				<string>meloscore~</string>
+			</array>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSTypeIsPackage</key>
+			<false/>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
 			<string>MuseScore File</string>
 			<key>CFBundleTypeIconFile</key>
-			<string>MsczIcon.icns</string>
+			<string>MS4_MsczIcon.icns</string>
 			<key>LSItemContentTypes</key>
 			<array>
 				<string>org.musescore.mscz</string>
@@ -123,7 +48,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSHandlerRank</key>
-			<string>Owner</string>
+			<string>Alternate</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 		</dict>
@@ -131,7 +56,7 @@
 			<key>CFBundleTypeName</key>
 			<string>MuseScore Uncompressed File</string>
 			<key>CFBundleTypeIconFile</key>
-			<string>MscxIcon.icns</string>
+			<string>MS4_MscxIcon.icns</string>
 			<key>LSItemContentTypes</key>
 			<array>
 				<string>org.musescore.mscx</string>
@@ -143,7 +68,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSHandlerRank</key>
-			<string>Owner</string>
+			<string>Alternate</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 		</dict>
@@ -161,7 +86,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSHandlerRank</key>
-			<string>Owner</string>
+			<string>Alternate</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 		</dict>
@@ -169,7 +94,7 @@
 			<key>CFBundleTypeName</key>
 			<string>MuseScore Backup File</string>
 			<key>CFBundleTypeIconFile</key>
-			<string>MsczIcon.icns</string>
+			<string>MS4_MsczIcon.icns</string>
 			<key>LSItemContentTypes</key>
 			<array>
 				<string>org.musescore.mscz,</string>
@@ -181,7 +106,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSHandlerRank</key>
-			<string>Owner</string>
+			<string>Alternate</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 		</dict>
@@ -189,7 +114,7 @@
 			<key>CFBundleTypeName</key>
 			<string>MuseScore Uncompressed Backup File</string>
 			<key>CFBundleTypeIconFile</key>
-			<string>MscxIcon.icns</string>
+			<string>MS4_MscxIcon.icns</string>
 			<key>LSItemContentTypes</key>
 			<array>
 				<string>org.musescore.mscx,</string>
@@ -201,7 +126,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSHandlerRank</key>
-			<string>Owner</string>
+			<string>Alternate</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 		</dict>
@@ -559,27 +484,10 @@
 			<false/>
 		</dict>
 	</array>
-
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLName</key>
-			<string>org.musescore.musescore.musescoreurl</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>musescore</string>
-			</array>
-		</dict>
-	</array>
-
 	<key>CFBundleExecutable</key>
 	<string>${MACOSX_BUNDLE_EXECUTABLE_NAME}</string>
 	<key>CFBundleIconFile</key>
 	<string>${MACOSX_BUNDLE_ICON_FILE}</string>
-	<key>CFBundleIconName</key>
-	<string>${MACOSX_BUNDLE_ICON_NAME}</string>
 	<key>CFBundleIdentifier</key>
 	<string>${MACOSX_BUNDLE_GUI_IDENTIFIER}</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -675,5 +583,156 @@
 		<string>zh_HK</string>
 		<string>zh_TW</string>
 	</array>
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>org.musescore.mscz</string>
+			<key>UTTypeDescription</key>
+			<string>MuseScore File</string>
+			<key>UTTypeIconFile</key>
+			<string>MS4_MsczIcon.icns</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.content</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>mscz</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/x-musescore</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>org.musescore.mscx</string>
+			<key>UTTypeDescription</key>
+			<string>MuseScore Uncompressed File</string>
+			<key>UTTypeIconFile</key>
+			<string>MS4_MscxIcon.icns</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.content</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>mscx</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/x-musescore+xml</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>org.musescore.mscs</string>
+			<key>UTTypeDescription</key>
+			<string>MuseScore Stand-alone File</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.content</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>mscs</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/x-musescore+xml</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>org.musescore.mscz,</string>
+			<key>UTTypeDescription</key>
+			<string>MuseScore Backup File</string>
+			<key>UTTypeIconFile</key>
+			<string>MS4_MsczIcon.icns</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.content</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>mscz~</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/x-musescore</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.melopresto.score.document</string>
+			<key>UTTypeDescription</key>
+			<string>MeloPresto Score document</string>
+			<key>UTTypeIconFile</key>
+			<string>MeloPrestoScoreDocument.icns</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.content</string>
+				<string>public.zip-archive</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>meloscore</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/x-melopresto-score</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.melopresto.score.backup</string>
+			<key>UTTypeDescription</key>
+			<string>MeloPresto Score backup</string>
+			<key>UTTypeIconFile</key>
+			<string>MeloPrestoScoreDocument.icns</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.zip-archive</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>meloscore~</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+	<key>CFBundleDisplayName</key>
+	<string>${MELO_SCORE_APP_NAME}</string>
+	<key>MeloPrestoPublisher</key>
+	<string>${MELO_SCORE_ORGANIZATION}</string>
+	<key>MeloPrestoWebsite</key>
+	<string>https://${MELO_SCORE_DOMAIN}</string>
 </dict>
 </plist>

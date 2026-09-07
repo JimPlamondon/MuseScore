@@ -27,11 +27,13 @@
 #include "modularity/ioc.h"
 #include "actions/iactionsdispatcher.h"
 #include "update/iappupdatescenario.h"
+#include "update/iupdateconfiguration.h"
 
 namespace muse::update {
 class UpdateActionController : public Contextable, public muse::actions::Actionable
 {
     ContextInject<muse::actions::IActionsDispatcher> dispatcher = { this };
+    GlobalInject<IUpdateConfiguration> configuration;
     ContextInject<IAppUpdateScenario> appUpdateScenario = { this };
 
 public:
@@ -39,6 +41,7 @@ public:
         : Contextable(iocCtx) {}
 
     void init();
+    bool canReceiveAction(const muse::actions::ActionCode&) const override;
 
 private:
     void checkForAppUpdate();
