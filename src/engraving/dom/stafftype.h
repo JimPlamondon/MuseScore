@@ -331,7 +331,7 @@ public:
         return m_meloFrameSegments.empty() ? 0.0 : m_meloFrameSegments.front().lowerCents;
     }
 
-    // Drawing density for the continuous MeloPresto cents axis: how many cents
+    // Drawing density for the continuous JiMS cents axis: how many cents
     // one line-distance spans on the page. Presentation only — never a
     // musical fact (owner ruling 2026-08-14: the staff has no discrete
     // locations; notes sit at their Kernel-supplied cents).

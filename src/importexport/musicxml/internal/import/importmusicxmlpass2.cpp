@@ -2174,7 +2174,7 @@ void MusicXmlParserPass2::scorePartwise()
         }
     }
     // Native JiMS import, owner rule 2026-08-19: every JiMS part shares one
-    // state timeline (several MeloPresto parts and mixed MeloPresto + stock parts are fine).
+    // state timeline (several JiMS parts and mixed JiMS + stock parts are fine).
     if (m_melo.anyBuffered() && !m_melo.checkSharedStatesAcrossParts(m_logger)) {
         m_meloError = Err::FileBadFormat;
     }

@@ -205,7 +205,7 @@ void TuningController::invalidateAndLayout()
     // playback model that this staff's notes now sound differently. Send
     // the score's EXISTING change signal for this staff's whole tick range
     // — the same channel endCmd uses — so the next rebuild re-derives every
-    // MeloPresto note's sounding pitch from the current state. Commit already
+    // JiMS note's sounding pitch from the current state. Commit already
     // announces itself through endCmd.
     if (m_previewing) {
         ScoreChanges changes;

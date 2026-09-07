@@ -348,8 +348,8 @@ public:
         m_millimeters = m_score->style().spatium() * m_tenths / (10 * DPMM);
     }
 
-    /// Returns false (nothing written to `dev`) when the score's MeloPresto data
-    /// cannot be exported completely — the fail-closed plan (native MeloPresto
+    /// Returns false (nothing written to `dev`) when the score's JiMS data
+    /// cannot be exported completely — the fail-closed plan (native JiMS
     /// MusicXML export, 2026-08-17).
     bool write(muse::io::IODevice* dev);
     const String& error() const { return m_meloPlan.error; }
@@ -431,8 +431,8 @@ private:
     // Native JiMS MusicXML export (2026-08-17): the immutable, fail-closed
     // plan built before any output — Kernel-produced complete jims:staff-state
     // / jims:change fragments per (part, measure tick), staff-numbered by the
-    // Kernel for multi-staff parts; every MeloPresto note's identity is checked
-    // present. The fork composes no MeloPresto element text.
+    // Kernel for multi-staff parts; every JiMS note's identity is checked
+    // present. The fork composes no JiMS element text.
     struct MeloFragment {
         String stateXml;
         String sharedStateXml;   // Kernel's cross-part comparable projection (owner ruling 2026-08-22)
@@ -9110,9 +9110,9 @@ bool ExportMusicXml::buildMeloExportPlan()
         return true;
     }
     // Owner rule 2026-08-19 (multi-part documents): several JiMS parts and
-    // mixed MeloPresto + stock parts are allowed, but every MeloPresto part must carry the
+    // mixed JiMS + stock parts are allowed, but every JiMS part must carry the
     // same state timeline; a document that would export differing timelines
-    // is refused (fail closed, like every other MeloPresto export refusal).
+    // is refused (fail closed, like every other JiMS export refusal).
     //
     // Narrowed by owner ruling 2026-08-22: parts are compared on the Kernel's
     // shared projection, not the serialized element. The projection omits the

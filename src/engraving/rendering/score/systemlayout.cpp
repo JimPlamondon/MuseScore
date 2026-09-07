@@ -95,10 +95,10 @@ using namespace mu::engraving::rendering::score;
 
 //---------------------------------------------------------
 //   applyJimsBandOffsets (JiMStaff Milestone 8, octave-band elision)
-//    Notes on a MeloPresto Staff are placed by the single StaffType seam against
+//    Notes on a JiMStaff are placed by the single StaffType seam against
 //    the whole-piece frame while measures are laid out — before anyone
 //    knows which system a measure lands in. Once the system's measures
-//    are final, each MeloPresto chord is shifted RIGIDLY to its band's place in
+//    are final, each JiMS chord is shifted RIGIDLY to its band's place in
 //    the system's frame view (the chord's own y, so its notes, stem,
 //    hook, accidentals, dots and articulations move together), and the
 //    segment shapes are rebuilt so spacing and skylines see the band
@@ -212,13 +212,13 @@ static void applyMeloBandOffsets(System* system, LayoutContext& ctx)
 
 //---------------------------------------------------------
 //   jimsSystemStaffHeight (JiMStaff Milestone 8, owner finding 1)
-//    The height a MeloPresto Staff occupies on THIS system: its frame view's
+//    The height a JiMStaff occupies on THIS system: its frame view's
 //    band heights plus gaps (in absolute units), not the staff type's
 //    nominal line count. Used wherever system layout stacks staves and
 //    where SystemLayout::minDistance subtracts the staff's height from the
 //    skyline distance — with the nominal one-period height a five-octave
 //    stack was placed at the skyline minimum instead of minSystemDistance
-//    / staffDistance. Non-MeloPresto staves keep Staff::staffHeight.
+//    / staffDistance. Non-JiMS staves keep Staff::staffHeight.
 //---------------------------------------------------------
 
 static double meloSystemStaffHeight(const Staff* staff, staff_idx_t staffIdx, const System* system, const Fraction& tick)
@@ -552,7 +552,7 @@ System* SystemLayout::collectSystem(LayoutContext& ctx)
     updateTimeSigAboveStavesXPos(system, ctx);
 
     // JiMStaff Milestone 8: now that the system's measure list is final,
-    // shift every MeloPresto chord to its octave band for THIS system (elision
+    // shift every JiMS chord to its octave band for THIS system (elision
     // off: nothing to do) before spacing, skylines, and staff distances.
     applyMeloBandOffsets(system, ctx);
 
@@ -2335,7 +2335,7 @@ void SystemLayout::layoutSystem(System* system, LayoutContext& ctx, double xo1, 
     }
 
     // JiMStaff (M2 Phase 5/7, header-on-every-system completion): the
-    // MeloPresto header — scale dots, tonic indicator, crescent clef — draws
+    // JiMS header — scale dots, tonic indicator, crescent clef — draws
     // left of each system's first measure (owner geometry: left edge =
     // 2 indicator widths beyond the clef's leftmost extent). Reserve
     // that width in every system's left margin so the header stays on

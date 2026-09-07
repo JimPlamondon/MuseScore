@@ -90,7 +90,7 @@ protected:
         return out;
     }
 
-    /// The exact-pitch field of every NoteEvent, in event order (MeloPresto Synth
+    /// The exact-pitch field of every NoteEvent, in event order (JiMSynth
     /// VST3 workstream: the lossless Kernel answer beside the pitch level).
     std::vector<std::optional<ExactPitch> > exactPitches(Score* score)
     {

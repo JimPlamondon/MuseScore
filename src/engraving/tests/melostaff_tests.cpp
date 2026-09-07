@@ -847,7 +847,7 @@ TEST(MeloStaffTests, frameAndHeaderGeometryAreIdenticalAcrossSystems)
     delete score;
 }
 
-// (d) No ledger line is ever GENERATED for a MeloPresto chord — even when a
+// (d) No ledger line is ever GENERATED for a JiMS chord — even when a
 // note sits far outside the configured line count (owner decision 3a:
 // suppression by non-generation, not by hiding at paint time).
 TEST(MeloStaffTests, meloChordsGenerateNoLedgerLinesEvenFarOutside)
@@ -866,7 +866,7 @@ TEST(MeloStaffTests, meloChordsGenerateNoLedgerLinesEvenFarOutside)
 }
 
 // (e) The note-input preview (ShadowNote) exposes no ledger lines on a
-// MeloPresto staff, at any line index — the preview path is a distinct
+// JiMS staff, at any line index — the preview path is a distinct
 // suppression target (owner decision 3a).
 TEST(MeloStaffTests, shadowNoteShowsNoLedgerLinesOnMeloStaff)
 {
@@ -1224,7 +1224,7 @@ TEST(MeloStaffTests, frameStaysFrozenDuringNoteDragAndRederivesOnDrop)
 }
 
 // M4 gate finding 1, second round (Jim, 2026-08-16): the runaway was the
-// NOTE, not the frame — the MeloPresto drag applied the total pointer offset
+// NOTE, not the frame — the JiMS drag applied the total pointer offset
 // to the note's CURRENT cents, so every drag event (even with the
 // pointer still) compounded the move. The drag must anchor at the cents
 // captured at drag start, like stock MuseScore anchors at the start line.
@@ -1277,8 +1277,8 @@ TEST(MeloStaffTests, noteDragAnchorsAtStartCentsAndNeverCompounds)
 }
 
 // M4 gate finding 4 (Jim, 2026-08-16): Cmd-Z after a drag did nothing.
-// The drag's undo record covered PITCH/TPC but not the MeloPresto lattice
-// identity the MeloPresto Staff actually draws. Undo must restore identity AND
+// The drag's undo record covered PITCH/TPC but not the JiMS lattice
+// identity the JiMStaff actually draws. Undo must restore identity AND
 // the stave stack; redo must re-apply both.
 TEST(MeloStaffTests, dragIsUndoableIncludingLatticeIdentityAndFrame)
 {

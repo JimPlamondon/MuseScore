@@ -1062,7 +1062,7 @@ void StaffType::meloEnsureFrame(const Score* score, staff_idx_t staffIdx) const
 //    staff's lower Do boundary to a y offset in spatium units. One staff
 //    spans exactly one 1200-cent period across (m_lines - 1) line
 //    distances — 100 cents per staff location — and y grows downward,
-//    so the upper Do boundary (1200 cents) maps to 0. Every MeloPresto note,
+//    so the upper Do boundary (1200 cents) maps to 0. Every JiMS note,
 //    guide line, dot, and indicator ordinate routes through here; no
 //    second cents-to-y formula may exist anywhere.
 //---------------------------------------------------------
@@ -1081,7 +1081,7 @@ double StaffType::meloYFromCents(double centsAboveDo) const
 {
     // Continuous cents axis (owner ruling 2026-08-14, Milestone 2): the
     // staff defines NO discrete locations; a note's height is its cents
-    // value, affinely mapped to spatium space. MELO_CENTS_PER_LINE_DISTANCE
+    // value, affinely mapped to spatium space. JIMS_CENTS_PER_LINE_DISTANCE
     // is pure DRAWING density (how tall a cent draws), not a musical
     // fact; the frame's total height in cents is likewise drawing
     // geometry derived from the configured line count. Every musical
@@ -1907,7 +1907,7 @@ void StaffType::initStaffTypes(const Color& defaultColor)
     // JiMStaff 12-TET (Milestone 1): a STANDARD-group variant spanning one
     // 1200-cent period across 13 staff locations (100 cents = one line
     // distance). Clef, key signatures, and ledger lines are suppressed;
-    // Kernel-selected ratio-lines are drawn by the MeloPresto StaffLines branch.
+    // Kernel-selected ratio-lines are drawn by the JiMS StaffLines branch.
     // Keep in sync with StaffTypes::MELO_12TET.
     StaffType melo(StaffGroup::STANDARD, u"jims12tet", melo::presetName(),
                    13, 0, 1, false, true, false, true, false, false, false, defaultColor);

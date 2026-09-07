@@ -54,7 +54,7 @@ double changeTerrainWidth(const Measure* measure);
 double changeTerrainWidthAt(const Measure* measure, const Fraction& tick);
 
 /// Courtesy indicator (owner ruling 2026-08-16, option 1a): when the NEXT
-/// measure carries a MeloPresto change and `measure` is the last of its system,
+/// measure carries a JiMS change and `measure` is the last of its system,
 /// the change is indicated at the END of `measure` — the closing barline
 /// serves as the right stroke, one added stroke opens the terrain on the
 /// left — because the new system's fresh header alone hides the change.

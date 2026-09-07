@@ -2749,7 +2749,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
     if (!item->meloGuideLines().empty()) {
         // JiMStaff (Milestone 1): each guide line carries its own style —
         // the one deliberate exception to the single-pen staff-line rule,
-        // reached only when the MeloPresto layout branch populated guides.
+        // reached only when the JiMS layout branch populated guides.
         for (const StaffLines::MeloGuideLine& guide : item->meloGuideLines()) {
             Color color = item->style().value(guide.colorStyle).value<Color>();
             if (!opt.isPrinting && item->configuration()->isHighContrast()) {
@@ -2815,11 +2815,11 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             const IEngravingFontPtr font = item->score()->engravingFont();
 
             // Tuning label (owner rulings 2026-08-14 and 2026-08-24): the
-            // generator width as "M5= <cents>¢" above the top VISIBLE MeloPresto
+            // generator width as "M5= <cents>¢" above the top VISIBLE JiMS
             // staff at the system head. Tuning is score-wide, so repeating
             // the same fact above lower SATB staves is redundant. If
             // hide-empty-staves elides Soprano on a later system, the label
-            // follows the first MeloPresto staff still visible there. M5 is the
+            // follows the first JiMS staff still visible there. M5 is the
             // Kernel's canonical name for the fifth, per the (P8, M5)
             // lattice. The value comes from staff_metrics; the fork never
             // parses the state JSON for musical facts.

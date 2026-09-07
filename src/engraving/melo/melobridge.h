@@ -3,8 +3,8 @@
  * MuseScore-Studio-CLA-applies
  *
  * JiMStaff Milestone 1 — the fork-side wrapper over the melo-musescore-bridge
- * C ABI (Apache-2.0 staticlib built from the MeloPresto Kernel repository). Every
- * musical fact used by MeloPresto Staff rendering crosses this seam as JSON derived
+ * C ABI (Apache-2.0 staticlib built from the JiMS Kernel repository). Every
+ * musical fact used by JiMStaff rendering crosses this seam as JSON derived
  * by the Kernel; nothing here computes note classes, memberships, cents, or
  * notehead classes itself.
  */
@@ -170,7 +170,7 @@ bool musicxmlStaffStateV3Xml(const muse::String& stateJson, int staffNumber, mus
 
 /// The Kernel's cross-part comparable projection of one state (owner ruling
 /// 2026-08-22): the staff-state element with the per-staff fields omitted.
-/// Every MeloPresto part of a document must agree on this; the fields it drops
+/// Every JiMS part of a document must agree on this; the fields it drops
 /// (frame extent, tonic-ambit) describe one staff and may legitimately differ
 /// between parts, which is what a four-voice SATB score needs. The Kernel owns
 /// which fields those are — currently only frame extent — and the fork

@@ -25,13 +25,13 @@
 // Three things are under test here.
 //
 // 1. The shipped "SATB (JiMStaff)" Choral template: four stock vocal Parts in
-//    open score, one MeloPresto Staff each, following MuseScore's own choral
+//    open score, one JiMStaff each, following MuseScore's own choral
 //    conventions, registered in all three template-registration files.
 // 2. Empty-staff defaults. The Kernel derives each frame from the Part's
 //    declared amateur range; Bass alone uses the tonic-anchored exception.
 //    Framing is tonic-relative throughout.
 // 3. Owner decision 2a: a key/mode/scale change applied anywhere in a
-//    multi-part MeloPresto score reaches every MeloPresto part at the same measure as ONE
+//    multi-part JiMS score reaches every JiMS part at the same measure as ONE
 //    undo step, and a refusal anywhere mutates nothing.
 //
 // Every musical answer still comes from the Kernel. These tests assert what
@@ -826,7 +826,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9CollidingHeadsOfDifferentShapesAreOffsetA
 // A residual remains, and is asserted here rather than hidden: MuseScore
 // right-aligns an UP-stem chord's heads to `Chord::noteHeadWidth()`, the
 // score's nominal noteheadBlack advance, so a head narrower than that nominal
-// keeps a small x offset from its down-stem twin. On a MeloPresto Staff every Kernel
+// keeps a small x offset from its down-stem twin. On a JiMStaff every Kernel
 // head is narrower than the nominal, so two shared heads sit a fraction of a
 // space apart instead of exactly coinciding. That is a note-head metric seam
 // owned by the M1/M3 glyph work, not by this milestone's collision ruling; it
@@ -906,7 +906,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9SweepNoClefIsDrawnWhileTheStockClefEntrie
     delete score;
 }
 
-// Lyrics attach to MeloPresto notes and sit below the staff. The known cosmetic
+// Lyrics attach to JiMS notes and sit below the staff. The known cosmetic
 // consequence of owner decision 3b — the lyric line sits below the whole-period
 // frame bottom, which can be far from the note heads until precise frames land
 // under the later plan — is accepted, and is recorded here rather than fixed.

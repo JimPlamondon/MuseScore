@@ -2022,12 +2022,12 @@ void Score::upDown(bool up, UpDownMode mode)
         break;
         case StaffGroup::STANDARD:
             // JiMStaff Milestone 6 (owner decision 1a, 2026-08-16): on a
-            // MeloPresto staff a keyboard step moves ON THE LATTICE through the
+            // JiMS staff a keyboard step moves ON THE LATTICE through the
             // Kernel (`step_pitch`): Up/Down = nearest realizable pitch
             // (lattice), Alt+Shift = adjacent collection member, Ctrl = one
             // period. Identity and compatibility pitch/tpc change together
             // as one undoable edit; the stock MIDI/tpc arithmetic below never
-            // touches a MeloPresto note.
+            // touches a JiMS note.
         {
             const StaffType* meloSt = staff->staffType(tick);
             if (meloSt && meloSt->isMelo() && oNote->hasMeloPitch()) {

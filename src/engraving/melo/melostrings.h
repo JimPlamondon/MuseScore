@@ -5,7 +5,7 @@
  * JiMStaff Milestone 1 — the single translatable string table for every
  * user-visible JiMS name (owner Q22 answer, 2026-08-13: JiMS-based names
  * are likely to change for trademark reasons within months, so a rename
- * must be one-file work). No user-visible MeloPresto name may appear as a
+ * must be one-file work). No user-visible JiMS name may appear as a
  * literal anywhere else in this fork; tools/melo/check_melo_strings.py
  * enforces that.
  */

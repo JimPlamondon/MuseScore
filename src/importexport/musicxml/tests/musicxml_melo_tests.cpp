@@ -23,9 +23,9 @@
 // Native JiMS MusicXML import (owner decision 1a, 2026-08-16): the fork's own
 // importer reads jims:staff-state (urn:jims:musicxml:1 through 4), jims:pitch,
 // and V4 opaque jims:chord-name carriers
-// and builds the MeloPresto Staff score directly — the same DOM the fixture converter
+// and builds the JiMStaff score directly — the same DOM the fixture converter
 // tools/melo/enriched_to_melo_mscx.py produces. jims:change is never read;
-// the Kernel validate op gates every state; an unrecognised MeloPresto namespace
+// the Kernel validate op gates every state; an unrecognised JiMS namespace
 // version is a fatal import error.
 
 #include <gtest/gtest.h>
@@ -903,8 +903,8 @@ TEST_F(MusicXml_Melo_Tests, authoritativeMeloIdentityNormalizesContradictoryStan
 // Interchange hardening — native JiMS MusicXML EXPORT (converged FINAL 96%,
 // 2026-08-17). The Kernel writes every jims:staff-state / jims:change element
 // in full (bridge ops from jims PR 214); the fork places them verbatim, adds
-// jims:pitch from each MeloPresto note's two stored integers, declares the V3
-// V4 namespace when MeloPresto content is present, and fails closed.
+// jims:pitch from each JiMS note's two stored integers, declares the V3
+// V4 namespace when JiMS content is present, and fails closed.
 // ---------------------------------------------------------------------------
 namespace {
 struct MeloSnapshot {
@@ -1203,8 +1203,8 @@ TEST_F(MusicXml_Melo_Tests, m8ElisionSwitchesNeverChangeMusicXmlExport)
 // Interchange hardening 2 (owner decisions 2026-08-19): jims:provenance and
 // jims:tuning-trajectory are transported — imported, saved in the score file,
 // exported back exactly as carried — and multi-part documents follow the
-// owner's rule: several MeloPresto parts allowed, mixed MeloPresto + stock parts allowed,
-// every MeloPresto part shares one state timeline.
+// owner's rule: several JiMS parts allowed, mixed JiMS + stock parts allowed,
+// every JiMS part shares one state timeline.
 // ---------------------------------------------------------------------------
 
 TEST_F(MusicXml_Melo_Tests, provenanceIsImportedSavedAndExportedVerbatim)
@@ -1610,7 +1610,7 @@ TEST_F(MusicXml_Melo_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
     EXPECT_EQ(after.identities, before.identities);
     expectEmptyFrames(again);
 
-    // Re-export once more: no drift in anything MeloPresto owns. The one byte that
+    // Re-export once more: no drift in anything JiMS owns. The one byte that
     // does move is stock MuseScore's part-group round trip — a re-imported
     // score re-exports <group-barline>yes even though the source omitted it —
     // and the stock 02-Choral/01-SATB template drifts identically, so it is

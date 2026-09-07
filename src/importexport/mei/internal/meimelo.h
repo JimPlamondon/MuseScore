@@ -21,13 +21,13 @@
  */
 #pragma once
 
-// MeloPresto MEI carriage (the mei-jims profile, spec/MAPPING.md of the mei-jims
+// JiMS MEI carriage (the mei-jims profile, spec/MAPPING.md of the mei-jims
 // repository). Extends the Pull-Request-19 preservation pattern: native MEI
 // carries what it can express exactly (typed harm, ambitus, typed annots),
-// and the irreducibly MeloPresto-specific remainder rides as validated typed XML
+// and the irreducibly JiMS-specific remainder rides as validated typed XML
 // in one extMeta jm:record (urn:jims:mei:1) embedding verbatim
 // urn:jims:musicxml:4 fragments produced by the Kernel bridge. Everything is
-// regenerated from the score's typed MeloPresto state at export time — links can
+// regenerated from the score's typed JiMS state at export time — links can
 // never go stale — and imported back into the same typed state.
 
 #include <functional>

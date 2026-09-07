@@ -4,7 +4,7 @@
  *
  * JiMStaff Milestone 6 — the change-insertion controller (owner decision
  * 1a, 2026-08-16). Given a selected staff and measure it reads the
- * effective MeloPresto state (the measure's own carrier if it has one, else the
+ * effective JiMS state (the measure's own carrier if it has one, else the
  * staff type in force there), asks the Kernel what may change
  * (`state_change_options`), asks the Kernel for the complete new state
  * after one choice (`apply_state_change`), and edits the document —
@@ -57,9 +57,9 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
                  muse::String& error);
 
 /// Milestone 9, owner decision 2a (2026-08-22): apply an ordered LIST of
-/// Kernel-issued choice ids at `measure` to EVERY MeloPresto part of the score, as
-/// ONE undoable action. The MeloPresto MusicXML interchange rule requires every
-/// MeloPresto part of a document to carry the same musical state timeline, so a
+/// Kernel-issued choice ids at `measure` to EVERY JiMS part of the score, as
+/// ONE undoable action. The JiMS MusicXML interchange rule requires every
+/// JiMS part of a document to carry the same musical state timeline, so a
 /// key/mode/scale change that reached only one part would author exactly the
 /// divergence that rule fails closed on.
 ///
@@ -72,7 +72,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
 /// extent) survives untouched and no part's state is copied onto another.
 /// Every target and every list step is validated BEFORE the undo transaction
 /// opens; if any one is refused, nothing is mutated and `error` carries the
-/// reason. Non-MeloPresto parts are ignored.
+/// reason. Non-JiMS parts are ignored.
 ///
 /// `bind:` is NOT routed through here: a reference names what one staff's
 /// Re0 is, which stays staff-wide (owner decision 9). Use `applyChange`.

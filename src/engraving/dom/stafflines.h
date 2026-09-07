@@ -52,7 +52,7 @@ public:
     // JiMStaff guide lines (Milestone 1): the only drawn lines on a JiMS
     // staff — solid red Do-lines at the period boundaries and the dashed
     // yellow mid-period line. Derived at layout, never serialized. Empty
-    // on every non-MeloPresto staff, which keeps the stock draw path untouched.
+    // on every non-JiMS staff, which keeps the stock draw path untouched.
     struct MeloGuideLine {
         LineF line;
         bool dashed = false;

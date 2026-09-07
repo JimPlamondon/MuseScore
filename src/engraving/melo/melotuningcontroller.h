@@ -5,7 +5,7 @@
  * JiMStaff Milestone 3 — the shared continuous-tuning controller. One
  * semantic seam for every tuning-control surface (panel slider, numeric
  * field, scripted evidence sweeps): it replaces ONLY generator_cents
- * across every state span of every MeloPresto staff in the score (each base
+ * across every state span of every JiMS staff in the score (each base
  * StaffType and every measure-boundary StaffTypeChange), invalidates the
  * derived caches, and relays out — the Kernel re-derives every musical fact.
  *

@@ -21,9 +21,9 @@
  */
 #pragma once
 
-// The MeloPresto evidentiary review record (mei-jims profile, spec/MAPPING.md
+// The JiMS evidentiary review record (mei-jims profile, spec/MAPPING.md
 // facts 12-15 and 20-21): the per-work analytical findings that accompany
-// a MeloPresto score - modulation-versus-tonicization adjudications with their
+// a JiMS score - modulation-versus-tonicization adjudications with their
 // reasons, confidence, uncertainty and responsible agent, focused-review
 // flags, and the work-level review findings and audit history.
 //

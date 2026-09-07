@@ -24,7 +24,7 @@
 //  - gives every note its own nonnegative 31-bit VST3 note identifier from a
 //    monotonic allocator, shared by its Note On, Note Off and every per-note
 //    expression event (no new event carries -1);
-//  - uses a lattice-identified MeloPresto note's exact pitch (Kernel key + full
+//  - uses a lattice-identified JiMS note's exact pitch (Kernel key + full
 //    residual cents) for its Note On, and the stock construction otherwise;
 //  - sends a note's pitch curve as kTuningTypeID note expressions paired to
 //    its id when the plug-in advertises the standard tuning expression, and

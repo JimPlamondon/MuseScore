@@ -113,7 +113,7 @@ struct NominalNoteCtx {
     float userVelocityFraction = 0.f;
 
     /// JiMStaff (JiMSynth VST3 workstream): the exact sounding pitch of a
-    /// lattice-identified MeloPresto note from the same fresh Kernel call that
+    /// lattice-identified JiMS note from the same fresh Kernel call that
     /// produces `pitchLevel` (declared before it so the call below can fill
     /// it), plus the pitch level it belongs to. Renderers that derive
     /// sub-notes by moving `pitchLevel` (ornaments, bends, glissandi)
