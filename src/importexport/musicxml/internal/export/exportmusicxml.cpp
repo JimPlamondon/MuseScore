@@ -1346,12 +1346,12 @@ void ExportMusicXml::calcDivisions()
     // JiMS tuning trajectories: their offsets and segment durations must be
     // representable in the chosen divisions too.
     for (const Staff* staff : m_score->staves()) {
-        for (const jims::TuningTrajectory& t : staff->jimsTuningTrajectories()) {
+        for (const melo::TuningTrajectory& t : staff->jimsTuningTrajectories()) {
             const Measure* m = m_score->tick2measure(t.tick);
             if (m) {
                 addFraction(t.tick - m->tick());
             }
-            for (const jims::TrajectorySegment& seg : t.segments) {
+            for (const melo::TrajectorySegment& seg : t.segments) {
                 addFraction(seg.duration);
             }
         }
@@ -1704,9 +1704,9 @@ static void pitch2xml(const Note* note, String& s, int& alter, int& octave)
     const Fraction tick = note->tick();
     const StaffType* staffType = st ? st->staffTypeForElement(note) : nullptr;
     if (staffType && staffType->isJiMS() && note->hasJimsPitch()) {
-        jims::SoundingPitch projection;
+        melo::SoundingPitch projection;
         String error;
-        if (jims::noteSoundingPitch(staffType->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), projection, &error)) {
+        if (melo::noteSoundingPitch(staffType->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), projection, &error)) {
             s = String(Char(projection.step));
             alter = projection.alter;
             octave = projection.octave;
@@ -7379,13 +7379,13 @@ void ExportMusicXml::identification(XmlWriter& xml, Score const* const score)
     // (urn:jims:musicxml:4); transported verbatim, only when the document
     // is JiMS (the namespace is declared only then).
     if (m_jimsPlan.present && !score->jimsProvenance().empty()) {
-        const jims::Provenance& prov = score->jimsProvenance();
+        const melo::Provenance& prov = score->jimsProvenance();
         XmlWriter::Attributes pattrs;
         if (prov.strictFallback) {
             pattrs.push_back({ "fallback-profile", "strict" });
         }
         xml.startElement("jims:provenance", pattrs);
-        for (const jims::ProvenanceResource& r : prov.resources) {
+        for (const melo::ProvenanceResource& r : prov.resources) {
             XmlWriter::Attributes rattrs = { { "role", r.role }, { "uri", r.uri }, { "media-type", r.mediaType } };
             if (!r.sha256.isEmpty()) {
                 rattrs.push_back({ "sha-256", r.sha256 });
@@ -7398,8 +7398,8 @@ void ExportMusicXml::identification(XmlWriter& xml, Score const* const score)
         }
         xml.endElement();
     }
-    if (m_jimsPlan.present && score->jimsMelodyPart() != jims::MelodyPart::Soprano) {
-        xml.tag("jims:melody-part", jims::melodyPartToken(score->jimsMelodyPart()));
+    if (m_jimsPlan.present && score->jimsMelodyPart() != melo::MelodyPart::Soprano) {
+        xml.tag("jims:melody-part", melo::melodyPartToken(score->jimsMelodyPart()));
     }
 
     if (!MScore::debugMode) {
@@ -9017,7 +9017,7 @@ bool ExportMusicXml::buildJimsExportPlan()
             return true;
         }
         if (insideFretDiagram) {
-            m_jimsPlan.error = mu::engraving::jims::exportChordFretDiagram();
+            m_jimsPlan.error = mu::engraving::melo::exportChordFretDiagram();
             return false;
         }
         const String name = harmony->harmonyName();
@@ -9031,7 +9031,7 @@ bool ExportMusicXml::buildJimsExportPlan()
         if (harmony->chords().size() != 1 || name.isEmpty() || containsWhitespace || name.contains(u'~')) {
             m_jimsPlan.error
                 =
-                    mu::engraving::jims::exportChordNameInvalid();
+                    mu::engraving::melo::exportChordNameInvalid();
             return false;
         }
         m_jimsPlan.present = true;
@@ -9067,21 +9067,21 @@ bool ExportMusicXml::buildJimsExportPlan()
                 m_jimsPlan.present = true;
                 MeloFragment f;
                 String err;
-                if (!jims::musicxmlStaffStateV3Xml(base->jimsStateJson(), staffNumber, f.stateXml, &err)
-                    || !jims::musicxmlSharedStateV3Xml(base->jimsStateJson(), f.sharedStateXml, &err)) {
+                if (!melo::musicxmlStaffStateV3Xml(base->jimsStateJson(), staffNumber, f.stateXml, &err)
+                    || !melo::musicxmlSharedStateV3Xml(base->jimsStateJson(), f.sharedStateXml, &err)) {
                     m_jimsPlan.error
-                        = mu::engraving::jims::exportBaseStateRefused().arg(int(staffIdx) + 1).arg(err);
+                        = mu::engraving::melo::exportBaseStateRefused().arg(int(staffIdx) + 1).arg(err);
                     return false;
                 }
                 m_jimsPlan.byPartTick[{ int(partIndex), 0 }].push_back(f);
             }
             for (const Measure* m = m_score->firstMeasure(); m; m = m->nextMeasure()) {
-                for (const StaffTypeChange* carrier : jims::changeCarriers(m, staffIdx)) {
+                for (const StaffTypeChange* carrier : melo::changeCarriers(m, staffIdx)) {
                     if (!carrier->staffType() || !carrier->staffType()->isJiMS()) {
                         continue;
                     }
                     if (!baseJims) {
-                        m_jimsPlan.error = mu::engraving::jims::exportMissingBaseState()
+                        m_jimsPlan.error = mu::engraving::melo::exportMissingBaseState()
                                            .arg(int(staffIdx) + 1).arg(m->no() + 1);
                         return false;
                     }
@@ -9089,14 +9089,14 @@ bool ExportMusicXml::buildJimsExportPlan()
                     const String state = staff->staffType(carrier->tick())->jimsStateJson();
                     MeloFragment f;
                     String err;
-                    if (!jims::musicxmlStaffStateV3Xml(state, staffNumber, f.stateXml, &err)
-                        || !jims::musicxmlSharedStateV3Xml(state, f.sharedStateXml, &err)) {
-                        m_jimsPlan.error = mu::engraving::jims::exportStateRefused()
+                    if (!melo::musicxmlStaffStateV3Xml(state, staffNumber, f.stateXml, &err)
+                        || !melo::musicxmlSharedStateV3Xml(state, f.sharedStateXml, &err)) {
+                        m_jimsPlan.error = mu::engraving::melo::exportStateRefused()
                                            .arg(carrier->tick().ticks()).arg(int(staffIdx) + 1).arg(err);
                         return false;
                     }
-                    if (!jims::musicxmlChangeEventV3Xml(previousState, state, f.changeXml, &err)) {
-                        m_jimsPlan.error = mu::engraving::jims::exportChangeUnclassified()
+                    if (!melo::musicxmlChangeEventV3Xml(previousState, state, f.changeXml, &err)) {
+                        m_jimsPlan.error = mu::engraving::melo::exportChangeUnclassified()
                                            .arg(carrier->tick().ticks()).arg(int(staffIdx) + 1).arg(err);
                         return false;
                     }
@@ -9136,7 +9136,7 @@ bool ExportMusicXml::buildJimsExportPlan()
                 continue;
             }
             if (tl.second != referenceTimeline) {
-                m_jimsPlan.error = mu::engraving::jims::exportTimelinesDiffer()
+                m_jimsPlan.error = mu::engraving::melo::exportTimelinesDiffer()
                                    .arg(referencePart + 1).arg(tl.first + 1);
                 return false;
             }
@@ -9154,15 +9154,15 @@ bool ExportMusicXml::buildJimsExportPlan()
                 if (st && st->isJiMS()) {
                     if (!n->hasJimsPitch()) {
                         m_jimsPlan.error
-                            = mu::engraving::jims::exportMissingLatticeIdentity().arg(int(n->staffIdx())
+                            = mu::engraving::melo::exportMissingLatticeIdentity().arg(int(n->staffIdx())
                                                                                       + 1).arg(
                                   n->tick().ticks());
                         return false;
                     }
-                    jims::SoundingPitch projection;
+                    melo::SoundingPitch projection;
                     String error;
-                    if (!jims::noteSoundingPitch(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(), projection, &error)) {
-                        m_jimsPlan.error = mu::engraving::jims::exportNoteRefused()
+                    if (!melo::noteSoundingPitch(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(), projection, &error)) {
+                        m_jimsPlan.error = mu::engraving::melo::exportNoteRefused()
                                            .arg(n->tick().ticks()).arg(int(n->staffIdx()) + 1).arg(error);
                         return false;
                     }
@@ -9224,7 +9224,7 @@ void ExportMusicXml::writeJimsTrajectories(const Measure* const m, const int par
     const size_t nstaves = part->nstaves();
     for (size_t partStaff = 0; partStaff < nstaves; ++partStaff) {
         const Staff* staff = part->staff(partStaff);
-        for (const jims::TuningTrajectory& t : staff->jimsTuningTrajectories()) {
+        for (const melo::TuningTrajectory& t : staff->jimsTuningTrajectories()) {
             if (t.tick < m->tick() || t.tick >= m->endTick()) {
                 continue;
             }
@@ -9238,7 +9238,7 @@ void ExportMusicXml::writeJimsTrajectories(const Measure* const m, const int par
             m_xml.startElement("direction", dattrs);
             m_xml.startElement("direction-type");
             m_xml.startElement("jims:tuning-trajectory");
-            for (const jims::TrajectorySegment& seg : t.segments) {
+            for (const melo::TrajectorySegment& seg : t.segments) {
                 XmlWriter::Attributes sattrs = {
                     { "duration-divisions", calculateDurationInDivisions(seg.duration, m_div) },
                     { "start-cents", seg.startCents }, { "end-cents", seg.endCents },
@@ -9248,7 +9248,7 @@ void ExportMusicXml::writeJimsTrajectories(const Measure* const m, const int par
                     m_xml.tag("jims:segment", sattrs);
                 } else {
                     m_xml.startElement("jims:segment", sattrs);
-                    for (const jims::TrajectoryControl& c : seg.controls) {
+                    for (const melo::TrajectoryControl& c : seg.controls) {
                         m_xml.tag("jims:control", { { "time", c.time }, { "value-cents", c.valueCents } });
                     }
                     m_xml.endElement();

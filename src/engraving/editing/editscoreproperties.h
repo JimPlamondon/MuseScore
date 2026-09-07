@@ -50,12 +50,12 @@ class ChangeJimsMelodyPart : public UndoCommand
     OBJECT_ALLOCATOR(engraving, ChangeJimsMelodyPart)
 
     Score* score = nullptr;
-    jims::MelodyPart part = jims::MelodyPart::Soprano;
+    melo::MelodyPart part = melo::MelodyPart::Soprano;
 
     void flip(EditData*) override;
 
 public:
-    ChangeJimsMelodyPart(Score* s, jims::MelodyPart p)
+    ChangeJimsMelodyPart(Score* s, melo::MelodyPart p)
         : score(s), part(p) {}
     UNDO_NAME("ChangeJimsMelodyPart")
     UNDO_CHANGED_OBJECTS({ score })

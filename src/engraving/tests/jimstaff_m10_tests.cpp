@@ -85,7 +85,7 @@ muse::String extentXml(const muse::String& state)
 {
     muse::String xml;
     muse::String error;
-    if (!jims::musicxmlStaffStateV3Xml(state, 0, xml, &error)) {
+    if (!melo::musicxmlStaffStateV3Xml(state, 0, xml, &error)) {
         return muse::String();
     }
     const size_t begin = xml.indexOf(u"<jims:extent");
@@ -97,7 +97,7 @@ double generatorCents(const StaffType* type)
 {
     double generator = 0.0;
     double period = 0.0;
-    return type && jims::staffMetrics(type->jimsStateJson(), generator, period) ? generator : -1.0;
+    return type && melo::staffMetrics(type->jimsStateJson(), generator, period) ? generator : -1.0;
 }
 
 std::vector<String> textsOf(const StaffLines* lines)
@@ -140,13 +140,13 @@ TEST(Engraving_JiMStaffM10SATBTests, tuningUpdatesMidMeasureCarriersAndCancelRes
     Measure* measure = score->firstMeasure();
     const Fraction tick = measure->tick() + Fraction(1, 4);
     String error;
-    ASSERT_TRUE(jims::applyChange(score, 0, measure, tick, u"mode:1", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, measure, tick, u"mode:1", error)) << error.toStdString();
     const StaffType* base = score->staff(0)->staffType(Fraction(0, 1));
     const StaffType* middle = score->staff(0)->staffType(tick);
     ASSERT_NE(base, middle);
     const String beforeBase = base->jimsStateJson();
     const String beforeMiddle = middle->jimsStateJson();
-    jims::TuningController controller(score, 0);
+    melo::TuningController controller(score, 0);
     ASSERT_TRUE(controller.beginPreview());
     ASSERT_TRUE(controller.preview(696.0));
     EXPECT_DOUBLE_EQ(generatorCents(base), 696.0);
@@ -170,7 +170,7 @@ TEST(Engraving_JiMStaffM10SATBTests, tuningCrossesNoteOrderWithoutChangingLattic
 {
     MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m9-satb-mixed.mscx");
     ASSERT_TRUE(score);
-    jims::TuningController controller(score, 0);
+    melo::TuningController controller(score, 0);
     ASSERT_TRUE(controller.beginPreview());
     ASSERT_TRUE(controller.commit(696.0));
     const std::vector<Note*> notes = notesOn(score, 0);
@@ -178,7 +178,7 @@ TEST(Engraving_JiMStaffM10SATBTests, tuningCrossesNoteOrderWithoutChangingLattic
     for (size_t i = 0; i < notes.size(); ++i) {
         notes[i]->setJimsPitch(i % 2 ? 0 : -7, i % 2 ? 0 : 12);
     }
-    jims::reconcileExtents(score);
+    melo::reconcileExtents(score);
     const String before = score->staff(0)->staffType(Fraction(0, 1))->jimsStateJson();
     ASSERT_TRUE(controller.beginPreview());
     ASSERT_TRUE(controller.preview(710.0));
@@ -190,8 +190,8 @@ TEST(Engraving_JiMStaffM10SATBTests, tuningCrossesNoteOrderWithoutChangingLattic
     const auto* type = score->staff(0)->staffType(Fraction(0, 1));
     double first = 0.0;
     double second = 0.0;
-    ASSERT_TRUE(jims::noteCentsAboveExtentLower(type->jimsStateJson(), -7, 12, first));
-    ASSERT_TRUE(jims::noteCentsAboveExtentLower(type->jimsStateJson(), 0, 0, second));
+    ASSERT_TRUE(melo::noteCentsAboveExtentLower(type->jimsStateJson(), -7, 12, first));
+    ASSERT_TRUE(melo::noteCentsAboveExtentLower(type->jimsStateJson(), 0, 0, second));
     EXPECT_GT(first, second);
     score->undoRedo(true, nullptr);
     EXPECT_EQ(type->jimsStateJson(), before);
@@ -208,7 +208,7 @@ TEST(Engraving_JiMStaffM10SATBTests, tuningFromAnyVoiceIsSharedAndOneUndoStepPre
     Measure* second = score->firstMeasure()->nextMeasure();
     ASSERT_TRUE(second);
     String error;
-    ASSERT_TRUE(jims::applyChangeToAllJimsParts(score, second, { u"mode:1" }, error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChangeToAllJimsParts(score, second, { u"mode:1" }, error)) << error.toStdString();
     String originalStates[4][2];
     String originalExtents[4][2];
     for (staff_idx_t i = 0; i < 4; ++i) {
@@ -223,7 +223,7 @@ TEST(Engraving_JiMStaffM10SATBTests, tuningFromAnyVoiceIsSharedAndOneUndoStepPre
     }
     const size_t undoBefore = score->undoStack()->currentIndex();
 
-    jims::TuningController controller(score, 3);
+    melo::TuningController controller(score, 3);
     ASSERT_TRUE(controller.beginPreview());
     ASSERT_TRUE(controller.preview(690.0));
     for (staff_idx_t i = 0; i < 4; ++i) {
@@ -304,7 +304,7 @@ TEST(Engraving_JiMStaffM10SATBTests, referenceChangesPreserveWrittenAndEmptyStaf
         for (double generator : { 686.0, 696.0, 720.0 }) {
             MasterScore* score = ScoreRW::readScore(path, true);
             ASSERT_TRUE(score);
-            jims::TuningController controller(score, 0);
+            melo::TuningController controller(score, 0);
             ASSERT_TRUE(controller.beginPreview());
             ASSERT_TRUE(controller.commit(generator));
             std::vector<StaffType::MeloFrameView> before;
@@ -321,7 +321,7 @@ TEST(Engraving_JiMStaffM10SATBTests, referenceChangesPreserveWrittenAndEmptyStaf
             }
             for (const String& key : { String(u"key:0:2"), String(u"key:-1:3"), String(u"key:1:-7") }) {
                 String error;
-                ASSERT_TRUE(jims::applyChangeToAllJimsParts(score, score->firstMeasure(), { key }, error))
+                ASSERT_TRUE(melo::applyChangeToAllJimsParts(score, score->firstMeasure(), { key }, error))
                     << error.toStdString();
                 score->doLayout();
                 for (staff_idx_t i = 0; i < score->nstaves(); ++i) {
@@ -351,7 +351,7 @@ TEST(Engraving_JiMStaffM10SATBTests, firstNoteReplacesEmptyCentreAndUndoRestores
     ASSERT_TRUE(type->jimsExtentIsEmptyDefault());
     const String before = type->jimsStateJson();
     String expected;
-    ASSERT_TRUE(jims::fitExtent(before, u"{\"notes\":[{\"nPer\":0,\"nGen\":0}]}", expected));
+    ASSERT_TRUE(melo::fitExtent(before, u"{\"notes\":[{\"nPer\":0,\"nGen\":0}]}", expected));
     InputState& input = score->inputState();
     input.setTrack(0);
     input.setSegment(score->tick2segment(Fraction(0, 1), false, SegmentType::ChordRest));
@@ -382,7 +382,7 @@ TEST(Engraving_JiMStaffM10SATBTests, everyEmptyVocalStaffUsesItsKernelRangeCentr
     MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
     ASSERT_TRUE(score);
     ASSERT_EQ(score->nstaves(), 4u);
-    EXPECT_EQ(jims::reconcileExtents(score), 0) << "native load must already reconcile every empty vocal extent";
+    EXPECT_EQ(melo::reconcileExtents(score), 0) << "native load must already reconcile every empty vocal extent";
     const char* roles[4] = { "soprano", "alto", "tenor", "bass" };
     const double expectedDoOrigins[4] = { 300.0, 800.0, 100.0, 1000.0 };
     for (staff_idx_t i = 0; i < 4; ++i) {
@@ -395,15 +395,15 @@ TEST(Engraving_JiMStaffM10SATBTests, everyEmptyVocalStaffUsesItsKernelRangeCentr
             << staff->part()->instrumentId().toStdString();
         const Instrument* instrument = staff->part()->instrument();
         muse::String expected;
-        ASSERT_TRUE(jims::defaultVocalExtent(type->jimsStateJson(), instrument->minPitchA(),
+        ASSERT_TRUE(melo::defaultVocalExtent(type->jimsStateJson(), instrument->minPitchA(),
                                              instrument->maxPitchA(), roles[i], expected));
         EXPECT_TRUE(extentXml(type->jimsStateJson()) == extentXml(expected))
             << i << " actual=" << extentXml(type->jimsStateJson()).toStdString()
             << " expected=" << extentXml(expected).toStdString()
             << " range=" << instrument->minPitchA() << ".." << instrument->maxPitchA();
         EXPECT_FALSE(extentXml(type->jimsStateJson()).empty());
-        jims::PeriodicOrigins origins;
-        ASSERT_TRUE(jims::periodicOrigins(type->jimsStateJson(), origins));
+        melo::PeriodicOrigins origins;
+        ASSERT_TRUE(melo::periodicOrigins(type->jimsStateJson(), origins));
         EXPECT_DOUBLE_EQ(origins.doCentsAboveExtentLower, expectedDoOrigins[i]);
         EXPECT_DOUBLE_EQ(origins.tonicCentsAboveExtentLower, expectedDoOrigins[i]);
     }
@@ -411,13 +411,13 @@ TEST(Engraving_JiMStaffM10SATBTests, everyEmptyVocalStaffUsesItsKernelRangeCentr
     Measure* second = score->firstMeasure()->nextMeasure();
     ASSERT_TRUE(second);
     muse::String error;
-    ASSERT_TRUE(jims::applyChangeToAllJimsParts(score, second, { u"key:-1:3" }, error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChangeToAllJimsParts(score, second, { u"key:-1:3" }, error)) << error.toStdString();
     for (staff_idx_t i = 0; i < 4; ++i) {
         Staff* staff = score->staff(i);
         const StaffType* type = staff->staffType(second->tick());
         const Instrument* instrument = staff->part()->instrument();
         muse::String expected;
-        ASSERT_TRUE(jims::defaultVocalExtent(type->jimsStateJson(), instrument->minPitchA(),
+        ASSERT_TRUE(melo::defaultVocalExtent(type->jimsStateJson(), instrument->minPitchA(),
                                              instrument->maxPitchA(), roles[i], expected));
         const muse::String after = extentXml(type->jimsStateJson());
         EXPECT_TRUE(after == extentXml(expected)) << "each transposed empty staff must use its Kernel default";
@@ -455,7 +455,7 @@ TEST(Engraving_JiMStaffM10SATBTests, eachStaffTypeSpanCollectsOnlyItsOwnNotes)
     carrier->setTrack(0);
     carrier->setStaffType(new StaffType(*staff->staffType(Fraction(0, 1))), true);
     score->addElement(carrier);
-    jims::reconcileExtents(score);
+    melo::reconcileExtents(score);
     score->setLayoutAll();
     score->doLayout();
     const StaffType* empty = staff->staffType(second->tick());
@@ -478,32 +478,32 @@ TEST(Engraving_JiMStaffM10SATBTests, extentGrowsOnlyUntilSaveAndContractsOnlyOnR
 {
     MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m9-satb-mixed.mscx");
     ASSERT_TRUE(score);
-    score->setJimsMelodyPart(jims::MelodyPart::Bass); // isolate extent from melody analysis
+    score->setJimsMelodyPart(melo::MelodyPart::Bass); // isolate extent from melody analysis
     std::vector<Note*> notes = notesOn(score, 0);
     ASSERT_FALSE(notes.empty());
     StaffType* type = score->staff(0)->staffType(Fraction(0, 1));
     ASSERT_TRUE(type && type->isJiMS());
 
     muse::String unchanged;
-    ASSERT_TRUE(jims::widenExtent(type->jimsStateJson(), notes.front()->jimsNPer(),
+    ASSERT_TRUE(melo::widenExtent(type->jimsStateJson(), notes.front()->jimsNPer(),
                                   notes.front()->jimsNGen(), unchanged));
     EXPECT_TRUE(unchanged == type->jimsStateJson()) << "in-range entry is a no-op";
 
     const int originalNPer = notes.front()->jimsNPer();
     const int originalNGen = notes.front()->jimsNGen();
     muse::String widened;
-    ASSERT_TRUE(jims::widenExtent(type->jimsStateJson(), -10, originalNGen, widened));
+    ASSERT_TRUE(melo::widenExtent(type->jimsStateJson(), -10, originalNGen, widened));
     notes.front()->setJimsPitch(-10, originalNGen);
-    ASSERT_TRUE(jims::widenExtentForNote(notes.front()));
+    ASSERT_TRUE(melo::widenExtentForNote(notes.front()));
     EXPECT_TRUE(type->jimsStateJson() == widened);
 
     notes.front()->setJimsPitch(originalNPer, originalNGen);
-    EXPECT_FALSE(jims::widenExtentForNote(notes.front()));
+    EXPECT_FALSE(melo::widenExtentForNote(notes.front()));
     EXPECT_TRUE(type->jimsStateJson() == widened) << "an inward move must not contract in-session";
 
     const muse::String expectedMelody = melodyJson(notesOn(score, 0));
     muse::String expectedFit;
-    ASSERT_TRUE(jims::fitExtent(widened, expectedMelody, expectedFit));
+    ASSERT_TRUE(melo::fitExtent(widened, expectedMelody, expectedFit));
     const muse::String outputDir = forkRoot() + u"/build.m10";
     ASSERT_TRUE(muse::io::Dir::mkpath(outputDir));
     const muse::String saved = outputDir + u"/m10-extent-lifecycle.mscx";
@@ -528,7 +528,7 @@ TEST(Engraving_JiMStaffM10SATBTests, ratioLineExtentSurvivesWhileLatticeCoverage
     ASSERT_FALSE(notes.empty());
 
     String declared;
-    ASSERT_TRUE(jims::widenExtent(type->jimsStateJson(), -10, notes.front()->jimsNGen(), declared));
+    ASSERT_TRUE(melo::widenExtent(type->jimsStateJson(), -10, notes.front()->jimsNGen(), declared));
     ASSERT_NE(declared, type->jimsStateJson());
     type->setJimsStateJson(declared);
     const String ratioExtent
@@ -536,7 +536,7 @@ TEST(Engraving_JiMStaffM10SATBTests, ratioLineExtentSurvivesWhileLatticeCoverage
           u"\"upper\":{\"period\":0,\"ratio\":\"1/1\"}}";
     type->setJimsRatioLineExtentJson(ratioExtent);
 
-    EXPECT_EQ(jims::reconcileExtents(score), 1);
+    EXPECT_EQ(melo::reconcileExtents(score), 1);
     EXPECT_NE(type->jimsStateJson(), declared)
         << "lattice extent remains note-coverage data even with a fixed display extent";
     EXPECT_EQ(type->jimsRatioLineExtentJson(), ratioExtent)
@@ -548,7 +548,7 @@ TEST(Engraving_JiMStaffM10SATBTests, melodyDesignationDefaultsOverridesAndUndoRe
 {
     MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m9-satb-hymn.mscx");
     ASSERT_TRUE(score);
-    ASSERT_EQ(score->jimsMelodyPart(), jims::MelodyPart::Soprano);
+    ASSERT_EQ(score->jimsMelodyPart(), melo::MelodyPart::Soprano);
     std::vector<Note*> soprano = notesOn(score, 0);
     std::vector<Note*> tenor = notesOn(score, 2);
     ASSERT_FALSE(soprano.empty());
@@ -563,37 +563,37 @@ TEST(Engraving_JiMStaffM10SATBTests, melodyDesignationDefaultsOverridesAndUndoRe
     }
     muse::String sopranoToken;
     muse::String tenorToken;
-    ASSERT_TRUE(jims::tonicAmbitForMelody(score->staff(0)->staffType(Fraction(0, 1))->jimsStateJson(),
+    ASSERT_TRUE(melo::tonicAmbitForMelody(score->staff(0)->staffType(Fraction(0, 1))->jimsStateJson(),
                                           melodyJson(soprano), sopranoToken));
-    ASSERT_TRUE(jims::tonicAmbitForMelody(score->staff(2)->staffType(Fraction(0, 1))->jimsStateJson(),
+    ASSERT_TRUE(melo::tonicAmbitForMelody(score->staff(2)->staffType(Fraction(0, 1))->jimsStateJson(),
                                           melodyJson(tenor), tenorToken));
     ASSERT_FALSE(sopranoToken == tenorToken);
     // The fixture already carries the singleton soprano's bounded token. Seed
     // a different valid Kernel state so the positive-change assertion below
     // tests a real transition rather than an idempotent derivation.
-    score->setJimsMelodyPart(jims::MelodyPart::Tenor);
-    ASSERT_GT(jims::deriveTonicAmbits(score), 0);
+    score->setJimsMelodyPart(melo::MelodyPart::Tenor);
+    ASSERT_GT(melo::deriveTonicAmbits(score), 0);
     for (staff_idx_t i = 0; i < 4; ++i) {
         ASSERT_TRUE(score->staff(i)->staffType(Fraction(0, 1))->jimsTonicAmbit() == tenorToken);
     }
-    score->setJimsMelodyPart(jims::MelodyPart::Soprano);
-    ASSERT_GT(jims::deriveTonicAmbits(score), 0);
+    score->setJimsMelodyPart(melo::MelodyPart::Soprano);
+    ASSERT_GT(melo::deriveTonicAmbits(score), 0);
     for (staff_idx_t i = 0; i < 4; ++i) {
         EXPECT_TRUE(score->staff(i)->staffType(Fraction(0, 1))->jimsTonicAmbit() == sopranoToken);
     }
 
     score->startCmd(TranslatableString("undoableAction", "Test JiMS melody part"));
-    score->undo(new ChangeJimsMelodyPart(score, jims::MelodyPart::Tenor));
+    score->undo(new ChangeJimsMelodyPart(score, melo::MelodyPart::Tenor));
     score->endCmd();
-    EXPECT_EQ(score->jimsMelodyPart(), jims::MelodyPart::Tenor);
+    EXPECT_EQ(score->jimsMelodyPart(), melo::MelodyPart::Tenor);
     for (staff_idx_t i = 0; i < 4; ++i) {
         EXPECT_TRUE(score->staff(i)->staffType(Fraction(0, 1))->jimsTonicAmbit() == tenorToken);
     }
     score->undoRedo(true, nullptr);
-    EXPECT_EQ(score->jimsMelodyPart(), jims::MelodyPart::Soprano);
+    EXPECT_EQ(score->jimsMelodyPart(), melo::MelodyPart::Soprano);
     EXPECT_TRUE(score->staff(0)->staffType(Fraction(0, 1))->jimsTonicAmbit() == sopranoToken);
     score->undoRedo(false, nullptr);
-    EXPECT_EQ(score->jimsMelodyPart(), jims::MelodyPart::Tenor);
+    EXPECT_EQ(score->jimsMelodyPart(), melo::MelodyPart::Tenor);
     EXPECT_TRUE(score->staff(0)->staffType(Fraction(0, 1))->jimsTonicAmbit() == tenorToken);
 
     const muse::String outputDir = forkRoot() + u"/build.m10";
@@ -603,6 +603,6 @@ TEST(Engraving_JiMStaffM10SATBTests, melodyDesignationDefaultsOverridesAndUndoRe
     delete score;
     MasterScore* reloaded = ScoreRW::readScore(saved, true);
     ASSERT_TRUE(reloaded);
-    EXPECT_EQ(reloaded->jimsMelodyPart(), jims::MelodyPart::Tenor);
+    EXPECT_EQ(reloaded->jimsMelodyPart(), melo::MelodyPart::Tenor);
     delete reloaded;
 }

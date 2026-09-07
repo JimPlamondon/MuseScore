@@ -130,13 +130,13 @@ protected:
 
     /// The Kernel's fresh sounding-pitch answer for a JiMS note (the oracle
     /// for the exact-pitch field).
-    static jims::SoundingPitch kernelSoundingPitch(const Note* note)
+    static melo::SoundingPitch kernelSoundingPitch(const Note* note)
     {
         const StaffType* st = note->staff()->staffTypeForElement(note);
         EXPECT_TRUE(st && st->isJiMS());
-        jims::SoundingPitch sp;
+        melo::SoundingPitch sp;
         String err;
-        EXPECT_TRUE(jims::noteSoundingPitch(st->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), sp, &err)) << err.toStdString();
+        EXPECT_TRUE(melo::noteSoundingPitch(st->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), sp, &err)) << err.toStdString();
         return sp;
     }
 
@@ -146,9 +146,9 @@ protected:
     {
         const StaffType* st = note->staff()->staffTypeForElement(note);
         EXPECT_TRUE(st && st->isJiMS());
-        jims::SoundingPitch sp;
+        melo::SoundingPitch sp;
         String err;
-        EXPECT_TRUE(jims::noteSoundingPitch(st->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), sp, &err)) << err.toStdString();
+        EXPECT_TRUE(melo::noteSoundingPitch(st->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), sp, &err)) << err.toStdString();
         return jimsPitchLevelFromMidi(sp.midiKey, sp.centsOffset);
     }
 
@@ -235,7 +235,7 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, jimsynthJimsNotesCarryTheExactKernelPi
     ASSERT_EQ(exact.size(), notes.size());
     for (size_t i = 0; i < notes.size(); ++i) {
         ASSERT_TRUE(exact[i].has_value()) << "note " << i;
-        const jims::SoundingPitch sp = kernelSoundingPitch(notes[i]);
+        const melo::SoundingPitch sp = kernelSoundingPitch(notes[i]);
         EXPECT_DOUBLE_EQ(exact[i]->frequencyHz, sp.frequencyHz) << "note " << i;
         EXPECT_EQ(exact[i]->midiKey, sp.midiKey) << "note " << i;
         EXPECT_DOUBLE_EQ(exact[i]->centsOffset, sp.centsOffset) << "note " << i;
@@ -351,7 +351,7 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, m7PlaybackTracksTuningPreviewCommitCan
     std::vector<Note*> notes = notesOf(score);
     ASSERT_FALSE(notes.empty());
     const std::vector<pitch_level_t> before = nominalPitchLevels(score);
-    jims::TuningController tc(score, 0);
+    melo::TuningController tc(score, 0);
     ASSERT_TRUE(tc.beginPreview());
     ASSERT_TRUE(tc.preview(696.0));
     std::vector<pitch_level_t> previewed = nominalPitchLevels(score);
@@ -407,7 +407,7 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, m7LivePlaybackModelFollowsTuningPrevie
         return out;
     };
     const std::vector<pitch_level_t> before = levelsNow();
-    jims::TuningController tc(score, 0);
+    melo::TuningController tc(score, 0);
     ASSERT_TRUE(tc.beginPreview());
     ASSERT_TRUE(tc.preview(696.0));
     std::vector<pitch_level_t> previewed = levelsNow();
@@ -486,10 +486,10 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, fullTieAcrossStateChangeHasOneAttackAt
     score->endCmd();
     Measure* change = score->firstMeasure()->nextMeasure();
     String error;
-    ASSERT_TRUE(jims::applyChange(score, 0, change, u"mode:1", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, change, u"mode:1", error)) << error.toStdString();
 
-    jims::SoundingPitch startProjection = kernelSoundingPitch(start);
-    jims::SoundingPitch continuationProjection = kernelSoundingPitch(continuation);
+    melo::SoundingPitch startProjection = kernelSoundingPitch(start);
+    melo::SoundingPitch continuationProjection = kernelSoundingPitch(continuation);
     EXPECT_NEAR(continuationProjection.frequencyHz, startProjection.frequencyHz, 1e-9);
     const std::vector<pitch_level_t> events = nominalPitchLevels(score);
     EXPECT_EQ(events.size(), notes.size() - 1) << "the tied continuation must not create a second attack";
@@ -508,8 +508,8 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, syntheticCommonToneHasOneAttackAtOneEx
     ASSERT_TRUE(notes[0]->tieForNonPartial());
     EXPECT_NE(std::make_pair(notes[0]->jimsNPer(), notes[0]->jimsNGen()),
               std::make_pair(notes[1]->jimsNPer(), notes[1]->jimsNGen()));
-    const jims::SoundingPitch first = kernelSoundingPitch(notes[0]);
-    const jims::SoundingPitch continuation = kernelSoundingPitch(notes[1]);
+    const melo::SoundingPitch first = kernelSoundingPitch(notes[0]);
+    const melo::SoundingPitch continuation = kernelSoundingPitch(notes[1]);
     EXPECT_NEAR(first.frequencyHz, continuation.frequencyHz, 1e-9);
     const std::vector<pitch_level_t> events = nominalPitchLevels(score);
     ASSERT_EQ(events.size(), 1u);

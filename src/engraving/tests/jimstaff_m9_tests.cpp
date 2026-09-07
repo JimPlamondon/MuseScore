@@ -388,7 +388,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9EmptyFramesAreHalfPeriodAtTheirDeclaredCen
         const StaffType* st = score->staff(i)->staffType(Fraction(0, 1));
         ASSERT_TRUE(st && st->isJiMS());
         double centre = 0.0;
-        ASSERT_TRUE(jims::noteCentsAboveExtentLower(st->jimsStateJson(), centreNPer[i], centreNGen[i], centre));
+        ASSERT_TRUE(melo::noteCentsAboveExtentLower(st->jimsStateJson(), centreNPer[i], centreNGen[i], centre));
         const StaffType::MeloFrameView& view = st->jimsWholeFrameView(score, i);
         ASSERT_EQ(view.bands.size(), 1u);
         EXPECT_NEAR(view.bands[0].lowerCents, centre - st->jimsPeriodCents() / 4.0, 1e-6);
@@ -476,7 +476,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9ModeChangeReachesEveryJimsPartAtTheSameMea
     const size_t depth = undoDepth(score);
 
     muse::String error;
-    ASSERT_TRUE(jims::applyChangeToAllJimsParts(score, m2, { u"mode:1" }, error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChangeToAllJimsParts(score, m2, { u"mode:1" }, error)) << error.toStdString();
     score->doLayout();
 
     for (staff_idx_t i = 0; i < 4; ++i) {
@@ -516,12 +516,12 @@ TEST(Engraving_JiMStaffM9SATBTests, m9KeyChangeReachesEveryJimsPartAtTheSameMeas
     // unchanged (owner decision 9), so it is applied per staff, as before.
     muse::String error;
     for (staff_idx_t i = 0; i < 4; ++i) {
-        ASSERT_TRUE(jims::applyChange(score, i, m2, u"bind:reference-pitch:62", error)) << error.toStdString();
+        ASSERT_TRUE(melo::applyChange(score, i, m2, u"bind:reference-pitch:62", error)) << error.toStdString();
     }
     score->doLayout();
     const size_t depth = undoDepth(score);
 
-    ASSERT_TRUE(jims::applyChangeToAllJimsParts(score, m2, { u"key:-1:3" }, error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChangeToAllJimsParts(score, m2, { u"key:-1:3" }, error)) << error.toStdString();
     score->doLayout();
     for (staff_idx_t i = 0; i < 4; ++i) {
         EXPECT_TRUE(stateAt(score, i, m2).contains(u"\"key_number\":53"))
@@ -546,22 +546,22 @@ TEST(Engraving_JiMStaffM9SATBTests, m9MultiChoiceScaleChangeIsOneAtomicOperation
 
     // Step off the diatonic collection first, exactly as a user would.
     muse::String error;
-    ASSERT_TRUE(jims::applyChangeToAllJimsParts(score, m2, { u"scale:cycle:double-harmonic-minor" }, error))
+    ASSERT_TRUE(melo::applyChangeToAllJimsParts(score, m2, { u"scale:cycle:double-harmonic-minor" }, error))
         << error.toStdString();
     score->doLayout();
 
     // Now rebuild the panel's "Parallel Minor" entry from the Kernel's own
     // options for the state in force here: the cycle, then the rotation.
-    jims::StateChangeOptions options;
-    ASSERT_TRUE(jims::changeOptions(score, 0, m2, options));
-    const jims::StateChangeOption* diatonic = nullptr;
-    const jims::StateChangeOption* rotationMinus3 = nullptr;
-    for (const jims::StateChangeOption& c : options.cycles) {
+    melo::StateChangeOptions options;
+    ASSERT_TRUE(melo::changeOptions(score, 0, m2, options));
+    const melo::StateChangeOption* diatonic = nullptr;
+    const melo::StateChangeOption* rotationMinus3 = nullptr;
+    for (const melo::StateChangeOption& c : options.cycles) {
         if (c.id == u"scale:cycle:diatonic") {
             diatonic = &c;
         }
     }
-    for (const jims::StateChangeOption& r : options.rotations) {
+    for (const melo::StateChangeOption& r : options.rotations) {
         if (r.id == u"scale:rotation:-3") {
             rotationMinus3 = &r;
         }
@@ -580,15 +580,15 @@ TEST(Engraving_JiMStaffM9SATBTests, m9MultiChoiceScaleChangeIsOneAtomicOperation
         muse::String cur = stateAt(score, i, m2);
         for (const muse::String& id : steps) {
             muse::String out, err;
-            ASSERT_TRUE(jims::applyStateChange(cur, id, out, err)) << err.toStdString();
+            ASSERT_TRUE(melo::applyStateChange(cur, id, out, err)) << err.toStdString();
             cur = out;
         }
         const Instrument* instrument = score->staff(i)->part()->instrument();
-        ASSERT_TRUE(jims::defaultVocalExtent(cur, instrument->minPitchA(), instrument->maxPitchA(), roles[i], expected[i]));
+        ASSERT_TRUE(melo::defaultVocalExtent(cur, instrument->minPitchA(), instrument->maxPitchA(), roles[i], expected[i]));
     }
 
     const size_t depth = undoDepth(score);
-    ASSERT_TRUE(jims::applyChangeToAllJimsParts(score, m2, steps, error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChangeToAllJimsParts(score, m2, steps, error)) << error.toStdString();
     score->doLayout();
 
     EXPECT_EQ(undoDepth(score), depth + 1)
@@ -627,19 +627,19 @@ TEST(Engraving_JiMStaffM9SATBTests, m9PropagationStartsFromAnyVoiceAndKeepsEachP
         for (staff_idx_t i = 0; i < 4; ++i) {
             muse::String err;
             muse::String changed;
-            ASSERT_TRUE(jims::applyStateChange(stateAt(score, i, m2), u"mode:1", changed, err)) << err.toStdString();
+            ASSERT_TRUE(melo::applyStateChange(stateAt(score, i, m2), u"mode:1", changed, err)) << err.toStdString();
             const Instrument* instrument = score->staff(i)->part()->instrument();
-            ASSERT_TRUE(jims::defaultVocalExtent(changed, instrument->minPitchA(), instrument->maxPitchA(), roles[i], expected[i]));
+            ASSERT_TRUE(melo::defaultVocalExtent(changed, instrument->minPitchA(), instrument->maxPitchA(), roles[i], expected[i]));
         }
 
         muse::String error;
-        ASSERT_TRUE(jims::applyChangeToAllJimsParts(score, m2, { u"mode:1" }, error)) << error.toStdString();
+        ASSERT_TRUE(melo::applyChangeToAllJimsParts(score, m2, { u"mode:1" }, error)) << error.toStdString();
         score->doLayout();
 
         for (staff_idx_t i = 0; i < 4; ++i) {
             EXPECT_TRUE(withoutAmbit(stateAt(score, i, m2)) == withoutAmbit(expected[i]))
                 << "origin " << origin << ", staff " << i << " is not the Kernel's own answer for that staff";
-            EXPECT_TRUE(jims::changeCarrier(m2, i)) << "origin " << origin << ", staff " << i << " has no carrier";
+            EXPECT_TRUE(melo::changeCarrier(m2, i)) << "origin " << origin << ", staff " << i << " has no carrier";
         }
         // Soprano/Alto and Tenor/Bass keep their distinct frame heights.
         EXPECT_NE(stateAt(score, 0, m2), stateAt(score, 3, m2));
@@ -665,10 +665,10 @@ TEST(Engraving_JiMStaffM9SATBTests, m9ARefusedTargetLeavesTheWholeScoreUntouched
 
     // Staff 2 already carries a NON-JiMS staff type change at this measure.
     muse::String why;
-    ASSERT_FALSE(jims::canInsertChange(score, 2, m2, why));
+    ASSERT_FALSE(melo::canInsertChange(score, 2, m2, why));
 
     muse::String error;
-    EXPECT_FALSE(jims::applyChangeToAllJimsParts(score, m2, { u"mode:1" }, error));
+    EXPECT_FALSE(melo::applyChangeToAllJimsParts(score, m2, { u"mode:1" }, error));
     EXPECT_FALSE(error.empty()) << "a refusal must name its reason";
     score->doLayout();
 
@@ -704,7 +704,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9StockPartsAreLeftUntouchedAndASinglePartSc
 
     const size_t depth = undoDepth(score);
     muse::String error;
-    ASSERT_TRUE(jims::applyChangeToAllJimsParts(score, m2, { u"mode:1" }, error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChangeToAllJimsParts(score, m2, { u"mode:1" }, error)) << error.toStdString();
     score->doLayout();
 
     for (staff_idx_t i : jimsStaves) {
@@ -741,7 +741,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9BindStaysStaffWideAndIsNeverPropagatedAcro
     // state and leaves a bound one alone (M6 rule, unchanged by M9). Either
     // way it is applied to one staff and never reaches another part.
     muse::String error;
-    ASSERT_TRUE(jims::applyChange(score, 0, m2, u"bind:reference-pitch:64", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, m2, u"bind:reference-pitch:64", error)) << error.toStdString();
     score->doLayout();
     for (staff_idx_t i = 0; i < 4; ++i) {
         EXPECT_EQ(score->staff(i)->staffType(Fraction(0, 1))->jimsStateJson(), othersBefore[i])
@@ -749,7 +749,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9BindStaysStaffWideAndIsNeverPropagatedAcro
     }
 
     // And the score-wide seam refuses a binding outright rather than widening it.
-    EXPECT_FALSE(jims::applyChangeToAllJimsParts(score, m2, { u"bind:reference-pitch:65" }, error));
+    EXPECT_FALSE(melo::applyChangeToAllJimsParts(score, m2, { u"bind:reference-pitch:65" }, error));
     EXPECT_FALSE(error.empty());
     for (staff_idx_t i = 1; i < 4; ++i) {
         EXPECT_EQ(score->staff(i)->staffType(Fraction(0, 1))->jimsStateJson(), othersBefore[i])
@@ -807,8 +807,8 @@ TEST(Engraving_JiMStaffM9SATBTests, m9CollidingHeadsOfDifferentShapesAreOffsetAc
     EXPECT_NEAR(heads[0]->jimsCentsAboveDo(), heads[1]->jimsCentsAboveDo(), 1e-6);
     // ...and the Kernel really does give them different shapes.
     muse::String tokA, tokB;
-    ASSERT_TRUE(jims::noteheadToken(st->jimsStateJson(), heads[0]->jimsNGen(), tokA));
-    ASSERT_TRUE(jims::noteheadToken(st->jimsStateJson(), heads[1]->jimsNGen(), tokB));
+    ASSERT_TRUE(melo::noteheadToken(st->jimsStateJson(), heads[0]->jimsNGen(), tokA));
+    ASSERT_TRUE(melo::noteheadToken(st->jimsStateJson(), heads[1]->jimsNGen(), tokB));
     ASSERT_NE(tokA, tokB) << "the fixture must give the two heads different Kernel shapes";
 
     EXPECT_TRUE(heads[0]->visible() && heads[1]->visible()) << "neither head may be hidden away";
@@ -850,8 +850,8 @@ TEST(Engraving_JiMStaffM9SATBTests, m9CollidingHeadsOfIdenticalShapeMayShareOneH
         const StaffType* st = score->staff(0)->staffType(m->tick());
         ASSERT_TRUE(st && st->isJiMS());
         muse::String tokA, tokB;
-        ASSERT_TRUE(jims::noteheadToken(st->jimsStateJson(), heads[0]->jimsNGen(), tokA));
-        ASSERT_TRUE(jims::noteheadToken(st->jimsStateJson(), heads[1]->jimsNGen(), tokB));
+        ASSERT_TRUE(melo::noteheadToken(st->jimsStateJson(), heads[0]->jimsNGen(), tokA));
+        ASSERT_TRUE(melo::noteheadToken(st->jimsStateJson(), heads[1]->jimsNGen(), tokB));
         ASSERT_EQ(tokA, tokB) << "bar " << bar << ": the two heads must be the same Kernel shape";
 
         // The sharing decision itself: no separation offset, so the two chords
@@ -1101,9 +1101,9 @@ TEST(Engraving_JiMStaffM9SATBTests, m9EveryNotesPitchIsTheKernelsProjectionOfIts
                             if (!n->hasJimsPitch()) {
                                 continue;
                             }
-                            jims::SoundingPitch sounding;
+                            melo::SoundingPitch sounding;
                             muse::String err;
-                            ASSERT_TRUE(jims::noteSoundingPitch(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(),
+                            ASSERT_TRUE(melo::noteSoundingPitch(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(),
                                                                 sounding, &err))
                                 << muse::String(f).toStdString() << ": " << err.toStdString();
                             EXPECT_EQ(n->pitch(), sounding.midiKey)
@@ -1157,8 +1157,8 @@ TEST(Engraving_JiMStaffM9SATBTests, m9RelativeMinorMovesTheTonicToLaAndLeavesDoW
     ASSERT_TRUE(m2);
 
     // The template is in C, Do-mode: Do is the tonic and Do is C.
-    jims::StateChangeOptions before;
-    ASSERT_TRUE(jims::changeOptions(score, 0, m2, before));
+    melo::StateChangeOptions before;
+    ASSERT_TRUE(melo::changeOptions(score, 0, m2, before));
     ASSERT_GE(before.tonics.size(), 6u);
     EXPECT_EQ(before.tonics[0].label, muse::String(u"Do"));
     EXPECT_TRUE(before.tonics[0].current) << "the template must start with Do as the tonic";
@@ -1175,7 +1175,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9RelativeMinorMovesTheTonicToLaAndLeavesDoW
 
     // Take every part to the relative minor at once.
     muse::String error;
-    ASSERT_TRUE(jims::applyChangeToAllJimsParts(score, m2, { before.tonics[5].id }, error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChangeToAllJimsParts(score, m2, { before.tonics[5].id }, error)) << error.toStdString();
     score->doLayout();
 
     for (staff_idx_t i = 0; i < 4; ++i) {
@@ -1192,8 +1192,8 @@ TEST(Engraving_JiMStaffM9SATBTests, m9RelativeMinorMovesTheTonicToLaAndLeavesDoW
 
     // The Kernel now reports La as the tonic, for every part.
     for (staff_idx_t i = 0; i < 4; ++i) {
-        jims::StateChangeOptions after;
-        ASSERT_TRUE(jims::changeOptions(score, i, m2, after));
+        melo::StateChangeOptions after;
+        ASSERT_TRUE(melo::changeOptions(score, i, m2, after));
         ASSERT_GE(after.tonics.size(), 6u);
         EXPECT_TRUE(after.tonics[5].current) << "staff " << i << ": La is not reported as the tonic";
         EXPECT_FALSE(after.tonics[0].current) << "staff " << i << ": Do is still reported as the tonic";

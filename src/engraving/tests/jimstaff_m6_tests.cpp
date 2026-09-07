@@ -121,7 +121,7 @@ const StaffType* jimsStaffType(Score* score)
     return score->staff(0)->staffType(Fraction(0, 1));
 }
 
-int compatPitch(const jims::PitchHit& hit)
+int compatPitch(const melo::PitchHit& hit)
 {
     static const muse::String letters(u"CDEFGAB");
     const int step = int(letters.indexOf(muse::Char(hit.step)));
@@ -140,7 +140,7 @@ Score* syntheticCommonToneScore()
         score->deleteMeasures(third, third);
     }
     String error;
-    if (!jims::applyChange(score, 0, measureNo(score, 1), u"bind:reference-pitch:62", error)) {
+    if (!melo::applyChange(score, 0, measureNo(score, 1), u"bind:reference-pitch:62", error)) {
         delete score;
         return nullptr;
     }
@@ -170,7 +170,7 @@ Score* syntheticCommonToneScore()
     score->startCmd(TranslatableString::untranslatable("common-tone tie"));
     score->undoAddElement(tie);
     score->endCmd();
-    if (!jims::applyChange(score, 0, measureNo(score, 2), u"key:-1:3", error)) {
+    if (!melo::applyChange(score, 0, measureNo(score, 2), u"key:-1:3", error)) {
         delete score;
         return nullptr;
     }
@@ -211,8 +211,8 @@ TEST(MeloStaffTests, m6KeyboardStepsMoveOnTheLatticeThroughTheKernel)
     };
     for (const Case& c : cases) {
         const int nPer0 = n->jimsNPer(), nGen0 = n->jimsNGen(), pitch0 = n->pitch();
-        jims::PitchHit hit;
-        ASSERT_TRUE(jims::stepPitch(st->jimsStateJson(), nPer0, nGen0, c.up, c.domain, hit)) << c.domain;
+        melo::PitchHit hit;
+        ASSERT_TRUE(melo::stepPitch(st->jimsStateJson(), nPer0, nGen0, c.up, c.domain, hit)) << c.domain;
         score->select(n);
         score->startCmd(TranslatableString::untranslatable("M6 test step"));
         score->upDown(c.up, c.mode);
@@ -235,8 +235,8 @@ TEST(MeloStaffTests, m6KeyboardStepsMoveOnTheLatticeThroughTheKernel)
     }
     // Period steps preserve the class; collection steps land on members.
     {
-        jims::PitchHit hit;
-        ASSERT_TRUE(jims::stepPitch(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(), true, "period", hit));
+        melo::PitchHit hit;
+        ASSERT_TRUE(melo::stepPitch(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(), true, "period", hit));
         EXPECT_EQ(hit.nGen, n->jimsNGen());
         EXPECT_EQ(hit.nPer, n->jimsNPer() + 1);
     }
@@ -319,12 +319,12 @@ TEST(MeloStaffTests, m6ChangeControllerAuthorsCarriersFromKernelStates)
     score->doLayout();
     Measure* m2 = measureNo(score, 2);
     ASSERT_TRUE(m2);
-    ASSERT_FALSE(jims::changeCarrier(m2, 0));
+    ASSERT_FALSE(melo::changeCarrier(m2, 0));
 
     muse::String base;
-    ASSERT_TRUE(jims::effectiveState(score, 0, m2, base));
-    jims::StateChangeOptions options;
-    ASSERT_TRUE(jims::changeOptions(score, 0, m2, options));
+    ASSERT_TRUE(melo::effectiveState(score, 0, m2, base));
+    melo::StateChangeOptions options;
+    ASSERT_TRUE(melo::changeOptions(score, 0, m2, options));
     ASSERT_EQ(options.tonics.size(), 7u);
     EXPECT_EQ(options.tonics[0].label, muse::String(u"Do"));
     EXPECT_TRUE(options.tonics[0].current);
@@ -332,14 +332,14 @@ TEST(MeloStaffTests, m6ChangeControllerAuthorsCarriersFromKernelStates)
     EXPECT_EQ(options.tonics[5].id, muse::String(u"mode:1"));
     EXPECT_FALSE(options.referenceBound);
     muse::String why;
-    EXPECT_TRUE(jims::canInsertChange(score, 0, m2, why)) << why.toStdString();
+    EXPECT_TRUE(melo::canInsertChange(score, 0, m2, why)) << why.toStdString();
 
     // Mode change Do -> La: the carrier's state is exactly the Kernel's answer.
     muse::String expected, error;
-    ASSERT_TRUE(jims::applyStateChange(base, u"mode:1", expected, error)) << error.toStdString();
-    ASSERT_TRUE(jims::applyChange(score, 0, m2, u"mode:1", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyStateChange(base, u"mode:1", expected, error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, m2, u"mode:1", error)) << error.toStdString();
     score->doLayout();
-    const StaffTypeChange* stc = jims::changeCarrier(m2, 0);
+    const StaffTypeChange* stc = melo::changeCarrier(m2, 0);
     ASSERT_TRUE(stc);
     // Byte for byte the Kernel's answer — except the tonic ambit, which layout
     // derives from the new section's melody and saves (owner Q4 rider,
@@ -354,25 +354,25 @@ TEST(MeloStaffTests, m6ChangeControllerAuthorsCarriersFromKernelStates)
     EXPECT_EQ(withoutAmbit(stc->staffType()->jimsStateJson()), withoutAmbit(expected));
     EXPECT_TRUE(stc->staffType()->jimsStateJson().contains(u"\"tonic_ambit\":\"tonic-"));
     EXPECT_TRUE(stc->staffType()->jimsStateJson().contains(u"\"mode_rotation\":5"));
-    jims::ChangeIndicator model;
-    ASSERT_TRUE(jims::midSystemChangeIndicator(m2, 0, model));
+    melo::ChangeIndicator model;
+    ASSERT_TRUE(melo::midSystemChangeIndicator(m2, 0, model));
     ASSERT_EQ(model.kinds.size(), 1u);
     EXPECT_EQ(model.kinds[0], muse::String(u"mode"));
 
     // One undo step removes the carrier; redo restores it.
     score->undoRedo(true, nullptr);
     score->doLayout();
-    EXPECT_FALSE(jims::changeCarrier(m2, 0));
+    EXPECT_FALSE(melo::changeCarrier(m2, 0));
     score->undoRedo(false, nullptr);
     score->doLayout();
-    ASSERT_TRUE(jims::changeCarrier(m2, 0));
+    ASSERT_TRUE(melo::changeCarrier(m2, 0));
 
     // A key change needs a bound reference: refused, then bind-first, then key.
-    EXPECT_FALSE(jims::applyChange(score, 0, m2, u"key:-1:3", error));
-    ASSERT_TRUE(jims::applyChange(score, 0, m2, u"bind:reference-pitch:62", error)) << error.toStdString();
-    ASSERT_TRUE(jims::applyChange(score, 0, m2, u"key:-1:3", error)) << error.toStdString();
+    EXPECT_FALSE(melo::applyChange(score, 0, m2, u"key:-1:3", error));
+    ASSERT_TRUE(melo::applyChange(score, 0, m2, u"bind:reference-pitch:62", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, m2, u"key:-1:3", error)) << error.toStdString();
     score->doLayout();
-    stc = jims::changeCarrier(m2, 0);
+    stc = melo::changeCarrier(m2, 0);
     ASSERT_TRUE(stc);
     EXPECT_TRUE(stc->staffType()->jimsStateJson().contains(u"\"key_number\":53"));
     EXPECT_TRUE(stc->staffType()->jimsStateJson().contains(u"\"mode_rotation\":5"));
@@ -382,29 +382,29 @@ TEST(MeloStaffTests, m6ChangeControllerAuthorsCarriersFromKernelStates)
     EXPECT_TRUE(jimsStaffType(score)->jimsStateJson().contains(u"\"mode_rotation\":0"));
     EXPECT_TRUE(jimsStaffType(score)->jimsStateJson().contains(u"\"key_number\":62"));
     // Compounded from the carrier: options now report La as current.
-    ASSERT_TRUE(jims::changeOptions(score, 0, m2, options));
+    ASSERT_TRUE(melo::changeOptions(score, 0, m2, options));
     EXPECT_TRUE(options.tonics[5].current);
     EXPECT_TRUE(options.referenceBound);
     // With the base bound, the indicator at m2 is the owner's worked
     // example (kinds key, mode) — binding at the change bar no longer
     // leaves it silently undrawable.
     {
-        jims::ChangeIndicator model;
-        ASSERT_TRUE(jims::midSystemChangeIndicator(m2, 0, model));
+        melo::ChangeIndicator model;
+        ASSERT_TRUE(melo::midSystemChangeIndicator(m2, 0, model));
         ASSERT_EQ(model.kinds.size(), 2u);
         EXPECT_EQ(model.kinds[0], muse::String(u"key"));
         EXPECT_EQ(model.kinds[1], muse::String(u"mode"));
     }
     // Remove: carrier gone; undo brings it back with the last state.
-    ASSERT_TRUE(jims::removeChange(score, 0, m2, error)) << error.toStdString();
+    ASSERT_TRUE(melo::removeChange(score, 0, m2, error)) << error.toStdString();
     score->doLayout();
-    EXPECT_FALSE(jims::changeCarrier(m2, 0));
+    EXPECT_FALSE(melo::changeCarrier(m2, 0));
     score->undoRedo(true, nullptr);
     score->doLayout();
-    ASSERT_TRUE(jims::changeCarrier(m2, 0));
-    EXPECT_TRUE(jims::changeCarrier(m2, 0)->staffType()->jimsStateJson().contains(u"\"key_number\":53"));
+    ASSERT_TRUE(melo::changeCarrier(m2, 0));
+    EXPECT_TRUE(melo::changeCarrier(m2, 0)->staffType()->jimsStateJson().contains(u"\"key_number\":53"));
     // Foreign choice ids are refused without touching the score.
-    EXPECT_FALSE(jims::applyChange(score, 0, m2, u"tuning:700", error));
+    EXPECT_FALSE(melo::applyChange(score, 0, m2, u"tuning:700", error));
     delete score;
 }
 
@@ -425,10 +425,10 @@ TEST(MeloStaffTests, midBarChangeStartsAtTheSelectedExactTick)
     const String beforeState = staff->staffType(changeTick - Fraction::fromTicks(1))->jimsStateJson();
     String expected;
     String error;
-    ASSERT_TRUE(jims::applyStateChange(beforeState, u"mode:1", expected, error)) << error.toStdString();
-    ASSERT_TRUE(jims::applyChange(score, 0, measure, changeTick, u"mode:1", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyStateChange(beforeState, u"mode:1", expected, error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, measure, changeTick, u"mode:1", error)) << error.toStdString();
 
-    const StaffTypeChange* carrier = jims::changeCarrierAt(measure, 0, changeTick);
+    const StaffTypeChange* carrier = melo::changeCarrierAt(measure, 0, changeTick);
     ASSERT_TRUE(carrier);
     EXPECT_EQ(carrier->tick(), changeTick);
     EXPECT_EQ(carrier->rtick(), changeTick - measure->tick());
@@ -446,7 +446,7 @@ TEST(MeloStaffTests, midBarChangeStartsAtTheSelectedExactTick)
     };
     String expectedShared;
     String projectionError;
-    ASSERT_TRUE(jims::musicxmlSharedStateV3Xml(withoutAmbit(expected), expectedShared, &projectionError))
+    ASSERT_TRUE(melo::musicxmlSharedStateV3Xml(withoutAmbit(expected), expectedShared, &projectionError))
         << projectionError.toStdString();
     for (const String& path : { String(u"midbar-change-roundtrip.mscx"), String(u"midbar-change-roundtrip.mscz") }) {
         if (path.endsWith(u".mscz")) {
@@ -470,11 +470,11 @@ TEST(MeloStaffTests, midBarChangeStartsAtTheSelectedExactTick)
         ASSERT_TRUE(reopened) << path.toStdString();
         Measure* reopenedMeasure = measureNo(reopened, 2);
         ASSERT_TRUE(reopenedMeasure);
-        const StaffTypeChange* reopenedCarrier = jims::changeCarrierAt(reopenedMeasure, 0, changeTick);
+        const StaffTypeChange* reopenedCarrier = melo::changeCarrierAt(reopenedMeasure, 0, changeTick);
         ASSERT_TRUE(reopenedCarrier);
         EXPECT_EQ(reopenedCarrier->rtick(), changeTick - measure->tick());
         String reopenedShared;
-        ASSERT_TRUE(jims::musicxmlSharedStateV3Xml(
+        ASSERT_TRUE(melo::musicxmlSharedStateV3Xml(
                         withoutAmbit(reopened->staff(0)->staffType(changeTick)->jimsStateJson()), reopenedShared, &projectionError))
             << projectionError.toStdString();
         EXPECT_EQ(reopenedShared, expectedShared);
@@ -496,28 +496,28 @@ TEST(MeloStaffTests, twoMidBarChangesCanOccupyOneMeasure)
     const Fraction secondTick = notes[2]->tick();
     ASSERT_LT(firstTick, secondTick);
     String error;
-    ASSERT_TRUE(jims::applyChange(score, 0, measure, firstTick, u"mode:1", error)) << error.toStdString();
-    jims::StateChangeOptions options;
-    ASSERT_TRUE(jims::changeOptions(score, 0, measure, secondTick, options));
+    ASSERT_TRUE(melo::applyChange(score, 0, measure, firstTick, u"mode:1", error)) << error.toStdString();
+    melo::StateChangeOptions options;
+    ASSERT_TRUE(melo::changeOptions(score, 0, measure, secondTick, options));
     const auto target = std::find_if(options.tonics.begin(), options.tonics.end(),
-                                     [](const jims::StateChangeOption& option) { return !option.current; });
+                                     [](const melo::StateChangeOption& option) { return !option.current; });
     ASSERT_NE(target, options.tonics.end());
-    ASSERT_TRUE(jims::applyChange(score, 0, measure, secondTick, target->id, error)) << error.toStdString();
-    const std::vector<const StaffTypeChange*> carriers = jims::changeCarriers(measure, 0);
+    ASSERT_TRUE(melo::applyChange(score, 0, measure, secondTick, target->id, error)) << error.toStdString();
+    const std::vector<const StaffTypeChange*> carriers = melo::changeCarriers(measure, 0);
     ASSERT_EQ(carriers.size(), 2u);
     EXPECT_EQ(carriers[0]->tick(), firstTick);
     EXPECT_EQ(carriers[1]->tick(), secondTick);
     EXPECT_TRUE(measure->canAddStaffTypeChange(0, notes[3]->tick() - measure->tick()));
     EXPECT_FALSE(measure->canAddStaffTypeChange(0, firstTick - measure->tick()));
-    ASSERT_TRUE(jims::removeChange(score, 0, measure, firstTick, error)) << error.toStdString();
-    EXPECT_FALSE(jims::changeCarrierAt(measure, 0, firstTick));
-    EXPECT_TRUE(jims::changeCarrierAt(measure, 0, secondTick));
+    ASSERT_TRUE(melo::removeChange(score, 0, measure, firstTick, error)) << error.toStdString();
+    EXPECT_FALSE(melo::changeCarrierAt(measure, 0, firstTick));
+    EXPECT_TRUE(melo::changeCarrierAt(measure, 0, secondTick));
     score->undoRedo(true, nullptr);
-    EXPECT_TRUE(jims::changeCarrierAt(measure, 0, firstTick));
-    EXPECT_TRUE(jims::changeCarrierAt(measure, 0, secondTick));
+    EXPECT_TRUE(melo::changeCarrierAt(measure, 0, firstTick));
+    EXPECT_TRUE(melo::changeCarrierAt(measure, 0, secondTick));
     score->undoRedo(false, nullptr);
-    EXPECT_FALSE(jims::changeCarrierAt(measure, 0, firstTick));
-    EXPECT_TRUE(jims::changeCarrierAt(measure, 0, secondTick));
+    EXPECT_FALSE(melo::changeCarrierAt(measure, 0, firstTick));
+    EXPECT_TRUE(melo::changeCarrierAt(measure, 0, secondTick));
     delete score;
 }
 
@@ -533,13 +533,13 @@ TEST(MeloStaffTests, silentMidBarChangeCreatesATimingOnlyLayoutAnchor)
     const Fraction rtick = silentTick - measure->tick();
     ASSERT_FALSE(measure->findSegmentR(SegmentType::TimeTick, rtick));
     String error;
-    ASSERT_TRUE(jims::applyChange(score, 0, measure, silentTick, u"mode:1", error)) << error.toStdString();
-    const StaffTypeChange* carrier = jims::changeCarrierAt(measure, 0, silentTick);
+    ASSERT_TRUE(melo::applyChange(score, 0, measure, silentTick, u"mode:1", error)) << error.toStdString();
+    const StaffTypeChange* carrier = melo::changeCarrierAt(measure, 0, silentTick);
     ASSERT_TRUE(carrier);
     EXPECT_TRUE(measure->findSegmentR(SegmentType::TimeTick, rtick));
     score->doLayout();
-    jims::ChangeIndicator indicator;
-    EXPECT_TRUE(jims::midBarChangeIndicator(carrier, indicator));
+    melo::ChangeIndicator indicator;
+    EXPECT_TRUE(melo::midBarChangeIndicator(carrier, indicator));
     delete score;
 }
 
@@ -553,7 +553,7 @@ TEST(MeloStaffTests, midBarIndicatorHasTwoGreyDashedBarWidthFlanks)
     ASSERT_GE(notes.size(), 2u);
     const Fraction changeTick = notes.back()->tick();
     String error;
-    ASSERT_TRUE(jims::applyChange(score, 0, measure, changeTick, u"mode:1", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, measure, changeTick, u"mode:1", error)) << error.toStdString();
     score->doLayout();
 
     const StaffLines* lines = measure->staffLines(0);
@@ -605,9 +605,9 @@ TEST(MeloStaffTests, midBarIndicatorElementsAlignWithTheDisplayedStaffNoteLines)
     ASSERT_GE(notes.size(), 2u);
     const Fraction changeTick = notes.back()->tick();
     String error;
-    ASSERT_TRUE(jims::applyChange(score, 0, firstMeasure, u"bind:reference-pitch:62", error)) << error.toStdString();
-    ASSERT_TRUE(jims::applyChange(score, 0, measure, changeTick, u"mode:1", error)) << error.toStdString();
-    ASSERT_TRUE(jims::applyChange(score, 0, measure, changeTick, u"key:-1:3", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, firstMeasure, u"bind:reference-pitch:62", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, measure, changeTick, u"mode:1", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, measure, changeTick, u"key:-1:3", error)) << error.toStdString();
     score->doLayout();
 
     const StaffLines* lines = measure->staffLines(0);
@@ -615,25 +615,25 @@ TEST(MeloStaffTests, midBarIndicatorElementsAlignWithTheDisplayedStaffNoteLines)
     const StaffType* displayedStaffType = score->staff(0)->staffType(measure->tick());
     ASSERT_TRUE(displayedStaffType);
     ASSERT_TRUE(displayedStaffType->isJiMS());
-    const StaffTypeChange* carrier = jims::changeCarrierAt(measure, 0, changeTick);
+    const StaffTypeChange* carrier = melo::changeCarrierAt(measure, 0, changeTick);
     ASSERT_TRUE(carrier);
-    jims::ChangeIndicator indicator;
+    melo::ChangeIndicator indicator;
     const StaffType* changedStaffType = nullptr;
-    ASSERT_TRUE(jims::midBarChangeIndicator(carrier, indicator, &changedStaffType));
+    ASSERT_TRUE(melo::midBarChangeIndicator(carrier, indicator, &changedStaffType));
     ASSERT_TRUE(changedStaffType);
     ASSERT_NE(changedStaffType, displayedStaffType);
 
     const StaffType::MeloFrameView& view
         = displayedStaffType->jimsFrameView(score, 0, measure->system());
     ASSERT_FALSE(view.empty());
-    jims::PeriodicOrigins origins;
-    ASSERT_TRUE(jims::periodicOrigins(displayedStaffType->jimsStateJson(), origins));
+    melo::PeriodicOrigins origins;
+    ASSERT_TRUE(melo::periodicOrigins(displayedStaffType->jimsStateJson(), origins));
     const double periodCents = displayedStaffType->jimsPeriodCents();
     ASSERT_GT(periodCents, 0.0);
-    const double basePeriod = jims::changeAnchorPeriodCents(
+    const double basePeriod = melo::changeAnchorPeriodCents(
         view, indicator, periodCents, origins.doCentsAboveExtentLower);
     std::vector<double> expectedTonicYs;
-    for (const jims::ChangePoint& point : indicator.tonicIndicators) {
+    for (const melo::ChangePoint& point : indicator.tonicIndicators) {
         const double cents = basePeriod + (point.periodOffset + point.ordinate) * periodCents;
         expectedTonicYs.push_back(lines->pos().y()
                                   + displayedStaffType->jimsYFromCents(cents, view) * lines->spatium());
@@ -702,15 +702,15 @@ TEST(MeloStaffTests, m6WorkedExampleAuthoredThroughTheControllerMatchesM5)
     Measure* m2 = measureNo(score, 2);
     muse::String error;
     // Binding at measure 1 edits the base staff type (no carrier at the origin).
-    ASSERT_TRUE(jims::applyChange(score, 0, m1, u"bind:reference-pitch:62", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, m1, u"bind:reference-pitch:62", error)) << error.toStdString();
     score->doLayout();
-    EXPECT_FALSE(jims::changeCarrier(m1, 0)) << "the origin measure has no carrier; the base state is edited";
+    EXPECT_FALSE(melo::changeCarrier(m1, 0)) << "the origin measure has no carrier; the base state is edited";
     EXPECT_TRUE(jimsStaffType(score)->jimsStateJson().contains(u"\"key_number\":62"));
-    ASSERT_TRUE(jims::applyChange(score, 0, m2, u"mode:1", error)) << error.toStdString();
-    ASSERT_TRUE(jims::applyChange(score, 0, m2, u"key:-1:3", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, m2, u"mode:1", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, m2, u"key:-1:3", error)) << error.toStdString();
     score->doLayout();
-    jims::ChangeIndicator model;
-    ASSERT_TRUE(jims::midSystemChangeIndicator(m2, 0, model));
+    melo::ChangeIndicator model;
+    ASSERT_TRUE(melo::midSystemChangeIndicator(m2, 0, model));
     ASSERT_EQ(model.kinds.size(), 2u);
     EXPECT_EQ(model.kinds[0], muse::String(u"key"));
     EXPECT_EQ(model.kinds[1], muse::String(u"mode"));
@@ -742,9 +742,9 @@ TEST(MeloStaffTests, stateChangeAtomicallyReinterpretsAFullTieAtExactFrequency)
     score->undoAddElement(tie);
     score->endCmd();
 
-    jims::SoundingPitch established;
+    melo::SoundingPitch established;
     const StaffType* oldState = start->staff()->staffTypeForElement(start);
-    ASSERT_TRUE(jims::noteSoundingPitch(oldState->jimsStateJson(), start->jimsNPer(), start->jimsNGen(), established));
+    ASSERT_TRUE(melo::noteSoundingPitch(oldState->jimsStateJson(), start->jimsNPer(), start->jimsNGen(), established));
     const int oldNPer = continuation->jimsNPer();
     const int oldNGen = continuation->jimsNGen();
     const int oldPitch = continuation->pitch();
@@ -753,10 +753,10 @@ TEST(MeloStaffTests, stateChangeAtomicallyReinterpretsAFullTieAtExactFrequency)
     const double oldTuning = continuation->tuning();
 
     String error;
-    ASSERT_TRUE(jims::applyChange(score, 0, measureNo(score, 2), u"mode:1", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, measureNo(score, 2), u"mode:1", error)) << error.toStdString();
     const StaffType* newState = continuation->staff()->staffTypeForElement(continuation);
-    jims::SoundingPitch projected;
-    ASSERT_TRUE(jims::noteSoundingPitch(newState->jimsStateJson(), continuation->jimsNPer(), continuation->jimsNGen(), projected));
+    melo::SoundingPitch projected;
+    ASSERT_TRUE(melo::noteSoundingPitch(newState->jimsStateJson(), continuation->jimsNPer(), continuation->jimsNGen(), projected));
     EXPECT_NEAR(projected.frequencyHz, established.frequencyHz, 1e-9);
     EXPECT_EQ(continuation->pitch(), projected.midiKey);
     EXPECT_NEAR(continuation->tuning(), projected.centsOffset, 1e-9);
@@ -791,7 +791,7 @@ TEST(MeloStaffTests, stateChangeKeepsAnExistingFullTieIdentityAtTheSameReference
     // The fixture's key carrier changes Re0 from key 62 to key 55. Remove it
     // through the controller so the two sides of this regression share one
     // reference before the mode-only edit under test.
-    ASSERT_TRUE(jims::removeChange(score, 0, m2, error)) << error.toStdString();
+    ASSERT_TRUE(melo::removeChange(score, 0, m2, error)) << error.toStdString();
     score->doLayout();
 
     auto notes = jimsNotes(score);
@@ -803,12 +803,12 @@ TEST(MeloStaffTests, stateChangeKeepsAnExistingFullTieIdentityAtTheSameReference
     ASSERT_EQ(continuation->staff()->staffTypeForElement(continuation)->jimsStateJson(), sameState);
     double generatorCents = 0.0;
     double periodCents = 0.0;
-    ASSERT_TRUE(jims::staffMetrics(sameState, generatorCents, periodCents));
+    ASSERT_TRUE(melo::staffMetrics(sameState, generatorCents, periodCents));
     EXPECT_DOUBLE_EQ(generatorCents, 700.0);
     EXPECT_DOUBLE_EQ(periodCents, 1200.0);
 
-    jims::SoundingPitch established;
-    ASSERT_TRUE(jims::noteSoundingPitch(sameState, -6, 12, established));
+    melo::SoundingPitch established;
+    ASSERT_TRUE(melo::noteSoundingPitch(sameState, -6, 12, established));
     const int establishedTpc = step2tpc(int(String(u"CDEFGAB").indexOf(Char(established.step))),
                                         AccidentalVal(established.alter));
     for (Note* note : { start, continuation }) {
@@ -828,13 +828,13 @@ TEST(MeloStaffTests, stateChangeKeepsAnExistingFullTieIdentityAtTheSameReference
     ASSERT_TRUE(start->tieForNonPartial());
     ASSERT_EQ(start->tieForNonPartial()->endNote(), continuation);
 
-    ASSERT_TRUE(jims::applyChange(score, 0, m2, u"mode:1", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, m2, u"mode:1", error)) << error.toStdString();
     const StaffType* newState = continuation->staff()->staffTypeForElement(continuation);
     ASSERT_TRUE(newState);
     EXPECT_TRUE(newState->jimsStateJson().contains(u"\"key_number\":62"));
     EXPECT_TRUE(newState->jimsStateJson().contains(u"\"generator_cents\":700.0"));
-    jims::SoundingPitch projected;
-    ASSERT_TRUE(jims::noteSoundingPitch(newState->jimsStateJson(), -6, 12, projected));
+    melo::SoundingPitch projected;
+    ASSERT_TRUE(melo::noteSoundingPitch(newState->jimsStateJson(), -6, 12, projected));
     EXPECT_EQ(start->jimsNPer(), -6);
     EXPECT_EQ(start->jimsNGen(), 12);
     EXPECT_EQ(continuation->jimsNPer(), -6);
@@ -878,8 +878,8 @@ TEST(MeloStaffTests, stateChangeKeepsAnExistingFullTieIdentityAtTheSameReference
     ASSERT_TRUE(reopenedContinuation->tieBackNonPartial()->startNote());
     EXPECT_EQ(reopenedContinuation->jimsNPer(), -6);
     EXPECT_EQ(reopenedContinuation->jimsNGen(), 12);
-    jims::SoundingPitch reopenedProjection;
-    ASSERT_TRUE(jims::noteSoundingPitch(reopenedContinuation->staff()->staffTypeForElement(reopenedContinuation)->jimsStateJson(),
+    melo::SoundingPitch reopenedProjection;
+    ASSERT_TRUE(melo::noteSoundingPitch(reopenedContinuation->staff()->staffTypeForElement(reopenedContinuation)->jimsStateJson(),
                                         reopenedContinuation->jimsNPer(), reopenedContinuation->jimsNGen(), reopenedProjection));
     EXPECT_NEAR(reopenedProjection.frequencyHz, established.frequencyHz, 1e-9);
     EXPECT_EQ(reopenedContinuation->pitch(), reopenedProjection.midiKey);
@@ -897,11 +897,11 @@ TEST(MeloStaffTests, syntheticTwoMeasureCommonTonePersistsItsExactContinuation)
     ASSERT_EQ(notes.size(), 2u);
     ASSERT_TRUE(notes[0]->tieForNonPartial());
     ASSERT_EQ(notes[0]->tieForNonPartial()->endNote(), notes[1]);
-    jims::SoundingPitch first;
-    jims::SoundingPitch continuation;
-    ASSERT_TRUE(jims::noteSoundingPitch(notes[0]->staff()->staffTypeForElement(notes[0])->jimsStateJson(),
+    melo::SoundingPitch first;
+    melo::SoundingPitch continuation;
+    ASSERT_TRUE(melo::noteSoundingPitch(notes[0]->staff()->staffTypeForElement(notes[0])->jimsStateJson(),
                                         notes[0]->jimsNPer(), notes[0]->jimsNGen(), first));
-    ASSERT_TRUE(jims::noteSoundingPitch(notes[1]->staff()->staffTypeForElement(notes[1])->jimsStateJson(),
+    ASSERT_TRUE(melo::noteSoundingPitch(notes[1]->staff()->staffTypeForElement(notes[1])->jimsStateJson(),
                                         notes[1]->jimsNPer(), notes[1]->jimsNGen(), continuation));
     EXPECT_NEAR(first.frequencyHz, continuation.frequencyHz, 1e-9);
     EXPECT_NE(notes[0]->jimsNGen(), notes[1]->jimsNGen());
@@ -912,8 +912,8 @@ TEST(MeloStaffTests, syntheticTwoMeasureCommonTonePersistsItsExactContinuation)
     ASSERT_TRUE(reopened);
     std::vector<Note*> reopenedNotes = jimsNotes(reopened);
     ASSERT_EQ(reopenedNotes.size(), 2u);
-    jims::SoundingPitch reopenedContinuation;
-    ASSERT_TRUE(jims::noteSoundingPitch(reopenedNotes[1]->staff()->staffTypeForElement(reopenedNotes[1])->jimsStateJson(),
+    melo::SoundingPitch reopenedContinuation;
+    ASSERT_TRUE(melo::noteSoundingPitch(reopenedNotes[1]->staff()->staffTypeForElement(reopenedNotes[1])->jimsStateJson(),
                                         reopenedNotes[1]->jimsNPer(), reopenedNotes[1]->jimsNGen(), reopenedContinuation));
     EXPECT_NEAR(first.frequencyHz, reopenedContinuation.frequencyHz, 1e-9);
     delete reopened;
@@ -955,32 +955,32 @@ TEST(MeloStaffTests, consecutiveStateChangesKeepAMultiSegmentTieExact)
         score->undoAddElement(tie);
     }
     score->endCmd();
-    jims::SoundingPitch established;
-    ASSERT_TRUE(jims::noteSoundingPitch(chain[0]->staff()->staffTypeForElement(chain[0])->jimsStateJson(), 0, 0, established));
+    melo::SoundingPitch established;
+    ASSERT_TRUE(melo::noteSoundingPitch(chain[0]->staff()->staffTypeForElement(chain[0])->jimsStateJson(), 0, 0, established));
     String error;
-    ASSERT_TRUE(jims::applyChange(score, 0, measureNo(score, 2), u"mode:1", error)) << error.toStdString();
-    jims::StateChangeOptions options;
-    ASSERT_TRUE(jims::changeOptions(score, 0, measureNo(score, 3), options));
+    ASSERT_TRUE(melo::applyChange(score, 0, measureNo(score, 2), u"mode:1", error)) << error.toStdString();
+    melo::StateChangeOptions options;
+    ASSERT_TRUE(melo::changeOptions(score, 0, measureNo(score, 3), options));
     bool changedAgain = false;
-    for (const jims::StateChangeOption& option : options.keyTargets) {
+    for (const melo::StateChangeOption& option : options.keyTargets) {
         if (option.current) {
             continue;
         }
         const String current = score->staff(0)->staffType(measureNo(score, 3)->tick())->jimsStateJson();
         String candidate;
-        jims::SoundingPitch candidateProjection;
-        if (jims::applyStateChange(current, option.id, candidate, error)
-            && jims::noteContinuation(candidate, established.frequencyHz, candidateProjection, &error)
+        melo::SoundingPitch candidateProjection;
+        if (melo::applyStateChange(current, option.id, candidate, error)
+            && melo::noteContinuation(candidate, established.frequencyHz, candidateProjection, &error)
             && (candidateProjection.nPer != chain[1]->jimsNPer() || candidateProjection.nGen != chain[1]->jimsNGen())
-            && jims::applyChange(score, 0, measureNo(score, 3), option.id, error)) {
+            && melo::applyChange(score, 0, measureNo(score, 3), option.id, error)) {
             changedAgain = true;
             break;
         }
     }
     ASSERT_TRUE(changedAgain) << error.toStdString();
     for (Note* note : chain) {
-        jims::SoundingPitch projection;
-        ASSERT_TRUE(jims::noteSoundingPitch(note->staff()->staffTypeForElement(note)->jimsStateJson(),
+        melo::SoundingPitch projection;
+        ASSERT_TRUE(melo::noteSoundingPitch(note->staff()->staffTypeForElement(note)->jimsStateJson(),
                                             note->jimsNPer(), note->jimsNGen(), projection));
         EXPECT_NEAR(projection.frequencyHz, established.frequencyHz, 1e-9);
         EXPECT_EQ(note->pitch(), projection.midiKey);
@@ -1002,7 +1002,7 @@ TEST(MeloStaffTests, projectionFailureRollsBackStateAndEveryStoredField)
     const auto noteBefore = std::make_tuple(notes.front()->jimsNPer(), notes.front()->jimsNGen(), notes.front()->pitch(),
                                             notes.front()->tpc1(), notes.front()->tpc2(), notes.front()->tuning());
     String error;
-    EXPECT_FALSE(jims::applyChange(score, 0, changed, u"mode:1", error));
+    EXPECT_FALSE(melo::applyChange(score, 0, changed, u"mode:1", error));
     EXPECT_FALSE(error.isEmpty());
     EXPECT_EQ(score->staff(0)->staffType(changed->tick())->jimsStateJson(), stateBefore);
     EXPECT_EQ(std::make_tuple(notes.front()->jimsNPer(), notes.front()->jimsNGen(), notes.front()->pitch(),
@@ -1022,7 +1022,7 @@ TEST(MeloStaffTests, linkedNotesReceiveOneCoherentProjection)
     notes[1]->setTuning(notes[0]->tuning());
     notes[1]->linkTo(notes[0]);
     String error;
-    ASSERT_TRUE(jims::applyChange(score, 0, measureNo(score, 2), u"mode:1", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, measureNo(score, 2), u"mode:1", error)) << error.toStdString();
     EXPECT_EQ(std::make_tuple(notes[0]->jimsNPer(), notes[0]->jimsNGen(), notes[0]->pitch(), notes[0]->tpc1(),
                               notes[0]->tpc2(), notes[0]->tuning()),
               std::make_tuple(notes[1]->jimsNPer(), notes[1]->jimsNGen(), notes[1]->pitch(), notes[1]->tpc1(),
@@ -1037,7 +1037,7 @@ TEST(MeloStaffTests, stateProjectionSpanStopsAtTheNextIndependentCarrier)
     Measure* m2 = measureNo(score, 2);
     Measure* m3 = measureNo(score, 3);
     String error;
-    ASSERT_TRUE(jims::applyChange(score, 0, m3, u"mode:1", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, m3, u"mode:1", error)) << error.toStdString();
     std::vector<Note*> m2Notes = notesInMeasure(m2);
     std::vector<Note*> m3Notes = notesInMeasure(m3);
     ASSERT_FALSE(m2Notes.empty());
@@ -1047,19 +1047,19 @@ TEST(MeloStaffTests, stateProjectionSpanStopsAtTheNextIndependentCarrier)
         laterBefore.emplace_back(note->jimsNPer(), note->jimsNGen(), note->pitch(), note->tpc1(), note->tpc2(), note->tuning());
     }
     const int affectedPitchBefore = m2Notes.front()->pitch();
-    jims::StateChangeOptions options;
-    ASSERT_TRUE(jims::changeOptions(score, 0, m2, options));
+    melo::StateChangeOptions options;
+    ASSERT_TRUE(melo::changeOptions(score, 0, m2, options));
     auto current = std::find_if(options.keyTargets.begin(), options.keyTargets.end(),
-                                [](const jims::StateChangeOption& option) { return option.current; });
+                                [](const melo::StateChangeOption& option) { return option.current; });
     ASSERT_NE(current, options.keyTargets.end());
     auto target = std::min_element(options.keyTargets.begin(), options.keyTargets.end(),
-                                   [&](const jims::StateChangeOption& a, const jims::StateChangeOption& b) {
+                                   [&](const melo::StateChangeOption& a, const melo::StateChangeOption& b) {
         const int da = a.current ? INT_MAX : std::abs(a.nPer - current->nPer) + std::abs(a.nGen - current->nGen);
         const int db = b.current ? INT_MAX : std::abs(b.nPer - current->nPer) + std::abs(b.nGen - current->nGen);
         return da < db;
     });
     ASSERT_NE(target, options.keyTargets.end());
-    ASSERT_TRUE(jims::applyChange(score, 0, m2, target->id, error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, m2, target->id, error)) << error.toStdString();
     EXPECT_NE(m2Notes.front()->pitch(), affectedPitchBefore);
     for (size_t i = 0; i < m3Notes.size(); ++i) {
         EXPECT_EQ(std::make_tuple(m3Notes[i]->jimsNPer(), m3Notes[i]->jimsNGen(), m3Notes[i]->pitch(),
@@ -1090,7 +1090,7 @@ TEST(MeloStaffTests, ambiguousPartialTieAcrossStateBoundaryIsRefusedWithoutMutat
     const auto noteBefore = std::make_tuple(continuation->jimsNPer(), continuation->jimsNGen(), continuation->pitch(),
                                             continuation->tpc1(), continuation->tpc2(), continuation->tuning());
     String error;
-    EXPECT_FALSE(jims::applyChange(score, 0, m2, u"mode:1", error));
+    EXPECT_FALSE(melo::applyChange(score, 0, m2, u"mode:1", error));
     EXPECT_TRUE(error.contains(u"path-dependent partial tie")) << error.toStdString();
     EXPECT_EQ(score->staff(0)->staffType(m2->tick())->jimsStateJson(), stateBefore);
     EXPECT_EQ(std::make_tuple(continuation->jimsNPer(), continuation->jimsNGen(), continuation->pitch(),
@@ -1153,12 +1153,12 @@ TEST(MeloStaffTests, conventionalEntryUsesTheEffectivePostChangeState)
     Score* score = ScoreRW::readScore(u"jimstaff_data/jims-template.mscx");
     ASSERT_TRUE(score);
     String error;
-    ASSERT_TRUE(jims::applyChange(score, 0, measureNo(score, 1), u"bind:reference-pitch:62", error)) << error.toStdString();
-    ASSERT_TRUE(jims::applyChange(score, 0, measureNo(score, 2), u"key:-1:3", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, measureNo(score, 1), u"bind:reference-pitch:62", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, measureNo(score, 2), u"key:-1:3", error)) << error.toStdString();
     const StaffType* state = score->staff(0)->staffType(measureNo(score, 2)->tick());
     ASSERT_TRUE(state && state->isJiMS());
-    jims::SoundingPitch expected;
-    ASSERT_TRUE(jims::entryFromStandardPitch(state->jimsStateJson(), 'D', 0, 4, expected, &error)) << error.toStdString();
+    melo::SoundingPitch expected;
+    ASSERT_TRUE(melo::entryFromStandardPitch(state->jimsStateJson(), 'D', 0, 4, expected, &error)) << error.toStdString();
 
     InputState& input = score->inputState();
     input.setTrack(0);
@@ -1218,7 +1218,7 @@ TEST(MeloStaffTests, m6WriteEditingScenario)
 
     // Bar 1: bind Re0 to key number 62 (the base state).
     muse::String error;
-    ASSERT_TRUE(jims::applyChange(score, 0, measureNo(score, 1), u"bind:reference-pitch:62", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, measureNo(score, 1), u"bind:reference-pitch:62", error)) << error.toStdString();
 
     // Notes, typed. Letters as Score::resolveNoteInputParams' step (octave index = pitch/12).
     InputState& is = score->inputState();
@@ -1255,18 +1255,18 @@ TEST(MeloStaffTests, m6WriteEditingScenario)
 
     // Bar 2: mode Do -> La, key Do0 -> La0 (the owner's worked example).
     Measure* m2 = measureNo(score, 2);
-    ASSERT_TRUE(jims::applyChange(score, 0, m2, u"mode:1", error)) << error.toStdString();
-    ASSERT_TRUE(jims::applyChange(score, 0, m2, u"key:-1:3", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, m2, u"mode:1", error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChange(score, 0, m2, u"key:-1:3", error)) << error.toStdString();
     score->doLayout();
-    jims::ChangeIndicator model;
-    ASSERT_TRUE(jims::midSystemChangeIndicator(m2, 0, model));
+    melo::ChangeIndicator model;
+    ASSERT_TRUE(melo::midSystemChangeIndicator(m2, 0, model));
     ASSERT_EQ(model.kinds.size(), 2u);
 
     ASSERT_TRUE(ScoreRW::saveScore(score, out + u"/m6-key-mode.mscx"));
     // Semantics + identities record.
     std::ofstream rec(std::string(outDir) + "/m6-key-mode-semantics.json");
     rec << "{\"base\":" << jimsStaffType(score)->jimsStateJson().toStdString()
-        << ",\"change\":" << jims::changeCarrier(m2, 0)->staffType()->jimsStateJson().toStdString()
+        << ",\"change\":" << melo::changeCarrier(m2, 0)->staffType()->jimsStateJson().toStdString()
         << ",\"kinds\":[";
     for (size_t i = 0; i < model.kinds.size(); ++i) {
         rec << (i ? "," : "") << "\"" << model.kinds[i].toStdString() << "\"";

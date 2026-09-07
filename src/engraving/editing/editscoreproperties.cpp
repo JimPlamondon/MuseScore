@@ -30,9 +30,9 @@ using namespace mu::engraving;
 
 void ChangeJimsMelodyPart::flip(EditData*)
 {
-    const jims::MelodyPart old = score->jimsMelodyPart();
+    const melo::MelodyPart old = score->jimsMelodyPart();
     score->setJimsMelodyPart(part);
-    jims::deriveTonicAmbits(score);
+    melo::deriveTonicAmbits(score);
     score->setLayoutAll();
     part = old;
 }

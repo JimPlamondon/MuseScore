@@ -116,13 +116,13 @@ public:
     /// its end tag) into the transported carrier. Returns false with `error`
     /// set when a resource lacks role/uri/media-type or an unknown JiMS child
     /// appears. Values are carried verbatim (owner decision 2026-08-19).
-    bool parseProvenance(muse::XmlStreamReader& e, engraving::jims::Provenance& out, muse::String& error) const;
+    bool parseProvenance(muse::XmlStreamReader& e, engraving::melo::Provenance& out, muse::String& error) const;
     /// Parse a jims:tuning-trajectory element (reader on its start tag; left
     /// after its end tag). `ticksOf` converts a duration-divisions integer to
     /// score time (the pass-1 divisions calculator). Tick, staff and placement
     /// come from the enclosing direction and are set by the caller.
     bool parseTuningTrajectory(muse::XmlStreamReader& e, const std::function<engraving::Fraction(int)>& ticksOf,
-                               engraving::jims::TuningTrajectory& out, muse::String& error) const;
+                               engraving::melo::TuningTrajectory& out, muse::String& error) const;
     /// Owner rule 2026-08-19 (multi-part documents): several JiMS parts are
     /// allowed and mixed JiMS + stock parts are allowed, but every JiMS part
     /// must carry the SAME state timeline (same declaring ticks, same Kernel

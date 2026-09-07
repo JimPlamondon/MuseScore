@@ -342,7 +342,7 @@ bool MeloImportContext::applyToPart(Score* score, Part* part, const String& part
     if (!states || states->empty()) {
         return true;
     }
-    if (!jims::available()) {
+    if (!melo::available()) {
         jimsFatal(logger, u"JiMS Kernel bridge unavailable; cannot import a JiMS staff");
         return false;
     }
@@ -369,7 +369,7 @@ bool MeloImportContext::applyToPart(Score* score, Part* part, const String& part
         Fraction lastTick(-1, 1);
         for (const BufferedState* s : entry.second) {
             String kernelError;
-            if (!jims::validateState(s->json, kernelError)) {
+            if (!melo::validateState(s->json, kernelError)) {
                 jimsFatal(logger, String(u"the JiMS Kernel rejected a jims:staff-state: %1").arg(kernelError));
                 return false;
             }
@@ -423,13 +423,13 @@ bool MeloImportContext::applyToPart(Score* score, Part* part, const String& part
 //   parseProvenance
 //---------------------------------------------------------
 
-bool MeloImportContext::parseProvenance(XmlStreamReader& e, engraving::jims::Provenance& out, String& error) const
+bool MeloImportContext::parseProvenance(XmlStreamReader& e, engraving::melo::Provenance& out, String& error) const
 {
-    out = engraving::jims::Provenance();
+    out = engraving::melo::Provenance();
     out.strictFallback = e.attribute("fallback-profile") == u"strict";
     while (e.readNextStartElement()) {
         if (isJimsElement(e.name(), "resource")) {
-            engraving::jims::ProvenanceResource r;
+            engraving::melo::ProvenanceResource r;
             r.role = e.attribute("role");
             r.uri = e.attribute("uri");
             r.mediaType = e.attribute("media-type");
@@ -455,16 +455,16 @@ bool MeloImportContext::parseProvenance(XmlStreamReader& e, engraving::jims::Pro
 //---------------------------------------------------------
 
 bool MeloImportContext::parseTuningTrajectory(XmlStreamReader& e, const std::function<engraving::Fraction(int)>& ticksOf,
-                                              engraving::jims::TuningTrajectory& out, String& error) const
+                                              engraving::melo::TuningTrajectory& out, String& error) const
 {
-    out = engraving::jims::TuningTrajectory();
+    out = engraving::melo::TuningTrajectory();
     while (e.readNextStartElement()) {
         if (!isJimsElement(e.name(), "segment")) {
             error = String(u"unexpected element in jims:tuning-trajectory: %1").arg(String::fromAscii(e.name().ascii()));
             e.skipCurrentElement();
             return false;
         }
-        engraving::jims::TrajectorySegment seg;
+        engraving::melo::TrajectorySegment seg;
         bool ok = false;
         const int divisions = e.attribute("duration-divisions").toInt(&ok);
         if (!ok || divisions <= 0) {
@@ -488,7 +488,7 @@ bool MeloImportContext::parseTuningTrajectory(XmlStreamReader& e, const std::fun
                 e.skipCurrentElement();
                 return false;
             }
-            engraving::jims::TrajectoryControl c;
+            engraving::melo::TrajectoryControl c;
             c.time = e.attribute("time");
             c.valueCents = e.attribute("value-cents");
             if (c.time.isEmpty() || c.valueCents.isEmpty()) {
@@ -532,7 +532,7 @@ bool MeloImportContext::checkSharedStatesAcrossParts(MusicXmlLogger* logger) con
     // compares only the projection it is handed.
     auto sharedForm = [&logger](const BufferedState& s, String& out) {
         String err;
-        if (!jims::musicxmlSharedStateV3Xml(s.json, out, &err)) {
+        if (!melo::musicxmlSharedStateV3Xml(s.json, out, &err)) {
             jimsFatal(logger, String(u"JiMS import: the Kernel could not derive the shared state form: %1").arg(err));
             return false;
         }

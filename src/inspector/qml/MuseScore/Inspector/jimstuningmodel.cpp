@@ -22,7 +22,7 @@ const muse::audio::AudioResourceId JIMSYNTH_RESOURCE_ID = "JiMSynth";
 MeloTuningModel::MeloTuningModel(QObject* parent)
     : QObject(parent), muse::Contextable(muse::iocCtxForQmlObject(this))
 {
-    jims::generatorRange(m_minimum, m_maximum);
+    melo::generatorRange(m_minimum, m_maximum);
 }
 
 MeloTuningModel::~MeloTuningModel()
@@ -66,7 +66,7 @@ void MeloTuningModel::refresh()
     if (score) {
         for (const Staff* staff : score->staves()) {
             if (staff->staffType(Fraction(0, 1))->isJiMS()) {
-                m_controller = std::make_unique<jims::TuningController>(score, staff->idx());
+                m_controller = std::make_unique<melo::TuningController>(score, staff->idx());
                 break;
             }
         }
@@ -139,11 +139,11 @@ void MeloTuningModel::syncLiveGenerator()
         m_generatorParamId = 0;
         return;
     }
-    std::vector<jims::ToneDiamondSetting> settings;
+    std::vector<melo::ToneDiamondSetting> settings;
     uint32_t generatorParamId = 0;
     uint32_t xParamId = 0;
     uint32_t yParamId = 0;
-    m_generatorParamId = jims::toneDiamondSettings(settings, generatorParamId, xParamId, yParamId) ? generatorParamId : 0;
+    m_generatorParamId = melo::toneDiamondSettings(settings, generatorParamId, xParamId, yParamId) ? generatorParamId : 0;
     setLiveGenerator(cents());
 }
 

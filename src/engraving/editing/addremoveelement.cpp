@@ -49,10 +49,10 @@ static void notifyDesignatedMelodyChange(EngravingItem* item)
         return;
     }
     if (item->isNote()) {
-        jims::designatedMelodyNoteChanged(toNote(item));
+        melo::designatedMelodyNoteChanged(toNote(item));
     } else if (item->isChord()) {
         for (Note* note : toChord(item)->notes()) {
-            jims::designatedMelodyNoteChanged(note);
+            melo::designatedMelodyNoteChanged(note);
             break; // one recomputation covers the complete chord mutation
         }
     }

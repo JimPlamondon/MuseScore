@@ -25,7 +25,7 @@ class StaffType;
 class StaffTypeChange;
 }
 
-namespace mu::engraving::jims {
+namespace mu::engraving::melo {
 /// The JiMS StaffTypeChange carried by `measure` for `staffIdx`, if any.
 const StaffTypeChange* changeCarrier(const Measure* measure, staff_idx_t staffIdx);
 

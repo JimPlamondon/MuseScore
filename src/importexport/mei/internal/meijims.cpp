@@ -110,9 +110,9 @@ static bool extentBounds(const String& stateJson, int out[4])
 // typed review value tree <-> jm value elements
 //---------------------------------------------------------
 
-static void writeReviewValue(pugi::xml_node parent, const jims::ReviewValue& v)
+static void writeReviewValue(pugi::xml_node parent, const melo::ReviewValue& v)
 {
-    using Kind = jims::ReviewValue::Kind;
+    using Kind = melo::ReviewValue::Kind;
     const char* tag = "jm:z";
     switch (v.kind) {
     case Kind::Object: tag = "jm:o";
@@ -133,7 +133,7 @@ static void writeReviewValue(pugi::xml_node parent, const jims::ReviewValue& v)
         node.append_attribute("n") = v.name.toStdString().c_str();
     }
     if (v.kind == Kind::Object || v.kind == Kind::Array) {
-        for (const jims::ReviewValue& c : v.children) {
+        for (const melo::ReviewValue& c : v.children) {
             writeReviewValue(node, c);
         }
     } else if (v.kind != Kind::Null) {
@@ -143,10 +143,10 @@ static void writeReviewValue(pugi::xml_node parent, const jims::ReviewValue& v)
 
 static std::string localNameOf(pugi::xml_node node);
 
-static jims::ReviewValue readReviewValue(pugi::xml_node node)
+static melo::ReviewValue readReviewValue(pugi::xml_node node)
 {
-    using Kind = jims::ReviewValue::Kind;
-    jims::ReviewValue v;
+    using Kind = melo::ReviewValue::Kind;
+    melo::ReviewValue v;
     v.name = String(node.attribute("n").value());
     const std::string tag = localNameOf(node);
     if (tag == "o" || tag == "a") {
@@ -197,7 +197,7 @@ bool MeloMeiExporter::buildPlan(const Score* score)
     m_notes.clear();
     m_reviewers.clear();
     m_adjAnnotIds.clear();
-    for (const jims::ReviewAdjudication& adj : score->jimsReview().adjudications) {
+    for (const melo::ReviewAdjudication& adj : score->jimsReview().adjudications) {
         if (!adj.reviewer.isEmpty()) {
             respIdFor(adj.reviewer);
         }
@@ -239,7 +239,7 @@ bool MeloMeiExporter::buildPlan(const Score* score)
         if (!base || !base->isJiMS()) {
             continue;
         }
-        if (!jims::available()) {
+        if (!melo::available()) {
             m_error = u"JiMS MEI export: the JiMS Kernel bridge is unavailable";
             return false;
         }
@@ -250,7 +250,7 @@ bool MeloMeiExporter::buildPlan(const Score* score)
         plan.staffDefId = "jims-sd-" + std::to_string(staffN);
         plan.states.push_back({ Fraction(0, 1), base->jimsStateJson() });
         for (const Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
-            for (const StaffTypeChange* carrier : jims::changeCarriers(m, staff->idx())) {
+            for (const StaffTypeChange* carrier : melo::changeCarriers(m, staff->idx())) {
                 if (!carrier->staffType() || !carrier->staffType()->isJiMS()) {
                     continue;
                 }
@@ -275,9 +275,9 @@ bool MeloMeiExporter::buildPlan(const Score* score)
 
 bool MeloMeiExporter::projectPitch(const String& stateJson, int nPer, int nGen, std::string& pname, int& alter, int& octave)
 {
-    jims::SoundingPitch projection;
+    melo::SoundingPitch projection;
     String error;
-    if (!jims::noteSoundingPitch(stateJson, nPer, nGen, projection, &error)) {
+    if (!melo::noteSoundingPitch(stateJson, nPer, nGen, projection, &error)) {
         m_error = String(u"JiMS MEI export: extent projection failed: %1").arg(error);
         return false;
     }
@@ -425,7 +425,7 @@ void MeloMeiExporter::writeScoreAnnots(pugi::xml_node scoreNode)
         annot.append_attribute("class") = ("#jims.ambit." + m_tonicAmbit.toStdString()).c_str();
         annot.text().set(m_tonicAmbit.toStdString().c_str());
     }
-    const jims::ReviewRecord& review = m_score->jimsReview();
+    const melo::ReviewRecord& review = m_score->jimsReview();
     if (!review.focusedReviewReasons.empty()) {
         pugi::xml_node fr = scoreNode.append_child("annot");
         fr.append_attribute("xml:id") = "jims-focused-review";
@@ -435,7 +435,7 @@ void MeloMeiExporter::writeScoreAnnots(pugi::xml_node scoreNode)
         }
     }
     if (!m_staves.empty()) {
-        const String token = jims::melodyPartToken(m_score->jimsMelodyPart());
+        const String token = melo::melodyPartToken(m_score->jimsMelodyPart());
         pugi::xml_node annot = scoreNode.append_child("annot");
         annot.append_attribute("xml:id") = "jims-melody";
         annot.append_attribute("type") = "jims-melody-part";
@@ -456,9 +456,9 @@ void MeloMeiExporter::writeMeasureAnnots(pugi::xml_node measureNode, const Measu
     // Evidentiary adjudications anchored inside this measure. An anchor that
     // no longer lands in the score is STALE: it is marked, never silently
     // re-timed (spec/MAPPING.md fact 12-14).
-    const jims::ReviewRecord& review = m_score->jimsReview();
+    const melo::ReviewRecord& review = m_score->jimsReview();
     for (size_t i = 0; i < review.adjudications.size(); ++i) {
-        const jims::ReviewAdjudication& adj = review.adjudications.at(i);
+        const melo::ReviewAdjudication& adj = review.adjudications.at(i);
         if (adj.tick < measure->tick() || adj.tick >= measure->endTick()) {
             continue;
         }
@@ -616,7 +616,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
             se.append_attribute("annot") = ("#" + plan.stateAnnotIds.at(si)).c_str();
             String fragment;
             String err;
-            if (!jims::musicxmlStaffStateV3Xml(plan.states.at(si).second, 0, fragment, &err)) {
+            if (!melo::musicxmlStaffStateV3Xml(plan.states.at(si).second, 0, fragment, &err)) {
                 m_error = String(u"JiMS MEI export: the Kernel refused to serialize a staff state: %1").arg(err);
                 return false;
             }
@@ -640,7 +640,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
         }
         // Tuning trajectories (verbatim carriers; duration-divisions in the
         // JiMS MEI canonical quarter-note basis).
-        for (const jims::TuningTrajectory& t : plan.staff->jimsTuningTrajectories()) {
+        for (const melo::TuningTrajectory& t : plan.staff->jimsTuningTrajectories()) {
             const Measure* measure = nullptr;
             size_t midx = 0;
             for (size_t mi = 0; mi < m_measures.size(); ++mi) {
@@ -662,7 +662,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
                 te.append_attribute("placement") = t.placement.toStdString().c_str();
             }
             pugi::xml_node tt = te.append_child("jims:tuning-trajectory");
-            for (const jims::TrajectorySegment& seg : t.segments) {
+            for (const melo::TrajectorySegment& seg : t.segments) {
                 pugi::xml_node sege = tt.append_child("jims:segment");
                 // JiMS MEI canonical basis: 960 divisions per quarter note.
                 const Fraction div = (quartersOf(seg.duration) * Fraction(960, 1)).reduced();
@@ -674,7 +674,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
                 sege.append_attribute("start-cents") = seg.startCents.toStdString().c_str();
                 sege.append_attribute("end-cents") = seg.endCents.toStdString().c_str();
                 sege.append_attribute("interpolation") = seg.interpolation.toStdString().c_str();
-                for (const jims::TrajectoryControl& c : seg.controls) {
+                for (const melo::TrajectoryControl& c : seg.controls) {
                     pugi::xml_node ce = sege.append_child("jims:control");
                     ce.append_attribute("time") = c.time.toStdString().c_str();
                     ce.append_attribute("value-cents") = c.valueCents.toStdString().c_str();
@@ -742,7 +742,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
     }
 
     // Native provenance sources (uri, media type, hash) in fileDesc/sourceDesc.
-    const jims::Provenance& prov = m_score->jimsProvenance();
+    const melo::Provenance& prov = m_score->jimsProvenance();
     if (!prov.resources.empty()) {
         pugi::xml_node fileDesc = meiHead.child("fileDesc");
         if (!fileDesc) {
@@ -753,7 +753,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
             sourceDesc = fileDesc.append_child("sourceDesc");
         }
         int i = 0;
-        for (const jims::ProvenanceResource& r : prov.resources) {
+        for (const melo::ProvenanceResource& r : prov.resources) {
             ++i;
             const std::string id = "jims-src-prov-" + std::to_string(i);
             bool exists = false;
@@ -788,7 +788,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
         pugi::xml_node ss = mx.append_child("jm:source-supplement");
         ss.append_attribute("strict") = prov.strictFallback ? "true" : "false";
         int i = 0;
-        for (const jims::ProvenanceResource& r : prov.resources) {
+        for (const melo::ProvenanceResource& r : prov.resources) {
             ++i;
             pugi::xml_node se = ss.append_child("jm:source");
             se.append_attribute("ref") = ("#jims-src-prov-" + std::to_string(i)).c_str();
@@ -803,7 +803,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
     // The evidentiary review record. Every adjudication must still resolve
     // to a live score position; a stale anchor is reported, never silently
     // emitted as valid analysis.
-    const jims::ReviewRecord& review = m_score->jimsReview();
+    const melo::ReviewRecord& review = m_score->jimsReview();
     if (!review.empty()) {
         pugi::xml_node rv = rec.append_child("jm:review");
         rv.append_attribute("schema") = review.schema.toStdString().c_str();
@@ -819,7 +819,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
             revisionDesc = meiHead.append_child("revisionDesc");
         }
         for (size_t i = 0; i < review.audits.size(); ++i) {
-            const jims::ReviewAudit& a = review.audits.at(i);
+            const melo::ReviewAudit& a = review.audits.at(i);
             // reuse the imported change identity so a round trip never
             // duplicates the native revision entry
             const std::string id = a.changeId.isEmpty()
@@ -849,7 +849,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
         }
         size_t emitted = 0;
         for (size_t i = 0; i < review.adjudications.size(); ++i) {
-            const jims::ReviewAdjudication& adj = review.adjudications.at(i);
+            const melo::ReviewAdjudication& adj = review.adjudications.at(i);
             const std::string id = adj.annotId.isEmpty()
                                    ? ("jims-adj-" + std::to_string(i + 1)) : adj.annotId.toStdString();
             const bool placed = std::find(m_adjAnnotIds.begin(), m_adjAnnotIds.end(), id) != m_adjAnnotIds.end();
@@ -902,7 +902,7 @@ void MeloMeiImporter::capture(pugi::xml_node root)
     }
     m_provResources.clear();
     for (pugi::xpath_node src : root.select_nodes("//sourceDesc/source[@type='jims-provenance']")) {
-        engraving::jims::ProvenanceResource resource;
+        engraving::melo::ProvenanceResource resource;
         for (pugi::xpath_node ident : src.node().select_nodes(".//identifier")) {
             const std::string type = ident.node().attribute("type").value();
             const String value = String(ident.node().text().as_string());
@@ -1079,7 +1079,7 @@ bool MeloMeiImporter::apply(Score* score,
     if (!present()) {
         return true;
     }
-    if (!jims::available()) {
+    if (!melo::available()) {
         m_error = u"JiMS MEI import: the JiMS Kernel bridge is unavailable";
         return false;
     }
@@ -1150,7 +1150,7 @@ bool MeloMeiImporter::apply(Score* score,
                     return false;
                 }
                 String kernelError;
-                if (!jims::validateState(json, kernelError)) {
+                if (!melo::validateState(json, kernelError)) {
                     m_error = String(u"JiMS MEI import: the Kernel rejected a staff state: %1").arg(kernelError);
                     return false;
                 }
@@ -1219,14 +1219,14 @@ bool MeloMeiImporter::apply(Score* score,
                 if (!tt) {
                     continue;
                 }
-                jims::TuningTrajectory trajectory;
+                melo::TuningTrajectory trajectory;
                 trajectory.tick = tick;
                 trajectory.placement = String(se.attribute("placement").value());
                 for (pugi::xml_node sege : tt.children()) {
                     if (localName(sege) != "segment") {
                         continue;
                     }
-                    jims::TrajectorySegment seg;
+                    melo::TrajectorySegment seg;
                     // duration-divisions in the JiMS MEI canonical basis of
                     // 960 divisions per quarter note.
                     const int div = sege.attribute("duration-divisions").as_int();
@@ -1238,7 +1238,7 @@ bool MeloMeiImporter::apply(Score* score,
                         if (localName(ce) != "control") {
                             continue;
                         }
-                        jims::TrajectoryControl c;
+                        melo::TrajectoryControl c;
                         c.time = String(ce.attribute("time").value());
                         c.valueCents = String(ce.attribute("value-cents").value());
                         seg.controls.push_back(c);
@@ -1259,7 +1259,7 @@ bool MeloMeiImporter::apply(Score* score,
         }
     }
     if (rv) {
-        jims::ReviewRecord review;
+        melo::ReviewRecord review;
         review.schema = String(rv.attribute("schema").value());
         review.focusedReviewReasons = m_focusedReviewReasons;
         for (pugi::xml_node child : rv.children()) {
@@ -1269,7 +1269,7 @@ bool MeloMeiImporter::apply(Score* score,
                     review.work = readReviewValue(v);
                 }
             } else if (tag == "audit") {
-                jims::ReviewAudit a;
+                melo::ReviewAudit a;
                 const std::string cid = std::string(child.attribute("change").value()).substr(1);
                 a.changeId = String::fromStdString(cid);
                 auto cit = m_changeById.find(cid);
@@ -1283,7 +1283,7 @@ bool MeloMeiImporter::apply(Score* score,
                 }
                 review.audits.push_back(a);
             } else if (tag == "adjudication") {
-                jims::ReviewAdjudication adj;
+                melo::ReviewAdjudication adj;
                 for (pugi::xml_node v : child.children()) {
                     adj.record = readReviewValue(v);
                 }
@@ -1343,8 +1343,8 @@ bool MeloMeiImporter::apply(Score* score,
 
     // Melody-part designation (typed native annotation).
     if (!m_melodyToken.isEmpty()) {
-        jims::MelodyPart melodyPart = jims::MelodyPart::Soprano;
-        if (jims::melodyPartFromToken(m_melodyToken, melodyPart)) {
+        melo::MelodyPart melodyPart = melo::MelodyPart::Soprano;
+        if (melo::melodyPartFromToken(m_melodyToken, melodyPart)) {
             score->setJimsMelodyPart(melodyPart);
         }
     }
@@ -1352,7 +1352,7 @@ bool MeloMeiImporter::apply(Score* score,
     // Provenance: native sources plus the JiMS-constrained supplement.
     pugi::xml_node ss = childByLocal(mx, "source-supplement");
     if (!m_provResources.empty() || ss) {
-        jims::Provenance prov;
+        melo::Provenance prov;
         prov.resources = m_provResources;
         if (ss) {
             prov.strictFallback = std::string(ss.attribute("strict").value()) == "true";

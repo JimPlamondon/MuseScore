@@ -116,9 +116,9 @@ Err importMusicXmlfromBuffer(Score* score, const String& /*name*/, const ByteArr
         // install Kernel defaults on empty vocal staves. A complete imported
         // tonic ambit is authoritative and must survive round-trip; only an
         // older incomplete carrier needs derivation from the melody Part.
-        jims::reconcileExtents(score);
-        if (!jims::hasCompleteTonicAmbits(score)) {
-            jims::deriveTonicAmbits(score);
+        melo::reconcileExtents(score);
+        if (!melo::hasCompleteTonicAmbits(score)) {
+            melo::deriveTonicAmbits(score);
         }
     }
 

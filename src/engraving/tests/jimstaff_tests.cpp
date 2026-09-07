@@ -68,16 +68,16 @@ constexpr double EPS = 1e-6;
 // The bridge speaks ABI 2 (JiMStaffStateV2 contract, Milestone 2 Phase 4).
 TEST(MeloStaffTests, bridgeSpeaksAbi2)
 {
-    EXPECT_TRUE(jims::available());
+    EXPECT_TRUE(melo::available());
 }
 
 TEST(MeloStaffTests, toneDiamondSettingsAndHostParametersComeFromKernel)
 {
-    std::vector<jims::ToneDiamondSetting> settings;
+    std::vector<melo::ToneDiamondSetting> settings;
     uint32_t generatorParamId = 0;
     uint32_t xParamId = 0;
     uint32_t yParamId = 0;
-    ASSERT_TRUE(jims::toneDiamondSettings(settings, generatorParamId, xParamId, yParamId));
+    ASSERT_TRUE(melo::toneDiamondSettings(settings, generatorParamId, xParamId, yParamId));
     ASSERT_EQ(settings.size(), 2u);
     EXPECT_EQ(generatorParamId, 0x4A530020u);
     EXPECT_EQ(xParamId, 0x4A530022u);
@@ -102,14 +102,14 @@ TEST(MeloStaffTests, centsPositionsFollowTheGeneratorAcrossTunings)
         muse::String state = jimsState(g);
         double cents = 0.0;
         // C4 = (1,-2): the lower Do of the register-4 staff, at 0 by anchor.
-        ASSERT_TRUE(jims::noteCentsAboveExtentLower(state, 1, -2, cents));
+        ASSERT_TRUE(melo::noteCentsAboveExtentLower(state, 1, -2, cents));
         EXPECT_NEAR(cents, 0.0, EPS);
         // G4 = (1,-1): exactly one generator up.
-        ASSERT_TRUE(jims::noteCentsAboveExtentLower(state, 1, -1, cents));
+        ASSERT_TRUE(melo::noteCentsAboveExtentLower(state, 1, -1, cents));
         EXPECT_NEAR(cents, g, EPS);
         // E4 = (-1,2): four generators above the lower Do once the
         // anchor's own motion is counted.
-        ASSERT_TRUE(jims::noteCentsAboveExtentLower(state, -1, 2, cents));
+        ASSERT_TRUE(melo::noteCentsAboveExtentLower(state, -1, 2, cents));
         EXPECT_NEAR(cents, 4.0 * g - 2400.0, EPS);
     }
 }
@@ -119,8 +119,8 @@ TEST(MeloStaffTests, centsPositionsFollowTheGeneratorAcrossTunings)
 // spelling, at all three tunings.
 TEST(MeloStaffTests, entryAndQuantizationRoundTrip)
 {
-    jims::SoundingPitch projection;
-    ASSERT_TRUE(jims::entryFromStandardPitch(jimsState(G12), 'C', 0, 4, projection));
+    melo::SoundingPitch projection;
+    ASSERT_TRUE(melo::entryFromStandardPitch(jimsState(G12), 'C', 0, 4, projection));
     const int nPer = projection.nPer;
     const int nGen = projection.nGen;
     EXPECT_EQ(nPer, 1);
@@ -129,9 +129,9 @@ TEST(MeloStaffTests, entryAndQuantizationRoundTrip)
     for (double g : { G12, G17, G19 }) {
         muse::String state = jimsState(g);
         double cents = 0.0;
-        ASSERT_TRUE(jims::noteCentsAboveExtentLower(state, nPer, nGen, cents));
-        jims::PitchHit hit;
-        ASSERT_TRUE(jims::nearestPitch(state, cents, true, nPer, nGen, hit));
+        ASSERT_TRUE(melo::noteCentsAboveExtentLower(state, nPer, nGen, cents));
+        melo::PitchHit hit;
+        ASSERT_TRUE(melo::nearestPitch(state, cents, true, nPer, nGen, hit));
         EXPECT_EQ(hit.nPer, 1);
         EXPECT_EQ(hit.nGen, -2);
         EXPECT_EQ(hit.step, 'C');
@@ -145,12 +145,12 @@ TEST(MeloStaffTests, entryAndQuantizationRoundTrip)
 // moves — Mi (nGen 2) at 12-TET and 19-TET, Ri (nGen 7) at 17-TET.
 TEST(MeloStaffTests, dragTargetsAreTuningTrueNeverTwelveTetArithmetic)
 {
-    jims::PitchHit hit;
-    ASSERT_TRUE(jims::nearestPitch(jimsState(G12), 360.0, false, 0, 0, hit));
+    melo::PitchHit hit;
+    ASSERT_TRUE(melo::nearestPitch(jimsState(G12), 360.0, false, 0, 0, hit));
     EXPECT_EQ(hit.nGen, 2) << "12-TET: Mi at 400";
-    ASSERT_TRUE(jims::nearestPitch(jimsState(G17), 360.0, false, 0, 0, hit));
+    ASSERT_TRUE(melo::nearestPitch(jimsState(G17), 360.0, false, 0, 0, hit));
     EXPECT_EQ(hit.nGen, 7) << "17-TET: Ri at 352.94";
-    ASSERT_TRUE(jims::nearestPitch(jimsState(G19), 360.0, false, 0, 0, hit));
+    ASSERT_TRUE(melo::nearestPitch(jimsState(G19), 360.0, false, 0, 0, hit));
     EXPECT_EQ(hit.nGen, 2) << "19-TET: Mi at 378.95";
 }
 
@@ -162,8 +162,8 @@ TEST(MeloStaffTests, tonicBoundedLaModeFrameKeepsStoredExtentMinimum)
     muse::String melody
         =u"{\"notes\":[{\"nPer\":0,\"nGen\":1},{\"nPer\":-1,\"nGen\":3},"
          u"{\"nPer\":2,\"nGen\":-2},{\"nPer\":1,\"nGen\":0},{\"nPer\":1,\"nGen\":1}]}";
-    std::vector<jims::StaveSegment> segments;
-    ASSERT_TRUE(jims::frameForMelody(state, melody, u"tonic-bounded", segments));
+    std::vector<melo::StaveSegment> segments;
+    ASSERT_TRUE(melo::frameForMelody(state, melody, u"tonic-bounded", segments));
     ASSERT_EQ(segments.size(), 2u);
     EXPECT_TRUE(segments[0].whole);
     EXPECT_NEAR(segments[0].lowerCents, 0.0, EPS);
@@ -182,11 +182,11 @@ TEST(MeloStaffTests, fixedRatioLineExtentCanReturnASubperiodSoToDoFrame)
          u"\"extent\":{\"lower\":{\"nPer\":-2,\"nGen\":-1},\"upper\":{\"nPer\":-1,\"nGen\":-2}},"
          u"\"reference\":\"none\"}";
     const muse::String melody = u"{\"notes\":[{\"nPer\":-2,\"nGen\":-1}]}";
-    std::vector<jims::StaveSegment> segments;
+    std::vector<melo::StaveSegment> segments;
     const muse::String ratioExtent
         = u"{\"lower\":{\"period\":-1,\"ratio\":\"3/2\"},"
           u"\"upper\":{\"period\":0,\"ratio\":\"1/1\"}}";
-    ASSERT_TRUE(jims::frameForMelody(state, melody, u"tonic-bounded", segments, {}, ratioExtent));
+    ASSERT_TRUE(melo::frameForMelody(state, melody, u"tonic-bounded", segments, {}, ratioExtent));
     ASSERT_EQ(segments.size(), 1u);
     EXPECT_FALSE(segments[0].whole);
     EXPECT_NEAR(segments[0].lowerCents, 1.955000865387433, EPS);
@@ -198,7 +198,7 @@ TEST(MeloStaffTests, fixedRatioLineExtentCanReturnASubperiodSoToDoFrame)
 TEST(MeloStaffTests, staffMetricsReportTheStateWidths)
 {
     double generatorCents = 0.0, periodCents = 0.0;
-    ASSERT_TRUE(jims::staffMetrics(jimsState(G19), generatorCents, periodCents));
+    ASSERT_TRUE(melo::staffMetrics(jimsState(G19), generatorCents, periodCents));
     EXPECT_NEAR(generatorCents, G19, EPS);
     EXPECT_NEAR(periodCents, 1200.0, EPS);
 }
@@ -215,14 +215,14 @@ TEST(MeloStaffTests, invalidStateFailsVisiblyNotSilently)
          u"\"extent\":{\"lower\":{\"nPer\":1,\"nGen\":-2},\"upper\":{\"nPer\":3,\"nGen\":-2}},"
          u"\"reference\":\"none\",\"unsupported_legacy_field\":true}";
     double cents = 0.0;
-    EXPECT_FALSE(jims::noteCentsAboveExtentLower(bad, 1, -2, cents));
+    EXPECT_FALSE(melo::noteCentsAboveExtentLower(bad, 1, -2, cents));
     double generatorCents = 0.0, periodCents = 0.0;
-    EXPECT_FALSE(jims::staffMetrics(bad, generatorCents, periodCents));
-    std::vector<jims::StaveSegment> segments;
-    EXPECT_FALSE(jims::frameForMelody(bad, u"{\"notes\":[{\"nPer\":1,\"nGen\":-2}]}",
+    EXPECT_FALSE(melo::staffMetrics(bad, generatorCents, periodCents));
+    std::vector<melo::StaveSegment> segments;
+    EXPECT_FALSE(melo::frameForMelody(bad, u"{\"notes\":[{\"nPer\":1,\"nGen\":-2}]}",
                                       u"tonic-bounded", segments));
-    jims::PitchHit hit;
-    EXPECT_FALSE(jims::nearestPitch(bad, 0.0, false, 0, 0, hit));
+    melo::PitchHit hit;
+    EXPECT_FALSE(melo::nearestPitch(bad, 0.0, false, 0, 0, hit));
 }
 
 // M3 Phase 3: the Kernel-generated JiMSMusic font is registered, its
@@ -252,7 +252,7 @@ constexpr double G19T = 1200.0 * 11.0 / 19.0;
 double stateGeneratorCents(const StaffType* st)
 {
     double g = 0.0, p = 0.0;
-    return jims::staffMetrics(st->jimsStateJson(), g, p) ? g : -1.0;
+    return melo::staffMetrics(st->jimsStateJson(), g, p) ? g : -1.0;
 }
 }
 
@@ -270,7 +270,7 @@ TEST(MeloStaffTests, tuningControllerPreviewCommitCancelUndo)
     ASSERT_TRUE(base && base->isJiMS());
     EXPECT_NEAR(stateGeneratorCents(base), 700.0, 1e-9);
 
-    jims::TuningController controller(score, 0);
+    melo::TuningController controller(score, 0);
     EXPECT_NEAR(controller.currentGeneratorCents(), 700.0, 1e-9);
 
     // Preview: every span updated, zero undo entries.
@@ -310,7 +310,7 @@ TEST(MeloStaffTests, tuningControllerUpdatesEverySpanPreservingIdentity)
     ASSERT_TRUE(changed && changed->isJiMS());
     ASSERT_TRUE(changed->jimsStateJson().contains(u"\"mode_rotation\":5"));
 
-    jims::TuningController controller(score, 0);
+    melo::TuningController controller(score, 0);
     ASSERT_TRUE(controller.beginPreview());
     ASSERT_TRUE(controller.preview(G19T));
     const StaffType* baseAfter = staff->staffType(Fraction(0, 1));
@@ -352,7 +352,7 @@ TEST(MeloStaffTests, tuningControllerRederivesNoteCentsAcrossVtrBoundary)
     score->doLayout();
     EXPECT_NEAR(gNote->jimsCentsAboveDo(), 700.0, 1e-9);
 
-    jims::TuningController controller(score, 0);
+    melo::TuningController controller(score, 0);
     for (double g : { G19T - 0.01, G19T, G19T + 0.01, 700.0 }) {
         ASSERT_TRUE(controller.beginPreview());
         ASSERT_TRUE(controller.preview(g));
@@ -391,19 +391,19 @@ TEST(MeloStaffTests, evidenceSweepAcceptancePieces)
         Score* score = ScoreRW::readScore(u"jimstaff_data/" + piece + u".mscx");
         ASSERT_TRUE(score) << piece.toStdString();
         score->doLayout();
-        jims::TuningController controller(score, 0);
+        melo::TuningController controller(score, 0);
         ASSERT_NEAR(controller.currentGeneratorCents(), 700.0, 1e-9);
 
         auto captureSemantics = [&](std::ofstream& sem, double g) {
             const StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
-            std::vector<jims::JiLine> lines;
-            jims::jiLines(st->jimsStateJson(), lines);
+            std::vector<melo::JiLine> lines;
+            melo::jiLines(st->jimsStateJson(), lines);
             int visible = 0;
-            for (const jims::JiLine& line : lines) {
+            for (const melo::JiLine& line : lines) {
                 visible += line.visible ? 1 : 0;
             }
             double mg = 0.0, mp = 0.0;
-            jims::staffMetrics(st->jimsStateJson(), mg, mp);
+            melo::staffMetrics(st->jimsStateJson(), mg, mp);
             sem << "{\"g\":" << muse::String::number(g, 6).toStdString()
                 << ",\"metrics_g\":" << muse::String::number(mg, 6).toStdString()
                 << ",\"visible_ji_lines\":" << visible
@@ -462,7 +462,7 @@ TEST(MeloStaffTests, evidenceSweepAcceptancePieces)
             captureSemantics(sem, g);
             const StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
             double mg = 0.0, mp = 0.0;
-            ASSERT_TRUE(jims::staffMetrics(st->jimsStateJson(), mg, mp));
+            ASSERT_TRUE(melo::staffMetrics(st->jimsStateJson(), mg, mp));
             ASSERT_NEAR(mg, g, 1e-9) << "no dropped/stale applied state";
         }
         controller.cancel();
@@ -510,7 +510,7 @@ TEST(MeloStaffTests, chordStemSpansCentsHeightAcrossTunings)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
-    jims::TuningController controller(score, 0);
+    melo::TuningController controller(score, 0);
     for (double g : { 680.0, 700.0, 720.0 }) {
         ASSERT_TRUE(controller.beginPreview());
         ASSERT_TRUE(controller.preview(g));
@@ -547,7 +547,7 @@ TEST(MeloStaffTests, dyadHeadClusteringIsCentsTrueAcrossTunings)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
-    jims::TuningController controller(score, 0);
+    melo::TuningController controller(score, 0);
 
     auto dyad = [&]() -> Chord* {
         for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
@@ -635,10 +635,10 @@ Segs kernelFrameFor(Score* score)
         }
     }
     melody += u"]}";
-    std::vector<jims::StaveSegment> segments;
+    std::vector<melo::StaveSegment> segments;
     Segs out;
-    if (jims::frameForMelody(st->jimsStateJson(), melody, st->jimsTonicAmbit(), segments)) {
-        for (const jims::StaveSegment& s : segments) {
+    if (melo::frameForMelody(st->jimsStateJson(), melody, st->jimsTonicAmbit(), segments)) {
+        for (const melo::StaveSegment& s : segments) {
             out.push_back({ s.lowerCents, s.upperCents, s.whole });
         }
     }
@@ -659,7 +659,7 @@ Note* highestJimsNote(Score* score)
         for (Note* n : toChord(el)->notes()) {
             double c = 0.0;
             if (n->hasJimsPitch()
-                && jims::noteCentsAboveExtentLower(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(), c)
+                && melo::noteCentsAboveExtentLower(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(), c)
                 && c > bestCents) {
                 bestCents = c;
                 best = n;
@@ -731,15 +731,15 @@ TEST(MeloStaffTests, deletingAllNotesRetainsTheWrittenFrameUntilReload)
     EXPECT_TRUE(sameFrame(f, before)) << "deletion must not contract the frame during editing";
     const StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
     EXPECT_FALSE(st->jimsExtentIsEmptyDefault());
-    std::vector<jims::StaveSegment> retained;
-    ASSERT_TRUE(jims::frameForMelody(st->jimsStateJson(), u"{\"notes\":[]}", st->jimsTonicAmbit(),
+    std::vector<melo::StaveSegment> retained;
+    ASSERT_TRUE(melo::frameForMelody(st->jimsStateJson(), u"{\"notes\":[]}", st->jimsTonicAmbit(),
                                      retained, {}, {}, true));
     ASSERT_EQ(f.size(), retained.size());
     for (size_t i = 0; i < f.size(); ++i) {
         EXPECT_NEAR(f[i].lowerCents, retained[i].lowerCents, EPS);
         EXPECT_NEAR(f[i].upperCents, retained[i].upperCents, EPS);
     }
-    jims::reconcileExtents(score); // the load-time fitting seam
+    melo::reconcileExtents(score); // the load-time fitting seam
     score->setLayoutAll();
     score->doLayout();
     const Segs empty = frameOf(score);
@@ -776,7 +776,7 @@ TEST(MeloStaffTests, liveFrameGrowsShrinksAndRoundTripsThroughUndo)
     {
         const StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
         double c = 0.0;
-        ASSERT_TRUE(jims::noteCentsAboveExtentLower(st->jimsStateJson(), top->jimsNPer(), top->jimsNGen(), c));
+        ASSERT_TRUE(melo::noteCentsAboveExtentLower(st->jimsStateJson(), top->jimsNPer(), top->jimsNGen(), c));
         EXPECT_LE(c, grown.back().upperCents + EPS);
         EXPECT_GE(c, grown.front().lowerCents - EPS);
     }
@@ -965,7 +965,7 @@ TEST(MeloStaffTests, scaleDotLabelAutoResolvesExactlyAtLegibilityBoundaries)
     ASSERT_TRUE(st && st->isJiMS());
     st->setJimsScaleDotLabelMode(MeloScaleDotLabelMode::Auto);
 
-    jims::TuningController controller(score, 0);
+    melo::TuningController controller(score, 0);
     const double eps = 0.001;
     const struct {
         double g;
@@ -1037,20 +1037,20 @@ TEST(MeloStaffTests, edgeCollisionStacksAlwaysStraddleTheReSplit)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
-    jims::TuningController controller(score, 0);
+    melo::TuningController controller(score, 0);
     for (double g : { 720.0, 1200.0 * 4.0 / 7.0 + 0.0001 }) {
         ASSERT_TRUE(controller.beginPreview());
         ASSERT_TRUE(controller.preview(g));
         const StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
-        std::vector<jims::LabeledDotStack> stacks;
-        ASSERT_TRUE(jims::scaleDotLabels(st->jimsStateJson(), stacks));
+        std::vector<melo::LabeledDotStack> stacks;
+        ASSERT_TRUE(melo::scaleDotLabels(st->jimsStateJson(), stacks));
         ASSERT_FALSE(stacks.empty());
-        for (const jims::LabeledDotStack& stack : stacks) {
+        for (const melo::LabeledDotStack& stack : stacks) {
             if (stack.members.size() < 2) {
                 continue;
             }
             bool hasFlatSide = false, hasSharpSide = false;
-            for (const jims::LabeledDotMember& member : stack.members) {
+            for (const melo::LabeledDotMember& member : stack.members) {
                 (member.nGen <= 0 ? hasFlatSide : hasSharpSide) = true;
                 EXPECT_FALSE(member.label.isEmpty());
             }
@@ -1089,9 +1089,9 @@ TEST(MeloStaffTests, labelsEnabledControllerSweepHasNoStaleLabels)
         score->doLayout();
         StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
         ASSERT_TRUE(st && st->isJiMS());
-        jims::TuningController controller(score, 0);
+        melo::TuningController controller(score, 0);
         double rMin = 0.0, rMax = 0.0;
-        ASSERT_TRUE(jims::labelLegibilityRange(rMin, rMax));
+        ASSERT_TRUE(melo::labelLegibilityRange(rMin, rMax));
 
         std::ofstream sem(std::string(outDir) + "/" + piece.toStdString() + "-labels-semantics.jsonl");
         std::ofstream lat(std::string(outDir) + "/" + piece.toStdString() + "-labels-latency.txt");
@@ -1117,7 +1117,7 @@ TEST(MeloStaffTests, labelsEnabledControllerSweepHasNoStaleLabels)
                 applied.push_back(controller.lastApplyMs());
                 // No stale state: the metrics read back the applied g.
                 double mg = 0.0, mp = 0.0;
-                ASSERT_TRUE(jims::staffMetrics(st->jimsStateJson(), mg, mp));
+                ASSERT_TRUE(melo::staffMetrics(st->jimsStateJson(), mg, mp));
                 ASSERT_NEAR(mg, g, 1e-9);
                 // Resolved mode is correct for the applied tuning.
                 const MeloScaleDotLabelMode resolved = st->jimsResolvedScaleDotLabelMode();
@@ -1128,11 +1128,11 @@ TEST(MeloStaffTests, labelsEnabledControllerSweepHasNoStaleLabels)
                     ASSERT_EQ(resolved, modes[m]);
                 }
                 // Labels re-derive from the CURRENT state every tick.
-                std::vector<jims::LabeledDotStack> stacks;
-                ASSERT_TRUE(jims::scaleDotLabels(st->jimsStateJson(), stacks));
+                std::vector<melo::LabeledDotStack> stacks;
+                ASSERT_TRUE(melo::scaleDotLabels(st->jimsStateJson(), stacks));
                 ASSERT_FALSE(stacks.empty());
-                for (const jims::LabeledDotStack& stack : stacks) {
-                    for (const jims::LabeledDotMember& member : stack.members) {
+                for (const melo::LabeledDotStack& stack : stacks) {
+                    for (const melo::LabeledDotMember& member : stack.members) {
                         ASSERT_FALSE(member.label.isEmpty());
                     }
                 }
@@ -1161,15 +1161,15 @@ TEST(MeloStaffTests, labelsEnabledControllerSweepHasNoStaleLabels)
             for (double g : { rMin, 700.0, rMax }) {
                 ASSERT_TRUE(controller.beginPreview());
                 ASSERT_TRUE(controller.preview(g));
-                std::vector<jims::LabeledDotStack> stacks;
-                ASSERT_TRUE(jims::scaleDotLabels(st->jimsStateJson(), stacks));
+                std::vector<melo::LabeledDotStack> stacks;
+                ASSERT_TRUE(melo::scaleDotLabels(st->jimsStateJson(), stacks));
                 sem << "{\"mode\":\"" << modeNames[m] << "\",\"g\":"
                     << muse::String::number(g, 6).toStdString() << ",\"stacks\":[";
                 bool firstStack = true;
-                for (const jims::LabeledDotStack& stack : stacks) {
+                for (const melo::LabeledDotStack& stack : stacks) {
                     sem << (firstStack ? "" : ",") << "["
                         << muse::String::number(stack.cents, 4).toStdString();
-                    for (const jims::LabeledDotMember& member : stack.members) {
+                    for (const melo::LabeledDotMember& member : stack.members) {
                         sem << ",[" << member.nGen << ",\"" << member.label.toStdString() << "\"]";
                     }
                     sem << "]";
@@ -1240,7 +1240,7 @@ TEST(MeloStaffTests, noteDragAnchorsAtStartCentsAndNeverCompounds)
     const int nPer0 = top->jimsNPer();
     const int nGen0 = top->jimsNGen();
     double c0 = 0.0;
-    ASSERT_TRUE(jims::noteCentsAboveExtentLower(st->jimsStateJson(), nPer0, nGen0, c0));
+    ASSERT_TRUE(melo::noteCentsAboveExtentLower(st->jimsStateJson(), nPer0, nGen0, c0));
 
     EditData ed(nullptr);
     EngravingItem* dragged = top;
@@ -1253,7 +1253,7 @@ TEST(MeloStaffTests, noteDragAnchorsAtStartCentsAndNeverCompounds)
     const int nPer1 = top->jimsNPer();
     const int nGen1 = top->jimsNGen();
     double c1 = 0.0;
-    ASSERT_TRUE(jims::noteCentsAboveExtentLower(st->jimsStateJson(), nPer1, nGen1, c1));
+    ASSERT_TRUE(melo::noteCentsAboveExtentLower(st->jimsStateJson(), nPer1, nGen1, c1));
     EXPECT_NEAR(c1 - c0, 1200.0, 60.0) << "first event moves the note about one period";
 
     // Five more events with the SAME total offset and no pointer motion:
@@ -1356,7 +1356,7 @@ TEST(MeloStaffTests, wideMelodyControllerSweepKeepsFrameValidAndFast)
         std::ofstream sem(std::string(outDir) + "/" + piece.toStdString() + "-m4-frame-semantics.jsonl");
         std::ofstream lat(std::string(outDir) + "/" + piece.toStdString() + "-m4-frame-latency.txt");
 
-        jims::TuningController controller(score, 0);
+        melo::TuningController controller(score, 0);
         std::vector<double> applied;
         ASSERT_TRUE(controller.beginPreview());
         for (int i = 0; i <= 80; ++i) {                    // warm-up
@@ -1383,14 +1383,14 @@ TEST(MeloStaffTests, wideMelodyControllerSweepKeepsFrameValidAndFast)
                 }
                 for (Note* n : toChord(el)->notes()) {
                     double c = 0.0;
-                    ASSERT_TRUE(jims::noteCentsAboveExtentLower(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(), c));
+                    ASSERT_TRUE(melo::noteCentsAboveExtentLower(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(), c));
                     ASSERT_GE(c, frame.front().lowerCents - EPS) << piece.toStdString() << " g=" << g;
                     ASSERT_LE(c, frame.back().upperCents + EPS) << piece.toStdString() << " g=" << g;
                 }
             }
             ASSERT_EQ(ledgerLineCountOnStaff0(score), 0u) << piece.toStdString() << " g=" << g;
-            std::vector<jims::LabeledDotStack> stacks;
-            ASSERT_TRUE(jims::scaleDotLabels(st->jimsStateJson(), stacks));
+            std::vector<melo::LabeledDotStack> stacks;
+            ASSERT_TRUE(melo::scaleDotLabels(st->jimsStateJson(), stacks));
             ASSERT_FALSE(stacks.empty());
             for (System* sys : score->systems()) {
                 Measure* m = sys->firstMeasure();
@@ -1511,7 +1511,7 @@ const StaffTypeChange* m5ChangeAt(Score* score, int measureNo)
     for (int i = 1; m && i < measureNo; ++i) {
         m = m->nextMeasure();
     }
-    return m ? jims::changeCarrier(m, 0) : nullptr;
+    return m ? melo::changeCarrier(m, 0) : nullptr;
 }
 
 Measure* m5Measure(Score* score, int measureNo)
@@ -1529,8 +1529,8 @@ TEST(MeloStaffTests, tonicPitchLabelTransportPreservesMusicalAccidentalSymbols)
     const muse::String state
         =
             u"{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],\"collection_rotation\":0,\"mode_rotation\":0,\"generator_cents\":700.0,\"period_cents\":1200.0,\"embedding\":{\"large_steps\":5,\"small_steps\":2},\"extent\":{\"lower\":{\"nPer\":1,\"nGen\":-2},\"upper\":{\"nPer\":2,\"nGen\":-2}},\"reference\":{\"reference-pitch\":{\"key_number\":53}}}";
-    jims::TonicPitchLabel label;
-    ASSERT_TRUE(jims::tonicPitchLabel(state, label));
+    melo::TonicPitchLabel label;
+    ASSERT_TRUE(melo::tonicPitchLabel(state, label));
     EXPECT_EQ(label.label, u"E♭3");
 }
 
@@ -1543,7 +1543,7 @@ TEST(MeloStaffTests, pitchLabelRendererSelectsProperMusicSymbolsForEveryAccident
         { u"F𝄪4", SymId::accidentalDoubleSharp },
     };
     for (const auto& [label, expected] : cases) {
-        const jims::PitchLabelParts parts = jims::pitchLabelParts(label + u": La");
+        const melo::PitchLabelParts parts = melo::pitchLabelParts(label + u": La");
         EXPECT_EQ(parts.beforeAccidental, label.left(1));
         EXPECT_EQ(parts.accidental, expected);
         EXPECT_EQ(parts.afterAccidental, label.mid(label.size() - 1) + u": La");
@@ -1560,8 +1560,8 @@ TEST(MeloStaffTests, changeIndicatorTransportCarriesTheKernelTerrainVerbatim)
     muse::String newS = oldS;
     newS.replace(u"\"mode_rotation\":0", u"\"mode_rotation\":5");
     newS.replace(u"\"key_number\":62", u"\"key_number\":53");
-    jims::ChangeIndicator model;
-    ASSERT_TRUE(jims::changeIndicator(oldS, newS, model));
+    melo::ChangeIndicator model;
+    ASSERT_TRUE(melo::changeIndicator(oldS, newS, model));
     ASSERT_EQ(model.kinds.size(), 2u);
     EXPECT_EQ(model.kinds[0], u"key");
     EXPECT_EQ(model.kinds[1], u"mode");
@@ -1576,13 +1576,13 @@ TEST(MeloStaffTests, changeIndicatorTransportCarriesTheKernelTerrainVerbatim)
     EXPECT_EQ(model.tonicIndicators[1].label, u"La");
     EXPECT_EQ(model.dotStacks.size(), 2u);
     // Same state: empty model. Malformed: failure, no partial data.
-    jims::ChangeIndicator same;
-    ASSERT_TRUE(jims::changeIndicator(oldS, oldS, same));
+    melo::ChangeIndicator same;
+    ASSERT_TRUE(melo::changeIndicator(oldS, oldS, same));
     EXPECT_TRUE(same.empty());
-    jims::ChangeIndicator bad;
-    EXPECT_FALSE(jims::changeIndicator(u"{nope", newS, bad));
-    jims::ConnectorGlyph head;
-    ASSERT_TRUE(jims::connectorGlyph(head));
+    melo::ChangeIndicator bad;
+    EXPECT_FALSE(melo::changeIndicator(u"{nope", newS, bad));
+    melo::ConnectorGlyph head;
+    ASSERT_TRUE(melo::connectorGlyph(head));
     // Owner ruling at the gate (2026-08-16): heavier than the tonic
     // indicator's 10-cent pen, with a large head.
     EXPECT_GT(head.penCents, 10.0);
@@ -1600,9 +1600,9 @@ TEST(MeloStaffTests, changeIndicatorIsReservedMidSystemOrCourtesyAtSystemEnd)
     Measure* m2 = m5Measure(score, 2);
     ASSERT_TRUE(m2 && m5ChangeAt(score, 2));
     ASSERT_TRUE(m2->system() && m2->system()->firstMeasure() != m2) << "fixture must be mid-system";
-    jims::ChangeIndicator model;
+    melo::ChangeIndicator model;
     const StaffType* st = nullptr;
-    ASSERT_TRUE(jims::midSystemChangeIndicator(m2, 0, model, &st));
+    ASSERT_TRUE(melo::midSystemChangeIndicator(m2, 0, model, &st));
     EXPECT_EQ(model.kinds.size(), 1u);
     EXPECT_EQ(model.kinds[0], u"mode");
     EXPECT_TRUE(model.dotStacks.empty()) << "pure mode change shows no dots";
@@ -1612,7 +1612,7 @@ TEST(MeloStaffTests, changeIndicatorIsReservedMidSystemOrCourtesyAtSystemEnd)
     const double sp = score->style().spatium();
     const double want = st->jimsHeaderGeometry(sp, score->style().defaultSpatium()).changeTerrainWidth;
     EXPECT_GT(want, 0.0);
-    EXPECT_NEAR(jims::changeTerrainWidth(m2), want, 1e-9) << "reservation = the ONE shared calculation";
+    EXPECT_NEAR(melo::changeTerrainWidth(m2), want, 1e-9) << "reservation = the ONE shared calculation";
     // The first note of measure 2 sits at least the terrain width after the measure start.
     Segment* firstCR = m2->first(SegmentType::ChordRest);
     ASSERT_TRUE(firstCR);
@@ -1634,15 +1634,15 @@ TEST(MeloStaffTests, changeIndicatorIsReservedMidSystemOrCourtesyAtSystemEnd)
     // whichever break the layout settles on (the courtesy reservation itself
     // may move the break, as MuseScore's own courtesy signatures can).
     const bool headCase = m6->system()->firstMeasure() == m6;
-    jims::ChangeIndicator mid;
-    jims::ChangeIndicator courtesy;
+    melo::ChangeIndicator mid;
+    melo::ChangeIndicator courtesy;
     const StaffType* oldSt = nullptr;
-    const bool haveMid = jims::midSystemChangeIndicator(m6, 0, mid);
-    const bool haveCourtesy = jims::courtesyChangeIndicator(m5, 0, courtesy, &oldSt);
+    const bool haveMid = melo::midSystemChangeIndicator(m6, 0, mid);
+    const bool haveCourtesy = melo::courtesyChangeIndicator(m5, 0, courtesy, &oldSt);
     EXPECT_EQ(haveMid, !headCase) << "mid-system terrain iff the change measure is not a system head";
     EXPECT_EQ(haveCourtesy, headCase) << "courtesy terrain iff the change measure starts a system";
     if (headCase) {
-        EXPECT_EQ(jims::changeTerrainWidth(m6), 0.0);
+        EXPECT_EQ(melo::changeTerrainWidth(m6), 0.0);
         ASSERT_TRUE(m5->system()->lastMeasure() == m5);
         EXPECT_EQ(courtesy.kinds.size(), 1u);
         EXPECT_EQ(courtesy.kinds[0], u"mode");
@@ -1650,17 +1650,17 @@ TEST(MeloStaffTests, changeIndicatorIsReservedMidSystemOrCourtesyAtSystemEnd)
         EXPECT_TRUE(courtesy.arrows[0].up) << "La-mode -> Do-mode: 2 degrees up";
         EXPECT_EQ(courtesy.arrows[0].to.periodOffset, 1) << "Do lifted to the upper Do-line";
         const double want5 = oldSt->jimsHeaderGeometry(head->style().spatium(), head->style().defaultSpatium()).changeTerrainWidth;
-        EXPECT_NEAR(jims::courtesyTerrainWidth(m5), want5, 1e-9);
+        EXPECT_NEAR(melo::courtesyTerrainWidth(m5), want5, 1e-9);
     } else {
-        EXPECT_EQ(jims::courtesyTerrainWidth(m5), 0.0);
-        EXPECT_GT(jims::changeTerrainWidth(m6), 0.0);
+        EXPECT_EQ(melo::courtesyTerrainWidth(m5), 0.0);
+        EXPECT_GT(melo::changeTerrainWidth(m6), 0.0);
         ASSERT_EQ(mid.arrows.size(), 1u);
         EXPECT_TRUE(mid.arrows[0].up);
         EXPECT_EQ(mid.arrows[0].to.periodOffset, 1);
     }
     // No courtesy on a measure whose successor carries no change.
-    jims::ChangeIndicator noc;
-    EXPECT_FALSE(jims::courtesyChangeIndicator(m5Measure(head, 3), 0, noc));
+    melo::ChangeIndicator noc;
+    EXPECT_FALSE(melo::courtesyChangeIndicator(m5Measure(head, 3), 0, noc));
     delete head;
 }
 
@@ -1689,8 +1689,8 @@ TEST(MeloStaffTests, changeIndicatorSemanticsPerFixtureMatchTheOwnerRules)
         ASSERT_TRUE(score) << muse::String(c.piece).toStdString();
         score->doLayout();
         Measure* m2 = m5Measure(score, 2);
-        jims::ChangeIndicator model;
-        ASSERT_TRUE(jims::midSystemChangeIndicator(m2, 0, model)) << muse::String(c.piece).toStdString();
+        melo::ChangeIndicator model;
+        ASSERT_TRUE(melo::midSystemChangeIndicator(m2, 0, model)) << muse::String(c.piece).toStdString();
         EXPECT_EQ(model.kinds, c.kinds) << muse::String(c.piece).toStdString();
         EXPECT_EQ(model.dotStacks.size(), c.dots) << muse::String(c.piece).toStdString();
         EXPECT_EQ(model.tonicIndicators.size(), c.tonics) << muse::String(c.piece).toStdString();
@@ -1710,7 +1710,7 @@ TEST(MeloStaffTests, changeIndicatorSemanticsPerFixtureMatchTheOwnerRules)
             rec << "],\"dot_stacks\":" << model.dotStacks.size() << ",\"tonic_indicators\":" << model.tonicIndicators.size()
                 << ",\"arrows\":[";
             for (size_t i = 0; i < model.arrows.size(); ++i) {
-                const jims::ChangeArrow& a = model.arrows[i];
+                const melo::ChangeArrow& a = model.arrows[i];
                 rec << (i ? "," : "") << "{\"kind\":\"" << a.kind.toStdString() << "\",\"from\":\"" << a.from.label.toStdString()
                     << "\",\"to\":\"" << a.to.label.toStdString() << "\",\"up\":" << (a.up ? "true" : "false")
                     << ",\"trumps\":\"" << a.trumps.toStdString() << "\"}";
@@ -1723,16 +1723,16 @@ TEST(MeloStaffTests, changeIndicatorSemanticsPerFixtureMatchTheOwnerRules)
 
 TEST(MeloStaffTests, presetIdentitySurvivesTheStaffTypeLookup)
 {
-    const StaffType* jims = StaffType::preset(StaffTypes::JIMS_12TET);
-    ASSERT_NE(jims, nullptr);
-    ASSERT_TRUE(jims->isJiMS());
-    EXPECT_TRUE(jims->jimsJiLines());
-    EXPECT_EQ(jims->type(), StaffTypes::JIMS_12TET);
-    EXPECT_NE(jims->type(), StaffType::preset(StaffTypes::STANDARD)->type());
-    EXPECT_EQ(StaffType::preset(jims->type())->name(), jims->name());
-    EXPECT_EQ(jims->name(), u"MeloPresto Staff 12-TET");
-    EXPECT_EQ(jims->xmlName(), u"jims12tet");
-    EXPECT_EQ(StaffType::presetFromXmlName(u"jims12tet"), jims);
+    const StaffType* melo = StaffType::preset(StaffTypes::JIMS_12TET);
+    ASSERT_NE(melo, nullptr);
+    ASSERT_TRUE(melo->isJiMS());
+    EXPECT_TRUE(melo->jimsJiLines());
+    EXPECT_EQ(melo->type(), StaffTypes::JIMS_12TET);
+    EXPECT_NE(melo->type(), StaffType::preset(StaffTypes::STANDARD)->type());
+    EXPECT_EQ(StaffType::preset(melo->type())->name(), melo->name());
+    EXPECT_EQ(melo->name(), u"MeloPresto Staff 12-TET");
+    EXPECT_EQ(melo->xmlName(), u"jims12tet");
+    EXPECT_EQ(StaffType::presetFromXmlName(u"jims12tet"), melo);
 }
 
 TEST(MeloStaffTests, guideColorDefaultsPreserveTheExistingPaletteAndAreStyleValues)

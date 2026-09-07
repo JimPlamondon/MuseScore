@@ -31,7 +31,7 @@
 
 using namespace muse;
 
-namespace mu::engraving::jims {
+namespace mu::engraving::melo {
 namespace {
 struct StateEdit {
     Staff* staff = nullptr;
@@ -79,7 +79,7 @@ bool projectionFor(const std::vector<StateEdit>& edits, Note* note, SoundingPitc
     const StaffType* current = note->staff() ? note->staff()->staffTypeForElement(note) : nullptr;
     const String state = edit ? edit->state : (current ? current->jimsStateJson() : String());
     if (state.isEmpty()) {
-        error = mu::engraving::jims::linkedNoteMissingState();
+        error = mu::engraving::melo::linkedNoteMissingState();
         return false;
     }
 
@@ -140,7 +140,7 @@ bool prepareNoteEdits(Score* score, const std::vector<StateEdit>& stateEdits,
                             continue;
                         }
                         if (note->incomingPartialTie() || note->outgoingPartialTie()) {
-                            error = mu::engraving::jims::partialTieCrossesState();
+                            error = mu::engraving::melo::partialTieCrossesState();
                             return false;
                         }
                         SoundingPitch projection;
@@ -150,7 +150,7 @@ bool prepareNoteEdits(Score* score, const std::vector<StateEdit>& stateEdits,
                         for (EngravingObject* linkedObject : note->linkList()) {
                             Note* linked = toNote(linkedObject);
                             if (!linked->hasJimsPitch()) {
-                                error = mu::engraving::jims::linkedNoteIdentityMismatch();
+                                error = mu::engraving::melo::linkedNoteIdentityMismatch();
                                 return false;
                             }
                             SoundingPitch linkedProjection;
@@ -158,7 +158,7 @@ bool prepareNoteEdits(Score* score, const std::vector<StateEdit>& stateEdits,
                                 return false;
                             }
                             if (!sameProjection(projection, linkedProjection)) {
-                                error = mu::engraving::jims::conflictingLinkedProjections();
+                                error = mu::engraving::melo::conflictingLinkedProjections();
                                 return false;
                             }
                             seen.insert(linked);
@@ -281,7 +281,7 @@ bool canInsertChange(const Score* score, staff_idx_t staffIdx, const Measure* me
 {
     String state;
     if (!effectiveState(score, staffIdx, measure, tick, state)) {
-        reason = mu::engraving::jims::notSystemStaff();
+        reason = mu::engraving::melo::notSystemStaff();
         return false;
     }
     if (tick.isZero()) {
@@ -291,7 +291,7 @@ bool canInsertChange(const Score* score, staff_idx_t staffIdx, const Measure* me
         return true;        // the JiMS carrier is updated in place
     }
     if (anyCarrierAt(measure, staffIdx, tick)) {
-        reason = mu::engraving::jims::positionHasOtherStaffChange();
+        reason = mu::engraving::melo::positionHasOtherStaffChange();
         return false;
     }
     if (!measure->canAddStaffTypeChange(staffIdx, tick - measure->tick())) {
@@ -323,7 +323,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
     }
     if (!defaultExtentForEmptyStaffSpan(score->staff(staffIdx), tick,
                                         nextCarrierTick(score, staffIdx, tick), next, next)) {
-        error = mu::engraving::jims::emptyStaffCentreUnavailable();
+        error = mu::engraving::melo::emptyStaffCentreUnavailable();
         return false;
     }
     if (next == current) {
@@ -359,7 +359,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
                 return false;
             }
             if (!defaultExtentForEmptyStaffSpan(staff, tick, nextCarrierTick(score, staffIdx, tick), bound, bound)) {
-                error = mu::engraving::jims::emptyStaffCentreUnavailable();
+                error = mu::engraving::melo::emptyStaffCentreUnavailable();
                 return false;
             }
             if (bound != st->jimsStateJson()) {
@@ -388,7 +388,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
         if (!prepareNoteEdits(score, stateEdits, noteEdits, error)) {
             return false;
         }
-        score->startCmd(mu::engraving::jims::bindReferenceAction());
+        score->startCmd(mu::engraving::melo::bindReferenceAction());
         for (const auto& e : edits) {
             score->undo(new MeloChangeStateAt(staff, e.first, e.second));
         }
@@ -403,7 +403,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
     if (!prepareNoteEdits(score, stateEdits, noteEdits, error)) {
         return false;
     }
-    score->startCmd(mu::engraving::jims::insertChangeAction());
+    score->startCmd(mu::engraving::melo::insertChangeAction());
     if (origin || hasCarrier) {
         // The base type (origin) or the carrier's copy in the staff list is
         // the type in force at this tick: replace its state in place.
@@ -477,7 +477,7 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& t
         if (!canInsertChange(score, staffIdx, measure, tick, reason)) {
             const StaffType* here = staff->staffType(tick);
             if (!here || !here->isJiMS()) {
-                reason = mu::engraving::jims::measureHasOtherStaffChange();
+                reason = mu::engraving::melo::measureHasOtherStaffChange();
             }
             error = mtrc("engraving", "staff %1: %2").arg(int(staffIdx) + 1).arg(reason);
             return false;
@@ -485,7 +485,7 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& t
         String current;
         const StaffType* effective = nullptr;
         if (!effectiveState(score, staffIdx, measure, tick, current, &effective)) {
-            error = mu::engraving::jims::staffStateUnavailable().arg(int(staffIdx) + 1);
+            error = mu::engraving::melo::staffStateUnavailable().arg(int(staffIdx) + 1);
             return false;
         }
         // The Kernel applies the issued ids, in order, to THIS target's own
@@ -505,7 +505,7 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& t
         }
         if (!defaultExtentForEmptyStaffSpan(staff, tick,
                                             nextCarrierTick(score, staffIdx, tick), next, next)) {
-            error = mu::engraving::jims::numberedStaffCentreUnavailable()
+            error = mu::engraving::melo::numberedStaffCentreUnavailable()
                     .arg(int(staffIdx) + 1);
             return false;
         }
@@ -532,7 +532,7 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& t
 
     // COMMIT. One startCmd/endCmd pair for every target and every choice id,
     // so the whole gesture is one undo step and one redo step.
-    score->startCmd(mu::engraving::jims::insertChangeAction());
+    score->startCmd(mu::engraving::melo::insertChangeAction());
     for (const Prepared& p : prepared) {
         if (p.editInPlace) {
             score->undo(new MeloChangeStateAt(p.staff, tick, p.next));
@@ -562,14 +562,14 @@ bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fr
 {
     const StaffTypeChange* stc = changeCarrierAt(measure, staffIdx, tick);
     if (!stc) {
-        error = mu::engraving::jims::changeUnavailable();
+        error = mu::engraving::melo::changeUnavailable();
         return false;
     }
     Staff* staff = score->staff(staffIdx);
     const Fraction before = Fraction::fromTicks(std::max(0, tick.ticks() - 1));
     const StaffType* previousType = staff ? staff->staffType(before) : nullptr;
     if (!previousType || !previousType->isJiMS()) {
-        error = mu::engraving::jims::precedingStateUnavailable();
+        error = mu::engraving::melo::precedingStateUnavailable();
         return false;
     }
     const std::vector<StateEdit> stateEdits {
@@ -579,7 +579,7 @@ bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fr
     if (!prepareNoteEdits(score, stateEdits, noteEdits, error)) {
         return false;
     }
-    score->startCmd(mu::engraving::jims::removeChangeAction());
+    score->startCmd(mu::engraving::melo::removeChangeAction());
     score->undoRemoveElement(const_cast<StaffTypeChange*>(stc));
     commitNoteEdits(score, noteEdits);
     score->endCmd();
@@ -633,7 +633,7 @@ bool normalizeStoredPitchesAfterLoad(Score* score, size_t& repairs, String& erro
     }
     if (undoable) {
         if (!commandOpen) {
-            score->startCmd(mu::engraving::jims::normalizeStoredPitchesAction());
+            score->startCmd(mu::engraving::melo::normalizeStoredPitchesAction());
         }
         commitNoteEdits(score, repairsNeeded);
         if (!commandOpen) {

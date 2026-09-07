@@ -165,11 +165,11 @@ NoteVal Score::noteValForPosition(Position pos, AccidentalType at, bool& error)
                                      ? jimsSt->jimsFrameTopCents()
                                      - double(line) * StaffType::JIMS_CENTS_PER_LINE_DISTANCE / 2.0
                                      : view.centsFromYLd(double(line) / 2.0);
-                mu::engraving::jims::PitchHit hit;
-                if (mu::engraving::jims::nearestPitch(jimsSt->jimsStateJson(), cents,
+                mu::engraving::melo::PitchHit hit;
+                if (mu::engraving::melo::nearestPitch(jimsSt->jimsStateJson(), cents,
                                                       false, 0, 0, hit)) {
-                    mu::engraving::jims::SoundingPitch projection;
-                    if (mu::engraving::jims::noteSoundingPitch(jimsSt->jimsStateJson(), hit.nPer, hit.nGen, projection)) {
+                    mu::engraving::melo::SoundingPitch projection;
+                    if (mu::engraving::melo::noteSoundingPitch(jimsSt->jimsStateJson(), hit.nPer, hit.nGen, projection)) {
                         const int stepIndex = int(muse::String(u"CDEFGAB").indexOf(muse::Char(projection.step)));
                         nval.pitch = projection.midiKey;
                         nval.tpc1 = step2tpc(stepIndex, AccidentalVal(projection.alter));

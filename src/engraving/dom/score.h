@@ -900,13 +900,13 @@ public:
     void setMasterScore(MasterScore* s) { m_masterScore = s; }
 
     // JiMS MusicXML interchange carrier (transported, never interpreted; see jims/jimsinterchange.h)
-    const jims::Provenance& jimsProvenance() const { return m_jimsProvenance; }
-    void setJimsProvenance(const jims::Provenance& p) { m_jimsProvenance = p; }
-    jims::MelodyPart jimsMelodyPart() const { return m_jimsMelodyPart; }
-    void setJimsMelodyPart(jims::MelodyPart part) { m_jimsMelodyPart = part; }
+    const melo::Provenance& jimsProvenance() const { return m_jimsProvenance; }
+    void setJimsProvenance(const melo::Provenance& p) { m_jimsProvenance = p; }
+    melo::MelodyPart jimsMelodyPart() const { return m_jimsMelodyPart; }
+    void setJimsMelodyPart(melo::MelodyPart part) { m_jimsMelodyPart = part; }
     /// The JiMS evidentiary review record (transported; see jims/jimsreview.h)
-    const jims::ReviewRecord& jimsReview() const { return m_jimsReview; }
-    void setJimsReview(const jims::ReviewRecord& r) { m_jimsReview = r; }
+    const melo::ReviewRecord& jimsReview() const { return m_jimsReview; }
+    void setJimsReview(const melo::ReviewRecord& r) { m_jimsReview = r; }
 
     const std::map<String, String>& metaTags() const { return m_metaTags; }
     std::map<String, String>& metaTags() { return m_metaTags; }
@@ -1238,9 +1238,9 @@ private:
     bool m_needSetUpTempoMap = true;
 
     std::map<String, String> m_metaTags;
-    jims::Provenance m_jimsProvenance;
-    jims::MelodyPart m_jimsMelodyPart = jims::MelodyPart::Soprano;
-    jims::ReviewRecord m_jimsReview;
+    melo::Provenance m_jimsProvenance;
+    melo::MelodyPart m_jimsMelodyPart = melo::MelodyPart::Soprano;
+    melo::ReviewRecord m_jimsReview;
 
     Selection m_selection;
     SelectionFilter m_selectionFilter;

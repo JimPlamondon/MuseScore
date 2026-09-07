@@ -2083,7 +2083,7 @@ Err MusicXmlParserPass2::parse(const ByteArray& data)
 Err MusicXmlParserPass2::parse()
 {
     bool found = false;
-    m_jims = m_pass1.jims();        // resolved JiMS prefix (native JiMS import); buffers fill below
+    m_jims = m_pass1.melo();        // resolved JiMS prefix (native JiMS import); buffers fill below
     m_jimsError = Err::NoError;
     while (m_e.readNextStartElement()) {
         if (m_e.name() == "score-partwise") {
@@ -2518,7 +2518,7 @@ void MusicXmlParserPass2::part()
         } else {
             size_t repairs = 0;
             String repairError;
-            if (!jims::normalizeStoredPitchesAfterLoad(m_score, repairs, repairError, false)) {
+            if (!melo::normalizeStoredPitchesAfterLoad(m_score, repairs, repairError, false)) {
                 m_logger->logError(String(u"the JiMS Kernel could not normalize imported note projections: %1").arg(repairError), &m_e);
                 m_jimsError = Err::FileBadFormat;
             } else if (repairs > 0) {
@@ -4168,14 +4168,14 @@ void MusicXmlParserDirection::directionType(std::vector<MusicXmlSpannerDesc>& st
         const String type = m_e.attribute("type");
         m_color = Color::fromString(m_e.asciiAttribute("color").ascii());
         m_justify = m_e.attribute("justify");
-        if (m_pass1.jims().hasJims() && m_pass1.jims().isJimsElement(m_e.name(), "tuning-trajectory")) {
+        if (m_pass1.melo().hasJims() && m_pass1.melo().isJimsElement(m_e.name(), "tuning-trajectory")) {
             // Native JiMS import: transported carrier (owner decision 2026-08-19);
             // tick, staff and placement are known only when the enclosing
             // direction has been read in full.
-            engraving::jims::TuningTrajectory t;
+            engraving::melo::TuningTrajectory t;
             String error;
             auto ticksOf = [this](int divisions) { return m_pass1.calcTicks(divisions, m_pass2.divs(), &m_e); };
-            if (m_pass1.jims().parseTuningTrajectory(m_e, ticksOf, t, error)) {
+            if (m_pass1.melo().parseTuningTrajectory(m_e, ticksOf, t, error)) {
                 m_jimsTrajectory = t;
             } else {
                 m_logger->logError(error, &m_e);

@@ -25,7 +25,7 @@ class Score;
 class Staff;
 }
 
-namespace mu::engraving::jims {
+namespace mu::engraving::melo {
 class TuningController
 {
 public:

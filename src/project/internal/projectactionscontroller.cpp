@@ -1524,7 +1524,7 @@ void ProjectActionsController::warnJimsStockLossOnce(const INotationProjectPtr& 
     m_jimsStockLossWarned.insert(project.get());
 
     std::string title = muse::trc("project/save", "This score uses JiMS notation");
-    std::string msg = mu::engraving::jims::stockLossWarning().toStdString();
+    std::string msg = mu::engraving::melo::stockLossWarning().toStdString();
 
     auto result = interactive()->warning(title, msg,
                                          { IInteractive::Button::Ok }, IInteractive::Button::Ok,

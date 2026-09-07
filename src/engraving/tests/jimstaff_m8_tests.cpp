@@ -202,8 +202,8 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8WholeViewIsOneBandWithLegacyGeome
     // The whole frame's "[PitchN]:" names the period index selected by the
     // Kernel for its lowest labelled tonic row, not an inferred extent centre.
     EXPECT_EQ(whole.bands[0].labelPeriodIndex, 0);
-    jims::TonicPitchLabel wholeLabel;
-    ASSERT_TRUE(jims::tonicPitchLabelInPeriod(jst->jimsStateJson(), whole.bands[0].labelPeriodIndex, wholeLabel));
+    melo::TonicPitchLabel wholeLabel;
+    ASSERT_TRUE(melo::tonicPitchLabelInPeriod(jst->jimsStateJson(), whole.bands[0].labelPeriodIndex, wholeLabel));
     EXPECT_TRUE(whole.bands[0].tonicLabel == wholeLabel.label);
     for (double cents : { 0.0, 900.0, 2400.0, 3637.5, 5700.0, 5800.0 }) {
         EXPECT_EQ(jst->jimsYFromCents(cents, whole), jst->jimsYFromCents(cents)) << cents;
@@ -284,8 +284,8 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StyleOnBandsLaterSystemsWithLabel
         EXPECT_EQ(v.bands[0].labelPeriodIndex, 0);
         EXPECT_EQ(v.bands[1].labelPeriodIndex, 2);
         for (const StaffType::MeloFrameBand& band : v.bands) {
-            jims::TonicPitchLabel expected;
-            ASSERT_TRUE(jims::tonicPitchLabelInPeriod(st(score)->jimsStateJson(), band.labelPeriodIndex, expected));
+            melo::TonicPitchLabel expected;
+            ASSERT_TRUE(melo::tonicPitchLabelInPeriod(st(score)->jimsStateJson(), band.labelPeriodIndex, expected));
             EXPECT_TRUE(band.tonicLabel == expected.label);
         }
         // Geometry: top band at 0, bottom band below it plus one gap.
@@ -776,16 +776,16 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8OctaveLabelsNameTheirRowEverywher
         const double topY = lines->pos().y();
         const double ld = jst->lineDistance().val();
         const double periodCents = jst->jimsPeriodCents();
-        jims::PeriodicOrigins origins;
-        ASSERT_TRUE(jims::periodicOrigins(jst->jimsStateJson(), origins));
+        melo::PeriodicOrigins origins;
+        ASSERT_TRUE(melo::periodicOrigins(jst->jimsStateJson(), origins));
         const std::vector<Labeled> labels = labelsOf(lines);
         ASSERT_GE(labels.size(), 1u) << what;
         for (const Labeled& l : labels) {
             const double yLd = (l.y - topY) / (ld * lines->spatium());
             const double cents = v.centsFromYLd(yLd);
             const int k = int(std::lround((cents - origins.tonicCentsAboveExtentLower) / periodCents));
-            jims::TonicPitchLabel expected;
-            ASSERT_TRUE(jims::tonicPitchLabelInPeriod(jst->jimsStateJson(), k, expected)) << what;
+            melo::TonicPitchLabel expected;
+            ASSERT_TRUE(melo::tonicPitchLabelInPeriod(jst->jimsStateJson(), k, expected)) << what;
             EXPECT_EQ(l.text, expected.label) << what << " row period " << k;
         }
         UNUSED(score);
@@ -912,12 +912,12 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
     // Kernel's to know) sits at 0 cents in both the labelled and the plain
     // dot-stack views.
     auto doGlyph = [&](Score* score, const StaffType* jst, SymId& sym, double& centroidDy) {
-        std::vector<jims::LabeledDotStack> labelStacks;
-        ASSERT_TRUE(jims::scaleDotLabels(jst->jimsStateJson(), labelStacks));
+        std::vector<melo::LabeledDotStack> labelStacks;
+        ASSERT_TRUE(melo::scaleDotLabels(jst->jimsStateJson(), labelStacks));
         int doMembers = 0;
         int doNGen = 0;
-        for (const jims::LabeledDotStack& s : labelStacks) {
-            for (const jims::LabeledDotMember& member : s.members) {
+        for (const melo::LabeledDotStack& s : labelStacks) {
+            for (const melo::LabeledDotMember& member : s.members) {
                 if (member.label == u"Do") {
                     ++doMembers;
                     doNGen = member.nGen;
@@ -926,10 +926,10 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
             }
         }
         ASSERT_EQ(doMembers, 1);
-        std::vector<jims::ScaleDotStack> stacks;
-        ASSERT_TRUE(jims::scaleDots(jst->jimsStateJson(), stacks));
+        std::vector<melo::ScaleDotStack> stacks;
+        ASSERT_TRUE(melo::scaleDots(jst->jimsStateJson(), stacks));
         int doStacks = 0;
-        for (const jims::ScaleDotStack& s : stacks) {
+        for (const melo::ScaleDotStack& s : stacks) {
             for (int nGen : s.frontToBack) {
                 if (nGen == doNGen) {
                     ++doStacks;
@@ -939,7 +939,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
         }
         EXPECT_EQ(doStacks, 1);
         muse::String token;
-        ASSERT_TRUE(jims::noteheadToken(jst->jimsStateJson(), doNGen, token));
+        ASSERT_TRUE(melo::noteheadToken(jst->jimsStateJson(), doNGen, token));
         sym = SymId::noteheadHalf;
         if (token == u"triangle-vertex-up") {
             sym = SymId::noteheadTriangleUpBlack;
@@ -971,10 +971,10 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                 const StaffType::MeloFrameView& v = jst->jimsFrameView(score, 0, system);
                 ASSERT_FALSE(v.empty()) << what;
                 const double period = jst->jimsPeriodCents();
-                jims::PeriodicOrigins origins;
-                ASSERT_TRUE(jims::periodicOrigins(jst->jimsStateJson(), origins)) << what;
-                std::vector<jims::JiLine> jiLines;
-                ASSERT_TRUE(jims::jiLines(jst->jimsStateJson(), jiLines)) << what;
+                melo::PeriodicOrigins origins;
+                ASSERT_TRUE(melo::periodicOrigins(jst->jimsStateJson(), origins)) << what;
+                std::vector<melo::JiLine> jiLines;
+                ASSERT_TRUE(melo::jiLines(jst->jimsStateJson(), jiLines)) << what;
                 const StaffLines* lines = m->staffLines(0);
                 ASSERT_TRUE(lines) << what;
                 const double topY = lines->pos().y();
@@ -1011,7 +1011,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                                                   + std::floor((seg.lowerCents - origins.doCentsAboveExtentLower)
                                                                / period) * period;
                         for (double p = basePeriod; p < seg.upperCents; p += period) {
-                            for (const jims::JiLine& ji : jiLines) {
+                            for (const melo::JiLine& ji : jiLines) {
                                 const double c = p + ji.cents;
                                 if (ji.visible && c >= seg.lowerCents - 1e-6 && c <= seg.upperCents + 1e-6) {
                                     EXPECT_TRUE(hasGuideAt(c))
@@ -1140,10 +1140,10 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
         ASSERT_TRUE(score) << g;
         score->doLayout();
         double generator = 0.0, period = 0.0;
-        ASSERT_TRUE(jims::staffMetrics(st(score)->jimsStateJson(), generator, period));
+        ASSERT_TRUE(melo::staffMetrics(st(score)->jimsStateJson(), generator, period));
         EXPECT_NEAR(generator, g, 1e-9);
         double tonic = 0.0;
-        ASSERT_TRUE(jims::tonicCentsAboveDo(st(score)->jimsStateJson(), tonic));
+        ASSERT_TRUE(melo::tonicCentsAboveDo(st(score)->jimsStateJson(), tonic));
         EXPECT_GT(tonic, 1.0) << "the fixture must be off-Do (La-mode)";
         bool sawPartial = false;
         const std::string what = "syshead@" + std::to_string(int(g));
@@ -1214,16 +1214,16 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8PartialStaffEdgesPreserveRealRati
         };
         std::vector<double> expectedClosures;
         const double periodCents = jst->jimsPeriodCents();
-        jims::PeriodicOrigins origins;
-        ASSERT_TRUE(jims::periodicOrigins(jst->jimsStateJson(), origins));
-        std::vector<jims::JiLine> ratios;
-        ASSERT_TRUE(jims::jiLines(jst->jimsStateJson(), ratios));
+        melo::PeriodicOrigins origins;
+        ASSERT_TRUE(melo::periodicOrigins(jst->jimsStateJson(), origins));
+        std::vector<melo::JiLine> ratios;
+        ASSERT_TRUE(melo::jiLines(jst->jimsStateJson(), ratios));
         auto isRatioRow = [&](double cents) {
             const double relative = cents - origins.doCentsAboveExtentLower;
             if (std::abs(relative - std::round(relative / periodCents) * periodCents) < 1e-6) {
                 return true;
             }
-            return std::any_of(ratios.begin(), ratios.end(), [&](const jims::JiLine& ratio) {
+            return std::any_of(ratios.begin(), ratios.end(), [&](const melo::JiLine& ratio) {
                 const double offset = relative - ratio.cents;
                 return std::abs(offset - std::round(offset / periodCents) * periodCents) < 1e-6;
             });
@@ -1404,30 +1404,30 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorAnchorsOnTheDoLineTh
         return v;
     };
     auto point = [](double ordinate, int periodOffset) {
-        jims::ChangePoint p;
+        melo::ChangePoint p;
         p.ordinate = ordinate;
         p.periodOffset = periodOffset;
         return p;
     };
     // Do -> La ("fewest degrees" is down: La one period offset below at 0.75).
-    jims::ChangeIndicator doToLa;
+    melo::ChangeIndicator doToLa;
     doToLa.kinds = { u"mode" };
     doToLa.tonicIndicators = { point(0.0, 0), point(0.75, -1) };
-    jims::ChangeArrow down;
+    melo::ChangeArrow down;
     down.kind = u"mode";
     down.from = point(0.0, 0);
     down.to = point(0.75, -1);
     down.up = false;
     doToLa.arrows = { down };
     // One-period staff [0,1200]: only the UPPER Do-line keeps La (900) on the staff.
-    EXPECT_DOUBLE_EQ(jims::changeAnchorPeriodCents(whole(0, 1200), doToLa, P), 1200.0);
+    EXPECT_DOUBLE_EQ(melo::changeAnchorPeriodCents(whole(0, 1200), doToLa, P), 1200.0);
     // Two-period staff [0,2400]: the lowest fitting Do-line is 1200 (La at 900).
-    EXPECT_DOUBLE_EQ(jims::changeAnchorPeriodCents(whole(0, 2400), doToLa, P), 1200.0);
+    EXPECT_DOUBLE_EQ(melo::changeAnchorPeriodCents(whole(0, 2400), doToLa, P), 1200.0);
     // Do -> Re (up, inside the same period): the lowest Do-line already fits.
-    jims::ChangeIndicator doToRe;
+    melo::ChangeIndicator doToRe;
     doToRe.kinds = { u"mode" };
     doToRe.tonicIndicators = { point(0.0, 0), point(1.0 / 6.0, 0) };
-    EXPECT_DOUBLE_EQ(jims::changeAnchorPeriodCents(whole(0, 2400), doToRe, P), 0.0);
+    EXPECT_DOUBLE_EQ(melo::changeAnchorPeriodCents(whole(0, 2400), doToRe, P), 0.0);
     // Nothing fits (a partial staff [300, 900] with Do -> La): least overflow wins.
     StaffType::MeloFrameView partial;
     StaffType::MeloFrameBand pb;
@@ -1436,7 +1436,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorAnchorsOnTheDoLineTh
     pb.upperCents = 900.0;
     partial.bands.push_back(pb);
     // No Do-line inside the segment at all -> fallback (the stack's lowest period).
-    EXPECT_DOUBLE_EQ(jims::changeAnchorPeriodCents(partial, doToLa, P), 0.0);
+    EXPECT_DOUBLE_EQ(melo::changeAnchorPeriodCents(partial, doToLa, P), 0.0);
     // Banded (M8): [0,1200] and [3600,4800]; Do -> La fits in the low band at 1200
     // (La 900) — the lowest fitting anchor, not the top band's.
     StaffType::MeloFrameView banded = whole(0, 1200);
@@ -1446,7 +1446,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorAnchorsOnTheDoLineTh
     top.upperCents = 4800.0;
     banded.bands.push_back(top);
     banded.banded = true;
-    EXPECT_DOUBLE_EQ(jims::changeAnchorPeriodCents(banded, doToLa, P), 1200.0);
+    EXPECT_DOUBLE_EQ(melo::changeAnchorPeriodCents(banded, doToLa, P), 1200.0);
 
     // Paint check on the accepted M5 piece: Do-mode -> La-mode at bar 2 on a
     // one-period staff. The new tonic's label must be the UPPER register
@@ -1621,8 +1621,8 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8SettingsNeverEnterKernelStateAndP
         for (Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
             for (Chord* c : chordsOf(m)) {
                 for (Note* n : c->notes()) {
-                    jims::SoundingPitch sp;
-                    EXPECT_TRUE(jims::noteSoundingPitch(st(score)->jimsStateJson(), n->jimsNPer(), n->jimsNGen(), sp));
+                    melo::SoundingPitch sp;
+                    EXPECT_TRUE(melo::noteSoundingPitch(st(score)->jimsStateJson(), n->jimsNPer(), n->jimsNGen(), sp));
                     out.push_back({ n->jimsNPer(), n->jimsNGen(), sp.midiKey, sp.centsOffset });
                 }
             }
@@ -1768,8 +1768,8 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, legacyTonicExtentSpellingIsNotAnAli
                             "\"reference\":\"none\",\"tonic_extent\":\"tonic-centered\"}"));
     EXPECT_TRUE(st.jimsStateJson().contains(u"tonic_extent"));
     EXPECT_FALSE(st.jimsStateJson().contains(u"\"tonic_ambit\""));
-    std::vector<jims::StaveSegment> segments;
-    EXPECT_FALSE(jims::frameForMelody(st.jimsStateJson(), u"{\"notes\":[]}", u"tonic-bounded", segments));
+    std::vector<melo::StaveSegment> segments;
+    EXPECT_FALSE(melo::frameForMelody(st.jimsStateJson(), u"{\"notes\":[]}", u"tonic-bounded", segments));
 }
 
 // Owner rule 7b (2026-08-19): when no Do-line of the stave keeps a change
@@ -1814,20 +1814,20 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorExtendsTheStaffWhenN
     EXPECT_NEAR(baseView.topCents(), 350.0, 1e-6);
     // The change section (Do -> La): its frame is extended to cover the
     // indicator — La sits 300 cents below Do, one margin further down.
-    jims::ChangeIndicator model;
-    ASSERT_TRUE(jims::changeIndicatorIntoStaffType(score, 0, changeSt, model));
+    melo::ChangeIndicator model;
+    ASSERT_TRUE(melo::changeIndicatorIntoStaffType(score, 0, changeSt, model));
     const StaffType::MeloFrameView& changeView = changeSt->jimsWholeFrameView(score, 0);
     ASSERT_FALSE(changeView.empty());
     // Before extension the indicator overflowed the base-shaped window.
-    EXPECT_FALSE(jims::changeIndicatorOverflowCents(baseView, model, changeSt->jimsPeriodCents()).empty())
+    EXPECT_FALSE(melo::changeIndicatorOverflowCents(baseView, model, changeSt->jimsPeriodCents()).empty())
         << "the indicator does not fit the un-extended window";
     // After extension: the section's frame grew (here to the Do..Do octave)
     // and the whole indicator is on the staff.
     EXPECT_GE(changeView.topCents(), 1200.0 - 1e-6) << "the section's staff extends to the upper Do";
     EXPECT_NEAR(changeView.bottomCents(), 0.0, 1e-6);
-    EXPECT_TRUE(jims::changeIndicatorOverflowCents(changeView, model, changeSt->jimsPeriodCents()).empty())
+    EXPECT_TRUE(melo::changeIndicatorOverflowCents(changeView, model, changeSt->jimsPeriodCents()).empty())
         << "after extension the whole indicator is on the staff";
-    EXPECT_DOUBLE_EQ(jims::changeAnchorPeriodCents(changeView, model, changeSt->jimsPeriodCents()), 0.0);
+    EXPECT_DOUBLE_EQ(melo::changeAnchorPeriodCents(changeView, model, changeSt->jimsPeriodCents()), 0.0);
     delete score;
 }
 

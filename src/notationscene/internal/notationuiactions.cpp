@@ -407,7 +407,7 @@ const UiActionList NotationUiActions::s_actions = {
     UiAction("jims-change",
              mu::context::UiCtxProjectOpened,
              mu::context::CTX_NOTATION_OPENED,
-             engraving::jims::changeActionName(),
+             engraving::melo::changeActionName(),
              TranslatableString("action", "Choose a mode, key, or scale in Properties to insert a change at the selected position"),
              IconCode::Code::STAFF_TYPE_CHANGE
              ),
@@ -1398,8 +1398,8 @@ const UiActionList NotationUiActions::s_actions = {
     UiAction("jims-chord-name-text",
              mu::context::UiCtxProjectOpened,
              mu::context::CTX_NOTATION_OPENED,
-             mu::engraving::jims::chordNameAction(),
-             mu::engraving::jims::chordNameActionDescription()
+             mu::engraving::melo::chordNameAction(),
+             mu::engraving::melo::chordNameActionDescription()
              ),
     UiAction("roman-numeral-text",
              mu::context::UiCtxProjectOpened,

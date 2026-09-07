@@ -510,17 +510,17 @@ TEST_F(Engraving_ChordSymbolTests, jimsHarmonyCreationIsPerObjectUndoableCloneab
     ASSERT_TRUE(chordRest);
 
     score->startCmd(TranslatableString::untranslatable("Add JiMS chord name"));
-    Harmony* jims = score->addHarmony(HarmonyType::JIMS, chordRest);
-    ASSERT_TRUE(jims);
-    jims->setHarmony(u"Fi@Te:M3²+La,Ti/Re");
+    Harmony* melo = score->addHarmony(HarmonyType::JIMS, chordRest);
+    ASSERT_TRUE(melo);
+    melo->setHarmony(u"Fi@Te:M3²+La,Ti/Re");
     score->endCmd();
-    EXPECT_EQ(jims->harmonyType(), HarmonyType::JIMS);
-    EXPECT_EQ(jims->harmonyName(), u"Fi@Te:M3²+La,Ti/Re");
-    EXPECT_TRUE(jims->accessibleInfo().contains(u"MeloPresto chord name"));
-    EXPECT_TRUE(jims->accessibleInfo().contains(u"Fi@Te:M3²+La,Ti/Re"));
-    EXPECT_TRUE(jims->screenReaderInfo().contains(u"Fi@Te:M3²+La,Ti/Re"));
+    EXPECT_EQ(melo->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(melo->harmonyName(), u"Fi@Te:M3²+La,Ti/Re");
+    EXPECT_TRUE(melo->accessibleInfo().contains(u"MeloPresto chord name"));
+    EXPECT_TRUE(melo->accessibleInfo().contains(u"Fi@Te:M3²+La,Ti/Re"));
+    EXPECT_TRUE(melo->screenReaderInfo().contains(u"Fi@Te:M3²+La,Ti/Re"));
 
-    Harmony* clone = jims->clone();
+    Harmony* clone = melo->clone();
     ASSERT_TRUE(clone);
     EXPECT_EQ(clone->harmonyType(), HarmonyType::JIMS);
     EXPECT_EQ(clone->harmonyName(), u"Fi@Te:M3²+La,Ti/Re");

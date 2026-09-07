@@ -25,7 +25,7 @@
 
 using namespace muse;
 
-namespace mu::engraving::jims {
+namespace mu::engraving::melo {
 namespace {
 class ChangeJimsExtent : public UndoCommand
 {

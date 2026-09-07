@@ -15,7 +15,7 @@
 #include "translation.h"
 #include "types/translatablestring.h"
 
-namespace mu::engraving::jims {
+namespace mu::engraving::melo {
 inline muse::TranslatableString changeActionName() { return muse::TranslatableString("action", "MeloPresto change…"); }
 inline muse::String featureName() { return muse::mtrc("engraving", "MeloPresto Staff"); }
 inline muse::String staffUserName() { return muse::mtrc("engraving", "MeloPresto Staff"); }

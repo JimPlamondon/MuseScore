@@ -120,11 +120,11 @@ bool keyChangedSince(const Score* score, staff_idx_t s, const Fraction& tick)
     if (!first || !here) {
         return false;
     }
-    jims::SoundingPitch a, b;
+    melo::SoundingPitch a, b;
     // Re0 is the score's key anchor; project the same identity under both
     // states and see whether the anchor moved. Asking the Kernel, not parsing.
-    if (!jims::noteSoundingPitch(first->jimsStateJson(), 0, 0, a)
-        || !jims::noteSoundingPitch(here->jimsStateJson(), 0, 0, b)) {
+    if (!melo::noteSoundingPitch(first->jimsStateJson(), 0, 0, a)
+        || !melo::noteSoundingPitch(here->jimsStateJson(), 0, 0, b)) {
         return false;
     }
     return a.referenceKeyNumber != b.referenceKeyNumber;
@@ -150,9 +150,9 @@ void checkScore(const muse::String& path, MasterScore* score, std::vector<Mismat
                         if (!n->hasJimsPitch()) {
                             continue;           // a stock note carries no identity
                         }
-                        jims::SoundingPitch sounding;
+                        melo::SoundingPitch sounding;
                         muse::String err;
-                        if (!jims::noteSoundingPitch(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(),
+                        if (!melo::noteSoundingPitch(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(),
                                                      sounding, &err)) {
                             ADD_FAILURE() << name << ": the Kernel could not project identity ("
                                           << n->jimsNPer() << "," << n->jimsNGen() << "): " << err.toStdString();
@@ -299,8 +299,8 @@ TEST(Engraving_JiMStaffFixtureIntegrity, contradictoryNativeLoadRepairsOnceAndMa
     EXPECT_TRUE(repaired->dirty()) << "a disclosed load repair must mark the document modified";
     Note* note = toChord(repaired->firstSegment(SegmentType::ChordRest)->element(0))->notes().front();
     const StaffType* state = note->staff()->staffTypeForElement(note);
-    jims::SoundingPitch expected;
-    ASSERT_TRUE(jims::noteSoundingPitch(state->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), expected));
+    melo::SoundingPitch expected;
+    ASSERT_TRUE(melo::noteSoundingPitch(state->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), expected));
     EXPECT_EQ(note->pitch(), expected.midiKey);
     repaired->undoRedo(true, nullptr);
     EXPECT_NE(note->pitch(), expected.midiKey) << "the complete repair is one undo step";
