@@ -59,7 +59,7 @@ class Part;
 namespace mu::iex::musicxml {
 class MusicXmlLogger;
 
-class JimsImportContext
+class MeloImportContext
 {
 public:
     /// The JiMS namespace versions this importer understands.

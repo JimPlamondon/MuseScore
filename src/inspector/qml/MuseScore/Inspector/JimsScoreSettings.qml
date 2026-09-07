@@ -8,9 +8,9 @@ import MuseScore.Inspector
 import "common"
 InspectorSectionView {
     id: root
-    required property JimsScoreSettingsModel model
+    required property MeloScoreSettingsModel model
     implicitHeight: controls.implicitHeight
-    JimsTuningModel { id: tuning; Component.onCompleted: init() }
+    MeloTuningModel { id: tuning; Component.onCompleted: init() }
     Column {
         id: controls
         width: parent.width

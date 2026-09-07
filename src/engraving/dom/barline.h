@@ -169,11 +169,11 @@ public:
         // continuously y1..y2 over the whole stack (through the gap, like a
         // keyboard instrument's barlines); repeat dots sit at each band's
         // middle rows. Empty means the ordinary stock dot rows.
-        struct JimsDotRows {
+        struct MeloDotRows {
             double y1 = 0.0;
             double y2 = 0.0;
         };
-        std::vector<JimsDotRows> jimsBandDotRows;
+        std::vector<MeloDotRows> jimsBandDotRows;
     };
 
     DECLARE_LAYOUTDATA_METHODS(BarLine)

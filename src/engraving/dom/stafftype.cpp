@@ -800,9 +800,9 @@ void StaffType::setJimsStateJson(const String& s)
 //    Explicit modes pass through. A bridge failure keeps labels off.
 //---------------------------------------------------------
 
-JimsScaleDotLabelMode StaffType::jimsResolvedScaleDotLabelMode() const
+MeloScaleDotLabelMode StaffType::jimsResolvedScaleDotLabelMode() const
 {
-    if (m_jimsScaleDotLabelMode != JimsScaleDotLabelMode::Auto) {
+    if (m_jimsScaleDotLabelMode != MeloScaleDotLabelMode::Auto) {
         return m_jimsScaleDotLabelMode;
     }
     double generatorCents = 0.0;
@@ -811,11 +811,11 @@ JimsScaleDotLabelMode StaffType::jimsResolvedScaleDotLabelMode() const
     double maxCents = 0.0;
     if (!jims::staffMetrics(m_jimsStateJson, generatorCents, periodCents)
         || !jims::labelLegibilityRange(minCents, maxCents)) {
-        return JimsScaleDotLabelMode::None;
+        return MeloScaleDotLabelMode::None;
     }
     return (generatorCents > minCents && generatorCents < maxCents)
-           ? JimsScaleDotLabelMode::Left
-           : JimsScaleDotLabelMode::Split;
+           ? MeloScaleDotLabelMode::Left
+           : MeloScaleDotLabelMode::Split;
 }
 
 //---------------------------------------------------------
@@ -828,10 +828,10 @@ JimsScaleDotLabelMode StaffType::jimsResolvedScaleDotLabelMode() const
 //    system margin) reads this — no independent formulas.
 //---------------------------------------------------------
 
-StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, double defaultSpatium,
-                                                            const JimsFrameView* view) const
+StaffType::MeloHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, double defaultSpatium,
+                                                            const MeloFrameView* view) const
 {
-    JimsHeaderGeometry g;
+    MeloHeaderGeometry g;
     const double dist = m_lineDistance.val() * spatium;
     const double periodH = (jimsPeriodCents() / JIMS_CENTS_PER_LINE_DISTANCE) * dist;
     g.clefRx = (periodH / 2.0) * 4.0 / 3.0;
@@ -859,7 +859,7 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
     if (view && keyAdvance > 0.0) {
         // Milestone 8: reserve for the widest band label of this system (the
         // whole-piece view is one band carrying its own row's label).
-        for (const JimsFrameBand& band : view->bands) {
+        for (const MeloFrameBand& band : view->bands) {
             if (!band.tonicLabel.isEmpty()) {
                 keyAdvance = std::max(keyAdvance,
                                       jims::pitchLabelLayout(band.tonicLabel + u": ", labelFont, engravingFont).advance);
@@ -901,8 +901,8 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
         }
     }
 
-    const JimsScaleDotLabelMode mode = jimsResolvedScaleDotLabelMode();
-    if (mode == JimsScaleDotLabelMode::None || !haveLabels) {
+    const MeloScaleDotLabelMode mode = jimsResolvedScaleDotLabelMode();
+    if (mode == MeloScaleDotLabelMode::None || !haveLabels) {
         g.headerWidth += g.braceWidth;
         return g;
     }
@@ -912,7 +912,7 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
         String leftText;
         String rightText;
         for (const jims::LabeledDotMember& member : stack.members) {
-            const bool leftSide = (mode == JimsScaleDotLabelMode::Left) || member.nGen <= 0;
+            const bool leftSide = (mode == MeloScaleDotLabelMode::Left) || member.nGen <= 0;
             String& side = leftSide ? leftText : rightText;
             if (!side.isEmpty()) {
                 side += u" ";
@@ -929,7 +929,7 @@ StaffType::JimsHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
     if (maxLeft > 0.0) {
         g.leftLabelBand = maxLeft + gap;
     }
-    if (maxRight > 0.0 && mode == JimsScaleDotLabelMode::Split) {
+    if (maxRight > 0.0 && mode == MeloScaleDotLabelMode::Split) {
         g.rightLabelBand = maxRight + gap;
     }
     g.headerWidth += g.leftLabelBand + g.rightLabelBand + g.braceWidth;
@@ -1011,7 +1011,7 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
         // A changed input never reuses a stale
         // successful frame: on failure the cache holds an empty frame
         // and a diagnostic is emitted; nothing is synthesized fork-side.
-        std::vector<JimsSegment> cached;
+        std::vector<MeloSegment> cached;
         if (token.isEmpty()) {
             LOGE() << "JiMStaff: no declared tonic-ambit token; frame unavailable for staff " << staffIdx;
         } else {
@@ -1023,8 +1023,8 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
                 }
                 if (hasIndicator && jimsPeriodCents() > 0.0) {
                     // Provisional one-band view -> overflow -> covering re-derivation.
-                    JimsFrameView provisional;
-                    JimsFrameBand band;
+                    MeloFrameView provisional;
+                    MeloFrameBand band;
                     band.segments = cached;
                     if (!cached.empty()) {
                         band.lowerCents = cached.front().lowerCents;
@@ -1100,7 +1100,7 @@ double StaffType::jimsYFromCents(double centsAboveDo) const
 //    vertically and maps between y and cents.
 //---------------------------------------------------------
 
-double StaffType::JimsFrameView::heightLd() const
+double StaffType::MeloFrameView::heightLd() const
 {
     if (bands.empty()) {
         return 0.0;
@@ -1115,10 +1115,10 @@ double StaffType::JimsFrameView::heightLd() const
     return bands.front().yTopLd + bands.front().heightLd();
 }
 
-const StaffType::JimsFrameBand* StaffType::JimsFrameView::bandForCents(double cents) const
+const StaffType::MeloFrameBand* StaffType::MeloFrameView::bandForCents(double cents) const
 {
     const double epsilon = 1e-6;
-    for (const JimsFrameBand& band : bands) {
+    for (const MeloFrameBand& band : bands) {
         if (cents >= band.lowerCents - epsilon && cents <= band.upperCents + epsilon) {
             return &band;
         }
@@ -1126,7 +1126,7 @@ const StaffType::JimsFrameBand* StaffType::JimsFrameView::bandForCents(double ce
     return nullptr;
 }
 
-double StaffType::JimsFrameView::yLdFromCents(double cents) const
+double StaffType::MeloFrameView::yLdFromCents(double cents) const
 {
     if (bands.empty()) {
         return 0.0;
@@ -1136,7 +1136,7 @@ double StaffType::JimsFrameView::yLdFromCents(double cents) const
         // jimsYFromCents's numerator, bit for bit.
         return (bands.back().upperCents - cents) / JIMS_CENTS_PER_LINE_DISTANCE;
     }
-    if (const JimsFrameBand* band = bandForCents(cents)) {
+    if (const MeloFrameBand* band = bandForCents(cents)) {
         return band->yTopLd + (band->upperCents - cents) / JIMS_CENTS_PER_LINE_DISTANCE;
     }
     // Outside every band: above the top band or below the bottom band the
@@ -1144,8 +1144,8 @@ double StaffType::JimsFrameView::yLdFromCents(double cents) const
     // gap, interpolate linearly between the two edges — drawing geometry
     // for ink that legitimately crosses a gap (an arrow shaft), never a
     // musical placement.
-    const JimsFrameBand& top = bands.back();
-    const JimsFrameBand& bottom = bands.front();
+    const MeloFrameBand& top = bands.back();
+    const MeloFrameBand& bottom = bands.front();
     if (cents > top.upperCents) {
         return top.yTopLd + (top.upperCents - cents) / JIMS_CENTS_PER_LINE_DISTANCE;
     }
@@ -1153,8 +1153,8 @@ double StaffType::JimsFrameView::yLdFromCents(double cents) const
         return bottom.yTopLd + (bottom.upperCents - cents) / JIMS_CENTS_PER_LINE_DISTANCE;
     }
     for (size_t i = 0; i + 1 < bands.size(); ++i) {
-        const JimsFrameBand& lower = bands[i];
-        const JimsFrameBand& upper = bands[i + 1];
+        const MeloFrameBand& lower = bands[i];
+        const MeloFrameBand& upper = bands[i + 1];
         if (cents > lower.upperCents && cents < upper.lowerCents) {
             const double t = (cents - lower.upperCents) / (upper.lowerCents - lower.upperCents);
             const double yLowerEdge = lower.yTopLd;                       // lower band's top edge
@@ -1165,7 +1165,7 @@ double StaffType::JimsFrameView::yLdFromCents(double cents) const
     return 0.0;
 }
 
-double StaffType::JimsFrameView::centsFromYLd(double yLd) const
+double StaffType::MeloFrameView::centsFromYLd(double yLd) const
 {
     if (bands.empty()) {
         return 0.0;
@@ -1176,15 +1176,15 @@ double StaffType::JimsFrameView::centsFromYLd(double yLd) const
     // Inside a band: that band's affine inverse. Above the top band or
     // below the bottom band: extrapolate from the outer band (today's
     // edge behaviour, so a drag past an edge keeps its cents delta).
-    const JimsFrameBand& top = bands.back();
-    const JimsFrameBand& bottom = bands.front();
+    const MeloFrameBand& top = bands.back();
+    const MeloFrameBand& bottom = bands.front();
     if (yLd <= top.yTopLd) {
         return top.upperCents - (yLd - top.yTopLd) * JIMS_CENTS_PER_LINE_DISTANCE;
     }
     if (yLd >= bottom.yTopLd + bottom.heightLd()) {
         return bottom.upperCents - (yLd - bottom.yTopLd) * JIMS_CENTS_PER_LINE_DISTANCE;
     }
-    for (const JimsFrameBand& band : bands) {
+    for (const MeloFrameBand& band : bands) {
         if (yLd >= band.yTopLd && yLd <= band.yTopLd + band.heightLd()) {
             return band.upperCents - (yLd - band.yTopLd) * JIMS_CENTS_PER_LINE_DISTANCE;
         }
@@ -1192,8 +1192,8 @@ double StaffType::JimsFrameView::centsFromYLd(double yLd) const
     // In a gap: snap to the nearest band edge; an exact midpoint resolves
     // toward the LOWER-pitched band (the band below the gap).
     for (size_t i = 0; i + 1 < bands.size(); ++i) {
-        const JimsFrameBand& lower = bands[i];        // lower-pitched, drawn below
-        const JimsFrameBand& upper = bands[i + 1];    // higher-pitched, drawn above
+        const MeloFrameBand& lower = bands[i];        // lower-pitched, drawn below
+        const MeloFrameBand& upper = bands[i + 1];    // higher-pitched, drawn above
         const double yUpperEdge = upper.yTopLd + upper.heightLd();   // gap top
         const double yLowerEdge = lower.yTopLd;                      // gap bottom
         if (yLd > yUpperEdge && yLd < yLowerEdge) {
@@ -1205,7 +1205,7 @@ double StaffType::JimsFrameView::centsFromYLd(double yLd) const
     return top.upperCents;
 }
 
-double StaffType::jimsYFromCents(double centsAboveDo, const JimsFrameView& view) const
+double StaffType::jimsYFromCents(double centsAboveDo, const MeloFrameView& view) const
 {
     return view.yLdFromCents(centsAboveDo) * m_lineDistance.val();
 }
@@ -1248,24 +1248,24 @@ static muse::String jimsCollectSystemMelody(const System* system, staff_idx_t st
     return melody;
 }
 
-const StaffType::JimsFrameView& StaffType::jimsWholeFrameView(const Score* score, staff_idx_t staffIdx) const
+const StaffType::MeloFrameView& StaffType::jimsWholeFrameView(const Score* score, staff_idx_t staffIdx) const
 {
-    static const JimsFrameView noView;
+    static const MeloFrameView noView;
     if (!isJiMS()) {
         return noView;
     }
     jimsEnsureFrame(score, staffIdx);
     // The whole-piece view is the legacy cache as one band; its identity
     // is the legacy cache key, so it refreshes exactly when the frame does.
-    JimsFrameView& view = m_jimsFrameViews[u"whole"];
+    MeloFrameView& view = m_jimsFrameViews[u"whole"];
     if (view.key == m_jimsFrameKey && (view.bands.empty() == m_jimsFrameSegments.empty())) {
         return view;
     }
-    view = JimsFrameView();
+    view = MeloFrameView();
     view.key = m_jimsFrameKey;
     view.banded = false;
     if (!m_jimsFrameSegments.empty()) {
-        JimsFrameBand band;
+        MeloFrameBand band;
         band.segments = m_jimsFrameSegments;
         band.lowerCents = m_jimsFrameSegments.front().lowerCents;
         band.upperCents = m_jimsFrameSegments.back().upperCents;
@@ -1324,11 +1324,11 @@ bool StaffType::jimsElisionActive(const Score* score, staff_idx_t staffIdx, cons
     const StaffType* base = staff ? staff->staffType(Fraction(0, 1)) : this;
     bool on = false;
     switch ((base ? base : this)->m_jimsElideOctaves) {
-    case JimsElideOctaves::On: on = true;
+    case MeloElideOctaves::On: on = true;
         break;
-    case JimsElideOctaves::Off: on = false;
+    case MeloElideOctaves::Off: on = false;
         break;
-    case JimsElideOctaves::Auto: on = score->style().styleB(Sid::jimsElideEmptyOctaves);
+    case MeloElideOctaves::Auto: on = score->style().styleB(Sid::jimsElideEmptyOctaves);
         break;
     }
     if (!on) {
@@ -1352,10 +1352,10 @@ bool StaffType::jimsElisionActive(const Score* score, staff_idx_t staffIdx, cons
     return true;
 }
 
-const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, staff_idx_t staffIdx,
+const StaffType::MeloFrameView& StaffType::jimsFrameView(const Score* score, staff_idx_t staffIdx,
                                                          const System* system) const
 {
-    static const JimsFrameView noView;
+    static const MeloFrameView noView;
     if (!isJiMS() || !score) {
         return noView;
     }
@@ -1438,14 +1438,14 @@ const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, sta
     if (found != m_jimsFrameViews.end() && found->second.key == key) {
         return found->second;
     }
-    JimsFrameView view;
+    MeloFrameView view;
     view.key = key;
     view.banded = true;
     // Gap between bands: the style's staff distance (staves of one part,
     // owner-approved plan §7.9), in line distances of this staff type.
     const double ld = m_lineDistance.val();
     view.gapLd = ld > 0.0 ? score->style().styleS(Sid::staffDistance).val() / ld : 0.0;
-    auto deriveBands = [&](const std::vector<double>& extra, JimsFrameView& into) -> bool {
+    auto deriveBands = [&](const std::vector<double>& extra, MeloFrameView& into) -> bool {
         jims::FrameBands bands;
         if (!jims::frameBandsForMelody(jimsStateJson(), melody, token, true, 1, bands, extra,
                                        m_jimsRatioLineExtentJson, !m_jimsExtentIsEmptyDefault)) {
@@ -1453,7 +1453,7 @@ const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, sta
         }
         into.bands.clear();
         for (const jims::FrameBand& kb : bands.bands) {
-            JimsFrameBand band;
+            MeloFrameBand band;
             for (const jims::StaveSegment& segment : kb.segments) {
                 band.segments.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
             }
@@ -1470,7 +1470,7 @@ const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, sta
         // previous one plus one gap.
         double y = 0.0;
         for (size_t i = into.bands.size(); i > 0; --i) {
-            JimsFrameBand& band = into.bands[i - 1];
+            MeloFrameBand& band = into.bands[i - 1];
             band.yTopLd = y;
             y += band.heightLd() + into.gapLd;
         }
@@ -1493,7 +1493,7 @@ const StaffType::JimsFrameView& StaffType::jimsFrameView(const Score* score, sta
         LOGE() << "JiMStaff: Kernel banded frame derivation failed for staff " << staffIdx
                << " (state/melody rejected); banded view cleared";
     }
-    JimsFrameView& stored = m_jimsFrameViews[rangeKey];
+    MeloFrameView& stored = m_jimsFrameViews[rangeKey];
     stored = view;
     return stored;
 }

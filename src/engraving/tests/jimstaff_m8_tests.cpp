@@ -91,7 +91,7 @@ protected:
         return out;
     }
 
-    static const StaffType::JimsFrameView& viewOn(Score* score, System* system, staff_idx_t staffIdx = 0)
+    static const StaffType::MeloFrameView& viewOn(Score* score, System* system, staff_idx_t staffIdx = 0)
     {
         return st(score, staffIdx)->jimsFrameView(score, staffIdx, system);
     }
@@ -110,7 +110,7 @@ protected:
         score->doLayout();
     }
 
-    static void setOverride(Score* score, JimsElideOctaves mode, staff_idx_t staffIdx = 0)
+    static void setOverride(Score* score, MeloElideOctaves mode, staff_idx_t staffIdx = 0)
     {
         mutSt(score, staffIdx)->setJimsElideOctaves(mode);
         score->setLayoutAll();
@@ -143,7 +143,7 @@ protected:
     static int redDoLineCount(const StaffLines* lines)
     {
         int n = 0;
-        for (const StaffLines::JimsGuideLine& g : lines->jimsGuideLines()) {
+        for (const StaffLines::MeloGuideLine& g : lines->jimsGuideLines()) {
             if (!g.dashed && g.colorStyle == Sid::jimsDoLineColor) {
                 ++n;
             }
@@ -192,7 +192,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8WholeViewIsOneBandWithLegacyGeome
     score->doLayout();
     const StaffType* jst = st(score);
     ASSERT_TRUE(jst->isJiMS());
-    const StaffType::JimsFrameView& whole = jst->jimsWholeFrameView(score, 0);
+    const StaffType::MeloFrameView& whole = jst->jimsWholeFrameView(score, 0);
     ASSERT_EQ(whole.bands.size(), 1u);
     EXPECT_FALSE(whole.banded);
     EXPECT_EQ(whole.omittedPeriodCount, 0);
@@ -211,7 +211,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8WholeViewIsOneBandWithLegacyGeome
     }
     // Every system uses the whole view when elision is off, and no chord moved.
     for (System* system : measureSystems(score)) {
-        const StaffType::JimsFrameView& v = viewOn(score, system);
+        const StaffType::MeloFrameView& v = viewOn(score, system);
         EXPECT_FALSE(v.banded);
         EXPECT_EQ(v.bands.size(), 1u);
         for (MeasureBase* mb : system->measures()) {
@@ -235,12 +235,12 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8ElisionOffMatchesPhase2Baseline)
     score->doLayout();
     EXPECT_FALSE(score->style().styleB(Sid::jimsElideEmptyOctaves));
     EXPECT_TRUE(score->style().styleB(Sid::jimsShowAllOctavesInFirstSystem));
-    EXPECT_EQ(st(score)->jimsElideOctaves(), JimsElideOctaves::Auto);
+    EXPECT_EQ(st(score)->jimsElideOctaves(), MeloElideOctaves::Auto);
     const std::vector<System*> systems = measureSystems(score);
     ASSERT_EQ(systems.size(), 4u);
     for (System* system : systems) {
         EXPECT_FALSE(st(score)->jimsElisionActive(score, 0, system));
-        const StaffType::JimsFrameView& v = viewOn(score, system);
+        const StaffType::MeloFrameView& v = viewOn(score, system);
         EXPECT_EQ(v.bands.size(), 1u);
         EXPECT_NEAR(v.bottomCents(), 0.0, EPS);
         EXPECT_NEAR(v.topCents(), 5700.0, EPS);
@@ -265,7 +265,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StyleOnBandsLaterSystemsWithLabel
     ASSERT_EQ(systems.size(), 4u);
     // System 1: the whole-piece frame.
     {
-        const StaffType::JimsFrameView& v = viewOn(score, systems[0]);
+        const StaffType::MeloFrameView& v = viewOn(score, systems[0]);
         EXPECT_FALSE(v.banded);
         EXPECT_EQ(v.bands.size(), 1u);
         EXPECT_EQ(redDoLineCount(systems[0]->firstMeasure()->staffLines(0)), 4);
@@ -273,7 +273,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StyleOnBandsLaterSystemsWithLabel
     const double ld = st(score)->lineDistance().val();
     const double gapLd = score->style().styleS(Sid::staffDistance).val() / ld;
     for (size_t i = 1; i < systems.size(); ++i) {
-        const StaffType::JimsFrameView& v = viewOn(score, systems[i]);
+        const StaffType::MeloFrameView& v = viewOn(score, systems[i]);
         EXPECT_TRUE(v.banded) << "system " << i + 1;
         ASSERT_EQ(v.bands.size(), 2u) << "system " << i + 1;
         EXPECT_EQ(v.omittedPeriodCount, 1);
@@ -283,7 +283,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StyleOnBandsLaterSystemsWithLabel
         EXPECT_NEAR(v.bands[1].upperCents, 5700.0, EPS);
         EXPECT_EQ(v.bands[0].labelPeriodIndex, 0);
         EXPECT_EQ(v.bands[1].labelPeriodIndex, 2);
-        for (const StaffType::JimsFrameBand& band : v.bands) {
+        for (const StaffType::MeloFrameBand& band : v.bands) {
             jims::TonicPitchLabel expected;
             ASSERT_TRUE(jims::tonicPitchLabelInPeriod(st(score)->jimsStateJson(), band.labelPeriodIndex, expected));
             EXPECT_TRUE(band.tonicLabel == expected.label);
@@ -310,7 +310,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StyleOnBandsLaterSystemsWithLabel
             }
             for (Chord* c : chordsOf(toMeasure(mb))) {
                 const Note* n = c->notes().front();
-                const StaffType::JimsFrameBand* band = v.bandForCents(n->jimsCentsAboveDo());
+                const StaffType::MeloFrameBand* band = v.bandForCents(n->jimsCentsAboveDo());
                 ASSERT_TRUE(band);
                 const double expectedLd = band->yTopLd + (band->upperCents - v.topCents()) / StaffType::JIMS_CENTS_PER_LINE_DISTANCE;
                 EXPECT_NEAR(c->ldata()->pos().y(), expectedLd * ld * c->spatium(), 1e-6);
@@ -337,7 +337,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8FirstSystemSwitchOffBandsSystemOn
     const std::vector<System*> systems = measureSystems(score);
     ASSERT_EQ(systems.size(), 4u);
     for (System* system : systems) {
-        const StaffType::JimsFrameView& v = viewOn(score, system);
+        const StaffType::MeloFrameView& v = viewOn(score, system);
         EXPECT_TRUE(v.banded);
         EXPECT_EQ(v.bands.size(), 2u);
         EXPECT_EQ(v.omittedPeriodCount, 1);
@@ -348,11 +348,11 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8FirstSystemSwitchOffBandsSystemOn
         ASSERT_TRUE(tsSeg);
         EngravingItem* ts = tsSeg->element(0);
         ASSERT_TRUE(ts && ts->isTimeSig());
-        const StaffType::JimsFrameView& v = viewOn(score, systems[0]);
+        const StaffType::MeloFrameView& v = viewOn(score, systems[0]);
         const double ld = st(score)->lineDistance().val() * ts->spatium();
         // The time signature's vertical centre, in line distances below the staff top.
         const double centerLd = (ts->ldata()->pos().y() + ts->ldata()->bbox().center().y()) / ld;
-        const StaffType::JimsFrameBand& top = v.bands.back();
+        const StaffType::MeloFrameBand& top = v.bands.back();
         EXPECT_GE(centerLd, top.yTopLd - 0.5);
         EXPECT_LE(centerLd, top.yTopLd + top.heightLd() + 0.5);
         EXPECT_NEAR(centerLd, top.yTopLd + top.heightLd() / 2.0, 1.0);
@@ -370,16 +370,16 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StaffOverrideBeatsStyleInBothDire
     score->doLayout();
     setElision(score, true);
     ASSERT_TRUE(viewOn(score, measureSystems(score)[1]).banded);
-    setOverride(score, JimsElideOctaves::Off);
+    setOverride(score, MeloElideOctaves::Off);
     for (System* system : measureSystems(score)) {
         EXPECT_FALSE(viewOn(score, system).banded);
     }
     setElision(score, false);
     EXPECT_FALSE(viewOn(score, measureSystems(score)[1]).banded);
-    setOverride(score, JimsElideOctaves::On);
+    setOverride(score, MeloElideOctaves::On);
     EXPECT_FALSE(viewOn(score, measureSystems(score)[0]).banded);   // first-system rule still applies
     EXPECT_TRUE(viewOn(score, measureSystems(score)[1]).banded);
-    setOverride(score, JimsElideOctaves::Auto);
+    setOverride(score, MeloElideOctaves::Auto);
     EXPECT_FALSE(viewOn(score, measureSystems(score)[1]).banded);   // Auto follows the (off) style
     delete score;
 }
@@ -390,7 +390,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8SingleOctaveMelodyIsOneBandUnchan
     MasterScore* score = ScoreRW::readScore(SINGLE_OCTAVE);
     ASSERT_TRUE(score);
     score->doLayout();
-    std::vector<std::vector<StaffType::JimsSegment> > before;
+    std::vector<std::vector<StaffType::MeloSegment> > before;
     for (System* system : measureSystems(score)) {
         before.push_back(viewOn(score, system).bands.front().segments);
     }
@@ -399,7 +399,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8SingleOctaveMelodyIsOneBandUnchan
     const std::vector<System*> systems = measureSystems(score);
     ASSERT_EQ(systems.size(), before.size());
     for (size_t i = 0; i < systems.size(); ++i) {
-        const StaffType::JimsFrameView& v = viewOn(score, systems[i]);
+        const StaffType::MeloFrameView& v = viewOn(score, systems[i]);
         EXPECT_EQ(v.bands.size(), 1u);
         EXPECT_EQ(v.omittedPeriodCount, 0);
         ASSERT_EQ(v.bands.front().segments.size(), before[i].size());
@@ -423,7 +423,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8EveryOctaveTouchedIsOneBand)
     setElision(score, true);
     const std::vector<System*> systems = measureSystems(score);
     ASSERT_EQ(systems.size(), 4u);
-    const StaffType::JimsFrameView& sys2 = viewOn(score, systems[1]);
+    const StaffType::MeloFrameView& sys2 = viewOn(score, systems[1]);
     EXPECT_TRUE(sys2.banded);
     EXPECT_EQ(sys2.bands.size(), 1u);
     EXPECT_EQ(sys2.omittedPeriodCount, 0);
@@ -441,10 +441,10 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8GapClickSnapsToNearestBandEdgeAnd
     score->doLayout();
     setElision(score, true);
     System* system2 = measureSystems(score)[1];
-    const StaffType::JimsFrameView& v = viewOn(score, system2);
+    const StaffType::MeloFrameView& v = viewOn(score, system2);
     ASSERT_EQ(v.bands.size(), 2u);
-    const StaffType::JimsFrameBand& top = v.bands[1];
-    const StaffType::JimsFrameBand& bottom = v.bands[0];
+    const StaffType::MeloFrameBand& top = v.bands[1];
+    const StaffType::MeloFrameBand& bottom = v.bands[0];
     const double gapTop = top.yTopLd + top.heightLd();     // top band's bottom edge (2400 c)
     const double gapBottom = bottom.yTopLd;                // bottom band's top edge (-1200 c)
     ASSERT_GT(gapBottom, gapTop);
@@ -509,7 +509,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DragFreezeThenDropRederives)
     score->setLayoutAll();
     score->doLayout();
     system2 = measureSystems(score)[1];
-    const StaffType::JimsFrameView& after = viewOn(score, system2);
+    const StaffType::MeloFrameView& after = viewOn(score, system2);
     ASSERT_EQ(after.bands.size(), 1u);
     EXPECT_EQ(after.omittedPeriodCount, 0);
     EXPECT_NEAR(after.bottomCents(), 0.0, EPS);
@@ -537,13 +537,13 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8KeyboardOctaveStepGrowsOnlyTheAff
     EXPECT_EQ(n->jimsNPer(), 0);
     systems = measureSystems(score);
     ASSERT_EQ(systems.size(), 4u);
-    const StaffType::JimsFrameView& sys2 = viewOn(score, systems[1]);
+    const StaffType::MeloFrameView& sys2 = viewOn(score, systems[1]);
     EXPECT_EQ(sys2.bands.size(), 1u);
     EXPECT_EQ(sys2.omittedPeriodCount, 0);
     EXPECT_NEAR(sys2.bottomCents(), 0.0, EPS);
     EXPECT_NEAR(sys2.topCents(), 5700.0, EPS);
     for (size_t i : { 2u, 3u }) {
-        const StaffType::JimsFrameView& other = viewOn(score, systems[i]);
+        const StaffType::MeloFrameView& other = viewOn(score, systems[i]);
         EXPECT_EQ(other.bands.size(), 2u) << "system " << i + 1;
         EXPECT_EQ(other.omittedPeriodCount, 1) << "system " << i + 1;
     }
@@ -581,7 +581,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8BarlinesRunThroughTheGapWithDotsI
     score->endCmd();
     setElision(score, true);
     System* system2 = measureSystems(score)[1];
-    const StaffType::JimsFrameView& v = viewOn(score, system2);
+    const StaffType::MeloFrameView& v = viewOn(score, system2);
     ASSERT_EQ(v.bands.size(), 2u);
     const double ld = st(score)->lineDistance().val();
     int checked = 0;
@@ -603,7 +603,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8BarlinesRunThroughTheGapWithDotsI
             // Dot rows: one pair per band, inside that band, straddling its middle.
             ASSERT_EQ(data->jimsBandDotRows.size(), 2u);
             for (size_t i = 0; i < 2; ++i) {
-                const StaffType::JimsFrameBand& band = v.bands[v.bands.size() - 1 - i];   // top to bottom
+                const StaffType::MeloFrameBand& band = v.bands[v.bands.size() - 1 - i];   // top to bottom
                 const double bandTop = band.yTopLd * lineDistance;
                 const double bandBottom = (band.yTopLd + band.heightLd()) * lineDistance;
                 EXPECT_GT(data->jimsBandDotRows[i].y1, bandTop);
@@ -669,15 +669,15 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8BraceJoinsTheBandsOfAHollowStack)
     // Whole stack: no brace, nothing reserved.
     {
         System* system2 = measureSystems(score)[1];
-        const StaffType::JimsFrameView& v = viewOn(score, system2);
+        const StaffType::MeloFrameView& v = viewOn(score, system2);
         EXPECT_EQ(st(score)->jimsHeaderGeometry(sp, dsp, &v).braceWidth, 0.0);
         EXPECT_FALSE(hasBrace(textsOf(system2->firstMeasure()->staffLines(0))));
     }
     setElision(score, true);
     System* system2 = measureSystems(score)[1];
-    const StaffType::JimsFrameView& v = viewOn(score, system2);
+    const StaffType::MeloFrameView& v = viewOn(score, system2);
     ASSERT_EQ(v.bands.size(), 2u);
-    const StaffType::JimsHeaderGeometry g = st(score)->jimsHeaderGeometry(sp, dsp, &v);
+    const StaffType::MeloHeaderGeometry g = st(score)->jimsHeaderGeometry(sp, dsp, &v);
     EXPECT_GT(g.braceWidth, 0.0);
     EXPECT_NEAR(g.braceMagX, 2 + 1.625, 1e-9);   // MuseScore's brace x-magnification for a two-staff span
     EXPECT_TRUE(hasBrace(textsOf(system2->firstMeasure()->staffLines(0))));
@@ -705,7 +705,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StaffHeightAndSystemDistanceUseTh
         const double minSystem = score->style().styleMM(spread ? Sid::minSystemSpread : Sid::minSystemDistance);
         for (size_t i = 0; i < systems.size(); ++i) {
             System* system = systems[i];
-            const StaffType::JimsFrameView& v = viewOn(score, system);
+            const StaffType::MeloFrameView& v = viewOn(score, system);
             const double frameH = v.heightLd() * ld * score->staff(0)->spatium(system->firstMeasure()->tick());
             EXPECT_NEAR(system->staff(0)->bbox().height(), frameH, 1e-6) << "elide=" << elide << " system " << i + 1;
             EXPECT_NEAR(system->height(), system->staff(0)->bbox().bottom(), 1e-6);
@@ -722,7 +722,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StaffHeightAndSystemDistanceUseTh
     ASSERT_TRUE(two);
     two->doLayout();
     System* first = measureSystems(two)[0];
-    const StaffType::JimsFrameView& v = viewOn(two, first);
+    const StaffType::MeloFrameView& v = viewOn(two, first);
     const double frameH = v.heightLd() * st(two)->lineDistance().val() * two->staff(0)->spatium(Fraction(0, 1));
     EXPECT_NEAR(first->staff(0)->bbox().height(), frameH, 1e-6);
     const double between = first->staff(1)->y() - (first->staff(0)->y() + first->staff(0)->bbox().height());
@@ -772,7 +772,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8OctaveLabelsNameTheirRowEverywher
     // The nearest tonic row decides which period a label sits on; its text
     // must be the Kernel's label for that period.
     auto checkLabels = [&](Score* score, const StaffType* jst, const StaffLines* lines,
-                           const StaffType::JimsFrameView& v, const char* what) {
+                           const StaffType::MeloFrameView& v, const char* what) {
         const double topY = lines->pos().y();
         const double ld = jst->lineDistance().val();
         const double periodCents = jst->jimsPeriodCents();
@@ -802,7 +802,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8OctaveLabelsNameTheirRowEverywher
     }
     setElision(score, true);
     for (System* system : measureSystems(score)) {
-        const StaffType::JimsFrameView& v = viewOn(score, system);
+        const StaffType::MeloFrameView& v = viewOn(score, system);
         const StaffLines* lines = system->firstMeasure()->staffLines(0);
         checkLabels(score, st(score), lines, v, "banded");
         EXPECT_EQ(labelsOf(lines).size(), v.bands.size());   // one label per band
@@ -817,7 +817,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8OctaveLabelsNameTheirRowEverywher
     ASSERT_TRUE(m2);
     const StaffType* changeSt = gate->staff(0)->staffType(m2->tick());
     ASSERT_TRUE(changeSt && changeSt->isJiMS());
-    const StaffType::JimsFrameView& gv = changeSt->jimsFrameView(gate, 0, m2->system());
+    const StaffType::MeloFrameView& gv = changeSt->jimsFrameView(gate, 0, m2->system());
     ASSERT_FALSE(gv.empty());
     checkLabels(gate, changeSt, m2->staffLines(0), gv, "terrain");
     delete gate;
@@ -968,7 +968,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                 Measure* m = toMeasure(mb);
                 const StaffType* jst = score->staff(0)->staffType(m->tick());
                 ASSERT_TRUE(jst && jst->isJiMS()) << what;
-                const StaffType::JimsFrameView& v = jst->jimsFrameView(score, 0, system);
+                const StaffType::MeloFrameView& v = jst->jimsFrameView(score, 0, system);
                 ASSERT_FALSE(v.empty()) << what;
                 const double period = jst->jimsPeriodCents();
                 jims::PeriodicOrigins origins;
@@ -982,7 +982,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                 auto centsOfY = [&](double y) { return v.centsFromYLd((y - topY) / ldSp); };
                 auto hasGuideAt = [&](double cents) {
                     return std::any_of(lines->jimsGuideLines().begin(), lines->jimsGuideLines().end(),
-                                       [&](const StaffLines::JimsGuideLine& g) {
+                                       [&](const StaffLines::MeloGuideLine& g) {
                         return std::abs(centsOfY(g.line.y1()) - cents) < 1e-6;
                     });
                 };
@@ -990,7 +990,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                 int red = 0;
                 std::vector<double> expectedDoRows;
                 std::vector<double> redYs;
-                for (const StaffLines::JimsGuideLine& g : lines->jimsGuideLines()) {
+                for (const StaffLines::MeloGuideLine& g : lines->jimsGuideLines()) {
                     const double cents = centsOfY(g.line.y1());
                     if (!g.dashed && g.colorStyle == Sid::jimsDoLineColor) {
                         ++red;
@@ -1002,8 +1002,8 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                             << what << " scaffold line on a Do row at " << cents;
                     }
                 }
-                for (const StaffType::JimsFrameBand& band : v.bands) {
-                    for (const StaffType::JimsSegment& seg : band.segments) {
+                for (const StaffType::MeloFrameBand& band : v.bands) {
+                    for (const StaffType::MeloSegment& seg : band.segments) {
                         if (!seg.whole) {
                             *sawPartial = true;
                         }
@@ -1041,8 +1041,8 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                     << what << " complete crescents must not stroke their fill-path closure";
                 std::vector<std::pair<double, double> > expectedHorns;
                 std::vector<double> expectedClosureYs;
-                for (const StaffType::JimsFrameBand& band : v.bands) {
-                    for (const StaffType::JimsSegment& segment : band.segments) {
+                for (const StaffType::MeloFrameBand& band : v.bands) {
+                    for (const StaffType::MeloSegment& segment : band.segments) {
                         const double segmentTopY
                             = topY + v.yLdFromCents(segment.upperCents) * ldSp;
                         double periodFloor = origins.doCentsAboveExtentLower
@@ -1192,7 +1192,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8PartialStaffEdgesPreserveRealRati
         System* system = measureSystems(score).front();
         Measure* measure = system->firstMeasure();
         const StaffType* jst = st(score, staffIdx);
-        const StaffType::JimsFrameView& view = viewOn(score, system, staffIdx);
+        const StaffType::MeloFrameView& view = viewOn(score, system, staffIdx);
         const StaffLines* lines = measure->staffLines(staffIdx);
         ASSERT_TRUE(jst && lines);
         ASSERT_FALSE(view.empty());
@@ -1201,13 +1201,13 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8PartialStaffEdgesPreserveRealRati
         auto centsOfY = [&](double y) { return view.centsFromYLd((y - topY) / ldSp); };
         auto hasGuideAt = [&](double cents) {
             return std::any_of(lines->jimsGuideLines().begin(), lines->jimsGuideLines().end(),
-                               [&](const StaffLines::JimsGuideLine& guide) {
+                               [&](const StaffLines::MeloGuideLine& guide) {
                 return std::abs(centsOfY(guide.line.y1()) - cents) < 1e-6;
             });
         };
         auto hasBlackGuideAt = [&](double cents) {
             return std::any_of(lines->jimsGuideLines().begin(), lines->jimsGuideLines().end(),
-                               [&](const StaffLines::JimsGuideLine& guide) {
+                               [&](const StaffLines::MeloGuideLine& guide) {
                 return lines->style().value(guide.colorStyle).value<Color>() == Color::BLACK
                        && std::abs(centsOfY(guide.line.y1()) - cents) < 1e-6;
             });
@@ -1228,8 +1228,8 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8PartialStaffEdgesPreserveRealRati
                 return std::abs(offset - std::round(offset / periodCents) * periodCents) < 1e-6;
             });
         };
-        for (const StaffType::JimsFrameBand& band : view.bands) {
-            for (const StaffType::JimsSegment& segment : band.segments) {
+        for (const StaffType::MeloFrameBand& band : view.bands) {
+            for (const StaffType::MeloSegment& segment : band.segments) {
                 EXPECT_EQ(hasGuideAt(segment.lowerCents), isRatioRow(segment.lowerCents))
                     << "staff " << staffIdx << " incorrect bottom-edge ratio line at " << segment.lowerCents;
                 EXPECT_EQ(hasGuideAt(segment.upperCents), isRatioRow(segment.upperCents))
@@ -1327,7 +1327,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, fixedRatioEdgeKeepsSoDotAndLabelAnd
     score->doLayout();
 
     System* system = measureSystems(score).front();
-    const StaffType::JimsFrameView& view = viewOn(score, system);
+    const StaffType::MeloFrameView& view = viewOn(score, system);
     ASSERT_EQ(view.bands.size(), 1u);
     EXPECT_NEAR(view.bottomCents(), 1.955000865387433, 1e-6);
     EXPECT_NEAR(view.topCents(), 500.0, 1e-6);
@@ -1365,7 +1365,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, fixedRatioEdgeKeepsSoDotAndLabelAnd
     EXPECT_TRUE(sawSo) << "the So dot intersecting the fixed 3/2 edge lost its label";
     ASSERT_TRUE(sawTonicPitch);
 
-    const StaffType::JimsHeaderGeometry geometry
+    const StaffType::MeloHeaderGeometry geometry
         = type->jimsHeaderGeometry(lines->spatium(), score->style().defaultSpatium(), &view);
     const double clefRight = lines->pos().x() - 0.3 * lines->spatium();
     const double clefLeft = clefRight - geometry.clefRx;
@@ -1393,8 +1393,8 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorAnchorsOnTheDoLineTh
 {
     const double P = 1200.0;
     auto whole = [&](double lower, double upper) {
-        StaffType::JimsFrameView v;
-        StaffType::JimsFrameBand band;
+        StaffType::MeloFrameView v;
+        StaffType::MeloFrameBand band;
         for (double b = lower; b < upper - 1e-6; b += P) {
             band.segments.push_back({ b, b + P, true });
         }
@@ -1429,8 +1429,8 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorAnchorsOnTheDoLineTh
     doToRe.tonicIndicators = { point(0.0, 0), point(1.0 / 6.0, 0) };
     EXPECT_DOUBLE_EQ(jims::changeAnchorPeriodCents(whole(0, 2400), doToRe, P), 0.0);
     // Nothing fits (a partial staff [300, 900] with Do -> La): least overflow wins.
-    StaffType::JimsFrameView partial;
-    StaffType::JimsFrameBand pb;
+    StaffType::MeloFrameView partial;
+    StaffType::MeloFrameBand pb;
     pb.segments.push_back({ 300.0, 900.0, false });
     pb.lowerCents = 300.0;
     pb.upperCents = 900.0;
@@ -1439,8 +1439,8 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorAnchorsOnTheDoLineTh
     EXPECT_DOUBLE_EQ(jims::changeAnchorPeriodCents(partial, doToLa, P), 0.0);
     // Banded (M8): [0,1200] and [3600,4800]; Do -> La fits in the low band at 1200
     // (La 900) — the lowest fitting anchor, not the top band's.
-    StaffType::JimsFrameView banded = whole(0, 1200);
-    StaffType::JimsFrameBand top;
+    StaffType::MeloFrameView banded = whole(0, 1200);
+    StaffType::MeloFrameBand top;
     top.segments.push_back({ 3600.0, 4800.0, true });
     top.lowerCents = 3600.0;
     top.upperCents = 4800.0;
@@ -1460,7 +1460,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorAnchorsOnTheDoLineTh
     ASSERT_TRUE(changeSt && changeSt->isJiMS());
     const StaffLines* lines = m2->staffLines(0);
     ASSERT_TRUE(lines);
-    const StaffType::JimsFrameView& v = changeSt->jimsFrameView(score, 0, m2->system());
+    const StaffType::MeloFrameView& v = changeSt->jimsFrameView(score, 0, m2->system());
     ASSERT_FALSE(v.empty());
     const double topY = lines->pos().y() + changeSt->jimsYFromCents(v.topCents(), v) * lines->spatium();
     const double bottomY = lines->pos().y() + changeSt->jimsYFromCents(v.bottomCents(), v) * lines->spatium();
@@ -1526,10 +1526,10 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8RoundTripPreservesSwitchesAndAbse
     MasterScore* score = ScoreRW::readScore(TWO_HAND);
     ASSERT_TRUE(score);
     score->doLayout();
-    EXPECT_EQ(st(score)->jimsElideOctaves(), JimsElideOctaves::Auto);
+    EXPECT_EQ(st(score)->jimsElideOctaves(), MeloElideOctaves::Auto);
     score->style().set(Sid::jimsElideEmptyOctaves, true);
     score->style().set(Sid::jimsShowAllOctavesInFirstSystem, false);
-    mutSt(score)->setJimsElideOctaves(JimsElideOctaves::On);
+    mutSt(score)->setJimsElideOctaves(MeloElideOctaves::On);
     const String dir = ScoreRW::rootPath() + u"/../../../build.release/jims-m8-scratch";
     io::Dir::mkpath(dir);
     // A real .mscz container (MscSaver -> MscWriter zip), read back through
@@ -1556,15 +1556,15 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8RoundTripPreservesSwitchesAndAbse
     again->doLayout();
     EXPECT_TRUE(again->style().styleB(Sid::jimsElideEmptyOctaves));
     EXPECT_FALSE(again->style().styleB(Sid::jimsShowAllOctavesInFirstSystem));
-    EXPECT_EQ(st(again)->jimsElideOctaves(), JimsElideOctaves::On);
+    EXPECT_EQ(st(again)->jimsElideOctaves(), MeloElideOctaves::On);
     // Off round-trips too.
-    mutSt(again)->setJimsElideOctaves(JimsElideOctaves::Off);
+    mutSt(again)->setJimsElideOctaves(MeloElideOctaves::Off);
     const String out2 = dir + u"/m8-roundtrip-off.mscx";
     ASSERT_TRUE(ScoreRW::saveScore(again, out2));
     delete again;
     MasterScore* third = ScoreRW::readScore(out2, true);
     ASSERT_TRUE(third);
-    EXPECT_EQ(st(third)->jimsElideOctaves(), JimsElideOctaves::Off);
+    EXPECT_EQ(st(third)->jimsElideOctaves(), MeloElideOctaves::Off);
     delete third;
     // Unknown value -> Auto (safe parsing, no invented behaviour).
     io::File f(out2);
@@ -1580,7 +1580,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8RoundTripPreservesSwitchesAndAbse
     w.close();
     MasterScore* fourth = ScoreRW::readScore(out3, true);
     ASSERT_TRUE(fourth);
-    EXPECT_EQ(st(fourth)->jimsElideOctaves(), JimsElideOctaves::Auto);
+    EXPECT_EQ(st(fourth)->jimsElideOctaves(), MeloElideOctaves::Auto);
     delete fourth;
 }
 
@@ -1633,7 +1633,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8SettingsNeverEnterKernelStateAndP
     ASSERT_EQ(before.size(), 32u);
     score->style().set(Sid::jimsElideEmptyOctaves, true);
     score->style().set(Sid::jimsShowAllOctavesInFirstSystem, false);
-    mutSt(score)->setJimsElideOctaves(JimsElideOctaves::On);
+    mutSt(score)->setJimsElideOctaves(MeloElideOctaves::On);
     score->setLayoutAll();
     score->doLayout();
     EXPECT_EQ(st(score)->jimsStateJson(), stateBefore);
@@ -1723,8 +1723,8 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8GapIndicatorIsScreenOnlyAndNeverP
     // this fixture), i.e. dotCenterX + indicatorW of the header geometry —
     // left of the crescent, never at the measure's start.
     {
-        const StaffType::JimsFrameView& v = viewOn(score, system2);
-        const StaffType::JimsHeaderGeometry g
+        const StaffType::MeloFrameView& v = viewOn(score, system2);
+        const StaffType::MeloHeaderGeometry g
             = st(score)->jimsHeaderGeometry(lines->spatium(), score->style().defaultSpatium(), &v);
         const double sp = lines->spatium();
         const double clefRight = lines->pos().x() - 0.3 * sp;
@@ -1808,7 +1808,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorExtendsTheStaffWhenN
     ASSERT_TRUE(changeSt && changeSt->isJiMS() && changeSt != baseSt);
     // The base section keeps the exact half-period minimum about the
     // midpoint of its retained written extremes, without ratio-line snapping.
-    const StaffType::JimsFrameView& baseView = baseSt->jimsWholeFrameView(score, 0);
+    const StaffType::MeloFrameView& baseView = baseSt->jimsWholeFrameView(score, 0);
     ASSERT_FALSE(baseView.empty());
     EXPECT_NEAR(baseView.bottomCents(), -250.0, 1e-6);
     EXPECT_NEAR(baseView.topCents(), 350.0, 1e-6);
@@ -1816,7 +1816,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorExtendsTheStaffWhenN
     // indicator — La sits 300 cents below Do, one margin further down.
     jims::ChangeIndicator model;
     ASSERT_TRUE(jims::changeIndicatorIntoStaffType(score, 0, changeSt, model));
-    const StaffType::JimsFrameView& changeView = changeSt->jimsWholeFrameView(score, 0);
+    const StaffType::MeloFrameView& changeView = changeSt->jimsWholeFrameView(score, 0);
     ASSERT_FALSE(changeView.empty());
     // Before extension the indicator overflowed the base-shaped window.
     EXPECT_FALSE(jims::changeIndicatorOverflowCents(baseView, model, changeSt->jimsPeriodCents()).empty())

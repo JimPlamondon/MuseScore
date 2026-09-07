@@ -14,7 +14,7 @@
 using namespace mu::inspector;
 using namespace mu::engraving;
 
-JimsStaffSettingsModel::JimsStaffSettingsModel(QObject* parent, const muse::modularity::ContextPtr& ctx,
+MeloStaffSettingsModel::MeloStaffSettingsModel(QObject* parent, const muse::modularity::ContextPtr& ctx,
                                                IElementRepositoryService* repository)
     : AbstractInspectorModel(parent, ctx, repository)
 {
@@ -22,12 +22,12 @@ JimsStaffSettingsModel::JimsStaffSettingsModel(QObject* parent, const muse::modu
     setTitle(jims::staffUserName().toQString());
 }
 
-void JimsStaffSettingsModel::requestElements()
+void MeloStaffSettingsModel::requestElements()
 {
     m_elementList = m_repository->takeAllElements();
 }
 
-bool JimsStaffSettingsModel::target(Score*& score, Measure*& measure, Fraction& tick, staff_idx_t& staff) const
+bool MeloStaffSettingsModel::target(Score*& score, Measure*& measure, Fraction& tick, staff_idx_t& staff) const
 {
     for (EngravingItem* item : m_repository->takeAllElements()) {
         if (!item || !item->staff() || !item->staff()->staffType(item->tick())->isJiMS()) {
@@ -52,7 +52,7 @@ bool JimsStaffSettingsModel::target(Score*& score, Measure*& measure, Fraction& 
     return false;
 }
 
-void JimsStaffSettingsModel::loadProperties()
+void MeloStaffSettingsModel::loadProperties()
 {
     m_settings.clear();
     m_options = {};
@@ -167,7 +167,7 @@ void JimsStaffSettingsModel::loadProperties()
     emit settingsChanged();
 }
 
-void JimsStaffSettingsModel::finish(bool ok, const muse::String& error, const QString& success)
+void MeloStaffSettingsModel::finish(bool ok, const muse::String& error, const QString& success)
 {
     m_hasError = !ok;
     m_status = ok ? success : error.toQString();
@@ -187,7 +187,7 @@ void JimsStaffSettingsModel::finish(bool ok, const muse::String& error, const QS
     loadProperties();
 }
 
-void JimsStaffSettingsModel::applyOption(const QString& group, int index)
+void MeloStaffSettingsModel::applyOption(const QString& group, int index)
 {
     // Re-read immediately: an open dropdown may outlive a selection or undo change.
     loadProperties();
@@ -227,7 +227,7 @@ void JimsStaffSettingsModel::applyOption(const QString& group, int index)
                                                                                                              "Applied to all compatible parts at this position."));
 }
 
-void JimsStaffSettingsModel::bindReference(const QString& pitch)
+void MeloStaffSettingsModel::bindReference(const QString& pitch)
 {
     bool numeric = false;
     int value = QLocale().toInt(pitch, &numeric);
@@ -247,7 +247,7 @@ void JimsStaffSettingsModel::bindReference(const QString& pitch)
     finish(ok, error, muse::qtrc("inspector", "Reference pitch bound for this staff."));
 }
 
-void JimsStaffSettingsModel::removeChange()
+void MeloStaffSettingsModel::removeChange()
 {
     Score* score = nullptr;
     Measure* measure = nullptr;
@@ -261,7 +261,7 @@ void JimsStaffSettingsModel::removeChange()
     finish(ok, error, muse::qtrc("inspector", "Change removed from this staff."));
 }
 
-void JimsStaffSettingsModel::setStaffOption(const QString& name, int value)
+void MeloStaffSettingsModel::setStaffOption(const QString& name, int value)
 {
     if (value < 0 || (name == "elision" ? value > 2 : name != "labels" || value > 3)) {
         return;
@@ -279,12 +279,12 @@ void JimsStaffSettingsModel::setStaffOption(const QString& name, int value)
         if (int(edited.jimsElideOctaves()) == value) {
             return;
         }
-        edited.setJimsElideOctaves(JimsElideOctaves(value));
+        edited.setJimsElideOctaves(MeloElideOctaves(value));
     } else {
         if (int(edited.jimsScaleDotLabelMode()) == value) {
             return;
         }
-        edited.setJimsScaleDotLabelMode(JimsScaleDotLabelMode(value));
+        edited.setJimsScaleDotLabelMode(MeloScaleDotLabelMode(value));
     }
     score->startCmd(name == "elision" ? muse::TranslatableString("undoableAction",
                                                                  "Octave-band elision override")
@@ -294,7 +294,7 @@ void JimsStaffSettingsModel::setStaffOption(const QString& name, int value)
     finish(true, {}, muse::qtrc("inspector", "Staff presentation updated."));
 }
 
-QColor JimsStaffSettingsModel::criticalColor() const
+QColor MeloStaffSettingsModel::criticalColor() const
 {
     return engravingConfiguration()->criticalColor().toQColor();
 }

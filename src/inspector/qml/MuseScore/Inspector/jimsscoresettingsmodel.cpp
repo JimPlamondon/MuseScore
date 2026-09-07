@@ -7,7 +7,7 @@
 #include "engraving/jims/jimsstrings.h"
 using namespace mu::inspector;
 using namespace mu::engraving;
-JimsScoreSettingsModel::JimsScoreSettingsModel(QObject* parent, const muse::modularity::ContextPtr& ctx,
+MeloScoreSettingsModel::MeloScoreSettingsModel(QObject* parent, const muse::modularity::ContextPtr& ctx,
                                                IElementRepositoryService* repository)
     : AbstractInspectorModel(parent, ctx, repository)
 {
@@ -15,8 +15,8 @@ JimsScoreSettingsModel::JimsScoreSettingsModel(QObject* parent, const muse::modu
     setTitle(muse::qtrc("inspector", "%1 score").arg(jims::featureName().toQString()));
 }
 
-void JimsScoreSettingsModel::requestElements() { m_elementList = m_repository->takeAllElements(); }
-void JimsScoreSettingsModel::loadProperties()
+void MeloScoreSettingsModel::requestElements() { m_elementList = m_repository->takeAllElements(); }
+void MeloScoreSettingsModel::loadProperties()
 {
     m_settings.clear();
     Score* score = currentNotation() ? currentNotation()->elements()->msScore() : nullptr;
@@ -28,7 +28,7 @@ void JimsScoreSettingsModel::loadProperties()
     emit settingsChanged();
 }
 
-void JimsScoreSettingsModel::setOption(const QString& name, const QVariant& value)
+void MeloScoreSettingsModel::setOption(const QString& name, const QVariant& value)
 {
     Score* score = currentNotation() ? currentNotation()->elements()->msScore() : nullptr;
     if (!score) {

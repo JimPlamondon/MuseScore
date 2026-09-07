@@ -186,9 +186,9 @@ void commitNoteEdits(Score* score, const std::vector<NoteEdit>& edits)
 /// Replace the JiMS state of the staff type in force at `tick` on `staff`
 /// (the base type or a carrier's copy in the staff's list) — one undoable
 /// flip, layout invalidated (the same shape the tuning controller uses).
-class JimsChangeStateAt : public UndoCommand
+class MeloChangeStateAt : public UndoCommand
 {
-    OBJECT_ALLOCATOR(engraving, JimsChangeStateAt)
+    OBJECT_ALLOCATOR(engraving, MeloChangeStateAt)
 
     Staff* m_staff = nullptr;
     Fraction m_tick;
@@ -212,10 +212,10 @@ class JimsChangeStateAt : public UndoCommand
     }
 
 public:
-    JimsChangeStateAt(Staff* staff, const Fraction& tick, String state)
+    MeloChangeStateAt(Staff* staff, const Fraction& tick, String state)
         : m_staff(staff), m_tick(tick), m_state(std::move(state)),
         m_emptyDefault(staffSpanIsEmpty(staff, tick, nextCarrierTick(staff->score(), staff->idx(), tick))) {}
-    UNDO_NAME("JimsChangeStateAt")
+    UNDO_NAME("MeloChangeStateAt")
     UNDO_CHANGED_OBJECTS({ m_staff })
 };
 
@@ -390,7 +390,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
         }
         score->startCmd(mu::engraving::jims::bindReferenceAction());
         for (const auto& e : edits) {
-            score->undo(new JimsChangeStateAt(staff, e.first, e.second));
+            score->undo(new MeloChangeStateAt(staff, e.first, e.second));
         }
         commitNoteEdits(score, noteEdits);
         score->endCmd();
@@ -407,7 +407,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
     if (origin || hasCarrier) {
         // The base type (origin) or the carrier's copy in the staff list is
         // the type in force at this tick: replace its state in place.
-        score->undo(new JimsChangeStateAt(staff, tick, next));
+        score->undo(new MeloChangeStateAt(staff, tick, next));
     } else {
         // New carrier: a copy of the effective staff type carrying the new
         // state (file-read style; Measure::add installs the staff's copy).
@@ -535,7 +535,7 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& t
     score->startCmd(mu::engraving::jims::insertChangeAction());
     for (const Prepared& p : prepared) {
         if (p.editInPlace) {
-            score->undo(new JimsChangeStateAt(p.staff, tick, p.next));
+            score->undo(new MeloChangeStateAt(p.staff, tick, p.next));
         } else {
             StaffTypeChange* stc = Factory::createStaffTypeChange(measure);
             stc->setParent(measure);

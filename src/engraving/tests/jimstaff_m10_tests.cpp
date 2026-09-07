@@ -307,7 +307,7 @@ TEST(Engraving_JiMStaffM10SATBTests, referenceChangesPreserveWrittenAndEmptyStaf
             jims::TuningController controller(score, 0);
             ASSERT_TRUE(controller.beginPreview());
             ASSERT_TRUE(controller.commit(generator));
-            std::vector<StaffType::JimsFrameView> before;
+            std::vector<StaffType::MeloFrameView> before;
             std::vector<String> extents;
             for (staff_idx_t i = 0; i < score->nstaves(); ++i) {
                 const StaffType* type = score->staff(i)->staffType(Fraction(0, 1));

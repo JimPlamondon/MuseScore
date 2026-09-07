@@ -4029,16 +4029,16 @@ void TRead::read(StaffType* t, XmlReader& e, ReadContext& ctx)
             t->setJimsJiLines(e.readInt());
         } else if (tag == "jimsScaleDotLabels") {
             const String mode = e.readText();
-            t->setJimsScaleDotLabelMode(mode == u"none" ? JimsScaleDotLabelMode::None
-                                        : mode == u"left" ? JimsScaleDotLabelMode::Left
-                                        : mode == u"split" ? JimsScaleDotLabelMode::Split
-                                        : JimsScaleDotLabelMode::Auto);
+            t->setJimsScaleDotLabelMode(mode == u"none" ? MeloScaleDotLabelMode::None
+                                        : mode == u"left" ? MeloScaleDotLabelMode::Left
+                                        : mode == u"split" ? MeloScaleDotLabelMode::Split
+                                        : MeloScaleDotLabelMode::Auto);
         } else if (tag == "jimsElideOctaves") {
             // Milestone 8: on/off; anything else (or absent) is Auto.
             const String mode = e.readText();
-            t->setJimsElideOctaves(mode == u"on" ? JimsElideOctaves::On
-                                   : mode == u"off" ? JimsElideOctaves::Off
-                                   : JimsElideOctaves::Auto);
+            t->setJimsElideOctaves(mode == u"on" ? MeloElideOctaves::On
+                                   : mode == u"off" ? MeloElideOctaves::Off
+                                   : MeloElideOctaves::Auto);
         } else if (tag == "jimsRatioLineExtent") {
             t->setJimsRatioLineExtentJson(e.readText());
         } else if (tag == "durations") {

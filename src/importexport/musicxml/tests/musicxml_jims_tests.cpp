@@ -343,7 +343,7 @@ TEST_F(MusicXml_JiMS_Tests, midBarIndicatorElementsAlignWithTheirDisplayedStaffN
     const StaffLines* lines = measure->staffLines(0);
     ASSERT_TRUE(lines);
     size_t doLineCount = 0;
-    for (const StaffLines::JimsGuideLine& guide : lines->jimsGuideLines()) {
+    for (const StaffLines::MeloGuideLine& guide : lines->jimsGuideLines()) {
         if (!guide.dashed && guide.colorStyle == Sid::jimsDoLineColor) {
             ++doLineCount;
         }
@@ -353,11 +353,11 @@ TEST_F(MusicXml_JiMS_Tests, midBarIndicatorElementsAlignWithTheirDisplayedStaffN
     ASSERT_TRUE(displayedStaffType);
     ASSERT_TRUE(displayedStaffType->isJiMS());
     ASSERT_NE(changedStaffType, displayedStaffType);
-    const StaffType::JimsFrameView& wholeView = displayedStaffType->jimsFrameView(score, 0, nullptr);
+    const StaffType::MeloFrameView& wholeView = displayedStaffType->jimsFrameView(score, 0, nullptr);
     ASSERT_FALSE(wholeView.empty());
     EXPECT_NEAR(wholeView.bottomCents(), 0.0, 1e-6);
     EXPECT_NEAR(wholeView.topCents(), 1200.0, 1e-6);
-    const StaffType::JimsFrameView& view
+    const StaffType::MeloFrameView& view
         = displayedStaffType->jimsFrameView(score, 0, measure->system());
     ASSERT_FALSE(view.empty());
     EXPECT_NEAR(view.bottomCents(), 0.0, 1e-6);
@@ -907,7 +907,7 @@ TEST_F(MusicXml_JiMS_Tests, authoritativeJimsIdentityNormalizesContradictoryStan
 // V4 namespace when JiMS content is present, and fails closed.
 // ---------------------------------------------------------------------------
 namespace {
-struct JimsSnapshot {
+struct MeloSnapshot {
     std::vector<String> baseStates;                             // Kernel-canonical XML per staff
     std::vector<std::pair<int, String> > carriers;              // (tick, Kernel-canonical XML) per staff, in order
     std::vector<std::pair<int, int> > identities;               // JiMS notes in document order (all tracks)
@@ -923,9 +923,9 @@ String canonicalState(const String& stateJson)
     return xml;
 }
 
-JimsSnapshot snapshotOf(Score* score)
+MeloSnapshot snapshotOf(Score* score)
 {
-    JimsSnapshot snap;
+    MeloSnapshot snap;
     for (staff_idx_t s = 0; s < score->nstaves(); ++s) {
         const Staff* staff = score->staff(s);
         const StaffType* base = staff->staffType(Fraction(0, 1));
@@ -994,7 +994,7 @@ TEST_F(MusicXml_JiMS_Tests, exportWritesV4AndRoundTripsThroughTheNativeImporter)
         MasterScore* original = readJims(file);
         ASSERT_TRUE(original) << file;
         original->doLayout();
-        const JimsSnapshot before = snapshotOf(original);
+        const MeloSnapshot before = snapshotOf(original);
         ASSERT_FALSE(before.identities.empty()) << file;
         const String out = exportToScratch(original, (String(u"export-") + String::fromUtf8(file)).toStdString().c_str());
         const String xml = readAll(out);
@@ -1008,7 +1008,7 @@ TEST_F(MusicXml_JiMS_Tests, exportWritesV4AndRoundTripsThroughTheNativeImporter)
         MasterScore* again = ScoreRW::readScore(out, true, importXml);
         ASSERT_TRUE(again) << file;
         again->doLayout();
-        const JimsSnapshot after = snapshotOf(again);
+        const MeloSnapshot after = snapshotOf(again);
         EXPECT_EQ(after.baseStates, before.baseStates) << file;
         EXPECT_EQ(after.carriers, before.carriers) << file;
         EXPECT_EQ(after.identities, before.identities) << file;
@@ -1017,7 +1017,7 @@ TEST_F(MusicXml_JiMS_Tests, exportWritesV4AndRoundTripsThroughTheNativeImporter)
         MasterScore* third = ScoreRW::readScore(out2, true, importXml);
         ASSERT_TRUE(third) << file;
         third->doLayout();
-        const JimsSnapshot after2 = snapshotOf(third);
+        const MeloSnapshot after2 = snapshotOf(third);
         EXPECT_EQ(after2.baseStates, before.baseStates) << file;
         EXPECT_EQ(after2.carriers, before.carriers) << file;
         EXPECT_EQ(after2.identities, before.identities) << file;
@@ -1034,7 +1034,7 @@ TEST_F(MusicXml_JiMS_Tests, exportOfANativeJiMSScoreCarriesStatesChangesAndIdent
     MasterScore* score = ScoreRW::readScore(JIMS_DATA_DIR + u"m7-gate.mscz");
     ASSERT_TRUE(score);
     score->doLayout();
-    const JimsSnapshot before = snapshotOf(score);
+    const MeloSnapshot before = snapshotOf(score);
     ASSERT_EQ(before.identities.size(), 12u);
     ASSERT_EQ(before.carriers.size(), 1u);
     const String out = exportToScratch(score, "export-m7-gate.musicxml");
@@ -1063,7 +1063,7 @@ TEST_F(MusicXml_JiMS_Tests, exportOfANativeJiMSScoreCarriesStatesChangesAndIdent
     MasterScore* again = ScoreRW::readScore(out, true, importXml);
     ASSERT_TRUE(again);
     again->doLayout();
-    const JimsSnapshot after = snapshotOf(again);
+    const MeloSnapshot after = snapshotOf(again);
     EXPECT_EQ(after.baseStates, before.baseStates);
     EXPECT_EQ(after.carriers, before.carriers);
     EXPECT_EQ(after.identities, before.identities);
@@ -1179,7 +1179,7 @@ TEST_F(MusicXml_JiMS_Tests, m8ElisionSwitchesNeverChangeMusicXmlExport)
 
     score->style().set(Sid::jimsElideEmptyOctaves, true);
     score->style().set(Sid::jimsShowAllOctavesInFirstSystem, false);
-    score->staff(0)->staffType(Fraction(0, 1))->setJimsElideOctaves(JimsElideOctaves::On);
+    score->staff(0)->staffType(Fraction(0, 1))->setJimsElideOctaves(MeloElideOctaves::On);
     score->setLayoutAll();
     score->doLayout();
     // The banded layout is in effect (system 2 has two bands) ...
@@ -1411,7 +1411,7 @@ TEST_F(MusicXml_JiMS_Tests, severalJimsPartsSharingOneTimelineImportAndRoundTrip
         ASSERT_TRUE(m2);
         EXPECT_TRUE(jims::changeCarrier(m2, s) != nullptr) << s;   // the La-mode section on both parts
     }
-    const JimsSnapshot before = snapshotOf(score);
+    const MeloSnapshot before = snapshotOf(score);
     EXPECT_EQ(before.identities.size(), 4u);
     EXPECT_EQ(before.carriers.size(), 2u);
     EXPECT_EQ(sharedState(before.baseStates[0]), sharedState(before.baseStates[1]));
@@ -1425,7 +1425,7 @@ TEST_F(MusicXml_JiMS_Tests, severalJimsPartsSharingOneTimelineImportAndRoundTrip
     MasterScore* again = ScoreRW::readScore(out, true, importXml);
     ASSERT_TRUE(again);
     again->doLayout();
-    const JimsSnapshot after = snapshotOf(again);
+    const MeloSnapshot after = snapshotOf(again);
     EXPECT_EQ(after.baseStates, before.baseStates);
     EXPECT_EQ(after.carriers, before.carriers);
     EXPECT_EQ(after.identities, before.identities);
@@ -1444,7 +1444,7 @@ TEST_F(MusicXml_JiMS_Tests, partsDifferingOnlyInPerStaffFieldsImportAndRoundTrip
     ASSERT_TRUE(score);
     score->doLayout();
     ASSERT_EQ(score->nstaves(), 2u);
-    const JimsSnapshot before = snapshotOf(score);
+    const MeloSnapshot before = snapshotOf(score);
     ASSERT_EQ(before.baseStates.size(), 2u);
     // The two parts really do differ — this is the condition that used to be
     // refused outright, so importing at all is the behaviour under test.
@@ -1487,7 +1487,7 @@ TEST_F(MusicXml_JiMS_Tests, partsDifferingOnlyInPerStaffFieldsImportAndRoundTrip
     MasterScore* again = ScoreRW::readScore(out, true, importXml);
     ASSERT_TRUE(again);
     again->doLayout();
-    const JimsSnapshot after = snapshotOf(again);
+    const MeloSnapshot after = snapshotOf(again);
     EXPECT_EQ(after.baseStates, before.baseStates);
     EXPECT_EQ(after.identities, before.identities);
     delete score;
@@ -1502,7 +1502,7 @@ TEST_F(MusicXml_JiMS_Tests, aJimsPartBesideAStockPartImportsAndRoundTrips)
     ASSERT_EQ(score->nstaves(), 2u);
     EXPECT_TRUE(staffTypeAtStart(score, 0)->isJiMS());
     EXPECT_FALSE(staffTypeAtStart(score, 1)->isJiMS());
-    const JimsSnapshot before = snapshotOf(score);
+    const MeloSnapshot before = snapshotOf(score);
     EXPECT_EQ(before.identities.size(), 2u);   // only the JiMS part carries identities
     const String out = exportToScratch(score, "export-multi-part-mixed.musicxml");
     const String xml = readAll(out);
@@ -1519,7 +1519,7 @@ TEST_F(MusicXml_JiMS_Tests, aJimsPartBesideAStockPartImportsAndRoundTrips)
     again->doLayout();
     EXPECT_TRUE(staffTypeAtStart(again, 0)->isJiMS());
     EXPECT_FALSE(staffTypeAtStart(again, 1)->isJiMS());
-    const JimsSnapshot after = snapshotOf(again);
+    const MeloSnapshot after = snapshotOf(again);
     EXPECT_EQ(after.baseStates, before.baseStates);
     EXPECT_EQ(after.identities, before.identities);
     delete score;
@@ -1584,7 +1584,7 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
         }
     };
     expectEmptyFrames(score);
-    const JimsSnapshot before = snapshotOf(score);
+    const MeloSnapshot before = snapshotOf(score);
     ASSERT_EQ(before.baseStates.size(), 4u);
     for (const String& s : before.baseStates) {
         EXPECT_FALSE(s.empty()) << "every SATB staff must be a JiMStaff";
@@ -1605,7 +1605,7 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
     ASSERT_TRUE(again) << "a four-part document differing only in jims:extent must import";
     again->doLayout();
     ASSERT_EQ(again->nstaves(), 4u);
-    const JimsSnapshot after = snapshotOf(again);
+    const MeloSnapshot after = snapshotOf(again);
     EXPECT_EQ(after.baseStates, before.baseStates);
     EXPECT_EQ(after.identities, before.identities);
     expectEmptyFrames(again);

@@ -18,7 +18,7 @@
 #include <QColor>
 
 namespace mu::inspector {
-class JimsTuningModel : public QObject, public muse::async::Asyncable, public muse::Contextable
+class MeloTuningModel : public QObject, public muse::async::Asyncable, public muse::Contextable
 {
     Q_OBJECT
     QML_ELEMENT;
@@ -33,8 +33,8 @@ public:
     muse::ContextInject<context::IGlobalContext> context = { this };
     muse::ContextInject<playback::IPlaybackController> playbackController = { this };
     muse::ContextInject<muse::accessibility::IAccessibilityController> accessibilityController = { this };
-    explicit JimsTuningModel(QObject* parent = nullptr);
-    ~JimsTuningModel() override;
+    explicit MeloTuningModel(QObject* parent = nullptr);
+    ~MeloTuningModel() override;
     Q_INVOKABLE void init();
     Q_INVOKABLE bool beginPreview();
     Q_INVOKABLE void preview(double value);

@@ -228,7 +228,7 @@ double courtesyTerrainWidth(const Measure* measure)
     return width;
 }
 
-double changeAnchorPeriodCents(const StaffType::JimsFrameView& view, const ChangeIndicator& model, double periodCents,
+double changeAnchorPeriodCents(const StaffType::MeloFrameView& view, const ChangeIndicator& model, double periodCents,
                                double doCentsAboveExtentLower)
 {
     const double eps = 1e-6;
@@ -252,8 +252,8 @@ double changeAnchorPeriodCents(const StaffType::JimsFrameView& view, const Chang
     }
     // Candidate anchors: every Do-line inside a drawn segment, ascending.
     std::vector<double> candidates;
-    for (const StaffType::JimsFrameBand& band : view.bands) {
-        for (const StaffType::JimsSegment& seg : band.segments) {
+    for (const StaffType::MeloFrameBand& band : view.bands) {
+        for (const StaffType::MeloSegment& seg : band.segments) {
             const double first = doCentsAboveExtentLower
                                  + std::ceil((seg.lowerCents - doCentsAboveExtentLower - eps) / periodCents) * periodCents;
             for (double b = first; b <= seg.upperCents + eps; b += periodCents) {
@@ -270,8 +270,8 @@ double changeAnchorPeriodCents(const StaffType::JimsFrameView& view, const Chang
     // Overflow of a point: its distance outside the nearest drawn segment.
     auto overflowOf = [&](double cents) {
         double best = std::numeric_limits<double>::infinity();
-        for (const StaffType::JimsFrameBand& band : view.bands) {
-            for (const StaffType::JimsSegment& seg : band.segments) {
+        for (const StaffType::MeloFrameBand& band : view.bands) {
+            for (const StaffType::MeloSegment& seg : band.segments) {
                 const double d = std::max({ 0.0, seg.lowerCents - cents, cents - seg.upperCents });
                 best = std::min(best, d);
             }
@@ -367,7 +367,7 @@ bool changeIndicatorsTouchingStaffType(const Score* score, staff_idx_t staffIdx,
     return !out.empty();
 }
 
-std::vector<double> changeIndicatorOverflowCents(const StaffType::JimsFrameView& view, const ChangeIndicator& model,
+std::vector<double> changeIndicatorOverflowCents(const StaffType::MeloFrameView& view, const ChangeIndicator& model,
                                                  double periodCents, double doCentsAboveExtentLower)
 {
     std::vector<double> out;
@@ -377,8 +377,8 @@ std::vector<double> changeIndicatorOverflowCents(const StaffType::JimsFrameView&
     const double eps = 1e-6;
     const double anchor = changeAnchorPeriodCents(view, model, periodCents, doCentsAboveExtentLower);
     auto inside = [&](double cents) {
-        for (const StaffType::JimsFrameBand& band : view.bands) {
-            for (const StaffType::JimsSegment& seg : band.segments) {
+        for (const StaffType::MeloFrameBand& band : view.bands) {
+            for (const StaffType::MeloSegment& seg : band.segments) {
                 if (cents >= seg.lowerCents - eps && cents <= seg.upperCents + eps) {
                     return true;
                 }

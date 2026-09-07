@@ -66,12 +66,12 @@ constexpr double EPS = 1e-6;
 }
 
 // The bridge speaks ABI 2 (JiMStaffStateV2 contract, Milestone 2 Phase 4).
-TEST(JiMStaffTests, bridgeSpeaksAbi2)
+TEST(MeloStaffTests, bridgeSpeaksAbi2)
 {
     EXPECT_TRUE(jims::available());
 }
 
-TEST(JiMStaffTests, toneDiamondSettingsAndHostParametersComeFromKernel)
+TEST(MeloStaffTests, toneDiamondSettingsAndHostParametersComeFromKernel)
 {
     std::vector<jims::ToneDiamondSetting> settings;
     uint32_t generatorParamId = 0;
@@ -96,7 +96,7 @@ TEST(JiMStaffTests, toneDiamondSettingsAndHostParametersComeFromKernel)
 // up, and E4 = (-1,2) (abs 2g - 1200) sits 4g - 2400 up — 400 at
 // 12-TET, 423.53 at 17-TET, 378.95 at 19-TET. Tuning-variant cents,
 // tuning-invariant identities.
-TEST(JiMStaffTests, centsPositionsFollowTheGeneratorAcrossTunings)
+TEST(MeloStaffTests, centsPositionsFollowTheGeneratorAcrossTunings)
 {
     for (double g : { G12, G17, G19 }) {
         muse::String state = jimsState(g);
@@ -117,7 +117,7 @@ TEST(JiMStaffTests, centsPositionsFollowTheGeneratorAcrossTunings)
 // Entry round-trip: standard spelling -> Kernel identity -> cents ->
 // nearest realizable pitch recovers the identity and the compatibility
 // spelling, at all three tunings.
-TEST(JiMStaffTests, entryAndQuantizationRoundTrip)
+TEST(MeloStaffTests, entryAndQuantizationRoundTrip)
 {
     jims::SoundingPitch projection;
     ASSERT_TRUE(jims::entryFromStandardPitch(jimsState(G12), 'C', 0, 4, projection));
@@ -143,7 +143,7 @@ TEST(JiMStaffTests, entryAndQuantizationRoundTrip)
 // Tuning-true quantization (Kernel-pinned): the same physical 360-cent
 // drag height lands on DIFFERENT lattice identities as the generator
 // moves — Mi (nGen 2) at 12-TET and 19-TET, Ri (nGen 7) at 17-TET.
-TEST(JiMStaffTests, dragTargetsAreTuningTrueNeverTwelveTetArithmetic)
+TEST(MeloStaffTests, dragTargetsAreTuningTrueNeverTwelveTetArithmetic)
 {
     jims::PitchHit hit;
     ASSERT_TRUE(jims::nearestPitch(jimsState(G12), 360.0, false, 0, 0, hit));
@@ -156,7 +156,7 @@ TEST(JiMStaffTests, dragTargetsAreTuningTrueNeverTwelveTetArithmetic)
 
 // M10: the stored two-bound extent is the minimum frame during an edit
 // session. A narrower La-mode melody cannot contract that stored frame.
-TEST(JiMStaffTests, tonicBoundedLaModeFrameKeepsStoredExtentMinimum)
+TEST(MeloStaffTests, tonicBoundedLaModeFrameKeepsStoredExtentMinimum)
 {
     muse::String state = jimsState(G12, 5); // mode_rotation 5 selects La
     muse::String melody
@@ -173,7 +173,7 @@ TEST(JiMStaffTests, tonicBoundedLaModeFrameKeepsStoredExtentMinimum)
     EXPECT_NEAR(segments[1].upperCents, 2400.0, EPS);
 }
 
-TEST(JiMStaffTests, fixedRatioLineExtentCanReturnASubperiodSoToDoFrame)
+TEST(MeloStaffTests, fixedRatioLineExtentCanReturnASubperiodSoToDoFrame)
 {
     const muse::String state
         =u"{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],"
@@ -195,7 +195,7 @@ TEST(JiMStaffTests, fixedRatioLineExtentCanReturnASubperiodSoToDoFrame)
 
 // The tuning metrics seam feeding the "M5= <cents>¢" label reports the
 // state's own widths, never a fork-side constant.
-TEST(JiMStaffTests, staffMetricsReportTheStateWidths)
+TEST(MeloStaffTests, staffMetricsReportTheStateWidths)
 {
     double generatorCents = 0.0, periodCents = 0.0;
     ASSERT_TRUE(jims::staffMetrics(jimsState(G19), generatorCents, periodCents));
@@ -206,7 +206,7 @@ TEST(JiMStaffTests, staffMetricsReportTheStateWidths)
 // Negative control: invalid state fails VISIBLY (every wrapper returns
 // false) — never a silent fall-back to 12-TET arithmetic. The unknown
 // field below is rejected by the strict, alias-free M10 state contract.
-TEST(JiMStaffTests, invalidStateFailsVisiblyNotSilently)
+TEST(MeloStaffTests, invalidStateFailsVisiblyNotSilently)
 {
     muse::String bad
         =u"{\"scale\":[\"M2\",\"M2\"],\"collection_rotation\":0,\"mode_rotation\":0,"
@@ -229,7 +229,7 @@ TEST(JiMStaffTests, invalidStateFailsVisiblyNotSilently)
 // class-notehead outlines are present and nonempty, and they genuinely
 // differ from the fallback font's stock outlines (outline change only —
 // position/size/selection logic is untouched from M1/M2).
-TEST(JiMStaffTests, jimsMusicFontRegisteredWithKernelOutlines)
+TEST(MeloStaffTests, jimsMusicFontRegisteredWithKernelOutlines)
 {
     auto provider = muse::modularity::globalIoc()->resolve<IEngravingFontsProvider>("jimstaff_tests");
     ASSERT_TRUE(provider);
@@ -260,7 +260,7 @@ double stateGeneratorCents(const StaffType* st)
 // state span transiently (no undo entries); commit lands exactly one
 // undoable edit; cancel restores the pre-drag state. Every consumer of
 // the seam re-derives — no stale notes, frames, or labels.
-TEST(JiMStaffTests, tuningControllerPreviewCommitCancelUndo)
+TEST(MeloStaffTests, tuningControllerPreviewCommitCancelUndo)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/mode-change.mscx");
     ASSERT_TRUE(score);
@@ -300,7 +300,7 @@ TEST(JiMStaffTests, tuningControllerPreviewCommitCancelUndo)
 // The update reaches every span (base StaffType AND the measure-boundary
 // StaffTypeChange), replacing only generator_cents — mode rotation and
 // the per-span tonic extents survive untouched.
-TEST(JiMStaffTests, tuningControllerUpdatesEverySpanPreservingIdentity)
+TEST(MeloStaffTests, tuningControllerUpdatesEverySpanPreservingIdentity)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/mode-change.mscx");
     ASSERT_TRUE(score);
@@ -328,7 +328,7 @@ TEST(JiMStaffTests, tuningControllerUpdatesEverySpanPreservingIdentity)
 // new tuning, a pinned note's cached cents re-derive to the new value —
 // the cache invalidation the controller performs is what keeps notes and
 // staff on one map (VTR boundary crossing exercised in both directions).
-TEST(JiMStaffTests, tuningControllerRederivesNoteCentsAcrossVtrBoundary)
+TEST(MeloStaffTests, tuningControllerRederivesNoteCentsAcrossVtrBoundary)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/mode-change.mscx");
     ASSERT_TRUE(score);
@@ -372,7 +372,7 @@ TEST(JiMStaffTests, tuningControllerRederivesNoteCentsAcrossVtrBoundary)
 // Gated by JIMS_SWEEP=1 (artifact dir in JIMS_SWEEP_OUT) so the normal
 // fence stays fast. Semantic artifacts are deterministic; timing is
 // reported separately and statistically.
-TEST(JiMStaffTests, evidenceSweepAcceptancePieces)
+TEST(MeloStaffTests, evidenceSweepAcceptancePieces)
 {
     const char* gate = std::getenv("JIMS_SWEEP");
     if (!gate || muse::String::fromUtf8(gate) != u"1") {
@@ -409,7 +409,7 @@ TEST(JiMStaffTests, evidenceSweepAcceptancePieces)
                 << ",\"visible_ji_lines\":" << visible
                 << ",\"frame\":[";
             bool firstSeg = true;
-            for (const StaffType::JimsSegment& seg : st->jimsFrameSegments()) {
+            for (const StaffType::MeloSegment& seg : st->jimsFrameSegments()) {
                 sem << (firstSeg ? "" : ",") << "["
                     << muse::String::number(seg.lowerCents, 4).toStdString() << ","
                     << muse::String::number(seg.upperCents, 4).toStdString() << ","
@@ -488,7 +488,7 @@ TEST(JiMStaffTests, evidenceSweepAcceptancePieces)
 // notehead's edge, not its center — the font's SMuFL stem anchors carry
 // that fact, so JiMSMusic must publish nonzero anchors for every class
 // notehead.
-TEST(JiMStaffTests, jimsMusicNoteheadsPublishStemAnchors)
+TEST(MeloStaffTests, jimsMusicNoteheadsPublishStemAnchors)
 {
     auto provider = muse::modularity::globalIoc()->resolve<IEngravingFontsProvider>("jimstaff_tests");
     ASSERT_TRUE(provider);
@@ -506,7 +506,7 @@ TEST(JiMStaffTests, jimsMusicNoteheadsPublishStemAnchors)
 // Owner correction (2026-08-14, sweep review): a chord's stem must track
 // the heads' Kernel-derived cents span at EVERY tuning — the line-number
 // default leaves the stem short when the tuning moves the heads apart.
-TEST(JiMStaffTests, chordStemSpansCentsHeightAcrossTunings)
+TEST(MeloStaffTests, chordStemSpansCentsHeightAcrossTunings)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -543,7 +543,7 @@ TEST(JiMStaffTests, chordStemSpansCentsHeightAcrossTunings)
 // cents (240 apart — no visual overlap) both heads sit on the same
 // side, in one column, attached to the stem. The diatonic-line test
 // fired the second-cluster logic at every tuning.
-TEST(JiMStaffTests, dyadHeadClusteringIsCentsTrueAcrossTunings)
+TEST(MeloStaffTests, dyadHeadClusteringIsCentsTrueAcrossTunings)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -589,7 +589,7 @@ TEST(JiMStaffTests, dyadHeadClusteringIsCentsTrueAcrossTunings)
 // on every system (owner decisions 2026-08-15, J4.001 closure).
 // ---------------------------------------------------------------------
 namespace {
-using Segs = std::vector<StaffType::JimsSegment>;
+using Segs = std::vector<StaffType::MeloSegment>;
 
 Segs frameOf(Score* score)
 {
@@ -701,7 +701,7 @@ size_t ledgerLineCountOnStaff0(Score* score)
 
 // Deleting every note preserves the in-session written frame. Loading the
 // resulting empty staff derives the half-P8 default from its declared range.
-TEST(JiMStaffTests, deletingAllNotesRetainsTheWrittenFrameUntilReload)
+TEST(MeloStaffTests, deletingAllNotesRetainsTheWrittenFrameUntilReload)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -751,7 +751,7 @@ TEST(JiMStaffTests, deletingAllNotesRetainsTheWrittenFrameUntilReload)
 // (b) Growth above/below on an edit re-derives the stack in the same
 // transaction; undo restores the exact prior list; redo the new one;
 // and at every step the fork frame equals the Kernel's answer.
-TEST(JiMStaffTests, liveFrameGrowsShrinksAndRoundTripsThroughUndo)
+TEST(MeloStaffTests, liveFrameGrowsShrinksAndRoundTripsThroughUndo)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -815,14 +815,14 @@ TEST(JiMStaffTests, liveFrameGrowsShrinksAndRoundTripsThroughUndo)
 
 // (c) One score-wide stack per staff, identical on every system, and
 // the header geometry is one shared calculation for all systems.
-TEST(JiMStaffTests, frameAndHeaderGeometryAreIdenticalAcrossSystems)
+TEST(MeloStaffTests, frameAndHeaderGeometryAreIdenticalAcrossSystems)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/grym.mscx");
     ASSERT_TRUE(score);
     score->doLayout();
     ASSERT_GE(score->systems().size(), 2u) << "grym must span multiple systems for this test";
     const StaffType* first = nullptr;
-    StaffType::JimsHeaderGeometry g0 {};
+    StaffType::MeloHeaderGeometry g0 {};
     for (System* sys : score->systems()) {
         Measure* m = sys->firstMeasure();
         if (!m) {
@@ -830,7 +830,7 @@ TEST(JiMStaffTests, frameAndHeaderGeometryAreIdenticalAcrossSystems)
         }
         const StaffType* st = score->staff(0)->staffType(m->tick());
         ASSERT_TRUE(st && st->isJiMS());
-        StaffType::JimsHeaderGeometry g
+        StaffType::MeloHeaderGeometry g
             = st->jimsHeaderGeometry(score->style().spatium(), score->style().defaultSpatium());
         if (!first) {
             first = st;
@@ -850,7 +850,7 @@ TEST(JiMStaffTests, frameAndHeaderGeometryAreIdenticalAcrossSystems)
 // (d) No ledger line is ever GENERATED for a JiMS chord — even when a
 // note sits far outside the configured line count (owner decision 3a:
 // suppression by non-generation, not by hiding at paint time).
-TEST(JiMStaffTests, jimsChordsGenerateNoLedgerLinesEvenFarOutside)
+TEST(MeloStaffTests, jimsChordsGenerateNoLedgerLinesEvenFarOutside)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -868,7 +868,7 @@ TEST(JiMStaffTests, jimsChordsGenerateNoLedgerLinesEvenFarOutside)
 // (e) The note-input preview (ShadowNote) exposes no ledger lines on a
 // JiMS staff, at any line index — the preview path is a distinct
 // suppression target (owner decision 3a).
-TEST(JiMStaffTests, shadowNoteShowsNoLedgerLinesOnJimsStaff)
+TEST(MeloStaffTests, shadowNoteShowsNoLedgerLinesOnJimsStaff)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -888,7 +888,7 @@ TEST(JiMStaffTests, shadowNoteShowsNoLedgerLinesOnJimsStaff)
 // Scale-dot labels (owner epiphany 2026-08-15), Phase 3: the per-staff
 // display mode — fork-owned StaffType presentation state, default
 // Auto, serialized as its own tag, never entering the Kernel state.
-TEST(JiMStaffTests, scaleDotLabelModeDefaultsPersistsAndStaysOutOfKernelState)
+TEST(MeloStaffTests, scaleDotLabelModeDefaultsPersistsAndStaysOutOfKernelState)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -896,11 +896,11 @@ TEST(JiMStaffTests, scaleDotLabelModeDefaultsPersistsAndStaysOutOfKernelState)
     ASSERT_TRUE(st && st->isJiMS());
 
     // Absent tag reads as Auto.
-    EXPECT_EQ(st->jimsScaleDotLabelMode(), JimsScaleDotLabelMode::Auto);
+    EXPECT_EQ(st->jimsScaleDotLabelMode(), MeloScaleDotLabelMode::Auto);
 
     // All four values round-trip through mscx write/read.
-    for (auto mode : { JimsScaleDotLabelMode::None, JimsScaleDotLabelMode::Left,
-                       JimsScaleDotLabelMode::Split, JimsScaleDotLabelMode::Auto }) {
+    for (auto mode : { MeloScaleDotLabelMode::None, MeloScaleDotLabelMode::Left,
+                       MeloScaleDotLabelMode::Split, MeloScaleDotLabelMode::Auto }) {
         st->setJimsScaleDotLabelMode(mode);
         EXPECT_EQ(st->jimsScaleDotLabelMode(), mode);
         const muse::String path = u"jims_label_mode_roundtrip.mscx";
@@ -908,7 +908,7 @@ TEST(JiMStaffTests, scaleDotLabelModeDefaultsPersistsAndStaysOutOfKernelState)
         std::ifstream in(path.toStdString());
         const std::string xml((std::istreambuf_iterator<char>(in)),
                               std::istreambuf_iterator<char>());
-        if (mode == JimsScaleDotLabelMode::Auto) {
+        if (mode == MeloScaleDotLabelMode::Auto) {
             // Default mode: tag may be omitted; absent reads Auto.
         } else {
             EXPECT_NE(xml.find("<jimsScaleDotLabels>"), std::string::npos);
@@ -920,17 +920,17 @@ TEST(JiMStaffTests, scaleDotLabelModeDefaultsPersistsAndStaysOutOfKernelState)
 
     // Equality participates: two staff types differing only in mode differ.
     StaffType a(*st), b(*st);
-    a.setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Left);
-    b.setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Split);
+    a.setJimsScaleDotLabelMode(MeloScaleDotLabelMode::Left);
+    b.setJimsScaleDotLabelMode(MeloScaleDotLabelMode::Split);
     EXPECT_FALSE(a == b);
-    b.setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Left);
+    b.setJimsScaleDotLabelMode(MeloScaleDotLabelMode::Left);
     EXPECT_TRUE(a == b);
     delete score;
 }
 
 // Phase 3: the mode round-trips through a full mscx save/reload, and
 // differing StaffType spans keep independent modes.
-TEST(JiMStaffTests, scaleDotLabelModeRoundTripsAndSpansAreIndependent)
+TEST(MeloStaffTests, scaleDotLabelModeRoundTripsAndSpansAreIndependent)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/mode-change.mscx");
     ASSERT_TRUE(score);
@@ -938,10 +938,10 @@ TEST(JiMStaffTests, scaleDotLabelModeRoundTripsAndSpansAreIndependent)
     StaffType* base = staff->staffType(Fraction(0, 1));
     StaffType* changed = staff->staffType(Fraction(16, 4));
     ASSERT_TRUE(base && changed && base != changed);
-    base->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Left);
-    changed->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Split);
-    EXPECT_EQ(base->jimsScaleDotLabelMode(), JimsScaleDotLabelMode::Left);
-    EXPECT_EQ(changed->jimsScaleDotLabelMode(), JimsScaleDotLabelMode::Split);
+    base->setJimsScaleDotLabelMode(MeloScaleDotLabelMode::Left);
+    changed->setJimsScaleDotLabelMode(MeloScaleDotLabelMode::Split);
+    EXPECT_EQ(base->jimsScaleDotLabelMode(), MeloScaleDotLabelMode::Left);
+    EXPECT_EQ(changed->jimsScaleDotLabelMode(), MeloScaleDotLabelMode::Split);
 
     const muse::String path = u"jims_label_mode_spans.mscx";
     ASSERT_TRUE(ScoreRW::saveScore(score, path));
@@ -957,27 +957,27 @@ TEST(JiMStaffTests, scaleDotLabelModeRoundTripsAndSpansAreIndependent)
 // STRICT comparisons — Left strictly inside (690.9, 709.1), Split at
 // or outside either exact boundary. Test-only epsilon; production has
 // none.
-TEST(JiMStaffTests, scaleDotLabelAutoResolvesExactlyAtLegibilityBoundaries)
+TEST(MeloStaffTests, scaleDotLabelAutoResolvesExactlyAtLegibilityBoundaries)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
     StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
     ASSERT_TRUE(st && st->isJiMS());
-    st->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Auto);
+    st->setJimsScaleDotLabelMode(MeloScaleDotLabelMode::Auto);
 
     jims::TuningController controller(score, 0);
     const double eps = 0.001;
     const struct {
         double g;
-        JimsScaleDotLabelMode want;
+        MeloScaleDotLabelMode want;
     } cases[] = {
-        { 690.9 - eps, JimsScaleDotLabelMode::Split },
-        { 690.9,       JimsScaleDotLabelMode::Split },
-        { 690.9 + eps, JimsScaleDotLabelMode::Left },
-        { 700.0,       JimsScaleDotLabelMode::Left },
-        { 709.1 - eps, JimsScaleDotLabelMode::Left },
-        { 709.1,       JimsScaleDotLabelMode::Split },
-        { 709.1 + eps, JimsScaleDotLabelMode::Split },
+        { 690.9 - eps, MeloScaleDotLabelMode::Split },
+        { 690.9,       MeloScaleDotLabelMode::Split },
+        { 690.9 + eps, MeloScaleDotLabelMode::Left },
+        { 700.0,       MeloScaleDotLabelMode::Left },
+        { 709.1 - eps, MeloScaleDotLabelMode::Left },
+        { 709.1,       MeloScaleDotLabelMode::Split },
+        { 709.1 + eps, MeloScaleDotLabelMode::Split },
     };
     for (const auto& c : cases) {
         ASSERT_TRUE(controller.beginPreview());
@@ -986,10 +986,10 @@ TEST(JiMStaffTests, scaleDotLabelAutoResolvesExactlyAtLegibilityBoundaries)
         controller.cancel();
     }
     // Explicit modes pass through unresolved.
-    st->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::None);
-    EXPECT_EQ(st->jimsResolvedScaleDotLabelMode(), JimsScaleDotLabelMode::None);
-    st->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Split);
-    EXPECT_EQ(st->jimsResolvedScaleDotLabelMode(), JimsScaleDotLabelMode::Split);
+    st->setJimsScaleDotLabelMode(MeloScaleDotLabelMode::None);
+    EXPECT_EQ(st->jimsResolvedScaleDotLabelMode(), MeloScaleDotLabelMode::None);
+    st->setJimsScaleDotLabelMode(MeloScaleDotLabelMode::Split);
+    EXPECT_EQ(st->jimsResolvedScaleDotLabelMode(), MeloScaleDotLabelMode::Split);
     delete score;
 }
 
@@ -997,7 +997,7 @@ TEST(JiMStaffTests, scaleDotLabelAutoResolvesExactlyAtLegibilityBoundaries)
 // and margin reservation. None reserves no label bands; Left reserves
 // a left band only; Split reserves both; every band is positive when
 // labels exist on that side.
-TEST(JiMStaffTests, scaleDotLabelHeaderGeometryIsSharedAndModeAware)
+TEST(MeloStaffTests, scaleDotLabelHeaderGeometryIsSharedAndModeAware)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -1006,7 +1006,7 @@ TEST(JiMStaffTests, scaleDotLabelHeaderGeometryIsSharedAndModeAware)
     ASSERT_TRUE(st && st->isJiMS());
     const double sp = score->style().spatium();
 
-    st->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::None);
+    st->setJimsScaleDotLabelMode(MeloScaleDotLabelMode::None);
     auto none = st->jimsHeaderGeometry(sp, sp);
     // The recovered owner correction places the current-key label inside
     // the crescent, without a label band that would move the dot stack.
@@ -1015,13 +1015,13 @@ TEST(JiMStaffTests, scaleDotLabelHeaderGeometryIsSharedAndModeAware)
     EXPECT_EQ(none.rightLabelBand, 0.0);
     EXPECT_GT(none.headerWidth, 0.0);
 
-    st->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Left);
+    st->setJimsScaleDotLabelMode(MeloScaleDotLabelMode::Left);
     auto left = st->jimsHeaderGeometry(sp, sp);
     EXPECT_GT(left.leftLabelBand, 0.0);
     EXPECT_EQ(left.rightLabelBand, 0.0);
     EXPECT_GT(left.headerWidth, none.headerWidth);
 
-    st->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Split);
+    st->setJimsScaleDotLabelMode(MeloScaleDotLabelMode::Split);
     auto split = st->jimsHeaderGeometry(sp, sp);
     EXPECT_GT(split.leftLabelBand, 0.0);
     EXPECT_GT(split.rightLabelBand, 0.0);
@@ -1033,7 +1033,7 @@ TEST(JiMStaffTests, scaleDotLabelHeaderGeometryIsSharedAndModeAware)
 // multi-member stack pairs a flat-side (nGen <= 0) member with a
 // sharp-side (nGen > 0) member, so Split cannot label-collide where
 // dots collide.
-TEST(JiMStaffTests, edgeCollisionStacksAlwaysStraddleTheReSplit)
+TEST(MeloStaffTests, edgeCollisionStacksAlwaysStraddleTheReSplit)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -1066,7 +1066,7 @@ TEST(JiMStaffTests, edgeCollisionStacksAlwaysStraddleTheReSplit)
 // same shared controller, all four modes, per-tick semantic assertions
 // and the latency floor. Gated by JIMS_SWEEP=1 with artifacts in
 // JIMS_SWEEP_OUT (suffix -labels).
-TEST(JiMStaffTests, labelsEnabledControllerSweepHasNoStaleLabels)
+TEST(MeloStaffTests, labelsEnabledControllerSweepHasNoStaleLabels)
 {
     const char* gate = std::getenv("JIMS_SWEEP");
     if (!gate || muse::String::fromUtf8(gate) != u"1") {
@@ -1078,9 +1078,9 @@ TEST(JiMStaffTests, labelsEnabledControllerSweepHasNoStaleLabels)
     const std::vector<muse::String> pieces
         = { u"collision", u"ode-to-joy", u"acc-chromatic", u"mode-change", u"grym",
             u"m5-mode", u"m5-key-up", u"m5-key-down", u"m5-scale", u"m5-key-mode", u"m5-syshead" };
-    const JimsScaleDotLabelMode modes[]
-        = { JimsScaleDotLabelMode::Auto, JimsScaleDotLabelMode::Left,
-            JimsScaleDotLabelMode::Split, JimsScaleDotLabelMode::None };
+    const MeloScaleDotLabelMode modes[]
+        = { MeloScaleDotLabelMode::Auto, MeloScaleDotLabelMode::Left,
+            MeloScaleDotLabelMode::Split, MeloScaleDotLabelMode::None };
     const char* modeNames[] = { "auto", "left", "split", "none" };
 
     for (const muse::String& piece : pieces) {
@@ -1120,10 +1120,10 @@ TEST(JiMStaffTests, labelsEnabledControllerSweepHasNoStaleLabels)
                 ASSERT_TRUE(jims::staffMetrics(st->jimsStateJson(), mg, mp));
                 ASSERT_NEAR(mg, g, 1e-9);
                 // Resolved mode is correct for the applied tuning.
-                const JimsScaleDotLabelMode resolved = st->jimsResolvedScaleDotLabelMode();
-                if (modes[m] == JimsScaleDotLabelMode::Auto) {
+                const MeloScaleDotLabelMode resolved = st->jimsResolvedScaleDotLabelMode();
+                if (modes[m] == MeloScaleDotLabelMode::Auto) {
                     ASSERT_EQ(resolved, (g > rMin && g < rMax)
-                              ? JimsScaleDotLabelMode::Left : JimsScaleDotLabelMode::Split);
+                              ? MeloScaleDotLabelMode::Left : MeloScaleDotLabelMode::Split);
                 } else {
                     ASSERT_EQ(resolved, modes[m]);
                 }
@@ -1139,9 +1139,9 @@ TEST(JiMStaffTests, labelsEnabledControllerSweepHasNoStaleLabels)
                 // Geometry agrees with the resolved mode (shared calc).
                 const auto geom = st->jimsHeaderGeometry(score->style().spatium(),
                                                          score->style().defaultSpatium());
-                if (resolved == JimsScaleDotLabelMode::None) {
+                if (resolved == MeloScaleDotLabelMode::None) {
                     ASSERT_EQ(geom.leftLabelBand + geom.rightLabelBand, 0.0);
-                } else if (resolved == JimsScaleDotLabelMode::Left) {
+                } else if (resolved == MeloScaleDotLabelMode::Left) {
                     ASSERT_GT(geom.leftLabelBand, 0.0);
                     ASSERT_EQ(geom.rightLabelBand, 0.0);
                 } else {
@@ -1179,7 +1179,7 @@ TEST(JiMStaffTests, labelsEnabledControllerSweepHasNoStaleLabels)
                 controller.cancel();
             }
         }
-        st->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Auto);
+        st->setJimsScaleDotLabelMode(MeloScaleDotLabelMode::Auto);
         delete score;
     }
 }
@@ -1190,7 +1190,7 @@ TEST(JiMStaffTests, labelsEnabledControllerSweepHasNoStaleLabels)
 // the next delta — a runaway until release. The frame is FROZEN for the
 // duration of a drag (the dragged note may draw beyond the frozen stave
 // as transient feedback) and re-derives exactly once on drop.
-TEST(JiMStaffTests, frameStaysFrozenDuringNoteDragAndRederivesOnDrop)
+TEST(MeloStaffTests, frameStaysFrozenDuringNoteDragAndRederivesOnDrop)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -1228,7 +1228,7 @@ TEST(JiMStaffTests, frameStaysFrozenDuringNoteDragAndRederivesOnDrop)
 // to the note's CURRENT cents, so every drag event (even with the
 // pointer still) compounded the move. The drag must anchor at the cents
 // captured at drag start, like stock MuseScore anchors at the start line.
-TEST(JiMStaffTests, noteDragAnchorsAtStartCentsAndNeverCompounds)
+TEST(MeloStaffTests, noteDragAnchorsAtStartCentsAndNeverCompounds)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -1280,7 +1280,7 @@ TEST(JiMStaffTests, noteDragAnchorsAtStartCentsAndNeverCompounds)
 // The drag's undo record covered PITCH/TPC but not the JiMS lattice
 // identity the JiMStaff actually draws. Undo must restore identity AND
 // the stave stack; redo must re-apply both.
-TEST(JiMStaffTests, dragIsUndoableIncludingLatticeIdentityAndFrame)
+TEST(MeloStaffTests, dragIsUndoableIncludingLatticeIdentityAndFrame)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
     ASSERT_TRUE(score);
@@ -1329,7 +1329,7 @@ TEST(JiMStaffTests, dragIsUndoableIncludingLatticeIdentityAndFrame)
 // current state (a changed state never reuses a stale frame), no
 // ledger element exists, labels stay populated, every system reports
 // the same frame, and p95 apply latency stays within the floor.
-TEST(JiMStaffTests, wideMelodyControllerSweepKeepsFrameValidAndFast)
+TEST(MeloStaffTests, wideMelodyControllerSweepKeepsFrameValidAndFast)
 {
     const char* gate = std::getenv("JIMS_SWEEP");
     if (!gate || muse::String::fromUtf8(gate) != u"1") {
@@ -1344,7 +1344,7 @@ TEST(JiMStaffTests, wideMelodyControllerSweepKeepsFrameValidAndFast)
         score->doLayout();
         StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
         ASSERT_TRUE(st && st->isJiMS());
-        st->setJimsScaleDotLabelMode(JimsScaleDotLabelMode::Auto);
+        st->setJimsScaleDotLabelMode(MeloScaleDotLabelMode::Auto);
 
         // Widen: push the highest note up two periods so the frame needs
         // a whole middle stave plus a partial edge (patent cut rule).
@@ -1420,7 +1420,7 @@ TEST(JiMStaffTests, wideMelodyControllerSweepKeepsFrameValidAndFast)
 // scenario scores through ordinary edits so the CLI can render each in
 // clean directories — empty staff, growth above, growth below, boundary
 // crossing (whole middle + partial edge), and shrink after growth.
-TEST(JiMStaffTests, m4WriteRenderScenarios)
+TEST(MeloStaffTests, m4WriteRenderScenarios)
 {
     const char* gate = std::getenv("JIMS_M4_SCENARIOS");
     if (!gate || muse::String::fromUtf8(gate) != u"1") {
@@ -1524,7 +1524,7 @@ Measure* m5Measure(Score* score, int measureNo)
 }
 }
 
-TEST(JiMStaffTests, tonicPitchLabelTransportPreservesMusicalAccidentalSymbols)
+TEST(MeloStaffTests, tonicPitchLabelTransportPreservesMusicalAccidentalSymbols)
 {
     const muse::String state
         =
@@ -1534,7 +1534,7 @@ TEST(JiMStaffTests, tonicPitchLabelTransportPreservesMusicalAccidentalSymbols)
     EXPECT_EQ(label.label, u"E♭3");
 }
 
-TEST(JiMStaffTests, pitchLabelRendererSelectsProperMusicSymbolsForEveryAccidental)
+TEST(MeloStaffTests, pitchLabelRendererSelectsProperMusicSymbolsForEveryAccidental)
 {
     const std::pair<muse::String, SymId> cases[] = {
         { u"E♭3", SymId::accidentalFlat },
@@ -1552,7 +1552,7 @@ TEST(JiMStaffTests, pitchLabelRendererSelectsProperMusicSymbolsForEveryAccidenta
 
 // (a) Transport: the worked example round-trips through the fork wrapper
 // with kinds, endpoints, labels, direction, and trumps intact.
-TEST(JiMStaffTests, changeIndicatorTransportCarriesTheKernelTerrainVerbatim)
+TEST(MeloStaffTests, changeIndicatorTransportCarriesTheKernelTerrainVerbatim)
 {
     const muse::String oldS
         =
@@ -1592,7 +1592,7 @@ TEST(JiMStaffTests, changeIndicatorTransportCarriesTheKernelTerrainVerbatim)
 // (b) Mid-system only: the collision-based pieces carry their change at
 // measure 2 (same system) -> indicator + reserved terrain; the grym piece
 // changes at measure 6 (a system head) -> no indicator, no reservation.
-TEST(JiMStaffTests, changeIndicatorIsReservedMidSystemOrCourtesyAtSystemEnd)
+TEST(MeloStaffTests, changeIndicatorIsReservedMidSystemOrCourtesyAtSystemEnd)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/m5-mode.mscx");
     ASSERT_TRUE(score);
@@ -1666,7 +1666,7 @@ TEST(JiMStaffTests, changeIndicatorIsReservedMidSystemOrCourtesyAtSystemEnd)
 
 // (c) Semantic records per piece: the Kernel model each fixture yields
 // (kinds, glyph counts, arrow direction/precedence) — the owner rules.
-TEST(JiMStaffTests, changeIndicatorSemanticsPerFixtureMatchTheOwnerRules)
+TEST(MeloStaffTests, changeIndicatorSemanticsPerFixtureMatchTheOwnerRules)
 {
     struct Case {
         const char16_t* piece;
@@ -1721,7 +1721,7 @@ TEST(JiMStaffTests, changeIndicatorSemanticsPerFixtureMatchTheOwnerRules)
     }
 }
 
-TEST(JiMStaffTests, presetIdentitySurvivesTheStaffTypeLookup)
+TEST(MeloStaffTests, presetIdentitySurvivesTheStaffTypeLookup)
 {
     const StaffType* jims = StaffType::preset(StaffTypes::JIMS_12TET);
     ASSERT_NE(jims, nullptr);
@@ -1735,7 +1735,7 @@ TEST(JiMStaffTests, presetIdentitySurvivesTheStaffTypeLookup)
     EXPECT_EQ(StaffType::presetFromXmlName(u"jims12tet"), jims);
 }
 
-TEST(JiMStaffTests, guideColorDefaultsPreserveTheExistingPaletteAndAreStyleValues)
+TEST(MeloStaffTests, guideColorDefaultsPreserveTheExistingPaletteAndAreStyleValues)
 {
     MStyle style;
     EXPECT_EQ(style.value(Sid::jimsDoLineColor).value<muse::draw::Color>(), muse::draw::Color(224, 48, 48));

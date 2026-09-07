@@ -60,7 +60,7 @@ static void jimsFatal(MusicXmlLogger* logger, const String& text, const XmlStrea
 //   resolveFromRoot
 //---------------------------------------------------------
 
-Err JimsImportContext::resolveFromRoot(const std::vector<XmlStreamReader::Attribute>& attributes,
+Err MeloImportContext::resolveFromRoot(const std::vector<XmlStreamReader::Attribute>& attributes,
                                        MusicXmlLogger* logger, const XmlStreamReader* e)
 {
     for (const XmlStreamReader::Attribute& a : attributes) {
@@ -109,7 +109,7 @@ Err JimsImportContext::resolveFromRoot(const std::vector<XmlStreamReader::Attrib
 //   isJimsElement
 //---------------------------------------------------------
 
-bool JimsImportContext::isJimsElement(const AsciiStringView& qualifiedName, const char* local) const
+bool MeloImportContext::isJimsElement(const AsciiStringView& qualifiedName, const char* local) const
 {
     if (!hasJims()) {
         return false;
@@ -122,7 +122,7 @@ bool JimsImportContext::isJimsElement(const AsciiStringView& qualifiedName, cons
 //   jsonNumber
 //---------------------------------------------------------
 
-String JimsImportContext::jsonNumber(const String& text, bool& ok)
+String MeloImportContext::jsonNumber(const String& text, bool& ok)
 {
     const std::string s = text.trimmed().toStdString();
     char* end = nullptr;
@@ -153,7 +153,7 @@ String JimsImportContext::jsonNumber(const String& text, bool& ok)
 //   parseStaffState
 //---------------------------------------------------------
 
-bool JimsImportContext::parseStaffState(XmlStreamReader& e, String& json, int& staffNumber, String& error) const
+bool MeloImportContext::parseStaffState(XmlStreamReader& e, String& json, int& staffNumber, String& error) const
 {
     // The whole element is always consumed, whatever goes wrong inside it,
     // so the caller's reader stays aligned; the first problem is reported.
@@ -309,12 +309,12 @@ bool JimsImportContext::parseStaffState(XmlStreamReader& e, String& json, int& s
 //   buffer / statesFor
 //---------------------------------------------------------
 
-void JimsImportContext::buffer(const String& partId, const Fraction& tick, int staffNumber, const String& json)
+void MeloImportContext::buffer(const String& partId, const Fraction& tick, int staffNumber, const String& json)
 {
     m_states[partId].push_back(BufferedState { tick, staffNumber, json });
 }
 
-const std::vector<JimsImportContext::BufferedState>* JimsImportContext::statesFor(const String& partId) const
+const std::vector<MeloImportContext::BufferedState>* MeloImportContext::statesFor(const String& partId) const
 {
     auto it = m_states.find(partId);
     return it == m_states.end() ? nullptr : &it->second;
@@ -335,7 +335,7 @@ static StaffType jimsStaffTypeFor(const String& json)
     return st;
 }
 
-bool JimsImportContext::applyToPart(Score* score, Part* part, const String& partId,
+bool MeloImportContext::applyToPart(Score* score, Part* part, const String& partId,
                                     const std::function<int(int)>& staffIndexForNumber, MusicXmlLogger* logger)
 {
     const std::vector<BufferedState>* states = statesFor(partId);
@@ -423,7 +423,7 @@ bool JimsImportContext::applyToPart(Score* score, Part* part, const String& part
 //   parseProvenance
 //---------------------------------------------------------
 
-bool JimsImportContext::parseProvenance(XmlStreamReader& e, engraving::jims::Provenance& out, String& error) const
+bool MeloImportContext::parseProvenance(XmlStreamReader& e, engraving::jims::Provenance& out, String& error) const
 {
     out = engraving::jims::Provenance();
     out.strictFallback = e.attribute("fallback-profile") == u"strict";
@@ -454,7 +454,7 @@ bool JimsImportContext::parseProvenance(XmlStreamReader& e, engraving::jims::Pro
 //   parseTuningTrajectory
 //---------------------------------------------------------
 
-bool JimsImportContext::parseTuningTrajectory(XmlStreamReader& e, const std::function<engraving::Fraction(int)>& ticksOf,
+bool MeloImportContext::parseTuningTrajectory(XmlStreamReader& e, const std::function<engraving::Fraction(int)>& ticksOf,
                                               engraving::jims::TuningTrajectory& out, String& error) const
 {
     out = engraving::jims::TuningTrajectory();
@@ -520,7 +520,7 @@ bool JimsImportContext::parseTuningTrajectory(XmlStreamReader& e, const std::fun
 //   checkSharedStatesAcrossParts
 //---------------------------------------------------------
 
-bool JimsImportContext::checkSharedStatesAcrossParts(MusicXmlLogger* logger) const
+bool MeloImportContext::checkSharedStatesAcrossParts(MusicXmlLogger* logger) const
 {
     // Timeline signature per part: the ordered (tick, staff number, state) list.
     //

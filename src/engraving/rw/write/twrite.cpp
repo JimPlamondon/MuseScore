@@ -2966,16 +2966,16 @@ void TWrite::write(const StaffType* item, XmlWriter& xml, WriteContext& ctx)
         if (item->jimsJiLines()) {
             xml.tag("jimsJiLines", item->jimsJiLines());
         }
-        if (item->jimsScaleDotLabelMode() != JimsScaleDotLabelMode::Auto) {
-            const char* mode = item->jimsScaleDotLabelMode() == JimsScaleDotLabelMode::None ? "none"
-                               : item->jimsScaleDotLabelMode() == JimsScaleDotLabelMode::Left ? "left"
+        if (item->jimsScaleDotLabelMode() != MeloScaleDotLabelMode::Auto) {
+            const char* mode = item->jimsScaleDotLabelMode() == MeloScaleDotLabelMode::None ? "none"
+                               : item->jimsScaleDotLabelMode() == MeloScaleDotLabelMode::Left ? "left"
                                : "split";
             xml.tag("jimsScaleDotLabels", String::fromUtf8(mode));
         }
         // Milestone 8: the per-staff-type octave-band elision override
         // (presentation only; Auto is the absent default).
-        if (item->jimsElideOctaves() != JimsElideOctaves::Auto) {
-            xml.tag("jimsElideOctaves", String::fromAscii(item->jimsElideOctaves() == JimsElideOctaves::On ? "on" : "off"));
+        if (item->jimsElideOctaves() != MeloElideOctaves::Auto) {
+            xml.tag("jimsElideOctaves", String::fromAscii(item->jimsElideOctaves() == MeloElideOctaves::On ? "on" : "off"));
         }
         if (!item->jimsRatioLineExtentJson().isEmpty()) {
             xml.tag("jimsRatioLineExtent", item->jimsRatioLineExtentJson());

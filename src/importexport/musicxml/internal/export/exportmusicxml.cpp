@@ -433,17 +433,17 @@ private:
     // / jims:change fragments per (part, measure tick), staff-numbered by the
     // Kernel for multi-staff parts; every JiMS note's identity is checked
     // present. The fork composes no JiMS element text.
-    struct JimsFragment {
+    struct MeloFragment {
         String stateXml;
         String sharedStateXml;   // Kernel's cross-part comparable projection (owner ruling 2026-08-22)
         String changeXml;   // empty when the section carries no classified change
     };
-    struct JimsExportPlan {
+    struct MeloExportPlan {
         bool present = false;
-        std::map<std::pair<int, int>, std::vector<JimsFragment> > byPartTick;   // (partIndex, tick)
+        std::map<std::pair<int, int>, std::vector<MeloFragment> > byPartTick;   // (partIndex, tick)
         String error;
     };
-    JimsExportPlan m_jimsPlan;
+    MeloExportPlan m_jimsPlan;
     bool buildJimsExportPlan();
     void writeJimsAttributes(const Measure* const m, const int partIndex);
     void writeJimsAttributesAtTick(const Fraction& tick, const int partIndex);
@@ -9011,7 +9011,7 @@ static std::vector<const Jump*> findJumpElements(const Score* score)
 
 bool ExportMusicXml::buildJimsExportPlan()
 {
-    m_jimsPlan = JimsExportPlan();
+    m_jimsPlan = MeloExportPlan();
     const auto validateJimsHarmony = [this](const Harmony* harmony, bool insideFretDiagram) {
         if (!harmony || harmony->harmonyType() != HarmonyType::JIMS) {
             return true;
@@ -9065,7 +9065,7 @@ bool ExportMusicXml::buildJimsExportPlan()
             String previousState = baseJims ? base->jimsStateJson() : String();
             if (baseJims) {
                 m_jimsPlan.present = true;
-                JimsFragment f;
+                MeloFragment f;
                 String err;
                 if (!jims::musicxmlStaffStateV3Xml(base->jimsStateJson(), staffNumber, f.stateXml, &err)
                     || !jims::musicxmlSharedStateV3Xml(base->jimsStateJson(), f.sharedStateXml, &err)) {
@@ -9087,7 +9087,7 @@ bool ExportMusicXml::buildJimsExportPlan()
                     }
                     m_jimsPlan.present = true;
                     const String state = staff->staffType(carrier->tick())->jimsStateJson();
-                    JimsFragment f;
+                    MeloFragment f;
                     String err;
                     if (!jims::musicxmlStaffStateV3Xml(state, staffNumber, f.stateXml, &err)
                         || !jims::musicxmlSharedStateV3Xml(state, f.sharedStateXml, &err)) {
@@ -9125,7 +9125,7 @@ bool ExportMusicXml::buildJimsExportPlan()
         int referencePart = -1;
         std::map<int, std::vector<std::pair<int, String> > > timelines;   // partIndex -> (tick, sharedStateXml)*
         for (const auto& entry : m_jimsPlan.byPartTick) {
-            for (const JimsFragment& f : entry.second) {
+            for (const MeloFragment& f : entry.second) {
                 timelines[entry.first.first].push_back({ entry.first.second, f.sharedStateXml });
             }
         }
@@ -9206,7 +9206,7 @@ void ExportMusicXml::writeJimsAttributesAtTick(const Fraction& tick, const int p
     // verbatim through the trusted-fragment seam.
     m_attr.doAttr(m_xml, false);
     m_xml.startElement("attributes");
-    for (const JimsFragment& f : it->second) {
+    for (const MeloFragment& f : it->second) {
         m_xml.writeTrustedRawFragment(f.stateXml);
         if (!f.changeXml.isEmpty()) {
             m_xml.writeTrustedRawFragment(f.changeXml);

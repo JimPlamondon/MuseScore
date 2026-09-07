@@ -153,7 +153,7 @@ enum class ParenthesizeTiedFret : unsigned char {
 // Auto resolves to Left strictly inside the Kernel's label-legibility
 // range and Split at or outside it; the RESOLVED value is never
 // serialized.
-enum class JimsScaleDotLabelMode : unsigned char {
+enum class MeloScaleDotLabelMode : unsigned char {
     Auto = 0,
     None,
     Left,
@@ -165,7 +165,7 @@ enum class JimsScaleDotLabelMode : unsigned char {
 // fork-owned, never part of the Kernel state. Auto follows the score
 // style; On/Off beat the style in both directions. Persisted in .mscx
 // beside jimsScaleDotLabels; absent reads as Auto.
-enum class JimsElideOctaves : unsigned char {
+enum class MeloElideOctaves : unsigned char {
     Auto = 0,
     On,
     Off,
@@ -264,13 +264,13 @@ public:
     void setJimsTonicAmbit(const String& s) { m_jimsTonicAmbit = s; }
     // EXPERIMENTAL (owner request 2026-08-14, not locked in): draw the
     // Just Intonation diatonic scaffold instead of the mid-period line.
-    JimsScaleDotLabelMode jimsScaleDotLabelMode() const { return m_jimsScaleDotLabelMode; }
-    JimsScaleDotLabelMode jimsResolvedScaleDotLabelMode() const;
-    struct JimsFrameView;   // Milestone 8 (defined below)
+    MeloScaleDotLabelMode jimsScaleDotLabelMode() const { return m_jimsScaleDotLabelMode; }
+    MeloScaleDotLabelMode jimsResolvedScaleDotLabelMode() const;
+    struct MeloFrameView;   // Milestone 8 (defined below)
     // The ONE shared header-geometry calculation (labels FINAL §5.4.4):
     // layout, drawing, and every system's margin reservation all read
     // this — never independent formulas. Widths in points.
-    struct JimsHeaderGeometry {
+    struct MeloHeaderGeometry {
         double clefRx = 0.0;
         double indicatorW = 0.0;
         double leftLabelBand = 0.0;    // label column left of the dots
@@ -292,10 +292,10 @@ public:
     // `view` (Milestone 8, optional): for a banded view the current-key
     // label advance is the WIDEST band label, so every band's "[PitchN]:"
     // fits the reserved header; null or a one-band view is today's.
-    JimsHeaderGeometry jimsHeaderGeometry(double spatium, double defaultSpatium, const JimsFrameView* view = nullptr) const;
-    void setJimsScaleDotLabelMode(JimsScaleDotLabelMode mode) { m_jimsScaleDotLabelMode = mode; }
-    JimsElideOctaves jimsElideOctaves() const { return m_jimsElideOctaves; }
-    void setJimsElideOctaves(JimsElideOctaves mode) { m_jimsElideOctaves = mode; }
+    MeloHeaderGeometry jimsHeaderGeometry(double spatium, double defaultSpatium, const MeloFrameView* view = nullptr) const;
+    void setJimsScaleDotLabelMode(MeloScaleDotLabelMode mode) { m_jimsScaleDotLabelMode = mode; }
+    MeloElideOctaves jimsElideOctaves() const { return m_jimsElideOctaves; }
+    void setJimsElideOctaves(MeloElideOctaves mode) { m_jimsElideOctaves = mode; }
     const String& jimsRatioLineExtentJson() const { return m_jimsRatioLineExtentJson; }
     void setJimsRatioLineExtentJson(const String& value) { m_jimsRatioLineExtentJson = value; }
     bool jimsJiLines() const { return m_jimsJiLines; }
@@ -306,14 +306,14 @@ public:
     // state + melody it was computed from; NEVER serialized). Top cents
     // drives the seam's affine map; empty cache means the degenerate
     // whole-period frame from the configured line count.
-    struct JimsSegment {
+    struct MeloSegment {
         double lowerCents = 0.0;
         double upperCents = 0.0;
         bool whole = true;
     };
-    const std::vector<JimsSegment>& jimsFrameSegments() const { return m_jimsFrameSegments; }
+    const std::vector<MeloSegment>& jimsFrameSegments() const { return m_jimsFrameSegments; }
     const muse::String& jimsFrameKey() const { return m_jimsFrameKey; }
-    void setJimsFrame(const muse::String& key, const std::vector<JimsSegment>& segments) const
+    void setJimsFrame(const muse::String& key, const std::vector<MeloSegment>& segments) const
     {
         m_jimsFrameKey = key;
         m_jimsFrameSegments = segments;
@@ -367,8 +367,8 @@ public:
     // Which periods survive, each band's bounds/label, and the omitted
     // count are Kernel facts (frame_for_melody with options); the fork
     // slices the melody per system, caches, maps y<->cents, and draws.
-    struct JimsFrameBand {
-        std::vector<JimsSegment> segments;   // bottom to top
+    struct MeloFrameBand {
+        std::vector<MeloSegment> segments;   // bottom to top
         double lowerCents = 0.0;
         double upperCents = 0.0;
         int lowestPeriodIndex = 0;
@@ -378,8 +378,8 @@ public:
         double yTopLd = 0.0;                 // top edge, line distances below the staff top
         double heightLd() const { return (upperCents - lowerCents) / JIMS_CENTS_PER_LINE_DISTANCE; }
     };
-    struct JimsFrameView {
-        std::vector<JimsFrameBand> bands;    // bottom to top; empty = no frame
+    struct MeloFrameView {
+        std::vector<MeloFrameBand> bands;    // bottom to top; empty = no frame
         double gapLd = 0.0;                  // gap between adjacent bands, line distances
         int omittedPeriodCount = 0;          // Kernel-authoritative
         bool banded = false;                 // false = the legacy whole-piece frame (one band)
@@ -391,7 +391,7 @@ public:
         // gap per interior boundary. For one band this is the frame height.
         double heightLd() const;
         // The band whose closed [lower, upper] range holds `cents`, else null.
-        const JimsFrameBand* bandForCents(double cents) const;
+        const MeloFrameBand* bandForCents(double cents) const;
         // Piecewise cents -> y (line-distance units below the staff top).
         // Inside a band: that band's affine map; inside a gap: linear across
         // the gap between the two band edges (drawing geometry only, e.g.
@@ -408,16 +408,16 @@ public:
     // `system` is null or elision is not in effect for that system).
     // Cached per (staff-type, system range, state, token, melody, options,
     // effective policy); never re-derived while the frame is frozen.
-    const JimsFrameView& jimsFrameView(const Score* score, staff_idx_t staffIdx, const System* system) const;
+    const MeloFrameView& jimsFrameView(const Score* score, staff_idx_t staffIdx, const System* system) const;
     // The legacy whole-piece view (jimsEnsureFrame's cache as one band).
-    const JimsFrameView& jimsWholeFrameView(const Score* score, staff_idx_t staffIdx) const;
+    const MeloFrameView& jimsWholeFrameView(const Score* score, staff_idx_t staffIdx) const;
     // The EFFECTIVE elision policy for one system (style + first-system
     // rule + this staff type's Auto/On/Off override, MuseScore's
     // hide-empty-staves shape). Presentation only.
     bool jimsElisionActive(const Score* score, staff_idx_t staffIdx, const System* system) const;
     // Milestone 8: cents -> chord-relative y in spatium units for `view`
     // (the seam jimsYFromCents generalizes to; identical for one band).
-    double jimsYFromCents(double centsAboveDo, const JimsFrameView& view) const;
+    double jimsYFromCents(double centsAboveDo, const MeloFrameView& view) const;
     String tabBassStringPrefix(int strg, bool* hasFret) const;   // return a string with the prefix, if any, identifying a bass string
     int     numOfTabLedgerLines(int string) const;
 
@@ -539,16 +539,16 @@ private:
     // Derived on load; copied with a span and swapped by extent undo commands.
     // The first note replaces its empty centre anchor, rather than widening it.
     bool m_jimsExtentIsEmptyDefault = true;
-    JimsScaleDotLabelMode m_jimsScaleDotLabelMode = JimsScaleDotLabelMode::Auto;
-    JimsElideOctaves m_jimsElideOctaves = JimsElideOctaves::Auto;
+    MeloScaleDotLabelMode m_jimsScaleDotLabelMode = MeloScaleDotLabelMode::Auto;
+    MeloElideOctaves m_jimsElideOctaves = MeloElideOctaves::Auto;
     String m_jimsRatioLineExtentJson;
     mutable muse::String m_jimsFrameKey;
     mutable bool m_jimsFrameFrozen = false;
-    mutable std::vector<JimsSegment> m_jimsFrameSegments;
+    mutable std::vector<MeloSegment> m_jimsFrameSegments;
     // Milestone 8: explicit per-range frame views, keyed by the system
     // range ("whole" or the system's tick range); each entry remembers the
     // full derivation key it was computed from. NEVER serialized.
-    mutable std::map<muse::String, JimsFrameView> m_jimsFrameViews;
+    mutable std::map<muse::String, MeloFrameView> m_jimsFrameViews;
 
     bool m_showBarlines = true;
     bool m_showLedgerLines = true;

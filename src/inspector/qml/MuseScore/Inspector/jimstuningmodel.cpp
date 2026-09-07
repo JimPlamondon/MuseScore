@@ -19,18 +19,18 @@ namespace {
 const muse::audio::AudioResourceId JIMSYNTH_RESOURCE_ID = "JiMSynth";
 }
 
-JimsTuningModel::JimsTuningModel(QObject* parent)
+MeloTuningModel::MeloTuningModel(QObject* parent)
     : QObject(parent), muse::Contextable(muse::iocCtxForQmlObject(this))
 {
     jims::generatorRange(m_minimum, m_maximum);
 }
 
-JimsTuningModel::~JimsTuningModel()
+MeloTuningModel::~MeloTuningModel()
 {
     cancel();
 }
 
-void JimsTuningModel::init()
+void MeloTuningModel::init()
 {
     context()->currentNotationChanged().onNotify(this, [this]() { setNotation(); });
     if (playbackController()) {
@@ -41,7 +41,7 @@ void JimsTuningModel::init()
     setNotation();
 }
 
-void JimsTuningModel::setNotation()
+void MeloTuningModel::setNotation()
 {
     cancel();
     if (m_notation) {
@@ -56,7 +56,7 @@ void JimsTuningModel::setNotation()
     refresh();
 }
 
-void JimsTuningModel::refresh()
+void MeloTuningModel::refresh()
 {
     if (m_busy || m_previewing) {
         return;
@@ -75,12 +75,12 @@ void JimsTuningModel::refresh()
     emit changed();
 }
 
-double JimsTuningModel::cents() const
+double MeloTuningModel::cents() const
 {
     return m_controller ? m_controller->currentGeneratorCents() : 0.0;
 }
 
-void JimsTuningModel::reportError(const QString& error)
+void MeloTuningModel::reportError(const QString& error)
 {
     m_error = error;
     if (accessibilityController()) {
@@ -88,7 +88,7 @@ void JimsTuningModel::reportError(const QString& error)
     }
 }
 
-bool JimsTuningModel::valid(double value)
+bool MeloTuningModel::valid(double value)
 {
     if (std::isfinite(value) && value >= m_minimum && value <= m_maximum) {
         m_error.clear();
@@ -100,7 +100,7 @@ bool JimsTuningModel::valid(double value)
     return false;
 }
 
-bool JimsTuningModel::beginPreview()
+bool MeloTuningModel::beginPreview()
 {
     if (m_previewing) {
         return true;
@@ -110,7 +110,7 @@ bool JimsTuningModel::beginPreview()
     return m_previewing;
 }
 
-void JimsTuningModel::notifyNotation()
+void MeloTuningModel::notifyNotation()
 {
     m_busy = true;
     if (m_notation) {
@@ -120,12 +120,12 @@ void JimsTuningModel::notifyNotation()
     emit changed();
 }
 
-bool JimsTuningModel::isCurrentNotation() const
+bool MeloTuningModel::isCurrentNotation() const
 {
     return m_notation && m_notation == context()->currentNotation();
 }
 
-void JimsTuningModel::setLiveGenerator(double value)
+void MeloTuningModel::setLiveGenerator(double value)
 {
     if (m_generatorParamId == 0 || !std::isfinite(value) || !isCurrentNotation() || !playbackController()) {
         return;
@@ -133,7 +133,7 @@ void JimsTuningModel::setLiveGenerator(double value)
     playbackController()->setInputParamPlainForResource(m_notation, JIMSYNTH_RESOURCE_ID, m_generatorParamId, value);
 }
 
-void JimsTuningModel::syncLiveGenerator()
+void MeloTuningModel::syncLiveGenerator()
 {
     if (!m_controller) {
         m_generatorParamId = 0;
@@ -147,7 +147,7 @@ void JimsTuningModel::syncLiveGenerator()
     setLiveGenerator(cents());
 }
 
-void JimsTuningModel::preview(double value)
+void MeloTuningModel::preview(double value)
 {
     if (!valid(value) || !beginPreview()) {
         return;
@@ -165,7 +165,7 @@ void JimsTuningModel::preview(double value)
     notifyNotation();
 }
 
-void JimsTuningModel::commit(double value)
+void MeloTuningModel::commit(double value)
 {
     if (!valid(value)) {
         cancel();
@@ -202,7 +202,7 @@ void JimsTuningModel::commit(double value)
     notifyNotation();
 }
 
-void JimsTuningModel::acceptText(const QString& text)
+void MeloTuningModel::acceptText(const QString& text)
 {
     bool ok = false;
     const double value = QLocale().toDouble(text, &ok);
@@ -214,7 +214,7 @@ void JimsTuningModel::acceptText(const QString& text)
     commit(value);
 }
 
-void JimsTuningModel::cancel()
+void MeloTuningModel::cancel()
 {
     if (!m_controller || !m_previewing) {
         return;
@@ -227,7 +227,7 @@ void JimsTuningModel::cancel()
     notifyNotation();
 }
 
-QColor JimsTuningModel::criticalColor() const
+QColor MeloTuningModel::criticalColor() const
 {
     return engravingConfiguration()->criticalColor().toQColor();
 }

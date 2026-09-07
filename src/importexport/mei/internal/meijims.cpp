@@ -170,10 +170,10 @@ static jims::ReviewValue readReviewValue(pugi::xml_node node)
 }
 
 //---------------------------------------------------------
-// JimsMeiExporter
+// MeloMeiExporter
 //---------------------------------------------------------
 
-std::string JimsMeiExporter::respIdFor(const String& reviewer)
+std::string MeloMeiExporter::respIdFor(const String& reviewer)
 {
     for (size_t i = 0; i < m_reviewers.size(); ++i) {
         if (m_reviewers.at(i) == reviewer) {
@@ -184,7 +184,7 @@ std::string JimsMeiExporter::respIdFor(const String& reviewer)
     return "jims-resp-" + std::to_string(m_reviewers.size());
 }
 
-bool JimsMeiExporter::buildPlan(const Score* score)
+bool MeloMeiExporter::buildPlan(const Score* score)
 {
     m_score = score;
     m_present = false;
@@ -273,7 +273,7 @@ bool JimsMeiExporter::buildPlan(const Score* score)
     return true;
 }
 
-bool JimsMeiExporter::projectPitch(const String& stateJson, int nPer, int nGen, std::string& pname, int& alter, int& octave)
+bool MeloMeiExporter::projectPitch(const String& stateJson, int nPer, int nGen, std::string& pname, int& alter, int& octave)
 {
     jims::SoundingPitch projection;
     String error;
@@ -287,7 +287,7 @@ bool JimsMeiExporter::projectPitch(const String& stateJson, int nPer, int nGen, 
     return true;
 }
 
-bool JimsMeiExporter::onStaffDef(pugi::xml_node staffDefNode, const Staff* staff)
+bool MeloMeiExporter::onStaffDef(pugi::xml_node staffDefNode, const Staff* staff)
 {
     for (StaffPlan& plan : m_staves) {
         if (plan.staff != staff) {
@@ -407,13 +407,13 @@ bool JimsMeiExporter::onStaffDef(pugi::xml_node staffDefNode, const Staff* staff
     return true;
 }
 
-void JimsMeiExporter::onMeasure(const Measure* measure, const std::string& xmlId)
+void MeloMeiExporter::onMeasure(const Measure* measure, const std::string& xmlId)
 {
     m_measureIndex[measure] = m_measures.size();
     m_measures.push_back({ measure, xmlId });
 }
 
-void JimsMeiExporter::writeScoreAnnots(pugi::xml_node scoreNode)
+void MeloMeiExporter::writeScoreAnnots(pugi::xml_node scoreNode)
 {
     if (!m_present) {
         return;
@@ -451,7 +451,7 @@ void JimsMeiExporter::writeScoreAnnots(pugi::xml_node scoreNode)
     }
 }
 
-void JimsMeiExporter::writeMeasureAnnots(pugi::xml_node measureNode, const Measure* measure)
+void MeloMeiExporter::writeMeasureAnnots(pugi::xml_node measureNode, const Measure* measure)
 {
     // Evidentiary adjudications anchored inside this measure. An anchor that
     // no longer lands in the score is STALE: it is marked, never silently
@@ -505,7 +505,7 @@ void JimsMeiExporter::writeMeasureAnnots(pugi::xml_node measureNode, const Measu
     }
 }
 
-void JimsMeiExporter::onHarm(pugi::xml_node harmNode, const Harmony* harmony, const std::string& xmlId)
+void MeloMeiExporter::onHarm(pugi::xml_node harmNode, const Harmony* harmony, const std::string& xmlId)
 {
     if (!harmony || harmony->harmonyType() != HarmonyType::JIMS) {
         return;
@@ -524,7 +524,7 @@ void JimsMeiExporter::onHarm(pugi::xml_node harmNode, const Harmony* harmony, co
     m_harms.push_back({ xmlId, harmony });
 }
 
-void JimsMeiExporter::onNote(const Note* note, const std::string& xmlId)
+void MeloMeiExporter::onNote(const Note* note, const std::string& xmlId)
 {
     if (!note || !note->hasJimsPitch()) {
         return;
@@ -536,7 +536,7 @@ void JimsMeiExporter::onNote(const Note* note, const std::string& xmlId)
     m_notes.push_back({ xmlId, note });
 }
 
-bool JimsMeiExporter::writeExtMeta(pugi::xml_node meiHead)
+bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
 {
     if (!m_present) {
         return true;
@@ -873,10 +873,10 @@ bool JimsMeiExporter::writeExtMeta(pugi::xml_node meiHead)
 }
 
 //---------------------------------------------------------
-// JimsMeiImporter
+// MeloMeiImporter
 //---------------------------------------------------------
 
-void JimsMeiImporter::capture(pugi::xml_node root)
+void MeloMeiImporter::capture(pugi::xml_node root)
 {
     m_error.clear();
     m_staffDefN.clear();
@@ -982,9 +982,9 @@ static pugi::xml_node childByLocal(pugi::xml_node parent, const char* local)
     return pugi::xml_node();
 }
 
-bool JimsMeiImporter::stateJsonFromXml(pugi::xml_node staffStateNode, String& json)
+bool MeloMeiImporter::stateJsonFromXml(pugi::xml_node staffStateNode, String& json)
 {
-    // Mirrors JimsImportContext::parseStaffState's converter byte-shape:
+    // Mirrors MeloImportContext::parseStaffState's converter byte-shape:
     // fixed key order, no spaces, tonic_ambit last (the musicxml importer
     // remains the owning transcription; re-sync on change).
     auto jsonNumber = [](const std::string& text, bool& ok) -> std::string {
@@ -1072,7 +1072,7 @@ bool JimsMeiImporter::stateJsonFromXml(pugi::xml_node staffStateNode, String& js
     return true;
 }
 
-bool JimsMeiImporter::apply(Score* score,
+bool MeloMeiImporter::apply(Score* score,
                             const std::function<Note* (const std::string&)>& noteForId,
                             const std::function<int(int)>& staffIndexForN)
 {

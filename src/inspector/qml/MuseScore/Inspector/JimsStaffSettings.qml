@@ -8,7 +8,7 @@ import MuseScore.Inspector
 import "common"
 InspectorSectionView {
     id: root
-    required property JimsStaffSettingsModel model
+    required property MeloStaffSettingsModel model
     implicitHeight: controls.implicitHeight
     Column {
         id: controls

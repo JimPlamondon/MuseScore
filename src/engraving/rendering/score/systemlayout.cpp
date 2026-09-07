@@ -125,11 +125,11 @@ static void applyJimsBandOffsets(System* system, LayoutContext& ctx)
             if (!st || !st->isJiMS()) {
                 continue;
             }
-            const StaffType::JimsFrameView& view = st->jimsFrameView(score, staffIdx, system);
+            const StaffType::MeloFrameView& view = st->jimsFrameView(score, staffIdx, system);
             if (!view.banded || view.bands.size() <= 1) {
                 continue;
             }
-            const StaffType::JimsFrameView& whole = st->jimsWholeFrameView(score, staffIdx);
+            const StaffType::MeloFrameView& whole = st->jimsWholeFrameView(score, staffIdx);
             const double wholeTop = whole.topCents();
             const double ld = st->lineDistance().val();
             // The header time signature (tick 0) was centred on the whole-piece
@@ -143,10 +143,10 @@ static void applyJimsBandOffsets(System* system, LayoutContext& ctx)
                         const double wholeMidLd = (whole.topCents() - whole.bottomCents()) / 2.0
                                                   / StaffType::JIMS_CENTS_PER_LINE_DISTANCE;
                         const double midLd = view.heightLd() / 2.0;
-                        const StaffType::JimsFrameBand* target = nullptr;
-                        const StaffType::JimsFrameBand* above = nullptr;
+                        const StaffType::MeloFrameBand* target = nullptr;
+                        const StaffType::MeloFrameBand* above = nullptr;
                         for (size_t i = view.bands.size(); i > 0; --i) {       // top to bottom
-                            const StaffType::JimsFrameBand& band = view.bands[i - 1];
+                            const StaffType::MeloFrameBand& band = view.bands[i - 1];
                             if (midLd < band.yTopLd) {
                                 target = above ? above : &band;                 // the middle fell in the gap above this band
                                 break;
@@ -179,7 +179,7 @@ static void applyJimsBandOffsets(System* system, LayoutContext& ctx)
                     Chord* chord = toChord(e);
                     // The band holding this chord's notes (a chord's notes share a
                     // band; the first identified note decides).
-                    const StaffType::JimsFrameBand* band = nullptr;
+                    const StaffType::MeloFrameBand* band = nullptr;
                     for (const Note* note : chord->notes()) {
                         if (note->hasJimsPitch() && note->jimsCentsValid()) {
                             band = view.bandForCents(note->jimsCentsAboveDo());
@@ -227,7 +227,7 @@ static double jimsSystemStaffHeight(const Staff* staff, staff_idx_t staffIdx, co
     if (!st || !st->isJiMS() || !system) {
         return staff->staffHeight(tick);
     }
-    const StaffType::JimsFrameView& view = st->jimsFrameView(staff->score(), staffIdx, system);
+    const StaffType::MeloFrameView& view = st->jimsFrameView(staff->score(), staffIdx, system);
     if (view.empty()) {
         return staff->staffHeight(tick);
     }

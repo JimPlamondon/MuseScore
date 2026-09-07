@@ -12,7 +12,7 @@ import MuseScore.Inspector
 
 Column {
     id: root
-    required property JimsTuningModel model
+    required property MeloTuningModel model
     required property NavigationPanel navigationPanel
     property bool showFigure: true
     spacing: 8
