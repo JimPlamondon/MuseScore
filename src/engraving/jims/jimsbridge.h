@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: GPL-3.0-only
  * MuseScore-Studio-CLA-applies
  *
- * JiMStaff Milestone 1 — the fork-side wrapper over the jims-musescore-bridge
+ * JiMStaff Milestone 1 — the fork-side wrapper over the melo-musescore-bridge
  * C ABI (Apache-2.0 staticlib built from the JiMS Kernel repository). Every
  * musical fact used by JiMStaff rendering crosses this seam as JSON derived
  * by the Kernel; nothing here computes note classes, memberships, cents, or

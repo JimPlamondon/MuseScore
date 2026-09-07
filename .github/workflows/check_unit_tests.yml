@@ -63,14 +63,14 @@ jobs:
         bash ./buildscripts/ci/linux/setup.sh
 
     # musescore-jims: the engraving module links the JiMS Kernel's
-    # jims-musescore-bridge staticlib (built by cargo during CMake configure,
+    # melo-musescore-bridge staticlib (built by cargo during CMake configure,
     # see src/engraving/jims/SetupJiMSBridge.cmake). The Kernel repository is
     # private: JIMS_KERNEL_TOKEN is a fine-grained PAT with read-only
-    # Contents access to JimPlamondon/jims, stored as a repository secret.
-    - name: Clone JiMS Kernel (jims)
+    # Contents access to JimPlamondon/melopresto, stored as a repository secret.
+    - name: Clone MeloPresto Kernel (melopresto)
       uses: actions/checkout@v6
       with:
-        repository: JimPlamondon/jims
+        repository: JimPlamondon/melopresto
         ref: main
         token: ${{ secrets.JIMS_KERNEL_TOKEN }}
         path: jims-kernel
