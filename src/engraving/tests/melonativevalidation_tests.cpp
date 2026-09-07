@@ -65,7 +65,7 @@ TEST(Engraving_MeloNativeValidation, unsupportedStateIsExplainedEvenWithoutNotes
         std::unique_ptr<MasterScore> score(compat::ScoreAccess::createMasterScoreWithBaseStyle(nullptr));
         const muse::Ret result = compat::loadMsczOrMscx(score.get(), path);
         EXPECT_EQ(result.code(), int(Err::FileBadFormat));
-        EXPECT_NE(result.text().find("JiMS data that this version cannot read"), std::string::npos);
+        EXPECT_NE(result.text().find("MeloPresto data that this version cannot read"), std::string::npos);
         ASSERT_TRUE(file.open(QIODevice::ReadOnly));
         EXPECT_EQ(file.readAll(), bytes);
     }

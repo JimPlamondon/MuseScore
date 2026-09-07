@@ -122,7 +122,7 @@ void VstSynthesiser::init(const OutputSpec& spec)
             try {
                 pitchConfig.mpePitchBendRangeSemitones = std::stod(range->second);
             } catch (...) {
-                LOGW() << "Invalid JiMS MPE pitch-bend range for " << m_params.resourceMeta.id;
+                LOGW() << "Invalid MPE pitch-bend range for " << m_params.resourceMeta.id;
             }
         }
         m_mpePitchBendRangeSemitones = pitchConfig.mpePitchBendRangeSemitones;

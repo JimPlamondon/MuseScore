@@ -357,7 +357,7 @@ TEST(Engraving_MeloStaffM10SATBTests, firstNoteReplacesEmptyCentreAndUndoRestore
     input.setSegment(score->tick2segment(Fraction(0, 1), false, SegmentType::ChordRest));
     input.setDuration(DurationType::V_QUARTER);
     input.setNoteEntryMode(true);
-    score->startCmd(TranslatableString::untranslatable("First JiMS note"));
+    score->startCmd(TranslatableString::untranslatable("First MeloPresto note"));
     score->cmdAddPitch(5 * 7 + 1, false, false); // Host letter input for Re0's default D4.
     score->endCmd();
     score->doLayout();
@@ -435,7 +435,7 @@ TEST(Engraving_MeloStaffM10SATBTests, eachStaffTypeSpanCollectsOnlyItsOwnNotes)
     ASSERT_TRUE(second);
     const std::vector<Note*> notes = notesOn(score, 0);
     ASSERT_FALSE(notes.empty());
-    score->startCmd(TranslatableString::untranslatable("Create an empty JiMS section"));
+    score->startCmd(TranslatableString::untranslatable("Create an empty MeloPresto section"));
     std::vector<Chord*> later;
     for (Note* note : notes) {
         if (note->tick() >= second->tick()) {
@@ -582,7 +582,7 @@ TEST(Engraving_MeloStaffM10SATBTests, melodyDesignationDefaultsOverridesAndUndoR
         EXPECT_TRUE(score->staff(i)->staffType(Fraction(0, 1))->meloTonicAmbit() == sopranoToken);
     }
 
-    score->startCmd(TranslatableString("undoableAction", "Test JiMS melody part"));
+    score->startCmd(TranslatableString("undoableAction", "Test MeloPresto melody part"));
     score->undo(new ChangeMeloMelodyPart(score, melo::MelodyPart::Tenor));
     score->endCmd();
     EXPECT_EQ(score->meloMelodyPart(), melo::MelodyPart::Tenor);

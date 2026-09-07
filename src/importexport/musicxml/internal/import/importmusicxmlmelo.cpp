@@ -39,6 +39,7 @@
 #include "importmusicxmllogger.h"
 
 #include "log.h"
+#include "engraving/melo/melostrings.h"
 
 using namespace muse;
 using namespace mu::engraving;
@@ -50,7 +51,7 @@ static const char* MELO_URI_STEM = "urn:jims:musicxml:";
 // dialog) AND the console log, so a refused import is never silent.
 static void meloFatal(MusicXmlLogger* logger, const String& text, const XmlStreamReader* e = nullptr)
 {
-    LOGE() << "JiMS MusicXML import: " << text;
+    LOGE() << mu::engraving::melo::diagnostic::musicXmlImport << text;
     if (logger) {
         logger->logError(text, e);
     }
@@ -74,12 +75,12 @@ Err MeloImportContext::resolveFromRoot(const std::vector<XmlStreamReader::Attrib
         if (!ok || version < MIN_VERSION || version > MAX_VERSION) {
             meloFatal(logger,
                       String(
-                          u"unsupported JiMS MusicXML namespace '%1' (this MuseScore understands urn:jims:musicxml:%2..%3); import refused so the document is not silently shown as a plain staff")
+                          mu::engraving::melo::diagnostic::unsupportedMusicXmlNamespace)
                       .arg(a.value).arg(MIN_VERSION).arg(MAX_VERSION), e);
             return Err::FileBadFormat;
         }
         if (name == u"xmlns") {
-            meloFatal(logger, String(u"the JiMS namespace '%1' must be bound to a prefix, not used as the default namespace").arg(
+            meloFatal(logger, String(mu::engraving::melo::diagnostic::defaultNamespaceUnsupported).arg(
                           a.value), e);
             return Err::FileBadFormat;
         }
@@ -92,11 +93,11 @@ Err MeloImportContext::resolveFromRoot(const std::vector<XmlStreamReader::Attrib
         }
         if (hasMelo()) {
             if (version != m_version) {
-                meloFatal(logger, String(u"two distinct JiMS profiles declared in one document (urn:jims:musicxml:%1 and %2)")
+                meloFatal(logger, String(mu::engraving::melo::diagnostic::conflictingMusicXmlProfiles)
                           .arg(m_version).arg(version), e);
                 return Err::FileBadFormat;
             }
-            logger->logDebugInfo(String(u"JiMS namespace bound twice; keeping prefix '%1'").arg(m_prefix), e);
+            logger->logDebugInfo(String(mu::engraving::melo::diagnostic::namespaceBoundTwice).arg(m_prefix), e);
             continue;
         }
         m_prefix = prefix;
@@ -343,7 +344,7 @@ bool MeloImportContext::applyToPart(Score* score, Part* part, const String& part
         return true;
     }
     if (!melo::available()) {
-        meloFatal(logger, u"JiMS Kernel bridge unavailable; cannot import a JiMS staff");
+        meloFatal(logger, mu::engraving::melo::diagnostic::importBridgeUnavailable);
         return false;
     }
 
@@ -370,7 +371,7 @@ bool MeloImportContext::applyToPart(Score* score, Part* part, const String& part
         for (const BufferedState* s : entry.second) {
             String kernelError;
             if (!melo::validateState(s->json, kernelError)) {
-                meloFatal(logger, String(u"the JiMS Kernel rejected a jims:staff-state: %1").arg(kernelError));
+                meloFatal(logger, String(mu::engraving::melo::diagnostic::importStateRejected).arg(kernelError));
                 return false;
             }
             if (first) {
@@ -533,7 +534,7 @@ bool MeloImportContext::checkSharedStatesAcrossParts(MusicXmlLogger* logger) con
     auto sharedForm = [&logger](const BufferedState& s, String& out) {
         String err;
         if (!melo::musicxmlSharedStateV3Xml(s.json, out, &err)) {
-            meloFatal(logger, String(u"JiMS import: the Kernel could not derive the shared state form: %1").arg(err));
+            meloFatal(logger, String(mu::engraving::melo::diagnostic::importSharedStateFailed).arg(err));
             return false;
         }
         return true;
@@ -564,8 +565,7 @@ bool MeloImportContext::checkSharedStatesAcrossParts(MusicXmlLogger* logger) con
             same = sharedA == sharedB;
         }
         if (!same) {
-            meloFatal(logger, String(u"JiMS parts %1 and %2 carry different jims:staff-state timelines; "
-                                     u"every JiMS part of a document must share one state timeline")
+            meloFatal(logger, String(mu::engraving::melo::diagnostic::importTimelinesDiffer)
                       .arg(referenceId, partId));
             return false;
         }

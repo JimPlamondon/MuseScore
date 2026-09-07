@@ -174,7 +174,7 @@ Score* syntheticCommonToneScore()
         delete score;
         return nullptr;
     }
-    score->setMetaTag(u"workTitle", u"JiMS Common-Tone Projection Acceptance");
+    score->setMetaTag(u"workTitle", u"MeloPresto Common-Tone Projection Acceptance");
     score->doLayout();
     return score;
 }

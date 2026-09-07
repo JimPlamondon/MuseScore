@@ -109,6 +109,7 @@
 #include "engraving/rendering/score/tlayout.h"
 
 #include "log.h"
+#include "engraving/melo/melostrings.h"
 
 using namespace muse;
 using namespace mu;
@@ -2519,10 +2520,10 @@ void MusicXmlParserPass2::part()
             size_t repairs = 0;
             String repairError;
             if (!melo::normalizeStoredPitchesAfterLoad(m_score, repairs, repairError, false)) {
-                m_logger->logError(String(u"the JiMS Kernel could not normalize imported note projections: %1").arg(repairError), &m_e);
+                m_logger->logError(String(mu::engraving::melo::diagnostic::importNormalizationFailed).arg(repairError), &m_e);
                 m_meloError = Err::FileBadFormat;
             } else if (repairs > 0) {
-                m_logger->logDebugInfo(String(u"normalized %1 contradictory JiMS compatibility pitch projection(s)").arg(repairs), &m_e);
+                m_logger->logDebugInfo(String(mu::engraving::melo::diagnostic::importedProjectionsNormalized).arg(repairs), &m_e);
             }
         }
     }
@@ -3226,7 +3227,7 @@ void MusicXmlParserPass2::meloStaffState(const String& partId, const Fraction& t
     String error;
     int staffNumber = 0;
     if (!m_melo.parseStaffState(m_e, json, staffNumber, error)) {
-        LOGE() << "JiMS MusicXML import: " << error;
+        LOGE() << mu::engraving::melo::diagnostic::musicXmlImport << error;
         m_logger->logError(error, &m_e);
         m_meloError = Err::FileBadFormat;
         return;

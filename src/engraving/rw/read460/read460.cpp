@@ -60,6 +60,7 @@
 #include "tread.h"
 
 #include "log.h"
+#include "engraving/melo/melostrings.h"
 
 using namespace mu::engraving;
 using namespace mu::engraving::read460;
@@ -206,7 +207,7 @@ muse::Ret Read460::readScoreFile(Score* score, XmlReader& e, rw::ReadInOutData* 
             if (state && state->isMelo() && !melo::validateState(state->meloStateJson(), error)) {
                 return make_ret(Err::FileBadFormat,
                                 muse::mtrc("engraving",
-                                           "This score contains JiMS data that this version cannot read. The original file has not been changed. Open it in the JiMS version that saved it, and keep a native copy. Details: %1")
+                                           mu::engraving::melo::diagnostic::unreadableScore)
                                 .arg(error));
             }
         }

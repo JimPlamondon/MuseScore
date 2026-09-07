@@ -1712,7 +1712,7 @@ static void pitch2xml(const Note* note, String& s, int& alter, int& octave)
             octave = projection.octave;
             return;
         }
-        LOGE() << "JiMS export projection failed after preflight: " << error;
+        LOGE() << mu::engraving::melo::diagnostic::exportProjectionFailed << error;
     }
     const Instrument* instr = st->part()->instrument(tick);
     const Interval intval = note->concertPitch() ? 0 : instr->transpose();

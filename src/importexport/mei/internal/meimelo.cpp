@@ -43,6 +43,7 @@
 #include "global/serialization/json.h"
 
 #include "log.h"
+#include "engraving/melo/melostrings.h"
 
 using namespace mu::engraving;
 using muse::String;
@@ -225,7 +226,7 @@ bool MeloMeiExporter::buildPlan(const Score* score)
                 }
             }
             if (name.isEmpty() || whitespace || name.contains(u'~')) {
-                m_error = u"JiMS MEI export: every JiMS chord name must be nonempty, whitespace-free, and tilde-free";
+                m_error = mu::engraving::melo::diagnostic::meiExportInvalidChordName;
                 return false;
             }
             m_present = true;
@@ -240,7 +241,7 @@ bool MeloMeiExporter::buildPlan(const Score* score)
             continue;
         }
         if (!melo::available()) {
-            m_error = u"JiMS MEI export: the JiMS Kernel bridge is unavailable";
+            m_error = mu::engraving::melo::diagnostic::meiExportBridgeUnavailable;
             return false;
         }
         m_present = true;
@@ -278,7 +279,7 @@ bool MeloMeiExporter::projectPitch(const String& stateJson, int nPer, int nGen, 
     melo::SoundingPitch projection;
     String error;
     if (!melo::noteSoundingPitch(stateJson, nPer, nGen, projection, &error)) {
-        m_error = String(u"JiMS MEI export: extent projection failed: %1").arg(error);
+        m_error = String(mu::engraving::melo::diagnostic::meiExportExtentProjectionFailed).arg(error);
         return false;
     }
     pname = std::string(1, char(std::tolower(projection.step)));
@@ -339,7 +340,7 @@ bool MeloMeiExporter::onStaffDef(pugi::xml_node staffDefNode, const Staff* staff
         for (const auto& st : plan.states) {
             int b[4];
             if (!extentBounds(st.second, b)) {
-                m_error = u"JiMS MEI export: cannot read the extent of a staff state";
+                m_error = mu::engraving::melo::diagnostic::meiExportExtentUnreadable;
                 return false;
             }
             std::string p;
@@ -604,7 +605,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
                 }
             }
             if (!measure) {
-                m_error = u"JiMS MEI export: a staff state does not sit in an exported measure";
+                m_error = mu::engraving::melo::diagnostic::meiExportStateOutsideMeasure;
                 return false;
             }
             auto mit = m_measureIndex.find(measure);
@@ -617,12 +618,12 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
             String fragment;
             String err;
             if (!melo::musicxmlStaffStateV3Xml(plan.states.at(si).second, 0, fragment, &err)) {
-                m_error = String(u"JiMS MEI export: the Kernel refused to serialize a staff state: %1").arg(err);
+                m_error = String(mu::engraving::melo::diagnostic::meiExportStateSerializationFailed).arg(err);
                 return false;
             }
             pugi::xml_document fragDoc;
             if (!fragDoc.load_string(fragment.toStdString().c_str())) {
-                m_error = u"JiMS MEI export: unparsable Kernel staff-state fragment";
+                m_error = mu::engraving::melo::diagnostic::meiExportStateFragmentInvalid;
                 return false;
             }
             se.append_copy(fragDoc.first_child());
@@ -667,7 +668,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
                 // JiMS MEI canonical basis: 960 divisions per quarter note.
                 const Fraction div = (quartersOf(seg.duration) * Fraction(960, 1)).reduced();
                 if (div.denominator() != 1) {
-                    m_error = u"JiMS MEI export: a trajectory duration does not fit the canonical 960-division basis";
+                    m_error = mu::engraving::melo::diagnostic::meiExportDurationInvalid;
                     return false;
                 }
                 sege.append_attribute("duration-divisions") = div.numerator();
@@ -862,7 +863,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
                 te.append_attribute("stale") = "true";
                 te.append_attribute("id") = id.c_str();
                 te.append_attribute("tick") = adj.tick.toString().toStdString().c_str();
-                LOGW() << "JiMS MEI export: adjudication " << id
+                LOGW() << mu::engraving::melo::diagnostic::meiExportStaleAdjudication << id
                        << " is stale (its score-time anchor no longer resolves); marked stale";
             }
             writeReviewValue(te, adj.record);
@@ -1080,7 +1081,7 @@ bool MeloMeiImporter::apply(Score* score,
         return true;
     }
     if (!melo::available()) {
-        m_error = u"JiMS MEI import: the JiMS Kernel bridge is unavailable";
+        m_error = mu::engraving::melo::diagnostic::meiImportBridgeUnavailable;
         return false;
     }
     pugi::xml_node mx;
@@ -1090,7 +1091,7 @@ bool MeloMeiImporter::apply(Score* score,
         }
     }
     if (!mx) {
-        m_error = u"JiMS MEI import: jm:record carries no jm:musicxml section";
+        m_error = mu::engraving::melo::diagnostic::meiImportMissingMusicXml;
         return false;
     }
 
@@ -1105,13 +1106,13 @@ bool MeloMeiImporter::apply(Score* score,
     auto tickOf = [&](pugi::xml_node node, Fraction& tick) -> bool {
         const int midx = node.attribute("measure").as_int() - 1;
         if (midx < 0 || midx >= int(measures.size())) {
-            m_error = u"JiMS MEI import: a record names a measure outside the score";
+            m_error = mu::engraving::melo::diagnostic::meiImportMeasureUnknown;
             return false;
         }
         std::string off = node.attribute("off").value();
         const size_t slash = off.find('/');
         if (slash == std::string::npos) {
-            m_error = u"JiMS MEI import: a record offset is not a rational number";
+            m_error = mu::engraving::melo::diagnostic::meiImportOffsetInvalid;
             return false;
         }
         const Fraction quarters(std::stoi(off.substr(0, slash)), std::stoi(off.substr(slash + 1)));
@@ -1127,12 +1128,12 @@ bool MeloMeiImporter::apply(Score* score,
         const std::string ref = std::string(pe.attribute("ref").value()).substr(1);
         auto nIt = m_staffDefN.find(ref);
         if (nIt == m_staffDefN.end()) {
-            m_error = u"JiMS MEI import: a jm:part names no staffDef of this file";
+            m_error = mu::engraving::melo::diagnostic::meiImportStaffDefinitionUnknown;
             return false;
         }
         const int staffIdx = staffIndexForN(nIt->second);
         if (staffIdx < 0 || staffIdx >= int(score->nstaves())) {
-            m_error = u"JiMS MEI import: a jm:part resolves to no score staff";
+            m_error = mu::engraving::melo::diagnostic::meiImportStaffUnknown;
             return false;
         }
         Staff* staff = score->staff(staffIdx);
@@ -1145,13 +1146,13 @@ bool MeloMeiImporter::apply(Score* score,
                 String json;
                 if (!stateNode || !stateJsonFromXml(stateNode, json)) {
                     if (m_error.isEmpty()) {
-                        m_error = u"JiMS MEI import: jm:state carries no staff-state";
+                        m_error = mu::engraving::melo::diagnostic::meiImportStateMissing;
                     }
                     return false;
                 }
                 String kernelError;
                 if (!melo::validateState(json, kernelError)) {
-                    m_error = String(u"JiMS MEI import: the Kernel rejected a staff state: %1").arg(kernelError);
+                    m_error = String(mu::engraving::melo::diagnostic::meiImportStateRejected).arg(kernelError);
                     return false;
                 }
                 Fraction tick;
@@ -1164,24 +1165,24 @@ bool MeloMeiImporter::apply(Score* score,
                 st.setMeloStateJson(json);
                 if (first) {
                     if (!tick.isZero()) {
-                        m_error = u"JiMS MEI import: the first staff state must sit at the start of the score";
+                        m_error = mu::engraving::melo::diagnostic::meiImportFirstStateNotAtStart;
                         return false;
                     }
                     staff->setStaffType(Fraction(0, 1), st);
                     first = false;
                 } else {
                     if (tick <= lastTick) {
-                        m_error = u"JiMS MEI import: staff states must be in strictly increasing order";
+                        m_error = mu::engraving::melo::diagnostic::meiImportStatesOutOfOrder;
                         return false;
                     }
                     Measure* measure = score->tick2measure(tick);
                     if (!measure || tick < measure->tick() || tick >= measure->endTick()) {
-                        m_error = u"JiMS MEI import: a staff state does not sit inside a measure";
+                        m_error = mu::engraving::melo::diagnostic::meiImportStateOutsideMeasure;
                         return false;
                     }
                     const Fraction rtick = tick - measure->tick();
                     if (!measure->canAddStaffTypeChange(staff->idx(), rtick)) {
-                        m_error = u"JiMS MEI import: cannot place a staff type change at the exact state tick";
+                        m_error = mu::engraving::melo::diagnostic::meiImportStatePlacementFailed;
                         return false;
                     }
                     StaffTypeChange* stc = Factory::createStaffTypeChange(measure);
@@ -1205,7 +1206,7 @@ bool MeloMeiImporter::apply(Score* score,
                     Note* note = noteForId(noteRef);
                     pugi::xml_node px = childByLocal(ne, "pitch");
                     if (!note || !px) {
-                        m_error = u"JiMS MEI import: a note-identity record does not resolve";
+                        m_error = mu::engraving::melo::diagnostic::meiImportNoteIdentityUnresolved;
                         return false;
                     }
                     note->setMeloPitch(px.attribute("n-per").as_int(), px.attribute("n-gen").as_int());
@@ -1298,7 +1299,7 @@ bool MeloMeiImporter::apply(Score* score,
                 const std::string aid = std::string(child.attribute("annot").value()).substr(1);
                 auto ait = m_adjAnnots.find(aid);
                 if (ait == m_adjAnnots.end()) {
-                    m_error = u"JiMS MEI import: an adjudication record does not resolve to its annotation";
+                    m_error = mu::engraving::melo::diagnostic::meiImportAdjudicationUnresolved;
                     return false;
                 }
                 pugi::xml_node annot = ait->second;

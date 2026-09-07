@@ -348,7 +348,7 @@ TEST_F(MusicXml_Melo_Tests, midBarIndicatorElementsAlignWithTheirDisplayedStaffN
             ++doLineCount;
         }
     }
-    EXPECT_EQ(doLineCount, 2u) << "one-period tonic-bounded JiMStaff must be Do-to-Do";
+    EXPECT_EQ(doLineCount, 2u) << "one-period tonic-bounded MeloPresto Staff must be Do-to-Do";
     const StaffType* displayedStaffType = score->staff(0)->staffType(measure->tick());
     ASSERT_TRUE(displayedStaffType);
     ASSERT_TRUE(displayedStaffType->isMelo());
@@ -589,7 +589,7 @@ TEST_F(MusicXml_Melo_Tests, ChordNameTranspositionLeavesMeloOpaqueAndTransposesS
     const int secondStandardRoot = beforeStock[1]->rootTpc();
 
     score->cmdSelectAll();
-    score->startCmd(TranslatableString::untranslatable("Test JiMS chord-name transposition"));
+    score->startCmd(TranslatableString::untranslatable("Test MeloPresto chord-name transposition"));
     Transpose::transpose(score, TransposeMode::BY_INTERVAL, TransposeDirection::UP, Key::C, 4,
                          true, true, true);
     score->endCmd();
@@ -1568,7 +1568,7 @@ String satbTemplatePath()
 TEST_F(MusicXml_Melo_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExtent)
 {
     MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
-    ASSERT_TRUE(score) << "the SATB (JiMStaff) template is not shipped";
+    ASSERT_TRUE(score) << "the SATB (MeloPresto Staff) template is not shipped";
     score->doLayout();
     ASSERT_EQ(score->nstaves(), 4u);
 
@@ -1587,7 +1587,7 @@ TEST_F(MusicXml_Melo_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
     const MeloSnapshot before = snapshotOf(score);
     ASSERT_EQ(before.baseStates.size(), 4u);
     for (const String& s : before.baseStates) {
-        EXPECT_FALSE(s.empty()) << "every SATB staff must be a JiMStaff";
+        EXPECT_FALSE(s.empty()) << "every SATB staff must be a MeloPresto Staff";
     }
 
     const String out = exportToScratch(score, "export-m9-satb-template.musicxml");
@@ -1627,7 +1627,7 @@ TEST_F(MusicXml_Melo_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
         }
         return out;
     };
-    EXPECT_EQ(meloLinesOf(xml2), meloLinesOf(xml)) << "the JiMS content must not drift across a second round trip";
+    EXPECT_EQ(meloLinesOf(xml2), meloLinesOf(xml)) << "the MeloPresto content must not drift across a second round trip";
     EXPECT_EQ(xml2.count(u"lower-n-per=\"0\" lower-n-gen=\"1\" upper-n-per=\"0\" upper-n-gen=\"1\""), 1);
     EXPECT_EQ(xml2.count(u"lower-n-per=\"-1\" lower-n-gen=\"2\" upper-n-per=\"-1\" upper-n-gen=\"2\""), 1);
     EXPECT_EQ(xml2.count(u"lower-n-per=\"-2\" lower-n-gen=\"3\" upper-n-per=\"-2\" upper-n-gen=\"3\""), 1);
@@ -1643,7 +1643,7 @@ TEST_F(MusicXml_Melo_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
 TEST_F(MusicXml_Melo_Tests, m9SATBScoreWideChangeKeepsOneSharedTimelineOnExport)
 {
     MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
-    ASSERT_TRUE(score) << "the SATB (JiMStaff) template is not shipped";
+    ASSERT_TRUE(score) << "the SATB (MeloPresto Staff) template is not shipped";
     score->doLayout();
     ASSERT_EQ(score->nstaves(), 4u);
 
@@ -1680,7 +1680,7 @@ TEST_F(MusicXml_Melo_Tests, m9SATBExtentOnlyDivergenceIsAcceptedAndMusicalDiverg
         << "a musical-field divergence must still be refused on import";
 
     MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
-    ASSERT_TRUE(score) << "the SATB (JiMStaff) template is not shipped";
+    ASSERT_TRUE(score) << "the SATB (MeloPresto Staff) template is not shipped";
     score->doLayout();
     ASSERT_EQ(score->nstaves(), 4u);
     // Diverge one voice in a MUSICAL field: export must fail closed.

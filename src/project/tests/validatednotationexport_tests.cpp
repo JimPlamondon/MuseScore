@@ -14,9 +14,9 @@ TEST(ValidatedNotationExport, RefusalPreservesExistingDestinationAndDoesNotCreat
     const QString path = directory.filePath("score.mxl");
     auto refuse = [](io::IODevice& output) {
         output.write(QByteArray("partial archive"));
-        return Ret(int(Ret::Code::UnknownError), "incompatible JiMS state");
+        return Ret(int(Ret::Code::UnknownError), "incompatible MeloPresto state");
     };
-    EXPECT_EQ(writeValidatedNotationExport(path, refuse).text(), "incompatible JiMS state");
+    EXPECT_EQ(writeValidatedNotationExport(path, refuse).text(), "incompatible MeloPresto state");
     EXPECT_FALSE(QFile::exists(path));
     QFile file(path);
     ASSERT_TRUE(file.open(QIODevice::WriteOnly));

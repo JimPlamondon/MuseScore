@@ -1013,7 +1013,7 @@ void StaffType::meloEnsureFrame(const Score* score, staff_idx_t staffIdx) const
         // and a diagnostic is emitted; nothing is synthesized fork-side.
         std::vector<MeloSegment> cached;
         if (token.isEmpty()) {
-            LOGE() << "JiMStaff: no declared tonic-ambit token; frame unavailable for staff " << staffIdx;
+            LOGE() << mu::engraving::melo::diagnostic::staffFrameMissingAmbit << staffIdx;
         } else {
             std::vector<melo::StaveSegment> segments;
             if (melo::frameForMelody(meloStateJson(), melody, token, segments, {}, m_meloRatioLineExtentJson,
@@ -1048,7 +1048,7 @@ void StaffType::meloEnsureFrame(const Score* score, staff_idx_t staffIdx) const
                     }
                 }
             } else {
-                LOGE() << "JiMStaff: Kernel frame derivation failed for staff " << staffIdx
+                LOGE() << mu::engraving::melo::diagnostic::staffFrameDerivationFailed << staffIdx
                        << " (state/melody rejected); frame cleared";
             }
         }
@@ -1477,7 +1477,7 @@ const StaffType::MeloFrameView& StaffType::meloFrameView(const Score* score, sta
         return true;
     };
     if (token.isEmpty()) {
-        LOGE() << "JiMStaff: no declared tonic-ambit token; banded frame unavailable for staff " << staffIdx;
+        LOGE() << mu::engraving::melo::diagnostic::staffBandsMissingAmbit << staffIdx;
     } else if (deriveBands({}, view)) {
         if (hasIndicator && meloPeriodCents() > 0.0) {
             melo::PeriodicOrigins origins;
@@ -1490,7 +1490,7 @@ const StaffType::MeloFrameView& StaffType::meloFrameView(const Score* score, sta
             }
         }
     } else {
-        LOGE() << "JiMStaff: Kernel banded frame derivation failed for staff " << staffIdx
+        LOGE() << mu::engraving::melo::diagnostic::staffBandsDerivationFailed << staffIdx
                << " (state/melody rejected); banded view cleared";
     }
     MeloFrameView& stored = m_meloFrameViews[rangeKey];

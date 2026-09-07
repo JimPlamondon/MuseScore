@@ -222,7 +222,7 @@ std::vector<Note*> notesOn(Score* score, staff_idx_t staffIdx)
 TEST(Engraving_MeloStaffM9SATBTests, m9TemplateIsShippedAndOpensAsFourVocalPartsInOpenScore)
 {
     ASSERT_TRUE(fileExists(satbTemplatePath()))
-        << "the SATB (JiMStaff) template is not shipped at " << satbTemplatePath().toStdString();
+        << "the SATB (MeloPresto Staff) template is not shipped at " << satbTemplatePath().toStdString();
     MasterScore* score = openShippedTemplate();
     ASSERT_TRUE(score);
     score->doLayout();
@@ -353,7 +353,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9EveryStaffIsAMeloStaffCarryingItsRangeDer
     for (staff_idx_t i = 0; i < 4; ++i) {
         const StaffType* st = score->staff(i)->staffType(Fraction(0, 1));
         ASSERT_TRUE(st) << "staff " << i;
-        EXPECT_TRUE(st->isMelo()) << "staff " << i << " must be a JiMStaff";
+        EXPECT_TRUE(st->isMelo()) << "staff " << i << " must be a MeloPresto Staff";
         EXPECT_EQ(st->xmlName(), muse::String(u"jims12tet")) << "staff " << i;
         // The modern key. The legacy `tonic_extent` spelling must not appear
         // in a template authored today.
@@ -708,7 +708,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9StockPartsAreLeftUntouchedAndASinglePartS
     score->doLayout();
 
     for (staff_idx_t i : meloStaves) {
-        EXPECT_TRUE(stateAt(score, i, m2).contains(u"\"mode_rotation\":5")) << "JiMS staff " << i;
+        EXPECT_TRUE(stateAt(score, i, m2).contains(u"\"mode_rotation\":5")) << "MeloPresto staff " << i;
     }
     for (size_t k = 0; k < stockStaves.size(); ++k) {
         EXPECT_EQ(score->staff(stockStaves[k])->staffType(m2->tick())->name(), stockBefore[k])
@@ -927,7 +927,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9SweepLyricsAttachToMeloNotesAndSitBelowTh
             }
             Chord* c = toChord(e);
             for (Note* n : c->notes()) {
-                ASSERT_TRUE(n->hasMeloPitch()) << "the lyric carrier must be a JiMS note";
+                ASSERT_TRUE(n->hasMeloPitch()) << "the lyric carrier must be a MeloPresto note";
                 lowestNoteY = std::max(lowestNoteY, n->pagePos().y());
             }
             for (Lyrics* l : c->lyrics()) {
@@ -969,7 +969,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9SweepDynamicsUseVocalAbovePlacementOnMelo
             for (EngravingItem* e : s->annotations()) {
                 if (e && e->isDynamic() && e->staffIdx() == 0) {
                     ++dynamics;
-                    EXPECT_EQ(e->placement(), PlacementV::ABOVE) << "a dynamic on a vocal JiMStaff sits above";
+                    EXPECT_EQ(e->placement(), PlacementV::ABOVE) << "a dynamic on a vocal MeloPresto Staff sits above";
                     dynamicY = e->pagePos().y();
                 }
             }
@@ -978,7 +978,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9SweepDynamicsUseVocalAbovePlacementOnMelo
     EXPECT_EQ(dynamics, 1u) << "the fixture carries one dynamic";
     // Above the staff means clear of the JiMS terrain below it: the dynamic is
     // higher on the page than every note of the staff it belongs to.
-    EXPECT_LT(dynamicY, highestNoteY) << "the dynamic must clear the JiMS header terrain and the frame";
+    EXPECT_LT(dynamicY, highestNoteY) << "the dynamic must clear the MeloPresto header terrain and the frame";
     delete score;
 }
 
@@ -1049,7 +1049,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9SweepHideEmptyStavesWorksOnAFourMeloStaff
     const System* sys = score->systems().front();
     EXPECT_TRUE(sys->staff(0)->show()) << "the written part must stay visible";
     for (staff_idx_t i = 1; i < 4; ++i) {
-        EXPECT_FALSE(sys->staff(i)->show()) << "unwritten JiMStaff " << i << " must hide like any empty staff";
+        EXPECT_FALSE(sys->staff(i)->show()) << "unwritten MeloPresto Staff " << i << " must hide like any empty staff";
     }
 
     score->style().set(Sid::hideEmptyStaves, false);
@@ -1120,7 +1120,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9EveryNotesPitchIsTheKernelsProjectionOfIt
                 }
             }
         }
-        EXPECT_GT(checked, 0u) << muse::String(f).toStdString() << " carried no JiMS notes to check";
+        EXPECT_GT(checked, 0u) << muse::String(f).toStdString() << " carried no MeloPresto notes to check";
         delete score;
     }
 }

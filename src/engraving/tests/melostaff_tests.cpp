@@ -676,7 +676,7 @@ void shiftNotePeriods(Score* score, Note* note, int periods)
     // A real drag/entry moves BOTH the lattice identity and the stock
     // compatibility pitch (an octave per period), so ledger generation
     // sees the same line movement the GUI would produce.
-    score->startCmd(TranslatableString::untranslatable("JiMS test edit"));
+    score->startCmd(TranslatableString::untranslatable("MeloPresto test edit"));
     note->undoChangeProperty(Pid::MELO_NPER, note->meloNPer() + periods);
     note->undoChangeProperty(Pid::PITCH, std::clamp(note->pitch() + 12 * periods, 0, 127));
     score->endCmd();
@@ -710,7 +710,7 @@ TEST(MeloStaffTests, deletingAllNotesRetainsTheWrittenFrameUntilReload)
     const Segs before = frameOf(score);
 
     // Delete every chord on staff 0 through the ordinary edit path.
-    score->startCmd(TranslatableString::untranslatable("JiMS test edit"));
+    score->startCmd(TranslatableString::untranslatable("MeloPresto test edit"));
     std::vector<Chord*> chords;
     for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
          seg = seg->next1(SegmentType::ChordRest)) {
@@ -803,7 +803,7 @@ TEST(MeloStaffTests, liveFrameGrowsShrinksAndRoundTripsThroughUndo)
     // Shrink: delete the outermost chord; the stack must not keep the
     // old extent, and must equal the Kernel's answer.
     shiftNotePeriods(score, top, +2);
-    score->startCmd(TranslatableString::untranslatable("JiMS test edit"));
+    score->startCmd(TranslatableString::untranslatable("MeloPresto test edit"));
     score->deleteItem(top->chord());
     score->endCmd();
     score->doLayout();
@@ -859,7 +859,7 @@ TEST(MeloStaffTests, meloChordsGenerateNoLedgerLinesEvenFarOutside)
     ASSERT_TRUE(top);
     shiftNotePeriods(score, top, +3);   // three periods up: far above the staff
     EXPECT_EQ(ledgerLineCountOnStaff0(score), 0u)
-        << "a JiMS chord must never carry LedgerLine elements";
+        << "a MeloPresto chord must never carry LedgerLine elements";
     shiftNotePeriods(score, top, -6);   // and far below
     EXPECT_EQ(ledgerLineCountOnStaff0(score), 0u);
     delete score;
@@ -880,7 +880,7 @@ TEST(MeloStaffTests, shadowNoteShowsNoLedgerLinesOnMeloStaff)
     ASSERT_TRUE(sn->staffType() && sn->staffType()->isMelo());
     for (int line : { -30, -6, 0, 12, 20, 40 }) {
         sn->setLineIndex(line);
-        EXPECT_FALSE(sn->ledgerLinesVisible()) << "JiMS preview ledger at line " << line;
+        EXPECT_FALSE(sn->ledgerLinesVisible()) << "MeloPresto preview ledger at line " << line;
     }
     delete score;
 }
@@ -1294,7 +1294,7 @@ TEST(MeloStaffTests, dragIsUndoableIncludingLatticeIdentityAndFrame)
 
     EditData ed(nullptr);
     EngravingItem* dragged = top;
-    score->startCmd(TranslatableString::untranslatable("JiMS test drag"));
+    score->startCmd(TranslatableString::untranslatable("MeloPresto test drag"));
     dragged->startDrag(ed);
     ed.evtDelta = PointF(0.0, -24.0 * sp);
     ed.moveDelta = PointF(0.0, -24.0 * sp);      // two periods up
@@ -1438,7 +1438,7 @@ TEST(MeloStaffTests, m4WriteRenderScenarios)
     // 1. empty staff
     {
         Score* score = fresh();
-        score->startCmd(TranslatableString::untranslatable("JiMS scenario"));
+        score->startCmd(TranslatableString::untranslatable("MeloPresto scenario"));
         std::vector<Chord*> chords;
         for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
              seg = seg->next1(SegmentType::ChordRest)) {
@@ -1489,7 +1489,7 @@ TEST(MeloStaffTests, m4WriteRenderScenarios)
         Score* score = fresh();
         Note* top = highestMeloNote(score);
         shiftNotePeriods(score, top, +2);
-        score->startCmd(TranslatableString::untranslatable("JiMS scenario"));
+        score->startCmd(TranslatableString::untranslatable("MeloPresto scenario"));
         score->deleteItem(top->chord());
         score->endCmd();
         score->doLayout();

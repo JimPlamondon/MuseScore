@@ -41,6 +41,7 @@
 #include "renderers/chordarticulationsrenderer.h"
 
 #include "filters/chordfilter.h"
+#include "engraving/melo/melostrings.h"
 
 using namespace mu::engraving;
 using namespace muse;
@@ -79,7 +80,7 @@ static void appendDynamicTonalityProfile(const EngravingItem* item, PlaybackEven
     if (melo::vst3ProfileTransaction(staffType->meloStateJson(), 0, 0, 0, profile, &error)) {
         events.emplace_back(std::move(profile));
     } else {
-        LOGE() << "JiMS VST3 profile preparation failed: " << error;
+        LOGE() << mu::engraving::melo::diagnostic::vstProfilePreparationFailed << error;
     }
 }
 

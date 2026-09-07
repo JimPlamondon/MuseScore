@@ -6,8 +6,7 @@
 Every user-visible MeloPresto name must live only in
 src/engraving/melo/melostrings.h so a future trademark rename is one-file
 work. This check fails when any of the tracked names appears as a quoted
-literal elsewhere in production src/. Test evidence and five explicitly
-listed existing diagnostics are not interface labels. Exit 0 = clean.
+literal elsewhere in production src/. Test evidence is not a shipped interface label. Exit 0 = clean.
 """
 import os
 import re
@@ -17,15 +16,8 @@ ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
 TABLE = os.path.join(ROOT, "src", "engraving", "melo", "melostrings.h")
 NAMES = ["MeloPresto", "JiMStaff", "JiMS staff", "crescent clef", "scale dots", "tonic indicator"]
 
-# These existing diagnostics are not translated interface labels. Keep the
-# exception finite: a new literal, including a new diagnostic, still fails.
-NON_UI_LITERALS = {
-    ("src/engraving/dom/stafftype.cpp", "JiMStaff: no declared tonic-ambit token; frame unavailable for staff "),
-    ("src/engraving/dom/stafftype.cpp", "JiMStaff: Kernel frame derivation failed for staff "),
-    ("src/engraving/dom/stafftype.cpp", "JiMStaff: no declared tonic-ambit token; banded frame unavailable for staff "),
-    ("src/engraving/dom/stafftype.cpp", "JiMStaff: Kernel banded frame derivation failed for staff "),
-    ("src/importexport/musicxml/internal/import/importmusicxmlmelo.cpp", "JiMS Kernel bridge unavailable; cannot import a JiMS staff"),
-}
+# All production diagnostics now use the central table; no literal exceptions.
+NON_UI_LITERALS = set()
 
 failures = []
 for dirpath, dirnames, filenames in os.walk(os.path.join(ROOT, "src")):

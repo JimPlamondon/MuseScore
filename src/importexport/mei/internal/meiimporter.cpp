@@ -82,6 +82,7 @@
 #include "thirdparty/libmei/midi.h"
 
 #include "pugixml.hpp"
+#include "engraving/melo/melostrings.h"
 
 using namespace muse;
 using namespace mu;
@@ -156,7 +157,7 @@ bool MeiImporter::read(const muse::io::path_t& path)
         }
         if (hasMeloCarrier) {
             Convert::logs.push_back(muse::mtrc("iex_mei",
-                                               "JiMS data is incomplete: its required state record is missing. Import was stopped to avoid silently losing the notation. Use the original JiMS file."));
+                                               mu::engraving::melo::diagnostic::incompleteMeiState));
             return false;
         }
     }

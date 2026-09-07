@@ -36,9 +36,9 @@ class StringTableGuardTests(unittest.TestCase):
         })
         self.assertEqual(result.returncode, 0, result.stdout)
 
-    def test_diagnostic_exception_does_not_cover_new_text_or_other_files(self):
+    def test_diagnostics_also_require_the_central_table(self):
         existing = 'LOGE() << "JiMStaff: Kernel frame derivation failed for staff ";'
-        self.assertEqual(self.check_tree({"src/engraving/dom/stafftype.cpp": existing}).returncode, 0)
+        self.assertNotEqual(self.check_tree({"src/engraving/dom/stafftype.cpp": existing}).returncode, 0)
         self.assertNotEqual(self.check_tree({"src/other.cpp": existing}).returncode, 0)
         self.assertNotEqual(self.check_tree({"src/engraving/dom/stafftype.cpp": existing.replace("failed", "stopped")}).returncode, 0)
 

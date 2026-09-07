@@ -147,6 +147,70 @@ inline muse::String stockLossWarning()
                       "embraces MeloPresto Notation, use *only* this MeloPresto-enabled version of MuseScore to avoid losing "
                       "MeloPresto-specific information.");
 }
+
+namespace diagnostic {
+inline constexpr char periodCoordinate[] = QT_TRANSLATE_NOOP("engraving/propertyName", "MeloPresto period coordinate");
+inline constexpr char generatorCoordinate[] = QT_TRANSLATE_NOOP("engraving/propertyName", "MeloPresto generator coordinate");
+inline constexpr char staffFrameMissingAmbit[] = "MeloPresto Staff: no declared tonic-ambit token; frame unavailable for staff ";
+inline constexpr char staffFrameDerivationFailed[] = "MeloPresto Staff: Kernel frame derivation failed for staff ";
+inline constexpr char staffBandsMissingAmbit[] = "MeloPresto Staff: no declared tonic-ambit token; banded frame unavailable for staff ";
+inline constexpr char staffBandsDerivationFailed[] = "MeloPresto Staff: Kernel banded frame derivation failed for staff ";
+inline constexpr char vstProfilePreparationFailed[] = "MeloPresto VST3 profile preparation failed: ";
+inline constexpr char soundingPitchFailed[] = "MeloPresto note_sounding_pitch failed for identity (";
+inline constexpr char unreadableScore[] = QT_TRANSLATE_NOOP("engraving",
+                                                            "This score contains MeloPresto data that this version cannot read. The original file has not been changed. Open it in the MeloPresto version that saved it, and keep a native copy. Details: %1");
+inline constexpr char storedProjectionsNormalized[]
+    = " contradictory MeloPresto stored pitch projection(s); the document is marked modified";
+inline constexpr char incompleteMeiState[] = QT_TRANSLATE_NOOP("iex_mei",
+                                                               "MeloPresto data is incomplete: its required state record is missing. Import was stopped to avoid silently losing the notation. Use the original MeloPresto file.");
+inline constexpr char16_t meiExportInvalidChordName[]
+    = u"MeloPresto MEI export: every MeloPresto chord name must be nonempty, whitespace-free, and tilde-free";
+inline constexpr char16_t meiExportBridgeUnavailable[] = u"MeloPresto MEI export: the MeloPresto Kernel bridge is unavailable";
+inline constexpr char16_t meiExportExtentProjectionFailed[] = u"MeloPresto MEI export: extent projection failed: %1";
+inline constexpr char16_t meiExportExtentUnreadable[] = u"MeloPresto MEI export: cannot read the extent of a staff state";
+inline constexpr char16_t meiExportStateOutsideMeasure[] = u"MeloPresto MEI export: a staff state does not sit in an exported measure";
+inline constexpr char16_t meiExportStateSerializationFailed[] = u"MeloPresto MEI export: the Kernel refused to serialize a staff state: %1";
+inline constexpr char16_t meiExportStateFragmentInvalid[] = u"MeloPresto MEI export: unparsable Kernel staff-state fragment";
+inline constexpr char16_t meiExportDurationInvalid[]
+    = u"MeloPresto MEI export: a trajectory duration does not fit the canonical 960-division basis";
+inline constexpr char meiExportStaleAdjudication[] = "MeloPresto MEI export: adjudication ";
+inline constexpr char16_t meiImportBridgeUnavailable[] = u"MeloPresto MEI import: the MeloPresto Kernel bridge is unavailable";
+inline constexpr char16_t meiImportMissingMusicXml[] = u"MeloPresto MEI import: jm:record carries no jm:musicxml section";
+inline constexpr char16_t meiImportMeasureUnknown[] = u"MeloPresto MEI import: a record names a measure outside the score";
+inline constexpr char16_t meiImportOffsetInvalid[] = u"MeloPresto MEI import: a record offset is not a rational number";
+inline constexpr char16_t meiImportStaffDefinitionUnknown[] = u"MeloPresto MEI import: a jm:part names no staffDef of this file";
+inline constexpr char16_t meiImportStaffUnknown[] = u"MeloPresto MEI import: a jm:part resolves to no score staff";
+inline constexpr char16_t meiImportStateMissing[] = u"MeloPresto MEI import: jm:state carries no staff-state";
+inline constexpr char16_t meiImportStateRejected[] = u"MeloPresto MEI import: the Kernel rejected a staff state: %1";
+inline constexpr char16_t meiImportFirstStateNotAtStart[]
+    = u"MeloPresto MEI import: the first staff state must sit at the start of the score";
+inline constexpr char16_t meiImportStatesOutOfOrder[] = u"MeloPresto MEI import: staff states must be in strictly increasing order";
+inline constexpr char16_t meiImportStateOutsideMeasure[] = u"MeloPresto MEI import: a staff state does not sit inside a measure";
+inline constexpr char16_t meiImportStatePlacementFailed[]
+    = u"MeloPresto MEI import: cannot place a staff type change at the exact state tick";
+inline constexpr char16_t meiImportNoteIdentityUnresolved[] = u"MeloPresto MEI import: a note-identity record does not resolve";
+inline constexpr char16_t meiImportAdjudicationUnresolved[]
+    = u"MeloPresto MEI import: an adjudication record does not resolve to its annotation";
+inline constexpr char exportProjectionFailed[] = "MeloPresto export projection failed after preflight: ";
+inline constexpr char musicXmlImport[] = "MeloPresto MusicXML import: ";
+inline constexpr char16_t unsupportedMusicXmlNamespace[]
+    =
+        u"unsupported MeloPresto MusicXML namespace '%1' (this MuseScore understands urn:jims:musicxml:%2..%3); import refused so the document is not silently shown as a plain staff";
+inline constexpr char16_t defaultNamespaceUnsupported[]
+    = u"the MeloPresto namespace '%1' must be bound to a prefix, not used as the default namespace";
+inline constexpr char16_t conflictingMusicXmlProfiles[]
+    = u"two distinct MeloPresto profiles declared in one document (urn:jims:musicxml:%1 and %2)";
+inline constexpr char16_t namespaceBoundTwice[] = u"MeloPresto namespace bound twice; keeping prefix '%1'";
+inline constexpr char16_t importBridgeUnavailable[] = u"MeloPresto Kernel bridge unavailable; cannot import a MeloPresto staff";
+inline constexpr char16_t importStateRejected[] = u"the MeloPresto Kernel rejected a jims:staff-state: %1";
+inline constexpr char16_t importSharedStateFailed[] = u"MeloPresto import: the Kernel could not derive the shared state form: %1";
+inline constexpr char16_t importNormalizationFailed[] = u"the MeloPresto Kernel could not normalize imported note projections: %1";
+inline constexpr char16_t importedProjectionsNormalized[] = u"normalized %1 contradictory MeloPresto compatibility pitch projection(s)";
+inline constexpr char scoreUsesNotation[] = QT_TRANSLATE_NOOP("project/save", "This score uses MeloPresto notation");
+inline constexpr char16_t importTimelinesDiffer[]
+    =
+        u"MeloPresto parts %1 and %2 carry different jims:staff-state timelines; every MeloPresto part of a document must share one state timeline";
+}
 }
 
 #endif
