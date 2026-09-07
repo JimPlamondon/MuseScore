@@ -226,7 +226,7 @@ private:
     QUrl scoreManagerUrl() const;
 
     bool m_isProjectSaving = false;
-    std::set<const INotationProject*> m_meloStockLossWarned;   // projects warned this session (JiMStaff)
+    std::set<const INotationProject*> m_meloStockLossWarned;   // projects warned this session (MeloPresto Staff)
     bool m_isProjectClosing = false;
     bool m_isProjectProcessing = false;
     bool m_isProjectPublishing = false;

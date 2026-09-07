@@ -26,19 +26,19 @@ class StaffTypeChange;
 }
 
 namespace mu::engraving::melo {
-/// The JiMS StaffTypeChange carried by `measure` for `staffIdx`, if any.
+/// The MeloPresto StaffTypeChange carried by `measure` for `staffIdx`, if any.
 const StaffTypeChange* changeCarrier(const Measure* measure, staff_idx_t staffIdx);
 
-/// The JiMS carrier at one exact absolute score tick, if any.
+/// The MeloPresto carrier at one exact absolute score tick, if any.
 const StaffTypeChange* changeCarrierAt(const Measure* measure, staff_idx_t staffIdx, const Fraction& tick);
 
-/// All JiMS carriers in `measure` for `staffIdx`, ordered by exact tick.
+/// All MeloPresto carriers in `measure` for `staffIdx`, ordered by exact tick.
 std::vector<const StaffTypeChange*> changeCarriers(const Measure* measure, staff_idx_t staffIdx);
 
 /// The Kernel's change-indicator model for the change `measure` carries
 /// on `staffIdx`, evaluated between the staff type in effect just before
 /// the measure and the one it introduces. Returns false when the measure
-/// carries no JiMS change, when the change sits at a system head (the
+/// carries no MeloPresto change, when the change sits at a system head (the
 /// full header is the indication there — no enclosure), or when the
 /// Kernel model is empty (tuning/extent/presentation-only differences).
 bool midSystemChangeIndicator(const Measure* measure, staff_idx_t staffIdx, ChangeIndicator& out, const StaffType** newStaffType = nullptr);
@@ -54,7 +54,7 @@ double changeTerrainWidth(const Measure* measure);
 double changeTerrainWidthAt(const Measure* measure, const Fraction& tick);
 
 /// Courtesy indicator (owner ruling 2026-08-16, option 1a): when the NEXT
-/// measure carries a JiMS change and `measure` is the last of its system,
+/// measure carries a MeloPresto change and `measure` is the last of its system,
 /// the change is indicated at the END of `measure` — the closing barline
 /// serves as the right stroke, one added stroke opens the terrain on the
 /// left — because the new system's fresh header alone hides the change.
@@ -79,7 +79,7 @@ double changeAnchorPeriodCents(const StaffType::MeloFrameView& view, const Chang
 
 /// The change indicator drawn against THIS staff type's frame — the one
 /// whose NEW state is `newStaffType` (its own section start; mid-system or
-/// courtesy alike). False when the staff type starts no JiMS section
+/// courtesy alike). False when the staff type starts no MeloPresto section
 /// (the base type) or the Kernel derives no indicator.
 bool changeIndicatorIntoStaffType(const Score* score, staff_idx_t staffIdx, const StaffType* newStaffType, ChangeIndicator& out);
 
@@ -98,10 +98,10 @@ std::vector<double> changeIndicatorOverflowCents(const StaffType::MeloFrameView&
                                                  double doCentsAboveExtentLower = 0.0);
 
 /// Derive one song-wide tonic ambit from the explicitly designated melody
-/// part and repeat the Kernel token through every JiMS transport carrier.
+/// part and repeat the Kernel token through every MeloPresto transport carrier.
 int deriveTonicAmbits(Score* score);
 
-/// True when every JiMS base and change carrier already transports the
+/// True when every MeloPresto base and change carrier already transports the
 /// work's explicit tonic-ambit token.
 bool hasCompleteTonicAmbits(const Score* score);
 
@@ -109,7 +109,7 @@ bool hasCompleteTonicAmbits(const Score* score);
 /// Kernel-derived centre anchor from the Part's declared range.
 int reconcileExtents(Score* score);
 
-/// Whether a span contains no written JiMS notes across all its voices.
+/// Whether a span contains no written MeloPresto notes across all its voices.
 bool staffSpanIsEmpty(const Staff* staff, const Fraction& start, const Fraction& stop);
 
 /// Install an empty staff's declared range-centre anchor. Written staves

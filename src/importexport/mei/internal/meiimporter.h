@@ -218,7 +218,7 @@ private:
     /** The uid register */
     UIDRegister* m_uids;
 
-    /// JiMS MEI carriage (mei-jims profile)
+    /// MeloPresto MEI carriage (mei-jims profile)
     MeloMeiImporter m_melo;
     std::map<std::string, engraving::Note*> m_meloNoteIds;
 

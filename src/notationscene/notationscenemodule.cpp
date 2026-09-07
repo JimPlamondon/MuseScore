@@ -60,7 +60,7 @@ std::string NotationSceneModule::moduleName() const
 
 static void notationscene_init_qrc()
 {
-    // JiMS Tuning panel continuum figure (owner's CC BY-SA 4.0 figure);
+    // MeloPresto Tuning panel continuum figure (owner's CC BY-SA 4.0 figure);
     // static-lib modules must initialise their qrc explicitly.
     Q_INIT_RESOURCE(melo_tuning);
 }

@@ -5043,7 +5043,7 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
     // yellow mid-period line at 600 cents — never the uniform line set.
     // Ordinates route through the single StaffType seam. The bbox above
     // stays the stock (_lines - 1) * dist frame, which for the 13-location
-    // JiMS preset is exactly the one-period staff height.
+    // MeloPresto preset is exactly the one-period staff height.
     const StaffType* meloSt = s ? s->staffType(item->measure()->tick()) : nullptr;
     if (meloSt && meloSt->isMelo()) {
         const bool systemHead = item->measure() && item->measure()->system()
@@ -5052,7 +5052,7 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         // The frame is the Kernel's, always (Milestone 4): an empty
         // staff gets one whole period from frame_for_melody, and a
         // failed derivation leaves NO frame — nothing is synthesized
-        // here. With no frame there is nothing JiMS to lay out.
+        // here. With no frame there is nothing MeloPresto to lay out.
         // Milestone 8: the EXPLICIT frame view for the system this
         // measure belongs to (measure->system() is set before staff-line
         // layout); the whole-piece legacy view is one band, so the

@@ -1062,7 +1062,7 @@ void StaffType::meloEnsureFrame(const Score* score, staff_idx_t staffIdx) const
 //    staff's lower Do boundary to a y offset in spatium units. One staff
 //    spans exactly one 1200-cent period across (m_lines - 1) line
 //    distances — 100 cents per staff location — and y grows downward,
-//    so the upper Do boundary (1200 cents) maps to 0. Every JiMS note,
+//    so the upper Do boundary (1200 cents) maps to 0. Every MeloPresto note,
 //    guide line, dot, and indicator ordinate routes through here; no
 //    second cents-to-y formula may exist anywhere.
 //---------------------------------------------------------
@@ -1081,7 +1081,7 @@ double StaffType::meloYFromCents(double centsAboveDo) const
 {
     // Continuous cents axis (owner ruling 2026-08-14, Milestone 2): the
     // staff defines NO discrete locations; a note's height is its cents
-    // value, affinely mapped to spatium space. JIMS_CENTS_PER_LINE_DISTANCE
+    // value, affinely mapped to spatium space. MELO_CENTS_PER_LINE_DISTANCE
     // is pure DRAWING density (how tall a cent draws), not a musical
     // fact; the frame's total height in cents is likewise drawing
     // geometry derived from the configured line count. Every musical
@@ -1212,7 +1212,7 @@ double StaffType::meloYFromCents(double centsAboveDo, const MeloFrameView& view)
 
 // The system-range melody collector: the same lattice-identity walk as
 // jimsEnsureFrame's whole-piece collector (document order, every voice of
-// the staff, main-chord notes with a JiMS identity), restricted to the
+// the staff, main-chord notes with a MeloPresto identity), restricted to the
 // measures of one system. Pure transport — no musical fact is computed.
 static muse::String meloCollectSystemMelody(const System* system, staff_idx_t staffIdx, const StaffType* staffType)
 {
@@ -1318,7 +1318,7 @@ bool StaffType::meloElisionActive(const Score* score, staff_idx_t staffIdx, cons
     }
     // The override is a PER-STAFF fact (MuseScore's per-staff hideWhenEmpty
     // shape): read from the staff's base staff type (tick 0), which is where
-    // the JiMS Staff panel sets it; section copies made by a StaffTypeChange
+    // the MeloPresto Staff panel sets it; section copies made by a StaffTypeChange
     // do not carry their own policy.
     const Staff* staff = staffIdx < score->nstaves() ? score->staff(staffIdx) : nullptr;
     const StaffType* base = staff ? staff->staffType(Fraction(0, 1)) : this;
@@ -1907,7 +1907,7 @@ void StaffType::initStaffTypes(const Color& defaultColor)
     // JiMStaff 12-TET (Milestone 1): a STANDARD-group variant spanning one
     // 1200-cent period across 13 staff locations (100 cents = one line
     // distance). Clef, key signatures, and ledger lines are suppressed;
-    // Kernel-selected ratio-lines are drawn by the JiMS StaffLines branch.
+    // Kernel-selected ratio-lines are drawn by the MeloPresto StaffLines branch.
     // Keep in sync with StaffTypes::MELO_12TET.
     StaffType melo(StaffGroup::STANDARD, u"jims12tet", melo::presetName(),
                    13, 0, 1, false, true, false, true, false, false, false, defaultColor);

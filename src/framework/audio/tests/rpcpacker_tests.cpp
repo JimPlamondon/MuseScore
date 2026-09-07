@@ -504,7 +504,7 @@ TEST_F(Audio_RpcPackerTests, MPE_PitchContext)
 }
 
 // musescore-jims (JiMSynth VST3 workstream, 2026-08-19): the optional exact
-// JiMS pitch rides an optional tail that round-trips and leaves stock
+// MeloPresto pitch rides an optional tail that round-trips and leaves stock
 // payloads byte-identical (the four writer/reader directions are exercised
 // in src/framework/vst/tests/vstexactpitchrpc_tests.cpp).
 TEST_F(Audio_RpcPackerTests, MPE_PitchContext_ExactPitch)

@@ -1735,7 +1735,7 @@ public:
     int string = 0;
     EditMode mode = EditMode_Undefined;
     PointF delta;
-    // JiMStaff: the note's cents at drag START — the anchor every drag
+    // MeloPresto Staff: the note's cents at drag START — the anchor every drag
     // event measures from (M4 gate finding, 2026-08-16). Applying the
     // total offset to the CURRENT cents compounded on every event.
     double meloStartCents = 0.0;
@@ -2253,8 +2253,8 @@ static bool hasAlteredUnison(Note* note)
 void Note::updateAccidental(AccidentalState* as)
 {
     // JiMStaff (owner ruling 2026-08-14): there are no accidental signs
-    // in JiMS notation — sharpness/flatness is carried entirely by the
-    // notehead shape and orientation. Never create one on a JiMS staff;
+    // in MeloPresto notation — sharpness/flatness is carried entirely by the
+    // notehead shape and orientation. Never create one on a MeloPresto staff;
     // remove any that arrived through import. The accidental STATE and
     // the placement update still run, so layout stays consistent.
     if (staff() && hasMeloPitch()) {
@@ -2830,7 +2830,7 @@ void Note::startDrag(EditData& ed)
     ned->pushProperty(Pid::STRING);
 
     // JiMStaff M4 (gate findings 1 and 4): record the lattice identity in
-    // the drag's undo data (Cmd-Z must restore what the JiMStaff draws,
+    // the drag's undo data (Cmd-Z must restore what the MeloPresto Staff draws,
     // not only the stock pitch), anchor the drag at the start cents, and
     // freeze the stave stack for the drag.
     if (const StaffType* meloSt = staffType(); meloSt && meloSt->isMelo()) {
@@ -2944,9 +2944,9 @@ void Note::verticalDrag(EditData& ed)
     NoteEditData* ned   = static_cast<NoteEditData*>(ed.getData(this).get());
 
     // JiMStaff (Milestone 2 Phase 3, owner rulings 2026-08-14): a
-    // vertical drag on a JiMS note quantizes to the NEAREST REALIZABLE
+    // vertical drag on a MeloPresto note quantizes to the NEAREST REALIZABLE
     // LATTICE PITCH BY CENTS — there is no location grid, and the stock
-    // diatonic step arithmetic below must never touch a JiMS note. The
+    // diatonic step arithmetic below must never touch a MeloPresto note. The
     // target height converts to cents through the single seam's inverse;
     // the Kernel picks the pitch (retaining the current identity at
     // exact-midpoint ties) and supplies the compatibility spelling.
@@ -3148,7 +3148,7 @@ void Note::updateRelLine(int absLine, bool undoable)
 
 //---------------------------------------------------------
 //   jimsPosY
-//    The single JiMS note-placement projection (both vertical writers
+//    The single MeloPresto note-placement projection (both vertical writers
 //    call this): the StaffType cents seam plus the centroid correction
 //    (owner finding 2026-08-14). A glyph is drawn with its bounding-box
 //    center on the pitch ordinate, but a triangle's visual mass sits at

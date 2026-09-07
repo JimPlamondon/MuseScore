@@ -2084,7 +2084,7 @@ Err MusicXmlParserPass2::parse(const ByteArray& data)
 Err MusicXmlParserPass2::parse()
 {
     bool found = false;
-    m_melo = m_pass1.melo();        // resolved JiMS prefix (native JiMS import); buffers fill below
+    m_melo = m_pass1.melo();        // resolved MeloPresto prefix (native MeloPresto import); buffers fill below
     m_meloError = Err::NoError;
     while (m_e.readNextStartElement()) {
         if (m_e.name() == "score-partwise") {
@@ -2174,7 +2174,7 @@ void MusicXmlParserPass2::scorePartwise()
         }
     }
     // Native JiMS import, owner rule 2026-08-19: every JiMS part shares one
-    // state timeline (several JiMS parts and mixed JiMS + stock parts are fine).
+    // state timeline (several MeloPresto parts and mixed MeloPresto + stock parts are fine).
     if (m_melo.anyBuffered() && !m_melo.checkSharedStatesAcrossParts(m_logger)) {
         m_meloError = Err::FileBadFormat;
     }
@@ -2508,8 +2508,8 @@ void MusicXmlParserPass2::part()
 
     part->setShow(showPart);
 
-    // Native JiMS import: apply the buffered jims:staff-state timeline now
-    // that every stock handler for this part has run (first state -> JiMS
+    // Native MeloPresto import: apply the buffered jims:staff-state timeline now
+    // that every stock handler for this part has run (first state -> MeloPresto
     // StaffType at tick 0, later states -> StaffTypeChange carriers).
     if (m_melo.statesFor(id)) {
         const MusicXmlPart& meloPart = m_pass1.getMusicXmlPart(id);
@@ -3215,10 +3215,10 @@ void MusicXmlParserPass2::attributes(const String& partId, Measure* measure, con
 //---------------------------------------------------------
 
 /**
- Parse a jims:staff-state (native JiMS import) into the Kernel's state JSON
+ Parse a jims:staff-state (native MeloPresto import) into the Kernel's state JSON
  and buffer it for the part; StaffType / StaffTypeChange construction happens
  after normal part parsing (end of part()) so no later stock handler can
- overwrite the JiMS staff type. A malformed state is a fatal import error.
+ overwrite the MeloPresto staff type. A malformed state is a fatal import error.
  */
 
 void MusicXmlParserPass2::meloStaffState(const String& partId, const Fraction& tick)
@@ -7192,7 +7192,7 @@ Note* MusicXmlParserPass2::note(const String& partId,
 
     MusicXmlNoteDuration mnd { m_divs, m_logger, &m_pass1 };
     MusicXmlNotePitch mnp { m_logger };
-    bool hasMeloPitch = false;      // native JiMS import: jims:pitch identity
+    bool hasMeloPitch = false;      // native MeloPresto import: jims:pitch identity
     int meloNPer = 0;
     int meloNGen = 0;
 

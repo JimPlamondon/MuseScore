@@ -23,7 +23,7 @@
 
 // Native JiMS MusicXML import (owner decision 1a, 2026-08-16).
 //
-// The JiMS extension (urn:jims:musicxml:1 through :4) transports the Kernel's
+// The MeloPresto extension (urn:jims:musicxml:1 through :4) transports the Kernel's
 // JiMStaffStateV2 as jims:staff-state (in attributes) and each note's lattice
 // identity as jims:pitch (in note). This unit is pure format transcription —
 // the same mapping the fixture converter tools/melo/enriched_to_melo_mscx.py
@@ -33,10 +33,10 @@
 // derives the change indicator from the two STATES through the Kernel).
 //
 // muse::XmlStreamReader is pugixml-backed and not namespace-aware: element
-// names arrive as written (prefix:local). The prefix bound to a JiMS
+// names arrive as written (prefix:local). The prefix bound to a MeloPresto
 // namespace URI is resolved once from the root element's xmlns:* attributes
-// (any prefix name); a JiMS URI with an unsupported version is a fatal import
-// error — a document that declares itself JiMS must never silently import as
+// (any prefix name); a MeloPresto URI with an unsupported version is a fatal import
+// error — a document that declares itself MeloPresto must never silently import as
 // a plain five-line staff.
 
 #include <functional>
@@ -62,14 +62,14 @@ class MusicXmlLogger;
 class MeloImportContext
 {
 public:
-    /// The JiMS namespace versions this importer understands.
+    /// The MeloPresto namespace versions this importer understands.
     static constexpr int MIN_VERSION = 1;
     static constexpr int MAX_VERSION = 4;
 
-    /// Resolve the JiMS prefix from the root element's attributes. Returns
-    /// NoError when no JiMS namespace is declared or exactly one supported
+    /// Resolve the MeloPresto prefix from the root element's attributes. Returns
+    /// NoError when no MeloPresto namespace is declared or exactly one supported
     /// version is bound; FileBadFormat (after logging) for an unsupported
-    /// version, a default-namespace binding, or two distinct JiMS profiles.
+    /// version, a default-namespace binding, or two distinct MeloPresto profiles.
     engraving::Err resolveFromRoot(const std::vector<muse::XmlStreamReader::Attribute>& attributes, MusicXmlLogger* logger,
                                    const muse::XmlStreamReader* e);
 
@@ -99,7 +99,7 @@ public:
     bool anyBuffered() const { return !m_states.empty(); }
 
     /// Apply the buffered states of one part: the first state per staff
-    /// becomes the JiMS StaffType at tick 0, every later state a
+    /// becomes the MeloPresto StaffType at tick 0, every later state a
     /// StaffTypeChange at its exact tick; sets the JiMSMusic engraving font.
     /// `staffIndexForNumber` maps a MusicXML staff number to a part-relative
     /// staff index (-1 when invalid). Returns false (after logging) when the
@@ -107,14 +107,14 @@ public:
     bool applyToPart(engraving::Score* score, engraving::Part* part, const muse::String& partId,
                      const std::function<int(int)>& staffIndexForNumber, MusicXmlLogger* logger);
 
-    /// The MuseScore StaffType line count for a JiMS staff of `periodCount`
+    /// The MuseScore StaffType line count for a MeloPresto staff of `periodCount`
     /// periods — fork-owned presentation plumbing fixed by the converter
     /// contract (owner decision 1b, 2026-08-16); not a musical fact.
     static int linesForPeriodCount(int periodCount) { return 12 * periodCount + 1; }
 
     /// Parse a jims:provenance element (reader on its start tag; left after
     /// its end tag) into the transported carrier. Returns false with `error`
-    /// set when a resource lacks role/uri/media-type or an unknown JiMS child
+    /// set when a resource lacks role/uri/media-type or an unknown MeloPresto child
     /// appears. Values are carried verbatim (owner decision 2026-08-19).
     bool parseProvenance(muse::XmlStreamReader& e, engraving::melo::Provenance& out, muse::String& error) const;
     /// Parse a jims:tuning-trajectory element (reader on its start tag; left
@@ -124,9 +124,9 @@ public:
     bool parseTuningTrajectory(muse::XmlStreamReader& e, const std::function<engraving::Fraction(int)>& ticksOf,
                                engraving::melo::TuningTrajectory& out, muse::String& error) const;
     /// Owner rule 2026-08-19 (multi-part documents): several JiMS parts are
-    /// allowed and mixed JiMS + stock parts are allowed, but every JiMS part
+    /// allowed and mixed MeloPresto + stock parts are allowed, but every MeloPresto part
     /// must carry the SAME state timeline (same declaring ticks, same Kernel
-    /// states). Returns false (after logging) when two JiMS parts differ.
+    /// states). Returns false (after logging) when two MeloPresto parts differ.
     /// Staff numbering within a part is compared as written.
     bool checkSharedStatesAcrossParts(MusicXmlLogger* logger) const;
     /// Python-repr-style number text for the state JSON ("700" -> "700.0",

@@ -38,7 +38,7 @@ public:
     {
         // VstAudioClient activates the default input bus even for an
         // instrument. Give this host fixture a valid bus for that lifecycle
-        // path; the production JiMSynth processor remains output-only.
+        // path; the production MeloPresto Synth processor remains output-only.
         addAudioInput(STR16("Stereo In"), Steinberg::Vst::SpeakerArr::kStereo);
         addAudioOutput(STR16("Stereo Out"), Steinberg::Vst::SpeakerArr::kStereo);
         addEventInput(STR16("Events"), 1);

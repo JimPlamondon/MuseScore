@@ -183,7 +183,7 @@ void commitNoteEdits(Score* score, const std::vector<NoteEdit>& edits)
     }
 }
 
-/// Replace the JiMS state of the staff type in force at `tick` on `staff`
+/// Replace the MeloPresto state of the staff type in force at `tick` on `staff`
 /// (the base type or a carrier's copy in the staff's list) — one undoable
 /// flip, layout invalidated (the same shape the tuning controller uses).
 class MeloChangeStateAt : public UndoCommand
@@ -288,7 +288,7 @@ bool canInsertChange(const Score* score, staff_idx_t staffIdx, const Measure* me
         return true;        // the origin measure edits the base staff type
     }
     if (changeCarrierAt(measure, staffIdx, tick)) {
-        return true;        // the JiMS carrier is updated in place
+        return true;        // the MeloPresto carrier is updated in place
     }
     if (anyCarrierAt(measure, staffIdx, tick)) {
         reason = mu::engraving::melo::positionHasOtherStaffChange();
@@ -459,11 +459,11 @@ bool applyChangeToAllMeloParts(Score* score, Measure* measure, const Fraction& t
         staff_idx_t staffIdx = 0;
         const StaffType* effective = nullptr;
         String next;
-        bool editInPlace = false;         // origin measure, or an existing JiMS carrier
+        bool editInPlace = false;         // origin measure, or an existing MeloPresto carrier
     };
     std::vector<Prepared> prepared;
 
-    // PREPARE. Every JiMS part is a target, whether or not the change turns
+    // PREPARE. Every MeloPresto part is a target, whether or not the change turns
     // out to be a no-op for it: a part that cannot accept the change must
     // refuse the whole operation rather than be skipped, because skipping it
     // is precisely how the parts' timelines would drift apart.
@@ -471,7 +471,7 @@ bool applyChangeToAllMeloParts(Score* score, Measure* measure, const Fraction& t
         Staff* staff = score->staff(staffIdx);
         const StaffType* base = staff ? staff->staffType(Fraction(0, 1)) : nullptr;
         if (!base || !base->isMelo()) {
-            continue;                       // not a JiMS part: untouched
+            continue;                       // not a MeloPresto part: untouched
         }
         String reason;
         if (!canInsertChange(score, staffIdx, measure, tick, reason)) {

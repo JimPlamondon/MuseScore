@@ -1495,7 +1495,7 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, changeIndicatorAnchorsOnTheDoLineT
     delete score;
 }
 
-// MuseScore's stock hide-empty-staves still hides a fully empty JiMStaff on
+// MuseScore's stock hide-empty-staves still hides a fully empty MeloPresto Staff on
 // a system, unchanged, whether or not elision is on.
 TEST_F(Engraving_MeloStaffM8BandElisionTests, m8StockHideEmptyStavesStillHidesAnEmptyMeloStaff)
 {
@@ -1833,7 +1833,7 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, changeIndicatorExtendsTheStaffWhen
 
 // M10 supersedes the old layout-time derivation seam: layout is read-only.
 // Song-wide tonic ambit is recomputed only by the explicit designated-melody
-// triggers covered by Engraving_JiMStaffM10SATBTests.
+// triggers covered by Engraving_MeloStaffM10SATBTests.
 TEST_F(Engraving_MeloStaffM8BandElisionTests, tonicAmbitIsNeverDerivedAsALayoutSideEffect)
 {
     MasterScore* score = ScoreRW::readScore(SINGLE_OCTAVE);

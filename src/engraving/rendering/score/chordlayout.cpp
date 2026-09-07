@@ -2373,7 +2373,7 @@ double ChordLayout::layoutChords2(std::vector<Note*>& notes, bool up, LayoutCont
 
     int prevLine = 1000;            // line of previous notehead
                                     // hack: start high so first note won't show as conflict
-    const Note* prevNote = nullptr; // previous notehead (JiMS cents-true conflict test)
+    const Note* prevNote = nullptr; // previous notehead (MeloPresto cents-true conflict test)
     bool prevVisible = false;       // was last note visible?
     bool mirror = false;            // should current notehead be mirrored?
                                     // value is retained and may be used on next iteration

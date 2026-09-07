@@ -22,7 +22,7 @@
 
 #pragma once
 
-// JiMS MusicXML extension (urn:jims:musicxml:3) interchange carriers that the
+// MeloPresto MusicXML extension (urn:jims:musicxml:3) interchange carriers that the
 // fork TRANSPORTS but does not interpret (owner decision 2026-08-19, item 5 of
 // the Add-JiMS-to-MuseScore follow-ups): jims:provenance (document
 // identification) and jims:tuning-trajectory (a printed continuous-tuning

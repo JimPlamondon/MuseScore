@@ -187,7 +187,7 @@ void EngravingModule::onInit(const IApplication::RunMode&)
 
         // JiMSMusic (Milestone 3): the Kernel-generated JiMS glyph font —
         // deterministic build from jims-staff/assets/glyphs (GEN-003).
-        // Selected per-score by the JiMS converter; every non-JiMS symbol
+        // Selected per-score by the MeloPresto converter; every non-MeloPresto symbol
         // falls back to the stock engraving font.
         addMusicFont("JiMSMusic", FontDataKey(u"JiMSMusic"), ":/fonts/jimsmusic/JiMSMusic.otf");
         addMusicFont("Bravura", FontDataKey(u"Bravura"), ":/fonts/bravura/Bravura.otf");

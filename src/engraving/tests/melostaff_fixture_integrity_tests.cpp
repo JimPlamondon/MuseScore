@@ -20,10 +20,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// Does every note in every JiMS test file actually sound at the pitch that
+// Does every note in every MeloPresto test file actually sound at the pitch that
 // file claims for it?
 //
-// A JiMS note carries two things. Its lattice identity says which note of the
+// A MeloPresto note carries two things. Its lattice identity says which note of the
 // tuning system it is. Its MuseScore pitch is the whole-semitone pitch the
 // program plays and reports. They must agree, and nothing checked that.
 //
@@ -36,12 +36,12 @@
 // check noticed. The owner did, by looking at the printed page and seeing
 // note-head shapes that should not have been there.
 //
-// This walks EVERY JiMS test file, not a named list, so a file added later is
+// This walks EVERY MeloPresto test file, not a named list, so a file added later is
 // covered without anyone remembering to add it.
 //
 // The agreement is asked of the Kernel, per staff, never computed here. A
 // formula like "62 + cents/100" would hard-code the key to one place and make
-// every score fixed-Do. JiMS is movable-Do with a La-based minor: where Do
+// every score fixed-Do. MeloPresto is movable-Do with a La-based minor: where Do
 // sounds depends on the key and mode that score states, and only the Kernel
 // resolves that.
 
@@ -95,7 +95,7 @@ struct Mismatch {
     }
 };
 
-/// Every JiMS test file under jimstaff_data, discovered rather than listed.
+/// Every MeloPresto test file under jimstaff_data, discovered rather than listed.
 std::vector<muse::String> meloFixtures()
 {
     const muse::String dir = ScoreRW::rootPath() + u"/jimstaff_data";
@@ -220,7 +220,7 @@ TEST(Engraving_MeloStaffFixtureIntegrity, everyMeloNoteSoundsAtThePitchItsFileCl
         ADD_FAILURE() << m.describe();
     }
 
-    // Every retained JiMS note must agree with the Kernel projection. A
+    // Every retained MeloPresto note must agree with the Kernel projection. A
     // historical exact-count exception would turn known contradictions into
     // an oracle and allow stale conventional fields to remain live.
     for (const Mismatch& m : staleAfterKeyChange) {

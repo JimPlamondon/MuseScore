@@ -159,7 +159,7 @@ void VstSequencer::addNoteEvent(EventSequenceMap& destination, const mpe::NoteEv
     // monotonic value — never the pitch index (the stock code wrote -1).
     const int32_t noteId = allocateNoteId();
     const std::optional<mpe::ExactPitch>& exact = noteEvent.pitchCtx().exactPitch;
-    // A lattice-identified JiMS note carries its exact sounding pitch: the
+    // A lattice-identified MeloPresto note carries its exact sounding pitch: the
     // Note On uses the Kernel's nearest key and the FULL residual cents
     // instead of the 2-cent pitch-level grid; stock notes keep the stock
     // construction byte for byte.
@@ -391,7 +391,7 @@ void VstSequencer::addLatticeIdentity(EventSequenceMap& destination, const mpe::
 {
     // VST3 discrete-step encoding over the plug-in-declared domain:
     // normalized = (coord - min) / stepCount. A coordinate outside the
-    // declared domain sends NO identity (explicit non-JiMS fallback; the
+    // declared domain sends NO identity (explicit non-MeloPresto fallback; the
     // exact pitch itself still travels in the Note On).
     const auto encode = [](const int32_t coord, const int32_t min, const int32_t stepCount, double& out) {
         if (stepCount <= 0 || coord < min || coord > min + stepCount) {

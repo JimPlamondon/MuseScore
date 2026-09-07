@@ -1321,17 +1321,17 @@ Err MusicXmlParserPass1::parse()
     while (m_e.readNextStartElement()) {
         if (m_e.name() == "score-partwise") {
             found = true;
-            // Native JiMS import: resolve the JiMS namespace prefix from the
+            // Native MeloPresto import: resolve the MeloPresto namespace prefix from the
             // root's xmlns:* bindings (pugixml is not namespace-aware); an
-            // unsupported JiMS version refuses the import.
+            // unsupported MeloPresto version refuses the import.
             if (m_melo.resolveFromRoot(m_e.attributes(), m_logger, &m_e) != Err::NoError) {
                 m_e.skipCurrentElement();
                 return Err::FileBadFormat;
             }
             scorePartwise();
             if (m_meloProvenanceError) {
-                // A document that declares itself JiMS never imports with part
-                // of its JiMS content silently dropped (same rule as states).
+                // A document that declares itself MeloPresto never imports with part
+                // of its MeloPresto content silently dropped (same rule as states).
                 return Err::FileBadFormat;
             }
         } else {

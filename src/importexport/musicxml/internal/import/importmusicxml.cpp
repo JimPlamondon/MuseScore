@@ -111,7 +111,7 @@ Err importMusicXmlfromBuffer(Score* score, const String& /*name*/, const ByteArr
     }
 
     if (res == Err::NoError) {
-        // JiMS load initialization must see the complete imported score and
+        // MeloPresto load initialization must see the complete imported score and
         // the final instrument identifiers: fit each written staff exactly,
         // install Kernel defaults on empty vocal staves. A complete imported
         // tonic ambit is authoritative and must survive round-trip; only an

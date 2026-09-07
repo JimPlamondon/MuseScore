@@ -133,7 +133,7 @@ bool MeiImporter::read(const muse::io::path_t& path)
     pugi::xml_node root = doc.first_child();
 
     pugi::xml_attribute meiVersion = root.attribute("meiversion");
-    // "5.1" is the JiMS MEI profile (mei-jims customization of MEI 5.1 CMN)
+    // "5.1" is the MeloPresto MEI profile (mei-jims customization of MEI 5.1 CMN)
     if (!meiVersion
         || (String(meiVersion.value()) != String(MEI_BASIC_VERSION)
             && String(meiVersion.value()) != u"5.1")) {

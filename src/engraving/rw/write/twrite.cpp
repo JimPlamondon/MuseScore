@@ -2782,7 +2782,7 @@ void TWrite::write(const Staff* item, XmlWriter& xml, WriteContext& ctx)
         xml.tag("isStaffVisible", item->visible());
     }
 
-    // JiMS MusicXML interchange carriers, transported verbatim (melo/melointerchange.h).
+    // MeloPresto MusicXML interchange carriers, transported verbatim (melo/melointerchange.h).
     for (const melo::TuningTrajectory& t : item->meloTuningTrajectories()) {
         XmlWriter::Attributes tattrs = { { "tick", t.tick.toString() } };
         if (!t.placement.isEmpty()) {
@@ -2950,7 +2950,7 @@ void TWrite::write(const StaffType* item, XmlWriter& xml, WriteContext& ctx)
         xml.tag("noteheadScheme", TConv::toXml(item->noteHeadScheme()), TConv::toXml(NoteHeadScheme::HEAD_NORMAL));
     }
     if (item->isMelo()) {
-        // JiMStaff authoritative state only: marker, Kernel-owned
+        // MeloPresto Staff authoritative state only: marker, Kernel-owned
         // section state, tonic-ambit token. Projected geometry,
         // notehead classes, and memberships are derived, never stored.
         xml.tag("jims", item->isMelo());

@@ -422,7 +422,7 @@ public:
     void clearSpanner(const MusicXmlSpannerDesc& desc);
     void deleteHandledSpanner(engraving::SLine* const& spanner);
     int divs() { return m_divs; }
-    void setMeloError() { m_meloError = engraving::Err::FileBadFormat; }   // native JiMS import: fatal carrier error
+    void setMeloError() { m_meloError = engraving::Err::FileBadFormat; }   // native MeloPresto import: fatal carrier error
 
     engraving::SLine* delayedOttava() { return m_delayedOttava; }
     void setDelayedOttava(engraving::SLine* ottava) { m_delayedOttava = ottava; }
@@ -501,8 +501,8 @@ private:
     int m_divs = 0;                        // the current divisions value
     engraving::Score* m_score = nullptr;              // the score
     MusicXmlParserPass1& m_pass1;          // the pass1 results
-    MeloImportContext m_melo;              // native JiMS import: resolved prefix + buffered states
-    engraving::Err m_meloError = engraving::Err::NoError;   // fatal JiMS condition, returned by parse()
+    MeloImportContext m_melo;              // native MeloPresto import: resolved prefix + buffered states
+    engraving::Err m_meloError = engraving::Err::NoError;   // fatal MeloPresto condition, returned by parse()
     MusicXmlLogger* m_logger = nullptr;    // Error logger
     muse::String m_errors;                       // Errors to present to the user
 
@@ -663,7 +663,7 @@ private:
     std::pair<int, int> m_swing = { 0, 0 };
     std::vector<engraving::EngravingItem*> m_elems;
     engraving::Fraction m_offset;
-    std::optional<engraving::melo::TuningTrajectory> m_meloTrajectory;   // native JiMS import: transported carrier
+    std::optional<engraving::melo::TuningTrajectory> m_meloTrajectory;   // native MeloPresto import: transported carrier
     engraving::track_idx_t m_track = muse::nidx;
 };
 

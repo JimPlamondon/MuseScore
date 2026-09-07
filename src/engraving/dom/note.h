@@ -548,7 +548,7 @@ private:
     int m_line = INVALID_LINE;  // y-Position; 0 - top line.
 
     // JiMStaff lattice identity (Milestone 1): authoritative per-note
-    // nPer/nGen, persisted; JIMS_UNSET when the note carries none. The
+    // nPer/nGen, persisted; MELO_UNSET when the note carries none. The
     // Do-relative cents value is a derived layout cache obtained from the
     // Kernel through the FFI seam — never serialized, never computed here.
     static constexpr int MELO_UNSET = INT_MIN;

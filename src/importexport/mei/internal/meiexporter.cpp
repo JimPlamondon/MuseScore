@@ -125,7 +125,7 @@ bool MeiExporter::write(std::string& meiData)
             return false;
         }
 
-        // schema processing instruction; a JiMS score uses the full CMN
+        // schema processing instruction; a MeloPresto score uses the full CMN
         // profile its carriers require (the mei-jims customization)
         std::string schema = m_melo.present()
                              ? "https://music-encoding.org/schema/5.1/mei-CMN.rng"

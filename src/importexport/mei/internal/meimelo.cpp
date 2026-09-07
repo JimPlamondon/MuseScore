@@ -207,7 +207,7 @@ bool MeloMeiExporter::buildPlan(const Score* score)
         m_present = true;
     }
 
-    // JiMS chord names must be exportable (same contract as MusicXML export).
+    // MeloPresto chord names must be exportable (same contract as MusicXML export).
     for (const Segment* segment = score->firstSegment(SegmentType::ChordRest); segment;
          segment = segment->next1(SegmentType::ChordRest)) {
         for (const EngravingItem* item : segment->annotations()) {
@@ -640,7 +640,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
             px.append_attribute("n-gen") = entry.second->meloNGen();
         }
         // Tuning trajectories (verbatim carriers; duration-divisions in the
-        // JiMS MEI canonical quarter-note basis).
+        // MeloPresto MEI canonical quarter-note basis).
         for (const melo::TuningTrajectory& t : plan.staff->meloTuningTrajectories()) {
             const Measure* measure = nullptr;
             size_t midx = 0;
@@ -665,7 +665,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
             pugi::xml_node tt = te.append_child("jims:tuning-trajectory");
             for (const melo::TrajectorySegment& seg : t.segments) {
                 pugi::xml_node sege = tt.append_child("jims:segment");
-                // JiMS MEI canonical basis: 960 divisions per quarter note.
+                // MeloPresto MEI canonical basis: 960 divisions per quarter note.
                 const Fraction div = (quartersOf(seg.duration) * Fraction(960, 1)).reduced();
                 if (div.denominator() != 1) {
                     m_error = mu::engraving::melo::diagnostic::meiExportDurationInvalid;
@@ -784,7 +784,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
         }
     }
 
-    // Provenance supplement (the JiMS-constrained remainder).
+    // Provenance supplement (the MeloPresto-constrained remainder).
     if (!prov.empty()) {
         pugi::xml_node ss = mx.append_child("jm:source-supplement");
         ss.append_attribute("strict") = prov.strictFallback ? "true" : "false";
@@ -1228,7 +1228,7 @@ bool MeloMeiImporter::apply(Score* score,
                         continue;
                     }
                     melo::TrajectorySegment seg;
-                    // duration-divisions in the JiMS MEI canonical basis of
+                    // duration-divisions in the MeloPresto MEI canonical basis of
                     // 960 divisions per quarter note.
                     const int div = sege.attribute("duration-divisions").as_int();
                     seg.duration = Fraction(div, 960 * 4).reduced();
@@ -1350,7 +1350,7 @@ bool MeloMeiImporter::apply(Score* score,
         }
     }
 
-    // Provenance: native sources plus the JiMS-constrained supplement.
+    // Provenance: native sources plus the MeloPresto-constrained supplement.
     pugi::xml_node ss = childByLocal(mx, "source-supplement");
     if (!m_provResources.empty() || ss) {
         melo::Provenance prov;

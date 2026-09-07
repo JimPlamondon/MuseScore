@@ -25,13 +25,13 @@
 // Three things are under test here.
 //
 // 1. The shipped "SATB (JiMStaff)" Choral template: four stock vocal Parts in
-//    open score, one JiMStaff each, following MuseScore's own choral
+//    open score, one MeloPresto Staff each, following MuseScore's own choral
 //    conventions, registered in all three template-registration files.
 // 2. Empty-staff defaults. The Kernel derives each frame from the Part's
 //    declared amateur range; Bass alone uses the tonic-anchored exception.
 //    Framing is tonic-relative throughout.
 // 3. Owner decision 2a: a key/mode/scale change applied anywhere in a
-//    multi-part JiMS score reaches every JiMS part at the same measure as ONE
+//    multi-part MeloPresto score reaches every MeloPresto part at the same measure as ONE
 //    undo step, and a refusal anywhere mutates nothing.
 //
 // Every musical answer still comes from the Kernel. These tests assert what
@@ -216,7 +216,7 @@ std::vector<Note*> notesOn(Score* score, staff_idx_t staffIdx)
 }
 
 // ---------------------------------------------------------------------------
-// Template structure — MuseScore's own SATB conventions, on JiMS staves
+// Template structure — MuseScore's own SATB conventions, on MeloPresto staves
 // ---------------------------------------------------------------------------
 
 TEST(Engraving_MeloStaffM9SATBTests, m9TemplateIsShippedAndOpensAsFourVocalPartsInOpenScore)
@@ -287,7 +287,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9TemplateFileCarriesNoStyleBlockAndVoiceOn
     const std::string mscx = readFile(satbTemplatePath());
     ASSERT_FALSE(mscx.empty()) << "the shipped template could not be read";
     EXPECT_EQ(mscx.find("<Style>"), std::string::npos) << "the .mscx must carry no <Style> block";
-    // The stock clef declarations stay, even though a JiMStaff draws none.
+    // The stock clef declarations stay, even though a MeloPresto Staff draws none.
     EXPECT_NE(mscx.find("<defaultClef>G8vb</defaultClef>"), std::string::npos);
     EXPECT_NE(mscx.find("<defaultClef>F</defaultClef>"), std::string::npos);
     EXPECT_NE(mscx.find("<clef>G8vb</clef>"), std::string::npos);
@@ -663,7 +663,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9ARefusedTargetLeavesTheWholeScoreUntouche
     }
     const size_t depth = undoDepth(score);
 
-    // Staff 2 already carries a NON-JiMS staff type change at this measure.
+    // Staff 2 already carries a NON-MeloPresto staff type change at this measure.
     muse::String why;
     ASSERT_FALSE(melo::canInsertChange(score, 2, m2, why));
 
@@ -732,7 +732,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9BindStaysStaffWideAndIsNeverPropagatedAcr
         othersBefore[i] = score->staff(i)->staffType(Fraction(0, 1))->meloStateJson();
         // The template states its KEY as well as its mode: Re0 pinned to D4,
         // so Do is C, and mode_rotation 0 makes Do the tonic. Nothing about
-        // which pitch a JiMS note sounds is left to inference.
+        // which pitch a MeloPresto note sounds is left to inference.
         EXPECT_TRUE(othersBefore[i].contains(u"\"key_number\":62")) << "staff " << i << " states no key";
         EXPECT_TRUE(othersBefore[i].contains(u"\"mode_rotation\":0")) << "staff " << i << " states no mode";
     }
@@ -826,7 +826,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9CollidingHeadsOfDifferentShapesAreOffsetA
 // A residual remains, and is asserted here rather than hidden: MuseScore
 // right-aligns an UP-stem chord's heads to `Chord::noteHeadWidth()`, the
 // score's nominal noteheadBlack advance, so a head narrower than that nominal
-// keeps a small x offset from its down-stem twin. On a JiMStaff every Kernel
+// keeps a small x offset from its down-stem twin. On a MeloPresto Staff every Kernel
 // head is narrower than the nominal, so two shared heads sit a fraction of a
 // space apart instead of exactly coinciding. That is a note-head metric seam
 // owned by the M1/M3 glyph work, not by this milestone's collision ruling; it
@@ -885,7 +885,7 @@ namespace {
 const char16_t* HYMN = u"jimstaff_data/m9-satb-hymn.mscx";
 }
 
-// A JiMStaff draws no clef and no key signature, while the stock clef entries
+// A MeloPresto Staff draws no clef and no key signature, while the stock clef entries
 // stay in the Part definitions so a staff switched back to stdNormal renders
 // correctly again.
 TEST(Engraving_MeloStaffM9SATBTests, m9SweepNoClefIsDrawnWhileTheStockClefEntriesSurvive)
@@ -906,7 +906,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9SweepNoClefIsDrawnWhileTheStockClefEntrie
     delete score;
 }
 
-// Lyrics attach to JiMS notes and sit below the staff. The known cosmetic
+// Lyrics attach to MeloPresto notes and sit below the staff. The known cosmetic
 // consequence of owner decision 3b — the lyric line sits below the whole-period
 // frame bottom, which can be far from the note heads until precise frames land
 // under the later plan — is accepted, and is recorded here rather than fixed.
@@ -944,7 +944,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9SweepLyricsAttachToMeloNotesAndSitBelowTh
 }
 
 // Dynamics, expression text and hairpins default ABOVE a vocal staff, and that
-// rule is what puts them clear of the JiMS header terrain and of the
+// rule is what puts them clear of the MeloPresto header terrain and of the
 // mid-system change indicators, which live on and below the staff.
 TEST(Engraving_MeloStaffM9SATBTests, m9SweepDynamicsUseVocalAbovePlacementOnMeloStaves)
 {
@@ -976,7 +976,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9SweepDynamicsUseVocalAbovePlacementOnMelo
         }
     }
     EXPECT_EQ(dynamics, 1u) << "the fixture carries one dynamic";
-    // Above the staff means clear of the JiMS terrain below it: the dynamic is
+    // Above the staff means clear of the MeloPresto terrain below it: the dynamic is
     // higher on the page than every note of the staff it belongs to.
     EXPECT_LT(dynamicY, highestNoteY) << "the dynamic must clear the MeloPresto header terrain and the frame";
     delete score;
@@ -1031,8 +1031,8 @@ TEST(Engraving_MeloStaffM9SATBTests, m9SweepRangeColouringInputsAreCorrectOnMelo
     delete score;
 }
 
-// Hide-empty-staves on a four-JiMStaff score with written and unwritten parts:
-// stock behaviour, unchanged by the JiMS staff type.
+// Hide-empty-staves on a four-MeloPresto Staff score with written and unwritten parts:
+// stock behaviour, unchanged by the MeloPresto staff type.
 TEST(Engraving_MeloStaffM9SATBTests, m9SweepHideEmptyStavesWorksOnAFourMeloStaffMixedScore)
 {
     MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m9-satb-mixed.mscx");
@@ -1062,7 +1062,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9SweepHideEmptyStavesWorksOnAFourMeloStaff
     delete score;
 }
 
-// A JiMS note carries two things that must agree: its lattice identity, and the
+// A MeloPresto note carries two things that must agree: its lattice identity, and the
 // compatibility pitch MuseScore plays and reports. Nothing enforced that, and
 // the M9 fixtures shipped with identities a whole tone away from their pitches
 // — invisible to every other assertion, but visible on the page as accidental
@@ -1070,7 +1070,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9SweepHideEmptyStavesWorksOnAFourMeloStaff
 //
 // The agreement is asked of the KERNEL, per staff state, never computed here.
 // A constant like "62 + cents/100" would hard-code Re0 to D4 and make every
-// score fixed-Do; JiMS is movable-Do, so the anchor is whatever that staff's
+// score fixed-Do; MeloPresto is movable-Do, so the anchor is whatever that staff's
 // reference resolves to, and only the Kernel knows it.
 TEST(Engraving_MeloStaffM9SATBTests, m9EveryNotesPitchIsTheKernelsProjectionOfItsIdentity)
 {

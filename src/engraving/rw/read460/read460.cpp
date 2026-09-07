@@ -92,7 +92,7 @@ static melo::ReviewValue readMeloReviewValue(XmlReader& e)
     return v;
 }
 
-/// Read the JiMS evidentiary review record (melo/meloreview.h).
+/// Read the MeloPresto evidentiary review record (melo/meloreview.h).
 static melo::ReviewRecord readMeloReview(XmlReader& e)
 {
     melo::ReviewRecord review;
@@ -193,7 +193,7 @@ muse::Ret Read460::readScoreFile(Score* score, XmlReader& e, rw::ReadInOutData* 
     ctx.clearOrphanedConnectors();
 
     // Validate transported state even when a span contains no pitched notes.
-    // This precedes extent reconciliation and also covers JiMS changes on a
+    // This precedes extent reconciliation and also covers MeloPresto changes on a
     // staff whose initial type is conventional notation.
     for (const Staff* staff : score->staves()) {
         std::vector<const StaffType*> states { staff->staffType(Fraction(0, 1)) };
@@ -213,7 +213,7 @@ muse::Ret Read460::readScoreFile(Score* score, XmlReader& e, rw::ReadInOutData* 
         }
     }
 
-    // JiMS load transition: written notes become the exact per-staff extent;
+    // MeloPresto load transition: written notes become the exact per-staff extent;
     // empty SATB staves receive the Kernel's declared-range default. The
     // designated melody supplies the one song-wide tonic ambit only for a
     // legacy/incomplete score. An explicit transported token is authoritative.

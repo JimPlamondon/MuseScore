@@ -23,9 +23,9 @@
 // Native JiMS MusicXML import (owner decision 1a, 2026-08-16): the fork's own
 // importer reads jims:staff-state (urn:jims:musicxml:1 through 4), jims:pitch,
 // and V4 opaque jims:chord-name carriers
-// and builds the JiMStaff score directly — the same DOM the fixture converter
+// and builds the MeloPresto Staff score directly — the same DOM the fixture converter
 // tools/melo/enriched_to_melo_mscx.py produces. jims:change is never read;
-// the Kernel validate op gates every state; an unrecognised JiMS namespace
+// the Kernel validate op gates every state; an unrecognised MeloPresto namespace
 // version is a fatal import error.
 
 #include <gtest/gtest.h>
@@ -491,7 +491,7 @@ TEST_F(MusicXml_Melo_Tests, namespaceIsResolvedByUriNotByPrefix)
 
 TEST_F(MusicXml_Melo_Tests, unknownMeloNamespaceVersionIsAFatalImportError)
 {
-    // A document that declares itself JiMS with a version this fork does not
+    // A document that declares itself MeloPresto with a version this fork does not
     // know must not silently import as a plain five-line staff.
     MasterScore* score = readMelo("jims-unknown-version-invalid.musicxml");
     EXPECT_FALSE(score);
@@ -903,14 +903,14 @@ TEST_F(MusicXml_Melo_Tests, authoritativeMeloIdentityNormalizesContradictoryStan
 // Interchange hardening — native JiMS MusicXML EXPORT (converged FINAL 96%,
 // 2026-08-17). The Kernel writes every jims:staff-state / jims:change element
 // in full (bridge ops from jims PR 214); the fork places them verbatim, adds
-// jims:pitch from each JiMS note's two stored integers, declares the V3
-// V4 namespace when JiMS content is present, and fails closed.
+// jims:pitch from each MeloPresto note's two stored integers, declares the V3
+// V4 namespace when MeloPresto content is present, and fails closed.
 // ---------------------------------------------------------------------------
 namespace {
 struct MeloSnapshot {
     std::vector<String> baseStates;                             // Kernel-canonical XML per staff
     std::vector<std::pair<int, String> > carriers;              // (tick, Kernel-canonical XML) per staff, in order
-    std::vector<std::pair<int, int> > identities;               // JiMS notes in document order (all tracks)
+    std::vector<std::pair<int, int> > identities;               // MeloPresto notes in document order (all tracks)
 };
 
 /// The Kernel's own canonical serialization of a state — semantic equality
@@ -1203,8 +1203,8 @@ TEST_F(MusicXml_Melo_Tests, m8ElisionSwitchesNeverChangeMusicXmlExport)
 // Interchange hardening 2 (owner decisions 2026-08-19): jims:provenance and
 // jims:tuning-trajectory are transported — imported, saved in the score file,
 // exported back exactly as carried — and multi-part documents follow the
-// owner's rule: several JiMS parts allowed, mixed JiMS + stock parts allowed,
-// every JiMS part shares one state timeline.
+// owner's rule: several MeloPresto parts allowed, mixed MeloPresto + stock parts allowed,
+// every MeloPresto part shares one state timeline.
 // ---------------------------------------------------------------------------
 
 TEST_F(MusicXml_Melo_Tests, provenanceIsImportedSavedAndExportedVerbatim)
@@ -1367,7 +1367,7 @@ TEST_F(MusicXml_Melo_Tests, tuningTrajectoriesAreImportedSavedAndExportedVerbati
 TEST_F(MusicXml_Melo_Tests, malformedCarriersAreFatalImportErrors)
 {
     // A trajectory segment without interpolation, and a provenance resource
-    // without a role: a JiMS document never imports with part of its JiMS
+    // without a role: a MeloPresto document never imports with part of its MeloPresto
     // content silently dropped.
     const String dir(u"jims-export-scratch");
     muse::io::Dir::mkpath(dir);
@@ -1503,7 +1503,7 @@ TEST_F(MusicXml_Melo_Tests, aMeloPartBesideAStockPartImportsAndRoundTrips)
     EXPECT_TRUE(staffTypeAtStart(score, 0)->isMelo());
     EXPECT_FALSE(staffTypeAtStart(score, 1)->isMelo());
     const MeloSnapshot before = snapshotOf(score);
-    EXPECT_EQ(before.identities.size(), 2u);   // only the JiMS part carries identities
+    EXPECT_EQ(before.identities.size(), 2u);   // only the MeloPresto part carries identities
     const String out = exportToScratch(score, "export-multi-part-mixed.musicxml");
     const String xml = readAll(out);
     EXPECT_EQ(int(xml.count(u"<jims:staff-state>")), 2);
@@ -1530,7 +1530,7 @@ TEST_F(MusicXml_Melo_Tests, meloPartsWithDifferentTimelinesAreRefusedOnImportAnd
 {
     // Import: the divergent fixture is refused outright.
     EXPECT_FALSE(readMelo("jims-multi-part-divergent-invalid.musicxml"));
-    // Export: a document whose JiMS parts have drifted apart in the editor
+    // Export: a document whose MeloPresto parts have drifted apart in the editor
     // is refused, and nothing is written.
     MasterScore* score = readMelo("jims-multi-part-shared.musicxml");
     ASSERT_TRUE(score);
@@ -1610,7 +1610,7 @@ TEST_F(MusicXml_Melo_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
     EXPECT_EQ(after.identities, before.identities);
     expectEmptyFrames(again);
 
-    // Re-export once more: no drift in anything JiMS owns. The one byte that
+    // Re-export once more: no drift in anything MeloPresto owns. The one byte that
     // does move is stock MuseScore's part-group round trip — a re-imported
     // score re-exports <group-barline>yes even though the source omitted it —
     // and the stock 02-Choral/01-SATB template drifts identically, so it is
@@ -1637,7 +1637,7 @@ TEST_F(MusicXml_Melo_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
     delete score;
 }
 
-// A state change applied through the decision-2a path leaves every JiMS part
+// A state change applied through the decision-2a path leaves every MeloPresto part
 // on the same musical chronology, which is exactly what the interchange rule
 // requires — so the changed score still exports.
 TEST_F(MusicXml_Melo_Tests, m9SATBScoreWideChangeKeepsOneSharedTimelineOnExport)

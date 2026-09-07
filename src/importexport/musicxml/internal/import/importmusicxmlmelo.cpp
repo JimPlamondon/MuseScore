@@ -47,7 +47,7 @@ using namespace mu::engraving;
 namespace mu::iex::musicxml {
 static const char* MELO_URI_STEM = "urn:jims:musicxml:";
 
-// Fatal JiMS import conditions go to the MusicXML logger (the import
+// Fatal MeloPresto import conditions go to the MusicXML logger (the import
 // dialog) AND the console log, so a refused import is never silent.
 static void meloFatal(MusicXmlLogger* logger, const String& text, const XmlStreamReader* e = nullptr)
 {
@@ -85,7 +85,7 @@ Err MeloImportContext::resolveFromRoot(const std::vector<XmlStreamReader::Attrib
             return Err::FileBadFormat;
         }
         if (!name.startsWith(u"xmlns:")) {
-            continue;             // some other attribute happens to hold a JiMS URI
+            continue;             // some other attribute happens to hold a MeloPresto URI
         }
         const String prefix = name.mid(6);
         if (prefix.empty()) {
@@ -257,7 +257,7 @@ bool MeloImportContext::parseStaffState(XmlStreamReader& e, String& json, int& s
                 fail(String(u"jims:reference must carry exactly one form, found %1").arg(forms));
             }
         } else {
-            // Unknown JiMS-namespaced child: skip, never abort (Binding Requirement 3).
+            // Unknown MeloPresto-namespaced child: skip, never abort (Binding Requirement 3).
             e.skipCurrentElement();
         }
     }
@@ -327,7 +327,7 @@ const std::vector<MeloImportContext::BufferedState>* MeloImportContext::statesFo
 
 static StaffType meloStaffTypeFor(const String& json)
 {
-    // The fork's JiMS preset (jims12tet: clef/key signature/ledger lines
+    // The fork's MeloPresto preset (jims12tet: clef/key signature/ledger lines
     // suppressed, JI lines on) with THIS state and its presentation line count.
     StaffType st = *StaffType::preset(StaffTypes::MELO_12TET);
     st.setMelo(true);

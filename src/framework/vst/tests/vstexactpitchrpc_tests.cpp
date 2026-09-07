@@ -188,7 +188,7 @@ TEST(Vst_ExactPitchRpcTests, newWriterNewReaderRoundTripsExactPitchInsideNoteEve
 
     // Inside a NoteEvent followed by its ExpressionContext (the peek must
     // not confuse the tail with the articulations map) and inside a
-    // PlaybackEventsMap mixing stock and JiMS notes.
+    // PlaybackEventsMap mixing stock and MeloPresto notes.
     NoteEvent melo(100, 50, 0, 0, 3100, 3000, ArticulationMap(), 2.0, 0.0f, PitchCurve(), sampleExact());
     NoteEvent stock(1000, 500, 0, 0, 4200, 3000, ArticulationMap(), 2.0, 0.0f, PitchCurve());
     PlaybackEventsMap map;

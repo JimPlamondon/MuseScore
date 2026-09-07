@@ -92,7 +92,7 @@ struct ArrangementContext
 };
 
 /// JiMStaff (JiMSynth VST3 workstream, 2026-08-19): the exact sounding pitch
-/// of a lattice-identified JiMS note — the Kernel's `note_sounding_pitch`
+/// of a lattice-identified MeloPresto note — the Kernel's `note_sounding_pitch`
 /// answer carried losslessly beside the integer `nominalPitchLevel`, so a
 /// VST3 instrument receives the note without the pitch-level grid's 2-cent
 /// quantization. `midiKey` + `centsOffset` are the note's transport form
@@ -124,7 +124,7 @@ struct PitchContext
 {
     pitch_level_t nominalPitchLevel = 0;
     PitchCurve pitchCurve;
-    /// Present only for a lattice-identified JiMS note (see ExactPitch);
+    /// Present only for a lattice-identified MeloPresto note (see ExactPitch);
     /// every stock consumer ignores it and every stock event leaves it empty.
     std::optional<ExactPitch> exactPitch;
 

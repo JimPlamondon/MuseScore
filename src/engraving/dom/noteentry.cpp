@@ -149,7 +149,7 @@ NoteVal Score::noteValForPosition(Position pos, AccidentalType at, bool& error)
         // height converts to cents (line units are half line-distances
         // on the continuous axis) and the Kernel picks the nearest
         // realizable lattice pitch, supplying the compatibility spelling
-        // — the diatonic step arithmetic below never runs for JiMS.
+        // — the diatonic step arithmetic below never runs for MeloPresto.
         {
             const StaffType* meloSt = st->staffType(tick);
             if (meloSt && meloSt->isMelo()) {

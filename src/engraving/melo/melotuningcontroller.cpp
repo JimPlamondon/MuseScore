@@ -31,7 +31,7 @@ using namespace muse;
 
 namespace mu::engraving::melo {
 namespace {
-// One undoable edit covering every JiMS span in the score: flip() swaps all
+// One undoable edit covering every MeloPresto span in the score: flip() swaps all
 // captured state JSONs at once, so undo/redo is a single step.
 class MeloChangeStaffStates : public UndoCommand
 {
@@ -205,7 +205,7 @@ void TuningController::invalidateAndLayout()
     // playback model that this staff's notes now sound differently. Send
     // the score's EXISTING change signal for this staff's whole tick range
     // — the same channel endCmd uses — so the next rebuild re-derives every
-    // JiMS note's sounding pitch from the current state. Commit already
+    // MeloPresto note's sounding pitch from the current state. Commit already
     // announces itself through endCmd.
     if (m_previewing) {
         ScoreChanges changes;
