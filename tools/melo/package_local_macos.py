@@ -32,13 +32,17 @@ def seal(output):
         run('codesign', '--force', '--sign', '-', '--timestamp=none', '--entitlements', ROOT / 'src/macos_integration/entitlements.plist', preview)
     run('codesign', '--force', '--sign', '-', '--timestamp=none', output)
     run('codesign', '--verify', '--deep', '--strict', output)
-    run(sys.executable, ROOT / 'tools/melo/check_score_identity.py', '--app', output, '--require-preview')
+    check = [sys.executable, ROOT / 'tools/melo/check_score_identity.py', '--app', output]
+    if preview.exists():
+        check.append('--require-preview')
+    run(*check)
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--build', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True, help='New .app path; existing destinations are refused')
     p.add_argument('--macdeployqt', type=Path, required=True)
+    p.add_argument('--include-preview', action='store_true', help='Experimental: include the preview helper only after host validation')
     a = p.parse_args()
     if sys.platform != 'darwin':
         p.error('macOS is required')
@@ -63,6 +67,8 @@ def main():
     output.parent.mkdir(parents=True, exist_ok=True)
     run('ditto', prefix / 'mscore.app', output)
     preview = output / 'Contents/PlugIns/MuseScoreQuickLookPreviewExtension.appex'
+    if preview.exists() and not a.include_preview:
+        shutil.rmtree(preview)
     deploy = [a.macdeployqt, output, '-always-overwrite', '-verbose=1', '-qmldir=' + str(ROOT)]
     if preview.exists():
         deploy.append('-executable=' + str(preview / 'Contents/MacOS/MuseScoreQuickLookPreviewExtension'))
