@@ -31,11 +31,11 @@ def fail(message: str) -> None:
 
 
 def write_checkout(root: Path) -> None:
-    crate = root / "Libraries/jims/crates/jims-musescore-bridge"
+    crate = root / "Libraries/jims/crates/melo-musescore-bridge"
     (crate / "include").mkdir(parents=True)
     (root / "Libraries/jims/.jims-configure-fixture").touch()
     (crate / "Cargo.toml").write_text(
-        "[package]\nname = \"jims-musescore-bridge\"\nversion = \"0.0.0\"\n",
+        "[package]\nname = \"melo-musescore-bridge\"\nversion = \"0.0.0\"\n",
         encoding="utf-8",
     )
 
@@ -47,7 +47,7 @@ def write_fake_cargo(directory: Path) -> None:
         "set -eu\n"
         "test -f .jims-configure-fixture || { echo 'refusing non-fixture workspace' >&2; exit 1; }\n"
         "mkdir -p target/release\n"
-        ": > target/release/libjims_musescore_bridge.a\n",
+        ": > target/release/libmelo_musescore_bridge.a\n",
         encoding="utf-8",
     )
     cargo.chmod(cargo.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
@@ -61,7 +61,7 @@ def write_fixture_project(directory: Path, bridge_cmake: Path) -> None:
         f"include(\"{cmake_path}\")\n"
         "add_library(consumer STATIC consumer.c)\n"
         "setup_jims_bridge(consumer)\n"
-        "get_target_property(JIMS_BRIDGE_LIBRARY jims_musescore_bridge IMPORTED_LOCATION)\n"
+        "get_target_property(JIMS_BRIDGE_LIBRARY melo_musescore_bridge IMPORTED_LOCATION)\n"
         "get_filename_component(SELECTED_ROOT \"${JIMS_BRIDGE_LIBRARY}/../../../../..\" ABSOLUTE)\n"
         "file(WRITE \"${CMAKE_BINARY_DIR}/selected-root.txt\" \"${SELECTED_ROOT}\")\n",
         encoding="utf-8",

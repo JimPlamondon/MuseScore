@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: GPL-3.0-only
  * MuseScore-Studio-CLA-applies
  *
- * JiMStaff Milestone 1 — fork-side wrapper over the jims-musescore-bridge
+ * JiMStaff Milestone 1 — fork-side wrapper over the melo-musescore-bridge
  * C ABI. See jimsbridge.h.
  */
 #include "jimsbridge.h"
@@ -12,7 +12,7 @@
 #include "serialization/json.h"
 #include "translation.h"
 
-#include "jims_musescore_bridge.h"
+#include "melo_musescore_bridge.h"
 
 using namespace muse;
 
@@ -20,12 +20,12 @@ namespace mu::engraving::jims {
 static String callBridge(const String& envelope)
 {
     ByteArray utf8 = envelope.toUtf8();
-    char* raw = jims_musescore_bridge_request(utf8.constChar());
+    char* raw = melo_musescore_bridge_request(utf8.constChar());
     if (!raw) {
         return String();
     }
     String out = String::fromUtf8(raw);
-    jims_musescore_bridge_free(raw);
+    melo_musescore_bridge_free(raw);
     return out;
 }
 
@@ -47,7 +47,7 @@ static bool okResult(const String& response, JsonValue& result)
 bool available()
 {
     // V2 contract (Milestone 2 Phase 4): this fork speaks bridge ABI 2.
-    return jims_musescore_bridge_abi_version() == 2;
+    return melo_musescore_bridge_abi_version() == 2;
 }
 
 bool validateState(const String& stateJson, String& error)
