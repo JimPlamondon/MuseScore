@@ -20,7 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "projectactionscontroller.h"
-#include "jimsstocklosswarning.h"
+#include "melostocklosswarning.h"
 
 #include <QBuffer>
 #include <QEventLoop>
@@ -41,7 +41,7 @@
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/staff.h"
 #include "engraving/dom/stafftype.h"
-#include "engraving/jims/jimsstrings.h"
+#include "engraving/melo/melostrings.h"
 
 #include "projecterrors.h"
 #include "projectextensionpoints.h"

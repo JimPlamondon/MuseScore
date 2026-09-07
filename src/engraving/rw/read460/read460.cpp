@@ -49,7 +49,7 @@
 #include "dom/tie.h"
 #include "dom/tremolotwochord.h"
 #include "dom/tuplet.h"
-#include "jims/jimschange.h"
+#include "melo/melochange.h"
 
 #include "engravingerrors.h"
 
@@ -91,7 +91,7 @@ static melo::ReviewValue readMeloReviewValue(XmlReader& e)
     return v;
 }
 
-/// Read the JiMS evidentiary review record (jims/jimsreview.h).
+/// Read the JiMS evidentiary review record (melo/meloreview.h).
 static melo::ReviewRecord readMeloReview(XmlReader& e)
 {
     melo::ReviewRecord review;

@@ -37,8 +37,8 @@
 #include "types/typesconv.h"
 #include "iengravingfont.h"
 
-#include "../jims/jimsbridge.h"
-#include "../jims/jimschange.h"
+#include "../melo/melobridge.h"
+#include "../melo/melochange.h"
 
 #include "rendering/score/horizontalspacing.h"
 

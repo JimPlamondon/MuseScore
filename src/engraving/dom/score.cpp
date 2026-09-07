@@ -108,7 +108,7 @@
 #include "volta.h"
 
 #include "engraving/automation/iautomation.h"
-#include "../jims/jimschange.h"
+#include "../melo/melochange.h"
 
 #ifndef ENGRAVING_NO_ACCESSIBILITY
 #include "accessibility/accessibleitem.h"

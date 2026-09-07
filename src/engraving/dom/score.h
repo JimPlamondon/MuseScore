@@ -34,8 +34,8 @@
 
 #include "global/async/channel.h"
 #include "global/types/ret.h"
-#include "../jims/jimsinterchange.h"
-#include "../jims/jimsreview.h"
+#include "../melo/melointerchange.h"
+#include "../melo/meloreview.h"
 
 #include "modularity/ioc.h"
 #include "draw/iimageprovider.h"
@@ -899,12 +899,12 @@ public:
     MasterScore* masterScore() const { return m_masterScore; }
     void setMasterScore(MasterScore* s) { m_masterScore = s; }
 
-    // JiMS MusicXML interchange carrier (transported, never interpreted; see jims/jimsinterchange.h)
+    // JiMS MusicXML interchange carrier (transported, never interpreted; see melo/melointerchange.h)
     const melo::Provenance& meloProvenance() const { return m_meloProvenance; }
     void setMeloProvenance(const melo::Provenance& p) { m_meloProvenance = p; }
     melo::MelodyPart meloMelodyPart() const { return m_meloMelodyPart; }
     void setMeloMelodyPart(melo::MelodyPart part) { m_meloMelodyPart = part; }
-    /// The JiMS evidentiary review record (transported; see jims/jimsreview.h)
+    /// The JiMS evidentiary review record (transported; see melo/meloreview.h)
     const melo::ReviewRecord& meloReview() const { return m_meloReview; }
     void setMeloReview(const melo::ReviewRecord& r) { m_meloReview = r; }
 

@@ -33,7 +33,7 @@
 #include "infrastructure/messagebox.h"
 #include "style/style.h"
 
-#include "../jims/jimsbridge.h"
+#include "../melo/melobridge.h"
 
 #include "rw/xmlreader.h"
 

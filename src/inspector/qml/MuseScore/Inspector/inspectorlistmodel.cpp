@@ -20,8 +20,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "inspectorlistmodel.h"
-#include "jimsstaffsettingsmodel.h"
-#include "jimsscoresettingsmodel.h"
+#include "melostaffsettingsmodel.h"
+#include "meloscoresettingsmodel.h"
 
 #include "general/generalsettingsmodel.h"
 #include "measures/measuressettingsmodel.h"

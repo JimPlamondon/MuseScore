@@ -74,7 +74,7 @@ Column {
                     property var source
                     property color foreground: ui.theme.fontPrimaryColor
                     property color background: ui.theme.popupBackgroundColor
-                    fragmentShader: "qrc:/qt/qml/MuseScore/Inspector/shaders/jimsfigure.frag.qsb"
+                    fragmentShader: "qrc:/qt/qml/MuseScore/Inspector/shaders/melofigure.frag.qsb"
                 }
             }
         }
@@ -95,7 +95,7 @@ Column {
                     property var source
                     property color foreground: ui.theme.fontPrimaryColor
                     property color background: ui.theme.popupBackgroundColor
-                    fragmentShader: "qrc:/qt/qml/MuseScore/Inspector/shaders/jimsfigure.frag.qsb"
+                    fragmentShader: "qrc:/qt/qml/MuseScore/Inspector/shaders/melofigure.frag.qsb"
                 }
             }
         }
@@ -113,7 +113,7 @@ Column {
                     property var source
                     property color foreground: ui.theme.fontPrimaryColor
                     property color background: ui.theme.popupBackgroundColor
-                    fragmentShader: "qrc:/qt/qml/MuseScore/Inspector/shaders/jimsfigure.frag.qsb"
+                    fragmentShader: "qrc:/qt/qml/MuseScore/Inspector/shaders/melofigure.frag.qsb"
                 }
             }
         }

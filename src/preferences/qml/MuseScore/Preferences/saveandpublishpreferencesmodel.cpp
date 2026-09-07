@@ -20,7 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "saveandpublishpreferencesmodel.h"
-#include "engraving/jims/jimsstrings.h"
+#include "engraving/melo/melostrings.h"
 
 using namespace mu::preferences;
 

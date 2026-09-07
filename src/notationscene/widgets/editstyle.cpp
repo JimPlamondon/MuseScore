@@ -21,7 +21,7 @@
  */
 
 #include "editstyle.h"
-#include "engraving/jims/jimsstrings.h"
+#include "engraving/melo/melostrings.h"
 
 #include <QAnyStringView>
 #include <QButtonGroup>

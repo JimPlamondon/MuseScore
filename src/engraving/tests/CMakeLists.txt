@@ -59,13 +59,13 @@ set(MODULE_TEST_SRC
     ${CMAKE_CURRENT_LIST_DIR}/hideemptystaves_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/implodeexplode_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/instrumentchange_tests.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/jimstaff_tests.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/jimstaff_m6_tests.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/jimstaff_m8_tests.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/jimstaff_m9_tests.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/jimstaff_m10_tests.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/jimstaff_fixture_integrity_tests.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/jimsnativevalidation_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/melostaff_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/melostaff_m6_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/melostaff_m8_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/melostaff_m9_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/melostaff_m10_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/melostaff_fixture_integrity_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/melonativevalidation_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/melostyleidentity_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/join_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/keysig_tests.cpp
@@ -124,7 +124,7 @@ set(MODULE_TEST_SRC ${MODULE_TEST_SRC}
     ${CMAKE_CURRENT_LIST_DIR}/playback/playbackmodel_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/playback/playbackcontext_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/playback/bendsrenderer_tests.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/jimstaff_m7_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/melostaff_m7_tests.cpp
 )
 endif()
 

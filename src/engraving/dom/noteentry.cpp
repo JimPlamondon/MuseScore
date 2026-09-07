@@ -26,7 +26,7 @@
 
 #include "../editing/editmeasures.h"
 
-#include "../jims/jimsbridge.h"
+#include "../melo/melobridge.h"
 #include "../editing/inserttime.h"
 #include "../editing/transpose.h"
 #include "infrastructure/messagebox.h"

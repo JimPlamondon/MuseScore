@@ -30,7 +30,7 @@ set(MODULE_TEST_SRC
 
     ${CMAKE_CURRENT_LIST_DIR}/environment.cpp
     ${CMAKE_CURRENT_LIST_DIR}/notationviewinputcontroller_tests.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/jimsuimodel_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/melouimodel_tests.cpp
 )
 
 find_package(Qt6 REQUIRED COMPONENTS Test)

@@ -32,8 +32,8 @@ target_sources(iex_mei PRIVATE
     internal/meiexporter.h
     internal/meiimporter.cpp
     internal/meiimporter.h
-    internal/meijims.cpp
-    internal/meijims.h
+    internal/meimelo.cpp
+    internal/meimelo.h
     internal/meireader.cpp
     internal/meireader.h
     internal/meiwriter.cpp

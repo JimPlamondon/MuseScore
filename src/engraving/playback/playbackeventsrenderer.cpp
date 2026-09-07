@@ -31,7 +31,7 @@
 #include "dom/tempo.h"
 #include "dom/staff.h"
 #include "dom/utils.h"
-#include "jims/jimsbridge.h"
+#include "melo/melobridge.h"
 
 #include "utils/arrangementutils.h"
 

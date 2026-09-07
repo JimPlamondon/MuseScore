@@ -38,7 +38,7 @@
 #include "engraving/engravingerrors.h"
 
 #include "importmusicxml.h"
-#include "engraving/jims/jimschange.h"
+#include "engraving/melo/melochange.h"
 #include "importmusicxmllogger.h"
 #include "importmusicxmlpass1.h"
 #include "importmusicxmlpass2.h"

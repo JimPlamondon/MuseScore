@@ -25,9 +25,9 @@
 
 #include <algorithm>
 
-#include "../../jims/jimsbridge.h"
-#include "../../jims/jimschange.h"
-#include "../../jims/jimspitchlabel.h"
+#include "../../melo/melobridge.h"
+#include "../../melo/melochange.h"
+#include "../../melo/melopitchlabel.h"
 
 #include "defer.h"
 

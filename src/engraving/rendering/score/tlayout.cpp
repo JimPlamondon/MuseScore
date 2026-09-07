@@ -23,7 +23,7 @@
 
 #include "tlayout.h"
 
-#include "../../jims/jimsbridge.h"
+#include "../../melo/melobridge.h"
 
 #include "global/realfn.h"
 #include "global/types/number.h"

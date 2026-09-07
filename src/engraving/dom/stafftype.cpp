@@ -28,10 +28,10 @@
 #include "translation.h"
 
 #include "../iengravingfont.h"
-#include "../jims/jimsbridge.h"
-#include "../jims/jimschange.h"
-#include "../jims/jimspitchlabel.h"
-#include "../jims/jimsstrings.h"
+#include "../melo/melobridge.h"
+#include "../melo/melochange.h"
+#include "../melo/melopitchlabel.h"
+#include "../melo/melostrings.h"
 
 #include "rw/xmlreader.h"
 #include "style/defaultstyle.h"

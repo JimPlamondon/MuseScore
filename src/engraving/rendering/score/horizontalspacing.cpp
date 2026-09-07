@@ -23,7 +23,7 @@
 
 #include "horizontalspacing.h"
 
-#include "../../jims/jimschange.h"
+#include "../../melo/melochange.h"
 #include "parenthesislayout.h"
 
 #include "dom/barline.h"

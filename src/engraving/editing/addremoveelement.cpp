@@ -39,7 +39,7 @@
 #include "../dom/tie.h"
 #include "../dom/tremolotwochord.h"
 #include "../dom/tuplet.h"
-#include "../jims/jimschange.h"
+#include "../melo/melochange.h"
 
 using namespace mu::engraving;
 

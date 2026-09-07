@@ -34,7 +34,7 @@
 #include "keylist.h"
 #include "mscore.h"
 #include "stafftypelist.h"
-#include "../jims/jimsinterchange.h"
+#include "../melo/melointerchange.h"
 
 #include "../types/types.h"
 

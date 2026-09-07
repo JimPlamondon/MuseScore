@@ -65,7 +65,7 @@ static void writeMeloReviewValue(XmlWriter& xml, const melo::ReviewValue& v)
     }
 }
 
-/// The JiMS evidentiary review record (jims/jimsreview.h): typed, never an
+/// The JiMS evidentiary review record (melo/meloreview.h): typed, never an
 /// opaque string, with every adjudication carrying its exact tick anchor.
 static void writeMeloReview(XmlWriter& xml, const melo::ReviewRecord& review)
 {
@@ -245,7 +245,7 @@ void Writer::write(Score* score, XmlWriter& xml, WriteContext& ctx, compat::Writ
         }
     }
 
-// JiMS MusicXML interchange carrier, transported verbatim (jims/jimsinterchange.h).
+// JiMS MusicXML interchange carrier, transported verbatim (melo/melointerchange.h).
     if (!score->m_meloProvenance.empty()) {
         XmlWriter::Attributes attrs;
         if (score->m_meloProvenance.strictFallback) {
