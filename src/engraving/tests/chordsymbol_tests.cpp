@@ -500,7 +500,7 @@ TEST_F(Engraving_ChordSymbolTests, testAddHarmonyToFretDiagram)
     delete score;
 }
 
-TEST_F(Engraving_ChordSymbolTests, jimsHarmonyCreationIsPerObjectUndoableCloneableAndAccessible)
+TEST_F(Engraving_ChordSymbolTests, meloHarmonyCreationIsPerObjectUndoableCloneableAndAccessible)
 {
     MasterScore* score = test_pre(u"add-link");
     ASSERT_TRUE(score);
@@ -510,11 +510,11 @@ TEST_F(Engraving_ChordSymbolTests, jimsHarmonyCreationIsPerObjectUndoableCloneab
     ASSERT_TRUE(chordRest);
 
     score->startCmd(TranslatableString::untranslatable("Add JiMS chord name"));
-    Harmony* melo = score->addHarmony(HarmonyType::JIMS, chordRest);
+    Harmony* melo = score->addHarmony(HarmonyType::MELO, chordRest);
     ASSERT_TRUE(melo);
     melo->setHarmony(u"Fi@Te:M3²+La,Ti/Re");
     score->endCmd();
-    EXPECT_EQ(melo->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(melo->harmonyType(), HarmonyType::MELO);
     EXPECT_EQ(melo->harmonyName(), u"Fi@Te:M3²+La,Ti/Re");
     EXPECT_TRUE(melo->accessibleInfo().contains(u"MeloPresto chord name"));
     EXPECT_TRUE(melo->accessibleInfo().contains(u"Fi@Te:M3²+La,Ti/Re"));
@@ -522,7 +522,7 @@ TEST_F(Engraving_ChordSymbolTests, jimsHarmonyCreationIsPerObjectUndoableCloneab
 
     Harmony* clone = melo->clone();
     ASSERT_TRUE(clone);
-    EXPECT_EQ(clone->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(clone->harmonyType(), HarmonyType::MELO);
     EXPECT_EQ(clone->harmonyName(), u"Fi@Te:M3²+La,Ti/Re");
     delete clone;
 
@@ -531,17 +531,17 @@ TEST_F(Engraving_ChordSymbolTests, jimsHarmonyCreationIsPerObjectUndoableCloneab
     score->undoRedo(false, nullptr);
     EngravingItem* restored = segment->findAnnotation(ElementType::HARMONY, chordRest->track(), chordRest->track() + 1);
     ASSERT_TRUE(restored && restored->isHarmony());
-    EXPECT_EQ(toHarmony(restored)->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(toHarmony(restored)->harmonyType(), HarmonyType::MELO);
     EXPECT_EQ(toHarmony(restored)->harmonyName(), u"Fi@Te:M3²+La,Ti/Re");
 
     TextBase* standardText = score->addText(TextStyleType::HARMONY_A, chordRest);
     ASSERT_TRUE(standardText && standardText->isHarmony());
     EXPECT_EQ(toHarmony(standardText)->harmonyType(), HarmonyType::STANDARD);
-    EXPECT_EQ(int(apiv1::enums::HarmonyType::JIMS), int(HarmonyType::JIMS));
+    EXPECT_EQ(int(apiv1::enums::HarmonyType::MELO), int(HarmonyType::MELO));
     delete score;
 }
 
-TEST_F(Engraving_ChordSymbolTests, denseJimsHarmonyLabelsUseAlternatingVerticalLanes)
+TEST_F(Engraving_ChordSymbolTests, denseMeloHarmonyLabelsUseAlternatingVerticalLanes)
 {
     MasterScore* score = test_pre(u"add-link");
     ASSERT_TRUE(score);
@@ -554,8 +554,8 @@ TEST_F(Engraving_ChordSymbolTests, denseJimsHarmonyLabelsUseAlternatingVerticalL
     ChordRest* secondChordRest = secondSegment->cr(0);
     ASSERT_TRUE(firstChordRest && secondChordRest);
 
-    Harmony* first = score->addHarmony(HarmonyType::JIMS, firstChordRest);
-    Harmony* second = score->addHarmony(HarmonyType::JIMS, secondChordRest);
+    Harmony* first = score->addHarmony(HarmonyType::MELO, firstChordRest);
+    Harmony* second = score->addHarmony(HarmonyType::MELO, secondChordRest);
     ASSERT_TRUE(first && second);
     first->setHarmony(u"Fi@Te:M3²+La,Ti/Re—Fi@Te:M3²+La,Ti/Re");
     second->setHarmony(u"!So7/Ti,Mi,La—!So7/Ti,Mi,La");
@@ -576,7 +576,7 @@ TEST_F(Engraving_ChordSymbolTests, denseJimsHarmonyLabelsUseAlternatingVerticalL
     delete score;
 }
 
-TEST_F(Engraving_ChordSymbolTests, jimsHarmonyRangeCopyPasteKeepsTypeAndCanonicalName)
+TEST_F(Engraving_ChordSymbolTests, meloHarmonyRangeCopyPasteKeepsTypeAndCanonicalName)
 {
     MasterScore* score = test_pre(u"add-link");
     ASSERT_TRUE(score);
@@ -586,7 +586,7 @@ TEST_F(Engraving_ChordSymbolTests, jimsHarmonyRangeCopyPasteKeepsTypeAndCanonica
     ChordRest* sourceChordRest = sourceMeasure->first(SegmentType::ChordRest)->cr(0);
     ASSERT_TRUE(sourceChordRest);
 
-    Harmony* source = score->addHarmony(HarmonyType::JIMS, sourceChordRest);
+    Harmony* source = score->addHarmony(HarmonyType::MELO, sourceChordRest);
     ASSERT_TRUE(source);
     source->setHarmony(u"!So7/Ti");
 
@@ -607,12 +607,12 @@ TEST_F(Engraving_ChordSymbolTests, jimsHarmonyRangeCopyPasteKeepsTypeAndCanonica
     EngravingItem* pastedItem = destinationSegment->findAnnotation(ElementType::HARMONY, 0, 1);
     ASSERT_TRUE(pastedItem && pastedItem->isHarmony());
     Harmony* pasted = toHarmony(pastedItem);
-    EXPECT_EQ(pasted->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(pasted->harmonyType(), HarmonyType::MELO);
     EXPECT_EQ(pasted->harmonyName(), u"!So7/Ti");
     delete score;
 }
 
-TEST_F(Engraving_ChordSymbolTests, jimsHarmonyCannotBeCreatedInsideAFretDiagram)
+TEST_F(Engraving_ChordSymbolTests, meloHarmonyCannotBeCreatedInsideAFretDiagram)
 {
     MasterScore* score = ScoreRW::readScore(CHORDSYMBOL_DATA_DIR + u"add-to-fret.mscz");
     ASSERT_TRUE(score);
@@ -620,7 +620,7 @@ TEST_F(Engraving_ChordSymbolTests, jimsHarmonyCannotBeCreatedInsideAFretDiagram)
     ASSERT_TRUE(segment);
     FretDiagram* fretDiagram = toFretDiagram(segment->findAnnotation(ElementType::FRET_DIAGRAM, 0, 0));
     ASSERT_TRUE(fretDiagram);
-    EXPECT_FALSE(score->addHarmony(HarmonyType::JIMS, fretDiagram));
+    EXPECT_FALSE(score->addHarmony(HarmonyType::MELO, fretDiagram));
     EXPECT_FALSE(fretDiagram->harmony());
     delete score;
 }

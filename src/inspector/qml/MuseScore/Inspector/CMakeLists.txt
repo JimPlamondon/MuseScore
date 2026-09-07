@@ -244,9 +244,9 @@ qt_add_qml_module(inspector_qml
         types/voicetypes.h
 
     QML_FILES
-        JimsStaffSettings.qml
-        JimsScoreSettings.qml
-        JimsTuningControl.qml
+        MeloStaffSettings.qml
+        MeloScoreSettings.qml
+        MeloTuningControl.qml
         common/CheckBoxPropertyView.qml
         common/ColorSection.qml
         common/DirectionSection.qml

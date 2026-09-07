@@ -2083,14 +2083,14 @@ Err MusicXmlParserPass2::parse(const ByteArray& data)
 Err MusicXmlParserPass2::parse()
 {
     bool found = false;
-    m_jims = m_pass1.melo();        // resolved JiMS prefix (native JiMS import); buffers fill below
-    m_jimsError = Err::NoError;
+    m_melo = m_pass1.melo();        // resolved JiMS prefix (native JiMS import); buffers fill below
+    m_meloError = Err::NoError;
     while (m_e.readNextStartElement()) {
         if (m_e.name() == "score-partwise") {
             found = true;
             scorePartwise();
-            if (m_jimsError != Err::NoError) {
-                return m_jimsError;
+            if (m_meloError != Err::NoError) {
+                return m_meloError;
             }
         } else {
             m_logger->logError(u"this is not a MusicXML score-partwise file", &m_e);
@@ -2174,8 +2174,8 @@ void MusicXmlParserPass2::scorePartwise()
     }
     // Native JiMS import, owner rule 2026-08-19: every JiMS part shares one
     // state timeline (several JiMS parts and mixed JiMS + stock parts are fine).
-    if (m_jims.anyBuffered() && !m_jims.checkSharedStatesAcrossParts(m_logger)) {
-        m_jimsError = Err::FileBadFormat;
+    if (m_melo.anyBuffered() && !m_melo.checkSharedStatesAcrossParts(m_logger)) {
+        m_meloError = Err::FileBadFormat;
     }
 
     // set last measure barline to normal or MuseScore will generate light-heavy EndBarline
@@ -2510,17 +2510,17 @@ void MusicXmlParserPass2::part()
     // Native JiMS import: apply the buffered jims:staff-state timeline now
     // that every stock handler for this part has run (first state -> JiMS
     // StaffType at tick 0, later states -> StaffTypeChange carriers).
-    if (m_jims.statesFor(id)) {
-        const MusicXmlPart& jimsPart = m_pass1.getMusicXmlPart(id);
-        auto staffIndexForNumber = [&jimsPart](int number) { return jimsPart.staffNumberToIndex(number); };
-        if (!m_jims.applyToPart(m_score, part, id, staffIndexForNumber, m_logger)) {
-            m_jimsError = Err::FileBadFormat;
+    if (m_melo.statesFor(id)) {
+        const MusicXmlPart& meloPart = m_pass1.getMusicXmlPart(id);
+        auto staffIndexForNumber = [&meloPart](int number) { return meloPart.staffNumberToIndex(number); };
+        if (!m_melo.applyToPart(m_score, part, id, staffIndexForNumber, m_logger)) {
+            m_meloError = Err::FileBadFormat;
         } else {
             size_t repairs = 0;
             String repairError;
             if (!melo::normalizeStoredPitchesAfterLoad(m_score, repairs, repairError, false)) {
                 m_logger->logError(String(u"the JiMS Kernel could not normalize imported note projections: %1").arg(repairError), &m_e);
-                m_jimsError = Err::FileBadFormat;
+                m_meloError = Err::FileBadFormat;
             } else if (repairs > 0) {
                 m_logger->logDebugInfo(String(u"normalized %1 contradictory JiMS compatibility pitch projection(s)").arg(repairs), &m_e);
             }
@@ -3199,9 +3199,9 @@ void MusicXmlParserPass2::attributes(const String& partId, Measure* measure, con
             time(partId, measure, tick);
         } else if (m_e.name() == "transpose") {
             m_e.skipCurrentElement();        // skip but don't log
-        } else if (m_jims.isJimsElement(m_e.name(), "staff-state")) {
-            jimsStaffState(partId, tick);
-        } else if (m_jims.isJimsElement(m_e.name(), "change")) {
+        } else if (m_melo.isMeloElement(m_e.name(), "staff-state")) {
+            meloStaffState(partId, tick);
+        } else if (m_melo.isMeloElement(m_e.name(), "change")) {
             m_e.skipCurrentElement();        // Kernel-written summary: the importer never reads it
         } else {
             skipLogCurrElem();
@@ -3220,18 +3220,18 @@ void MusicXmlParserPass2::attributes(const String& partId, Measure* measure, con
  overwrite the JiMS staff type. A malformed state is a fatal import error.
  */
 
-void MusicXmlParserPass2::jimsStaffState(const String& partId, const Fraction& tick)
+void MusicXmlParserPass2::meloStaffState(const String& partId, const Fraction& tick)
 {
     String json;
     String error;
     int staffNumber = 0;
-    if (!m_jims.parseStaffState(m_e, json, staffNumber, error)) {
+    if (!m_melo.parseStaffState(m_e, json, staffNumber, error)) {
         LOGE() << "JiMS MusicXML import: " << error;
         m_logger->logError(error, &m_e);
-        m_jimsError = Err::FileBadFormat;
+        m_meloError = Err::FileBadFormat;
         return;
     }
-    m_jims.buffer(partId, tick, staffNumber, json);
+    m_melo.buffer(partId, tick, staffNumber, json);
 }
 
 //---------------------------------------------------------
@@ -3606,14 +3606,14 @@ void MusicXmlParserDirection::direction(const String& partId,
         }
     }
 
-    if (m_jimsTrajectory) {
-        m_jimsTrajectory->tick = tick + m_offset;
-        m_jimsTrajectory->placement = m_placement;
-        Staff* jimsStaff = m_score->staff(track2staff(m_track));
-        if (jimsStaff) {
-            jimsStaff->addJimsTuningTrajectory(*m_jimsTrajectory);
+    if (m_meloTrajectory) {
+        m_meloTrajectory->tick = tick + m_offset;
+        m_meloTrajectory->placement = m_placement;
+        Staff* meloStaff = m_score->staff(track2staff(m_track));
+        if (meloStaff) {
+            meloStaff->addMeloTuningTrajectory(*m_meloTrajectory);
         }
-        m_jimsTrajectory.reset();
+        m_meloTrajectory.reset();
     }
 
     handleRepeats(measure, tick + m_offset, measureHasCoda, segnos, delayedDirections);
@@ -4168,7 +4168,7 @@ void MusicXmlParserDirection::directionType(std::vector<MusicXmlSpannerDesc>& st
         const String type = m_e.attribute("type");
         m_color = Color::fromString(m_e.asciiAttribute("color").ascii());
         m_justify = m_e.attribute("justify");
-        if (m_pass1.melo().hasJims() && m_pass1.melo().isJimsElement(m_e.name(), "tuning-trajectory")) {
+        if (m_pass1.melo().hasMelo() && m_pass1.melo().isMeloElement(m_e.name(), "tuning-trajectory")) {
             // Native JiMS import: transported carrier (owner decision 2026-08-19);
             // tick, staff and placement are known only when the enclosing
             // direction has been read in full.
@@ -4176,10 +4176,10 @@ void MusicXmlParserDirection::directionType(std::vector<MusicXmlSpannerDesc>& st
             String error;
             auto ticksOf = [this](int divisions) { return m_pass1.calcTicks(divisions, m_pass2.divs(), &m_e); };
             if (m_pass1.melo().parseTuningTrajectory(m_e, ticksOf, t, error)) {
-                m_jimsTrajectory = t;
+                m_meloTrajectory = t;
             } else {
                 m_logger->logError(error, &m_e);
-                m_pass2.setJimsError();
+                m_pass2.setMeloError();
             }
         } else if (m_e.name() == "metronome") {
             m_metroText = metronome(m_tpoMetro);
@@ -7191,17 +7191,17 @@ Note* MusicXmlParserPass2::note(const String& partId,
 
     MusicXmlNoteDuration mnd { m_divs, m_logger, &m_pass1 };
     MusicXmlNotePitch mnp { m_logger };
-    bool hasJimsPitch = false;      // native JiMS import: jims:pitch identity
-    int jimsNPer = 0;
-    int jimsNGen = 0;
+    bool hasMeloPitch = false;      // native JiMS import: jims:pitch identity
+    int meloNPer = 0;
+    int meloNGen = 0;
 
     while (m_e.readNextStartElement()) {
         if (mnp.readProperties(m_e, m_score)) {
             // element handled
-        } else if (m_jims.isJimsElement(m_e.name(), "pitch")) {
-            hasJimsPitch = m_e.hasAttribute("n-per") && m_e.hasAttribute("n-gen");
-            jimsNPer = m_e.intAttribute("n-per");
-            jimsNGen = m_e.intAttribute("n-gen");
+        } else if (m_melo.isMeloElement(m_e.name(), "pitch")) {
+            hasMeloPitch = m_e.hasAttribute("n-per") && m_e.hasAttribute("n-gen");
+            meloNPer = m_e.intAttribute("n-per");
+            meloNGen = m_e.intAttribute("n-gen");
             m_e.skipCurrentElement();
         } else if (mnd.readProperties(m_e)) {
             // element handled
@@ -7432,8 +7432,8 @@ Note* MusicXmlParserPass2::note(const String& partId,
         } else {
             setPitch(note, instruments, instrumentId, mnp, octaveShift, instrument);
         }
-        if (hasJimsPitch) {
-            note->setJimsPitch(jimsNPer, jimsNGen);       // Kernel identity, transcribed verbatim
+        if (hasMeloPitch) {
+            note->setMeloPitch(meloNPer, meloNGen);       // Kernel identity, transcribed verbatim
         }
         c->add(note);
         cr = c;
@@ -8035,7 +8035,7 @@ void MusicXmlParserPass2::harmony(const String& partId, Measure* measure, const 
     const double relativeX = m_e.doubleAttribute("relative-x") * 0.1 * m_score->style().spatium();
     const double relativeY = m_e.doubleAttribute("relative-y") * -0.1 * m_score->style().spatium();
 
-    String kind, kindText, functionText, inversionText, symbols, parens, jimsChordName;
+    String kind, kindText, functionText, inversionText, symbols, parens, meloChordName;
     bool hasConventionalHarmonyChord = false;
     std::vector<HDegree> degreeList;
 
@@ -8049,7 +8049,7 @@ void MusicXmlParserPass2::harmony(const String& partId, Measure* measure, const 
         ha->resetProperty(Pid::OFFSET);
     }
     while (m_e.readNextStartElement()) {
-        if (m_jims.isJimsElement(m_e.name(), "chord-name")) {
+        if (m_melo.isMeloElement(m_e.name(), "chord-name")) {
             const String name = m_e.readText();
             bool containsWhitespace = false;
             for (size_t i = 0; i < name.size(); ++i) {
@@ -8058,14 +8058,14 @@ void MusicXmlParserPass2::harmony(const String& partId, Measure* measure, const 
                     break;
                 }
             }
-            if (!jimsChordName.isEmpty() || name.isEmpty() || containsWhitespace || name.contains(u'~') || m_jims.version() < 4) {
+            if (!meloChordName.isEmpty() || name.isEmpty() || containsWhitespace || name.contains(u'~') || m_melo.version() < 4) {
                 m_logger->logError(
                     u"invalid or duplicate jims:chord-name; V4 requires one nonempty whitespace-free canonical name and rejects the superseded '~' marker",
                     &m_e);
-                m_jimsError = Err::FileBadFormat;
+                m_meloError = Err::FileBadFormat;
             } else {
-                jimsChordName = name;
-                ha->setHarmonyType(HarmonyType::JIMS);
+                meloChordName = name;
+                ha->setHarmonyType(HarmonyType::MELO);
             }
         } else if (m_e.name() == "root") {
             hasConventionalHarmonyChord = true;
@@ -8236,26 +8236,26 @@ void MusicXmlParserPass2::harmony(const String& partId, Measure* measure, const 
         }
     }
 
-    if (!jimsChordName.isEmpty() && hasConventionalHarmonyChord) {
+    if (!meloChordName.isEmpty() && hasConventionalHarmonyChord) {
         m_logger->logError(
             u"jims:chord-name replaces the conventional harmony-chord group and cannot be mixed with it in one harmony event", &m_e);
-        m_jimsError = Err::FileBadFormat;
-        ha->setHarmonyType(HarmonyType::JIMS);
+        m_meloError = Err::FileBadFormat;
+        ha->setHarmonyType(HarmonyType::MELO);
     }
 
     const ChordDescription* d = nullptr;
-    if (ha->harmonyType() == HarmonyType::JIMS) {
+    if (ha->harmonyType() == HarmonyType::MELO) {
         info->setId(-1);
         info->setRootTpc(Tpc::TPC_INVALID);
         info->setBassTpc(Tpc::TPC_INVALID);
-        info->setTextName(jimsChordName);
+        info->setTextName(meloChordName);
     } else if (info->rootTpc() != Tpc::TPC_INVALID || ha->harmonyType() == HarmonyType::NASHVILLE) {
         d = harmonyFromXml(info, m_score, kind, kindText, symbols, parens, degreeList);
     }
     if (d) {
         info->setId(d->id);
         info->setTextName(d->names.front());
-    } else if (ha->harmonyType() != HarmonyType::JIMS) {
+    } else if (ha->harmonyType() != HarmonyType::MELO) {
         info->setId(-1);
         String textName = functionText + kindText + inversionText;
         info->setTextName(textName);

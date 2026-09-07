@@ -91,13 +91,13 @@ QString SaveAndPublishPreferencesModel::warnWhenSavingNotationLabel() const
     return engraving::melo::warnWhenSavingNotation().toQString();
 }
 
-bool SaveAndPublishPreferencesModel::warnOnJimsSave() const
+bool SaveAndPublishPreferencesModel::warnOnMeloSave() const
 {
-    return projectConfiguration()->showJimsStockLossWarning();
+    return projectConfiguration()->showMeloStockLossWarning();
 }
 
-void SaveAndPublishPreferencesModel::setWarnOnJimsSave(bool value)
+void SaveAndPublishPreferencesModel::setWarnOnMeloSave(bool value)
 {
-    projectConfiguration()->setShowJimsStockLossWarning(value);
-    emit warnOnJimsSaveChanged();
+    projectConfiguration()->setShowMeloStockLossWarning(value);
+    emit warnOnMeloSaveChanged();
 }

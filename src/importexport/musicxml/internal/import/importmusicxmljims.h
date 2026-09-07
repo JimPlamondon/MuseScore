@@ -73,12 +73,12 @@ public:
     engraving::Err resolveFromRoot(const std::vector<muse::XmlStreamReader::Attribute>& attributes, MusicXmlLogger* logger,
                                    const muse::XmlStreamReader* e);
 
-    bool hasJims() const { return !m_prefix.empty(); }
+    bool hasMelo() const { return !m_prefix.empty(); }
     int version() const { return m_version; }
     const muse::String& prefix() const { return m_prefix; }
 
     /// True when `qualifiedName` is `<prefix>:<local>` for the resolved prefix.
-    bool isJimsElement(const muse::AsciiStringView& qualifiedName, const char* local) const;
+    bool isMeloElement(const muse::AsciiStringView& qualifiedName, const char* local) const;
 
     /// Parse a jims:staff-state element (reader on its start tag; the reader
     /// is left after its end tag) into the Kernel's compact state JSON —

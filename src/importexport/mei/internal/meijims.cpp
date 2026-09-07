@@ -197,12 +197,12 @@ bool MeloMeiExporter::buildPlan(const Score* score)
     m_notes.clear();
     m_reviewers.clear();
     m_adjAnnotIds.clear();
-    for (const melo::ReviewAdjudication& adj : score->jimsReview().adjudications) {
+    for (const melo::ReviewAdjudication& adj : score->meloReview().adjudications) {
         if (!adj.reviewer.isEmpty()) {
             respIdFor(adj.reviewer);
         }
     }
-    if (!score->jimsReview().empty()) {
+    if (!score->meloReview().empty()) {
         m_present = true;
     }
 
@@ -214,7 +214,7 @@ bool MeloMeiExporter::buildPlan(const Score* score)
                 continue;
             }
             const Harmony* harmony = toHarmony(item);
-            if (harmony->harmonyType() != HarmonyType::JIMS) {
+            if (harmony->harmonyType() != HarmonyType::MELO) {
                 continue;
             }
             const String name = harmony->harmonyName();
@@ -236,7 +236,7 @@ bool MeloMeiExporter::buildPlan(const Score* score)
     for (const Staff* staff : score->staves()) {
         ++staffN;
         const StaffType* base = staff->staffType(Fraction(0, 1));
-        if (!base || !base->isJiMS()) {
+        if (!base || !base->isMelo()) {
             continue;
         }
         if (!melo::available()) {
@@ -248,14 +248,14 @@ bool MeloMeiExporter::buildPlan(const Score* score)
         plan.staff = staff;
         plan.staffN = staffN;
         plan.staffDefId = "jims-sd-" + std::to_string(staffN);
-        plan.states.push_back({ Fraction(0, 1), base->jimsStateJson() });
+        plan.states.push_back({ Fraction(0, 1), base->meloStateJson() });
         for (const Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
             for (const StaffTypeChange* carrier : melo::changeCarriers(m, staff->idx())) {
-                if (!carrier->staffType() || !carrier->staffType()->isJiMS()) {
+                if (!carrier->staffType() || !carrier->staffType()->isMelo()) {
                     continue;
                 }
                 const Fraction tick = m->tick() + carrier->rtick();
-                plan.states.push_back({ tick, carrier->staffType()->jimsStateJson() });
+                plan.states.push_back({ tick, carrier->staffType()->meloStateJson() });
             }
         }
         size_t si = 0;
@@ -266,7 +266,7 @@ bool MeloMeiExporter::buildPlan(const Score* score)
             plan.jmStateIds.push_back("jims-state-" + std::to_string(staffN) + "-" + std::to_string(si));
         }
         if (m_tonicAmbit.empty()) {
-            m_tonicAmbit = base->jimsTonicAmbit();
+            m_tonicAmbit = base->meloTonicAmbit();
         }
         m_staves.push_back(plan);
     }
@@ -425,7 +425,7 @@ void MeloMeiExporter::writeScoreAnnots(pugi::xml_node scoreNode)
         annot.append_attribute("class") = ("#jims.ambit." + m_tonicAmbit.toStdString()).c_str();
         annot.text().set(m_tonicAmbit.toStdString().c_str());
     }
-    const melo::ReviewRecord& review = m_score->jimsReview();
+    const melo::ReviewRecord& review = m_score->meloReview();
     if (!review.focusedReviewReasons.empty()) {
         pugi::xml_node fr = scoreNode.append_child("annot");
         fr.append_attribute("xml:id") = "jims-focused-review";
@@ -435,7 +435,7 @@ void MeloMeiExporter::writeScoreAnnots(pugi::xml_node scoreNode)
         }
     }
     if (!m_staves.empty()) {
-        const String token = melo::melodyPartToken(m_score->jimsMelodyPart());
+        const String token = melo::melodyPartToken(m_score->meloMelodyPart());
         pugi::xml_node annot = scoreNode.append_child("annot");
         annot.append_attribute("xml:id") = "jims-melody";
         annot.append_attribute("type") = "jims-melody-part";
@@ -456,7 +456,7 @@ void MeloMeiExporter::writeMeasureAnnots(pugi::xml_node measureNode, const Measu
     // Evidentiary adjudications anchored inside this measure. An anchor that
     // no longer lands in the score is STALE: it is marked, never silently
     // re-timed (spec/MAPPING.md fact 12-14).
-    const melo::ReviewRecord& review = m_score->jimsReview();
+    const melo::ReviewRecord& review = m_score->meloReview();
     for (size_t i = 0; i < review.adjudications.size(); ++i) {
         const melo::ReviewAdjudication& adj = review.adjudications.at(i);
         if (adj.tick < measure->tick() || adj.tick >= measure->endTick()) {
@@ -507,7 +507,7 @@ void MeloMeiExporter::writeMeasureAnnots(pugi::xml_node measureNode, const Measu
 
 void MeloMeiExporter::onHarm(pugi::xml_node harmNode, const Harmony* harmony, const std::string& xmlId)
 {
-    if (!harmony || harmony->harmonyType() != HarmonyType::JIMS) {
+    if (!harmony || harmony->harmonyType() != HarmonyType::MELO) {
         return;
     }
     // @type is a space-separated token list; ensure the profile token once.
@@ -526,11 +526,11 @@ void MeloMeiExporter::onHarm(pugi::xml_node harmNode, const Harmony* harmony, co
 
 void MeloMeiExporter::onNote(const Note* note, const std::string& xmlId)
 {
-    if (!note || !note->hasJimsPitch()) {
+    if (!note || !note->hasMeloPitch()) {
         return;
     }
     const StaffType* st = note->staff() ? note->staff()->staffTypeForElement(note) : nullptr;
-    if (!st || !st->isJiMS()) {
+    if (!st || !st->isMelo()) {
         return;
     }
     m_notes.push_back({ xmlId, note });
@@ -583,8 +583,8 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
     pugi::xml_node revision = meiHead.child("revisionDesc");
     pugi::xml_node ext = revision ? meiHead.insert_child_before("extMeta", revision) : meiHead.append_child("extMeta");
     pugi::xml_node rec = ext.append_child("jm:record");
-    rec.append_attribute("xmlns:jm") = JIMS_MEI_NS;
-    rec.append_attribute("xmlns:jims") = JIMS_MUSICXML_NS;
+    rec.append_attribute("xmlns:jm") = MELO_MEI_NS;
+    rec.append_attribute("xmlns:jims") = MELO_MUSICXML_NS;
     rec.append_attribute("version") = "1";
     pugi::xml_node mx = rec.append_child("jm:musicxml");
 
@@ -635,12 +635,12 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
             pugi::xml_node ne = notes.append_child("jm:note");
             ne.append_attribute("ref") = ("#" + entry.first).c_str();
             pugi::xml_node px = ne.append_child("jims:pitch");
-            px.append_attribute("n-per") = entry.second->jimsNPer();
-            px.append_attribute("n-gen") = entry.second->jimsNGen();
+            px.append_attribute("n-per") = entry.second->meloNPer();
+            px.append_attribute("n-gen") = entry.second->meloNGen();
         }
         // Tuning trajectories (verbatim carriers; duration-divisions in the
         // JiMS MEI canonical quarter-note basis).
-        for (const melo::TuningTrajectory& t : plan.staff->jimsTuningTrajectories()) {
+        for (const melo::TuningTrajectory& t : plan.staff->meloTuningTrajectories()) {
             const Measure* measure = nullptr;
             size_t midx = 0;
             for (size_t mi = 0; mi < m_measures.size(); ++mi) {
@@ -742,7 +742,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
     }
 
     // Native provenance sources (uri, media type, hash) in fileDesc/sourceDesc.
-    const melo::Provenance& prov = m_score->jimsProvenance();
+    const melo::Provenance& prov = m_score->meloProvenance();
     if (!prov.resources.empty()) {
         pugi::xml_node fileDesc = meiHead.child("fileDesc");
         if (!fileDesc) {
@@ -803,7 +803,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
     // The evidentiary review record. Every adjudication must still resolve
     // to a live score position; a stale anchor is reported, never silently
     // emitted as valid analysis.
-    const melo::ReviewRecord& review = m_score->jimsReview();
+    const melo::ReviewRecord& review = m_score->meloReview();
     if (!review.empty()) {
         pugi::xml_node rv = rec.append_child("jm:review");
         rv.append_attribute("schema") = review.schema.toStdString().c_str();
@@ -1094,8 +1094,8 @@ bool MeloMeiImporter::apply(Score* score,
         return false;
     }
 
-    static const StaffType* jimsPreset = StaffType::preset(StaffTypes::JIMS_12TET);
-    UNUSED(jimsPreset);
+    static const StaffType* meloPreset = StaffType::preset(StaffTypes::MELO_12TET);
+    UNUSED(meloPreset);
 
     // Measure index -> Measure*
     std::vector<Measure*> measures;
@@ -1158,10 +1158,10 @@ bool MeloMeiImporter::apply(Score* score,
                 if (!tickOf(se, tick)) {
                     return false;
                 }
-                StaffType st = *StaffType::preset(StaffTypes::JIMS_12TET);
-                st.setJiMS(true);
-                st.setJimsJiLines(true);
-                st.setJimsStateJson(json);
+                StaffType st = *StaffType::preset(StaffTypes::MELO_12TET);
+                st.setMelo(true);
+                st.setMeloJiLines(true);
+                st.setMeloStateJson(json);
                 if (first) {
                     if (!tick.isZero()) {
                         m_error = u"JiMS MEI import: the first staff state must sit at the start of the score";
@@ -1208,7 +1208,7 @@ bool MeloMeiImporter::apply(Score* score,
                         m_error = u"JiMS MEI import: a note-identity record does not resolve";
                         return false;
                     }
-                    note->setJimsPitch(px.attribute("n-per").as_int(), px.attribute("n-gen").as_int());
+                    note->setMeloPitch(px.attribute("n-per").as_int(), px.attribute("n-gen").as_int());
                 }
             } else if (local == "trajectory") {
                 Fraction tick;
@@ -1245,7 +1245,7 @@ bool MeloMeiImporter::apply(Score* score,
                     }
                     trajectory.segments.push_back(seg);
                 }
-                staff->addJimsTuningTrajectory(trajectory);
+                staff->addMeloTuningTrajectory(trajectory);
             }
         }
     }
@@ -1338,14 +1338,14 @@ bool MeloMeiImporter::apply(Score* score,
                 review.adjudications.push_back(adj);
             }
         }
-        score->setJimsReview(review);
+        score->setMeloReview(review);
     }
 
     // Melody-part designation (typed native annotation).
     if (!m_melodyToken.isEmpty()) {
         melo::MelodyPart melodyPart = melo::MelodyPart::Soprano;
         if (melo::melodyPartFromToken(m_melodyToken, melodyPart)) {
-            score->setJimsMelodyPart(melodyPart);
+            score->setMeloMelodyPart(melodyPart);
         }
     }
 
@@ -1368,7 +1368,7 @@ bool MeloMeiImporter::apply(Score* score,
                 ++i;
             }
         }
-        score->setJimsProvenance(prov);
+        score->setMeloProvenance(prov);
     }
 
     if (anyState) {

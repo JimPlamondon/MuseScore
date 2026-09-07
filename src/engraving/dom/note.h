@@ -218,23 +218,23 @@ public:
     void setFixedLine(int v) { m_fixedLine = v; }
 
     // JiMStaff lattice identity (Milestone 1).
-    bool hasJimsPitch() const { return m_jimsNPer != JIMS_UNSET && m_jimsNGen != JIMS_UNSET; }
-    int jimsNPer() const { return m_jimsNPer; }
-    int jimsNGen() const { return m_jimsNGen; }
-    void setJimsPitch(int nPer, int nGen)
+    bool hasMeloPitch() const { return m_meloNPer != MELO_UNSET && m_meloNGen != MELO_UNSET; }
+    int meloNPer() const { return m_meloNPer; }
+    int meloNGen() const { return m_meloNGen; }
+    void setMeloPitch(int nPer, int nGen)
     {
-        m_jimsNPer = nPer;
-        m_jimsNGen = nGen;
-        m_jimsCentsValid = false;
+        m_meloNPer = nPer;
+        m_meloNGen = nGen;
+        m_meloCentsValid = false;
     }
 
-    bool jimsCentsValid() const { return m_jimsCentsValid; }
-    double jimsPosY(const StaffType* st) const;
-    double jimsCentsAboveDo() const { return m_jimsCentsAboveDo; }
-    void setJimsCentsAboveDo(double cents)
+    bool meloCentsValid() const { return m_meloCentsValid; }
+    double meloPosY(const StaffType* st) const;
+    double meloCentsAboveDo() const { return m_meloCentsAboveDo; }
+    void setMeloCentsAboveDo(double cents)
     {
-        m_jimsCentsAboveDo = cents;
-        m_jimsCentsValid = true;
+        m_meloCentsAboveDo = cents;
+        m_meloCentsValid = true;
     }
 
     int tpc() const;
@@ -551,11 +551,11 @@ private:
     // nPer/nGen, persisted; JIMS_UNSET when the note carries none. The
     // Do-relative cents value is a derived layout cache obtained from the
     // Kernel through the FFI seam — never serialized, never computed here.
-    static constexpr int JIMS_UNSET = INT_MIN;
-    int m_jimsNPer = JIMS_UNSET;
-    int m_jimsNGen = JIMS_UNSET;
-    double m_jimsCentsAboveDo = 0.0;
-    bool m_jimsCentsValid = false;
+    static constexpr int MELO_UNSET = INT_MIN;
+    int m_meloNPer = MELO_UNSET;
+    int m_meloNGen = MELO_UNSET;
+    double m_meloCentsAboveDo = 0.0;
+    bool m_meloCentsValid = false;
     int m_fret = -1;            // for tablature view
     float m_harmonicFret = -1.0;
     int m_harmonicPitchOffset = 0;

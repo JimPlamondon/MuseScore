@@ -75,22 +75,22 @@ using namespace mu::engraving::rendering;
 using namespace mu::iex::musicxml;
 using namespace muse::draw;
 
-static const String JIMS_DATA_DIR(u"data/jims/");
+static const String MELO_DATA_DIR(u"data/jims/");
 
 namespace {
 String exportToScratch(MasterScore* score, const char* name);
 String readAll(const String& path);
 }
 
-class MusicXml_JiMS_Tests : public ::testing::Test
+class MusicXml_Melo_Tests : public ::testing::Test
 {
 public:
-    MasterScore* readJims(const char* file)
+    MasterScore* readMelo(const char* file)
     {
         auto importXml = [](MasterScore* score, const muse::io::path_t& path) -> engraving::Err {
             return importMusicXml(score, path.toQString(), false);
         };
-        return ScoreRW::readScore(JIMS_DATA_DIR + String::fromUtf8(file), false, importXml);
+        return ScoreRW::readScore(MELO_DATA_DIR + String::fromUtf8(file), false, importXml);
     }
 
     static const StaffType* staffTypeAtStart(Score* score, staff_idx_t staffIdx = 0)
@@ -175,51 +175,51 @@ static String sharedState(const String& state)
     return shared;
 }
 
-TEST_F(MusicXml_JiMS_Tests, v3ImportBuildsTheJiMStaffLikeTheConverter)
+TEST_F(MusicXml_Melo_Tests, v3ImportBuildsTheMeloStaffLikeTheConverter)
 {
-    MasterScore* score = readJims("jims-v3-m5-key-mode.musicxml");
+    MasterScore* score = readMelo("jims-v3-m5-key-mode.musicxml");
     ASSERT_TRUE(score);
     ASSERT_EQ(score->nstaves(), 1u);
     const StaffType* st = staffTypeAtStart(score);
     ASSERT_TRUE(st);
-    EXPECT_TRUE(st->isJiMS());
+    EXPECT_TRUE(st->isMelo());
     EXPECT_EQ(st->xmlName(), String(u"jims12tet"));
     EXPECT_EQ(st->lines(), 13);
     // Load-time reconciliation replaces the serialized extent with the exact
     // written-note bounds. All song-wide content remains the converter's.
-    EXPECT_EQ(sharedState(st->jimsStateJson()), sharedState(String::fromUtf8(KEY_MODE_STATE_1)));
-    EXPECT_TRUE(st->jimsJiLines());
-    EXPECT_EQ(st->jimsTonicAmbit(), u"tonic-bounded");
+    EXPECT_EQ(sharedState(st->meloStateJson()), sharedState(String::fromUtf8(KEY_MODE_STATE_1)));
+    EXPECT_TRUE(st->meloJiLines());
+    EXPECT_EQ(st->meloTonicAmbit(), u"tonic-bounded");
     // The change measure carries the complete second state (never derived from jims:change).
     Measure* m2 = measureNo(score, 2);
     ASSERT_TRUE(m2);
     const StaffTypeChange* stc = melo::changeCarrier(m2, 0);
     ASSERT_TRUE(stc);
     ASSERT_TRUE(stc->staffType());
-    EXPECT_EQ(sharedState(stc->staffType()->jimsStateJson()), sharedState(String::fromUtf8(KEY_MODE_STATE_2)));
-    EXPECT_TRUE(stc->staffType()->jimsStateJson().contains(u"\"tonic_ambit\":\"tonic-"))
-        << stc->staffType()->jimsStateJson().toStdString();
+    EXPECT_EQ(sharedState(stc->staffType()->meloStateJson()), sharedState(String::fromUtf8(KEY_MODE_STATE_2)));
+    EXPECT_TRUE(stc->staffType()->meloStateJson().contains(u"\"tonic_ambit\":\"tonic-"))
+        << stc->staffType()->meloStateJson().toStdString();
     EXPECT_FALSE(melo::changeCarrier(measureNo(score, 1), 0));
     EXPECT_FALSE(melo::changeCarrier(measureNo(score, 3), 0));
     // Every pitched note carries its Kernel identity from jims:pitch.
     auto notes = notesInOrder(score);
     ASSERT_EQ(notes.size(), 12u);
     for (const Note* n : notes) {
-        EXPECT_TRUE(n->hasJimsPitch());
+        EXPECT_TRUE(n->hasMeloPitch());
     }
-    EXPECT_EQ(notes[0]->jimsNPer(), -4);
-    EXPECT_EQ(notes[0]->jimsNGen(), 7);
-    EXPECT_EQ(notes[1]->jimsNPer(), 3);
-    EXPECT_EQ(notes[1]->jimsNGen(), -5);
+    EXPECT_EQ(notes[0]->meloNPer(), -4);
+    EXPECT_EQ(notes[0]->meloNGen(), 7);
+    EXPECT_EQ(notes[1]->meloNPer(), 3);
+    EXPECT_EQ(notes[1]->meloNGen(), -5);
     // Engraving font seam (Milestone 3).
     EXPECT_EQ(score->style().value(Sid::musicalSymbolFont).value<String>(), String(u"JiMSMusic"));
     EXPECT_FALSE(score->style().value(Sid::hideInstrumentNameIfOneInstrument).toBool());
     delete score;
 }
 
-TEST_F(MusicXml_JiMS_Tests, midBarStateChangeImportsAndExportsAtItsExactTick)
+TEST_F(MusicXml_Melo_Tests, midBarStateChangeImportsAndExportsAtItsExactTick)
 {
-    MasterScore* score = readJims("jims-mid-bar-state-change.musicxml");
+    MasterScore* score = readMelo("jims-mid-bar-state-change.musicxml");
     ASSERT_TRUE(score);
     const std::vector<const Note*> notes = notesInOrder(score);
     ASSERT_EQ(notes.size(), 4u);
@@ -235,12 +235,12 @@ TEST_F(MusicXml_JiMS_Tests, midBarStateChangeImportsAndExportsAtItsExactTick)
     const StaffType* newStaffType = notes[2]->staff()->staffTypeForElement(notes[2]);
     ASSERT_TRUE(oldStaffType);
     ASSERT_TRUE(newStaffType);
-    EXPECT_TRUE(oldStaffType->jimsStateJson().contains(u"\"mode_rotation\":0"));
-    EXPECT_TRUE(notes[1]->staff()->staffTypeForElement(notes[1])->jimsStateJson().contains(u"\"mode_rotation\":0"));
-    EXPECT_TRUE(newStaffType->jimsStateJson().contains(u"\"mode_rotation\":5"));
-    EXPECT_TRUE(notes[3]->staff()->staffTypeForElement(notes[3])->jimsStateJson().contains(u"\"mode_rotation\":5"));
-    EXPECT_TRUE(oldStaffType->jimsStateJson().contains(u"\"reference\":\"none\""));
-    EXPECT_TRUE(newStaffType->jimsStateJson().contains(u"\"reference\":\"none\""));
+    EXPECT_TRUE(oldStaffType->meloStateJson().contains(u"\"mode_rotation\":0"));
+    EXPECT_TRUE(notes[1]->staff()->staffTypeForElement(notes[1])->meloStateJson().contains(u"\"mode_rotation\":0"));
+    EXPECT_TRUE(newStaffType->meloStateJson().contains(u"\"mode_rotation\":5"));
+    EXPECT_TRUE(notes[3]->staff()->staffTypeForElement(notes[3])->meloStateJson().contains(u"\"mode_rotation\":5"));
+    EXPECT_TRUE(oldStaffType->meloStateJson().contains(u"\"reference\":\"none\""));
+    EXPECT_TRUE(newStaffType->meloStateJson().contains(u"\"reference\":\"none\""));
 
     melo::ChangeIndicator indicator;
     ASSERT_TRUE(melo::midBarChangeIndicator(carrier, indicator));
@@ -278,16 +278,16 @@ TEST_F(MusicXml_JiMS_Tests, midBarStateChangeImportsAndExportsAtItsExactTick)
     delete score;
 }
 
-TEST_F(MusicXml_JiMS_Tests, explicitTonicAmbitsSurviveNativeScoreReload)
+TEST_F(MusicXml_Melo_Tests, explicitTonicAmbitsSurviveNativeScoreReload)
 {
-    MasterScore* score = readJims("jims-mid-bar-state-change.musicxml");
+    MasterScore* score = readMelo("jims-mid-bar-state-change.musicxml");
     ASSERT_TRUE(score);
     StaffType* base = score->staff(0)->staffType(Fraction(0, 1));
     ASSERT_TRUE(base);
-    String baseState = base->jimsStateJson();
+    String baseState = base->meloStateJson();
     baseState.replace(u"\"tonic_ambit\":\"tonic-bounded\"", u"\"tonic_ambit\":\"tonic-centered\"");
-    base->setJimsStateJson(baseState);
-    ASSERT_EQ(base->jimsTonicAmbit(), u"tonic-centered");
+    base->setMeloStateJson(baseState);
+    ASSERT_EQ(base->meloTonicAmbit(), u"tonic-centered");
 
     const String dir(u"jims-export-scratch");
     muse::io::Dir::mkpath(dir);
@@ -313,19 +313,19 @@ TEST_F(MusicXml_JiMS_Tests, explicitTonicAmbitsSurviveNativeScoreReload)
     ASSERT_TRUE(reloaded);
     const StaffType* reloadedBase = reloaded->staff(0)->staffType(Fraction(0, 1));
     ASSERT_TRUE(reloadedBase);
-    EXPECT_EQ(reloadedBase->jimsTonicAmbit(), u"tonic-centered");
+    EXPECT_EQ(reloadedBase->meloTonicAmbit(), u"tonic-centered");
     const std::vector<const Note*> notes = notesInOrder(reloaded);
     ASSERT_EQ(notes.size(), 4u);
     const StaffTypeChange* change = melo::changeCarrierAt(measureNo(reloaded, 1), 0, notes[2]->tick());
     ASSERT_TRUE(change);
     ASSERT_TRUE(change->staffType());
-    EXPECT_EQ(change->staffType()->jimsTonicAmbit(), u"tonic-bounded");
+    EXPECT_EQ(change->staffType()->meloTonicAmbit(), u"tonic-bounded");
     delete reloaded;
 }
 
-TEST_F(MusicXml_JiMS_Tests, midBarIndicatorElementsAlignWithTheirDisplayedStaffNoteLines)
+TEST_F(MusicXml_Melo_Tests, midBarIndicatorElementsAlignWithTheirDisplayedStaffNoteLines)
 {
-    MasterScore* score = readJims("jims-mid-bar-state-change.musicxml");
+    MasterScore* score = readMelo("jims-mid-bar-state-change.musicxml");
     ASSERT_TRUE(score);
     score->doLayout();
     Measure* measure = measureNo(score, 1);
@@ -343,22 +343,22 @@ TEST_F(MusicXml_JiMS_Tests, midBarIndicatorElementsAlignWithTheirDisplayedStaffN
     const StaffLines* lines = measure->staffLines(0);
     ASSERT_TRUE(lines);
     size_t doLineCount = 0;
-    for (const StaffLines::MeloGuideLine& guide : lines->jimsGuideLines()) {
-        if (!guide.dashed && guide.colorStyle == Sid::jimsDoLineColor) {
+    for (const StaffLines::MeloGuideLine& guide : lines->meloGuideLines()) {
+        if (!guide.dashed && guide.colorStyle == Sid::meloDoLineColor) {
             ++doLineCount;
         }
     }
     EXPECT_EQ(doLineCount, 2u) << "one-period tonic-bounded JiMStaff must be Do-to-Do";
     const StaffType* displayedStaffType = score->staff(0)->staffType(measure->tick());
     ASSERT_TRUE(displayedStaffType);
-    ASSERT_TRUE(displayedStaffType->isJiMS());
+    ASSERT_TRUE(displayedStaffType->isMelo());
     ASSERT_NE(changedStaffType, displayedStaffType);
-    const StaffType::MeloFrameView& wholeView = displayedStaffType->jimsFrameView(score, 0, nullptr);
+    const StaffType::MeloFrameView& wholeView = displayedStaffType->meloFrameView(score, 0, nullptr);
     ASSERT_FALSE(wholeView.empty());
     EXPECT_NEAR(wholeView.bottomCents(), 0.0, 1e-6);
     EXPECT_NEAR(wholeView.topCents(), 1200.0, 1e-6);
     const StaffType::MeloFrameView& view
-        = displayedStaffType->jimsFrameView(score, 0, measure->system());
+        = displayedStaffType->meloFrameView(score, 0, measure->system());
     ASSERT_FALSE(view.empty());
     EXPECT_NEAR(view.bottomCents(), 0.0, 1e-6);
     EXPECT_NEAR(view.topCents(), 1200.0, 1e-6);
@@ -366,9 +366,9 @@ TEST_F(MusicXml_JiMS_Tests, midBarIndicatorElementsAlignWithTheirDisplayedStaffN
     EXPECT_NEAR(view.bands.front().segments.front().lowerCents, 0.0, 1e-6);
     EXPECT_NEAR(view.bands.back().segments.back().upperCents, 1200.0, 1e-6);
     melo::PeriodicOrigins origins;
-    ASSERT_TRUE(melo::periodicOrigins(displayedStaffType->jimsStateJson(), origins));
+    ASSERT_TRUE(melo::periodicOrigins(displayedStaffType->meloStateJson(), origins));
     EXPECT_NEAR(origins.doCentsAboveExtentLower, 0.0, 1e-6);
-    const double periodCents = displayedStaffType->jimsPeriodCents();
+    const double periodCents = displayedStaffType->meloPeriodCents();
     ASSERT_GT(periodCents, 0.0);
     const double basePeriod = melo::changeAnchorPeriodCents(
         view, indicator, periodCents, origins.doCentsAboveExtentLower);
@@ -376,7 +376,7 @@ TEST_F(MusicXml_JiMS_Tests, midBarIndicatorElementsAlignWithTheirDisplayedStaffN
     for (const melo::ChangePoint& point : indicator.tonicIndicators) {
         const double cents = basePeriod + (point.periodOffset + point.ordinate) * periodCents;
         expectedTonicYs.push_back(lines->pos().y()
-                                  + displayedStaffType->jimsYFromCents(cents, view) * lines->spatium());
+                                  + displayedStaffType->meloYFromCents(cents, view) * lines->spatium());
     }
     std::sort(expectedTonicYs.begin(), expectedTonicYs.end());
 
@@ -434,7 +434,7 @@ TEST_F(MusicXml_JiMS_Tests, midBarIndicatorElementsAlignWithTheirDisplayedStaffN
     delete score;
 }
 
-TEST_F(MusicXml_JiMS_Tests, everyReferenceFormTranscribesVerbatimAndOlderProfilesReadAsNone)
+TEST_F(MusicXml_Melo_Tests, everyReferenceFormTranscribesVerbatimAndOlderProfilesReadAsNone)
 {
     struct Case {
         const char* file;
@@ -450,103 +450,103 @@ TEST_F(MusicXml_JiMS_Tests, everyReferenceFormTranscribesVerbatimAndOlderProfile
         { "jims-v2-mode-change.musicxml", "\"reference\":\"none\"" },
     };
     for (const Case& c : cases) {
-        MasterScore* score = readJims(c.file);
+        MasterScore* score = readMelo(c.file);
         ASSERT_TRUE(score) << c.file;
         const StaffType* st = staffTypeAtStart(score);
-        ASSERT_TRUE(st && st->isJiMS()) << c.file;
-        EXPECT_TRUE(st->jimsStateJson().contains(String::fromUtf8(c.reference))) << c.file << " " << st->jimsStateJson().toStdString();
-        EXPECT_FALSE(st->jimsStateJson().contains(u"\"tonic_ambit\":\"\"")) << c.file;
+        ASSERT_TRUE(st && st->isMelo()) << c.file;
+        EXPECT_TRUE(st->meloStateJson().contains(String::fromUtf8(c.reference))) << c.file << " " << st->meloStateJson().toStdString();
+        EXPECT_FALSE(st->meloStateJson().contains(u"\"tonic_ambit\":\"\"")) << c.file;
         delete score;
     }
     // A genuine V2 document with two states and no reference: the second
     // state (mode-rotation 5) rides a StaffTypeChange at measure 2.
-    MasterScore* v2 = readJims("jims-v2-mode-change.musicxml");
+    MasterScore* v2 = readMelo("jims-v2-mode-change.musicxml");
     ASSERT_TRUE(v2);
     const StaffTypeChange* stc = melo::changeCarrier(measureNo(v2, 2), 0);
     ASSERT_TRUE(stc);
-    EXPECT_TRUE(stc->staffType()->jimsStateJson().contains(u"\"mode_rotation\":5"));
+    EXPECT_TRUE(stc->staffType()->meloStateJson().contains(u"\"mode_rotation\":5"));
     delete v2;
     // V1 (no tonic-ambit in the profile): the field is simply absent.
-    MasterScore* v1 = readJims("jims-v1-collision.musicxml");
+    MasterScore* v1 = readMelo("jims-v1-collision.musicxml");
     ASSERT_TRUE(v1);
-    EXPECT_FALSE(staffTypeAtStart(v1)->jimsStateJson().contains(u"tonic_ambit"));
+    EXPECT_FALSE(staffTypeAtStart(v1)->meloStateJson().contains(u"tonic_ambit"));
     EXPECT_EQ(notesInOrder(v1).size(), 12u);
     delete v1;
 }
 
-TEST_F(MusicXml_JiMS_Tests, namespaceIsResolvedByUriNotByPrefix)
+TEST_F(MusicXml_Melo_Tests, namespaceIsResolvedByUriNotByPrefix)
 {
-    MasterScore* a = readJims("jims-v3-m5-mode.musicxml");
-    MasterScore* b = readJims("jims-v3-other-prefix.musicxml");
+    MasterScore* a = readMelo("jims-v3-m5-mode.musicxml");
+    MasterScore* b = readMelo("jims-v3-other-prefix.musicxml");
     ASSERT_TRUE(a && b);
-    EXPECT_EQ(staffTypeAtStart(a)->jimsStateJson(), staffTypeAtStart(b)->jimsStateJson());
+    EXPECT_EQ(staffTypeAtStart(a)->meloStateJson(), staffTypeAtStart(b)->meloStateJson());
     ASSERT_TRUE(melo::changeCarrier(measureNo(b, 2), 0));
-    EXPECT_EQ(melo::changeCarrier(measureNo(a, 2), 0)->staffType()->jimsStateJson(),
-              melo::changeCarrier(measureNo(b, 2), 0)->staffType()->jimsStateJson());
+    EXPECT_EQ(melo::changeCarrier(measureNo(a, 2), 0)->staffType()->meloStateJson(),
+              melo::changeCarrier(measureNo(b, 2), 0)->staffType()->meloStateJson());
     EXPECT_EQ(notesInOrder(b).size(), 12u);
-    EXPECT_TRUE(notesInOrder(b)[0]->hasJimsPitch());
+    EXPECT_TRUE(notesInOrder(b)[0]->hasMeloPitch());
     delete a;
     delete b;
 }
 
-TEST_F(MusicXml_JiMS_Tests, unknownJimsNamespaceVersionIsAFatalImportError)
+TEST_F(MusicXml_Melo_Tests, unknownMeloNamespaceVersionIsAFatalImportError)
 {
     // A document that declares itself JiMS with a version this fork does not
     // know must not silently import as a plain five-line staff.
-    MasterScore* score = readJims("jims-unknown-version-invalid.musicxml");
+    MasterScore* score = readMelo("jims-unknown-version-invalid.musicxml");
     EXPECT_FALSE(score);
     delete score;
 }
 
-TEST_F(MusicXml_JiMS_Tests, ChordNameV4ImportsAsOpaquePerObjectHarmonyBesideStandardHarmony)
+TEST_F(MusicXml_Melo_Tests, ChordNameV4ImportsAsOpaquePerObjectHarmonyBesideStandardHarmony)
 {
-    MasterScore* score = readJims("jims-chord-name-v4.musicxml");
+    MasterScore* score = readMelo("jims-chord-name-v4.musicxml");
     ASSERT_TRUE(score);
     ASSERT_EQ(score->nstaves(), 2u);
     ASSERT_TRUE(staffTypeAtStart(score, 0));
     ASSERT_TRUE(staffTypeAtStart(score, 1));
-    EXPECT_TRUE(staffTypeAtStart(score, 0)->isJiMS());
-    EXPECT_FALSE(staffTypeAtStart(score, 1)->isJiMS());
-    const std::vector<const Note*> jimsNotes = notesInOrder(score, 0);
+    EXPECT_TRUE(staffTypeAtStart(score, 0)->isMelo());
+    EXPECT_FALSE(staffTypeAtStart(score, 1)->isMelo());
+    const std::vector<const Note*> meloNotes = notesInOrder(score, 0);
     const std::vector<const Note*> stockNotes = notesInOrder(score, 1);
-    ASSERT_EQ(jimsNotes.size(), 2u);
+    ASSERT_EQ(meloNotes.size(), 2u);
     ASSERT_EQ(stockNotes.size(), 2u);
-    EXPECT_TRUE(jimsNotes[0]->hasJimsPitch());
-    EXPECT_TRUE(jimsNotes[1]->hasJimsPitch());
-    EXPECT_EQ(jimsNotes[0]->jimsNPer(), 1);
-    EXPECT_EQ(jimsNotes[0]->jimsNGen(), -2);
-    EXPECT_EQ(jimsNotes[1]->jimsNPer(), 2);
-    EXPECT_EQ(jimsNotes[1]->jimsNGen(), -2);
-    EXPECT_TRUE(staffTypeAtStart(score, 0)->jimsStateJson().contains(
+    EXPECT_TRUE(meloNotes[0]->hasMeloPitch());
+    EXPECT_TRUE(meloNotes[1]->hasMeloPitch());
+    EXPECT_EQ(meloNotes[0]->meloNPer(), 1);
+    EXPECT_EQ(meloNotes[0]->meloNGen(), -2);
+    EXPECT_EQ(meloNotes[1]->meloNPer(), 2);
+    EXPECT_EQ(meloNotes[1]->meloNGen(), -2);
+    EXPECT_TRUE(staffTypeAtStart(score, 0)->meloStateJson().contains(
                     u"\"extent\":{\"lower\":{\"nPer\":1,\"nGen\":-2},\"upper\":{\"nPer\":2,\"nGen\":-2}}"));
-    EXPECT_FALSE(stockNotes[0]->hasJimsPitch());
-    EXPECT_FALSE(stockNotes[1]->hasJimsPitch());
+    EXPECT_FALSE(stockNotes[0]->hasMeloPitch());
+    EXPECT_FALSE(stockNotes[1]->hasMeloPitch());
     score->doLayout();
     const std::vector<Harmony*> harmonies = harmoniesInOrder(score);
-    const std::vector<Harmony*> jimsHarmonies = harmoniesOnStaff(score, 0);
+    const std::vector<Harmony*> meloHarmonies = harmoniesOnStaff(score, 0);
     const std::vector<Harmony*> stockHarmonies = harmoniesOnStaff(score, 1);
     ASSERT_EQ(harmonies.size(), 4u);
-    ASSERT_EQ(jimsHarmonies.size(), 2u);
+    ASSERT_EQ(meloHarmonies.size(), 2u);
     ASSERT_EQ(stockHarmonies.size(), 2u);
-    EXPECT_EQ(jimsHarmonies[0]->harmonyType(), HarmonyType::JIMS);
-    EXPECT_EQ(jimsHarmonies[0]->harmonyName(), u"!So7/Ti");
-    EXPECT_EQ(jimsHarmonies[0]->tick(), Fraction(0, 1));
-    EXPECT_EQ(jimsHarmonies[0]->staffIdx(), 0u);
-    EXPECT_EQ(jimsHarmonies[0]->placement(), PlacementV::ABOVE);
-    EXPECT_FALSE(jimsHarmonies[0]->isPlayable());
-    EXPECT_FALSE(jimsHarmonies[0]->isRealizable());
-    ASSERT_EQ(jimsHarmonies[0]->chords().size(), 1u);
-    EXPECT_EQ(jimsHarmonies[0]->chords().front()->textName(), u"!So7/Ti");
-    EXPECT_EQ(jimsHarmonies[0]->chords().front()->rootTpc(), Tpc::TPC_INVALID);
-    EXPECT_GT(jimsHarmonies[0]->ldata()->bbox().width(), 0.0);
-    EXPECT_EQ(jimsHarmonies[0]->ldata()->renderItemList().size(), 1u);
-    EXPECT_EQ(jimsHarmonies[1]->harmonyType(), HarmonyType::JIMS);
-    EXPECT_EQ(jimsHarmonies[1]->harmonyName(), u"Re:So7");
-    EXPECT_EQ(jimsHarmonies[1]->tick(), Fraction(1, 1));
-    EXPECT_EQ(jimsHarmonies[1]->staffIdx(), 0u);
-    EXPECT_EQ(jimsHarmonies[1]->placement(), PlacementV::ABOVE);
-    EXPECT_GT(jimsHarmonies[1]->ldata()->bbox().width(), 0.0);
-    EXPECT_EQ(jimsHarmonies[1]->ldata()->renderItemList().size(), 1u);
+    EXPECT_EQ(meloHarmonies[0]->harmonyType(), HarmonyType::MELO);
+    EXPECT_EQ(meloHarmonies[0]->harmonyName(), u"!So7/Ti");
+    EXPECT_EQ(meloHarmonies[0]->tick(), Fraction(0, 1));
+    EXPECT_EQ(meloHarmonies[0]->staffIdx(), 0u);
+    EXPECT_EQ(meloHarmonies[0]->placement(), PlacementV::ABOVE);
+    EXPECT_FALSE(meloHarmonies[0]->isPlayable());
+    EXPECT_FALSE(meloHarmonies[0]->isRealizable());
+    ASSERT_EQ(meloHarmonies[0]->chords().size(), 1u);
+    EXPECT_EQ(meloHarmonies[0]->chords().front()->textName(), u"!So7/Ti");
+    EXPECT_EQ(meloHarmonies[0]->chords().front()->rootTpc(), Tpc::TPC_INVALID);
+    EXPECT_GT(meloHarmonies[0]->ldata()->bbox().width(), 0.0);
+    EXPECT_EQ(meloHarmonies[0]->ldata()->renderItemList().size(), 1u);
+    EXPECT_EQ(meloHarmonies[1]->harmonyType(), HarmonyType::MELO);
+    EXPECT_EQ(meloHarmonies[1]->harmonyName(), u"Re:So7");
+    EXPECT_EQ(meloHarmonies[1]->tick(), Fraction(1, 1));
+    EXPECT_EQ(meloHarmonies[1]->staffIdx(), 0u);
+    EXPECT_EQ(meloHarmonies[1]->placement(), PlacementV::ABOVE);
+    EXPECT_GT(meloHarmonies[1]->ldata()->bbox().width(), 0.0);
+    EXPECT_EQ(meloHarmonies[1]->ldata()->renderItemList().size(), 1u);
     EXPECT_EQ(stockHarmonies[0]->harmonyType(), HarmonyType::STANDARD);
     EXPECT_EQ(stockHarmonies[1]->harmonyType(), HarmonyType::STANDARD);
     EXPECT_TRUE(tpcIsValid(stockHarmonies[0]->rootTpc()));
@@ -554,9 +554,9 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4ImportsAsOpaquePerObjectHarmonyBesideStan
     delete score;
 }
 
-TEST_F(MusicXml_JiMS_Tests, ChordNameEditingKeepsTheWholeOpaqueStringAndRefusesTilde)
+TEST_F(MusicXml_Melo_Tests, ChordNameEditingKeepsTheWholeOpaqueStringAndRefusesTilde)
 {
-    MasterScore* score = readJims("jims-chord-name-v4.musicxml");
+    MasterScore* score = readMelo("jims-chord-name-v4.musicxml");
     ASSERT_TRUE(score);
     const std::vector<Harmony*> harmonies = harmoniesOnStaff(score, 0);
     ASSERT_EQ(harmonies.size(), 2u);
@@ -575,16 +575,16 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameEditingKeepsTheWholeOpaqueStringAndRefusesT
     delete score;
 }
 
-TEST_F(MusicXml_JiMS_Tests, ChordNameTranspositionLeavesJiMSOpaqueAndTransposesStandardHarmony)
+TEST_F(MusicXml_Melo_Tests, ChordNameTranspositionLeavesMeloOpaqueAndTransposesStandardHarmony)
 {
-    MasterScore* score = readJims("jims-chord-name-v4.musicxml");
+    MasterScore* score = readMelo("jims-chord-name-v4.musicxml");
     ASSERT_TRUE(score);
-    const std::vector<Harmony*> beforeJims = harmoniesOnStaff(score, 0);
+    const std::vector<Harmony*> beforeMelo = harmoniesOnStaff(score, 0);
     const std::vector<Harmony*> beforeStock = harmoniesOnStaff(score, 1);
-    ASSERT_EQ(beforeJims.size(), 2u);
+    ASSERT_EQ(beforeMelo.size(), 2u);
     ASSERT_EQ(beforeStock.size(), 2u);
-    const String firstJims = beforeJims[0]->harmonyName();
-    const String secondJims = beforeJims[1]->harmonyName();
+    const String firstMelo = beforeMelo[0]->harmonyName();
+    const String secondMelo = beforeMelo[1]->harmonyName();
     const int firstStandardRoot = beforeStock[0]->rootTpc();
     const int secondStandardRoot = beforeStock[1]->rootTpc();
 
@@ -594,22 +594,22 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameTranspositionLeavesJiMSOpaqueAndTransposesS
                          true, true, true);
     score->endCmd();
 
-    const std::vector<Harmony*> afterJims = harmoniesOnStaff(score, 0);
+    const std::vector<Harmony*> afterMelo = harmoniesOnStaff(score, 0);
     const std::vector<Harmony*> afterStock = harmoniesOnStaff(score, 1);
-    ASSERT_EQ(afterJims.size(), 2u);
+    ASSERT_EQ(afterMelo.size(), 2u);
     ASSERT_EQ(afterStock.size(), 2u);
-    EXPECT_EQ(afterJims[0]->harmonyName(), firstJims);
-    EXPECT_EQ(afterJims[1]->harmonyName(), secondJims);
-    EXPECT_EQ(afterJims[0]->chords().front()->rootTpc(), Tpc::TPC_INVALID);
-    EXPECT_EQ(afterJims[1]->chords().front()->rootTpc(), Tpc::TPC_INVALID);
+    EXPECT_EQ(afterMelo[0]->harmonyName(), firstMelo);
+    EXPECT_EQ(afterMelo[1]->harmonyName(), secondMelo);
+    EXPECT_EQ(afterMelo[0]->chords().front()->rootTpc(), Tpc::TPC_INVALID);
+    EXPECT_EQ(afterMelo[1]->chords().front()->rootTpc(), Tpc::TPC_INVALID);
     EXPECT_NE(afterStock[0]->rootTpc(), firstStandardRoot);
     EXPECT_NE(afterStock[1]->rootTpc(), secondStandardRoot);
     delete score;
 }
 
-TEST_F(MusicXml_JiMS_Tests, ChordNameV4SurvivesNativeAndMusicXmlRoundTripsExactly)
+TEST_F(MusicXml_Melo_Tests, ChordNameV4SurvivesNativeAndMusicXmlRoundTripsExactly)
 {
-    MasterScore* score = readJims("jims-chord-name-v4.musicxml");
+    MasterScore* score = readMelo("jims-chord-name-v4.musicxml");
     ASSERT_TRUE(score);
     const String dir(u"jims-export-scratch");
     muse::io::Dir::mkpath(dir);
@@ -636,12 +636,12 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4SurvivesNativeAndMusicXmlRoundTripsExactl
         MasterScore* loaded = ScoreRW::readScore(nativePath, true);
         ASSERT_TRUE(loaded) << extension.toStdString();
         ASSERT_EQ(loaded->nstaves(), 2u) << extension.toStdString();
-        EXPECT_TRUE(staffTypeAtStart(loaded, 0)->isJiMS()) << extension.toStdString();
-        EXPECT_FALSE(staffTypeAtStart(loaded, 1)->isJiMS()) << extension.toStdString();
+        EXPECT_TRUE(staffTypeAtStart(loaded, 0)->isMelo()) << extension.toStdString();
+        EXPECT_FALSE(staffTypeAtStart(loaded, 1)->isMelo()) << extension.toStdString();
         ASSERT_EQ(harmoniesInOrder(loaded).size(), 4u) << extension.toStdString();
         ASSERT_EQ(harmoniesOnStaff(loaded, 0).size(), 2u) << extension.toStdString();
         ASSERT_EQ(harmoniesOnStaff(loaded, 1).size(), 2u) << extension.toStdString();
-        EXPECT_EQ(harmoniesOnStaff(loaded, 0)[0]->harmonyType(), HarmonyType::JIMS) << extension.toStdString();
+        EXPECT_EQ(harmoniesOnStaff(loaded, 0)[0]->harmonyType(), HarmonyType::MELO) << extension.toStdString();
         EXPECT_EQ(harmoniesOnStaff(loaded, 0)[0]->harmonyName(), u"!So7/Ti") << extension.toStdString();
         if (extension == u"mscz") {
             native = loaded;
@@ -662,17 +662,17 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4SurvivesNativeAndMusicXmlRoundTripsExactl
     MasterScore* again = ScoreRW::readScore(out, true, importXml);
     ASSERT_TRUE(again);
     ASSERT_EQ(again->nstaves(), 2u);
-    EXPECT_TRUE(staffTypeAtStart(again, 0)->isJiMS());
-    EXPECT_FALSE(staffTypeAtStart(again, 1)->isJiMS());
-    const std::vector<Harmony*> againJims = harmoniesOnStaff(again, 0);
+    EXPECT_TRUE(staffTypeAtStart(again, 0)->isMelo());
+    EXPECT_FALSE(staffTypeAtStart(again, 1)->isMelo());
+    const std::vector<Harmony*> againMelo = harmoniesOnStaff(again, 0);
     const std::vector<Harmony*> againStock = harmoniesOnStaff(again, 1);
     ASSERT_EQ(harmoniesInOrder(again).size(), 4u);
-    ASSERT_EQ(againJims.size(), 2u);
+    ASSERT_EQ(againMelo.size(), 2u);
     ASSERT_EQ(againStock.size(), 2u);
-    EXPECT_EQ(againJims[0]->harmonyType(), HarmonyType::JIMS);
-    EXPECT_EQ(againJims[0]->harmonyName(), u"!So7/Ti");
-    EXPECT_EQ(againJims[1]->harmonyType(), HarmonyType::JIMS);
-    EXPECT_EQ(againJims[1]->harmonyName(), u"Re:So7");
+    EXPECT_EQ(againMelo[0]->harmonyType(), HarmonyType::MELO);
+    EXPECT_EQ(againMelo[0]->harmonyName(), u"!So7/Ti");
+    EXPECT_EQ(againMelo[1]->harmonyType(), HarmonyType::MELO);
+    EXPECT_EQ(againMelo[1]->harmonyName(), u"Re:So7");
     EXPECT_EQ(againStock[0]->harmonyType(), HarmonyType::STANDARD);
     EXPECT_EQ(againStock[1]->harmonyType(), HarmonyType::STANDARD);
     delete score;
@@ -680,17 +680,17 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4SurvivesNativeAndMusicXmlRoundTripsExactl
     delete again;
 }
 
-TEST_F(MusicXml_JiMS_Tests, ChordNameV4PreservesOffsetStaffAndSupportedFormatting)
+TEST_F(MusicXml_Melo_Tests, ChordNameV4PreservesOffsetStaffAndSupportedFormatting)
 {
-    MasterScore* score = readJims("jims-chord-name-offset-staff-format-v4.musicxml");
+    MasterScore* score = readMelo("jims-chord-name-offset-staff-format-v4.musicxml");
     ASSERT_TRUE(score);
     ASSERT_EQ(score->nstaves(), 2u);
-    EXPECT_FALSE(staffTypeAtStart(score, 0)->isJiMS());
-    EXPECT_TRUE(staffTypeAtStart(score, 1)->isJiMS());
+    EXPECT_FALSE(staffTypeAtStart(score, 0)->isMelo());
+    EXPECT_TRUE(staffTypeAtStart(score, 1)->isMelo());
     const std::vector<Harmony*> imported = harmoniesInOrder(score);
     ASSERT_EQ(imported.size(), 1u);
     Harmony* harmony = imported.front();
-    EXPECT_EQ(harmony->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(harmony->harmonyType(), HarmonyType::MELO);
     EXPECT_EQ(harmony->harmonyName(), u"La:So7");
     EXPECT_EQ(harmony->tick(), Fraction(1, 4));
     EXPECT_EQ(harmony->staffIdx(), 1u);
@@ -728,7 +728,7 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4PreservesOffsetStaffAndSupportedFormattin
     const std::vector<Harmony*> roundTripped = harmoniesInOrder(again);
     ASSERT_EQ(roundTripped.size(), 1u);
     const Harmony* roundTrip = roundTripped.front();
-    EXPECT_EQ(roundTrip->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(roundTrip->harmonyType(), HarmonyType::MELO);
     EXPECT_EQ(roundTrip->harmonyName(), u"La:So7");
     EXPECT_EQ(roundTrip->tick(), Fraction(1, 4));
     EXPECT_EQ(roundTrip->staffIdx(), 1u);
@@ -762,7 +762,7 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4PreservesOffsetStaffAndSupportedFormattin
     const std::vector<Harmony*> nativeHarmonies = harmoniesInOrder(native);
     ASSERT_EQ(nativeHarmonies.size(), 1u);
     const Harmony* nativeHarmony = nativeHarmonies.front();
-    EXPECT_EQ(nativeHarmony->harmonyType(), HarmonyType::JIMS);
+    EXPECT_EQ(nativeHarmony->harmonyType(), HarmonyType::MELO);
     EXPECT_EQ(nativeHarmony->harmonyName(), u"La:So7");
     EXPECT_EQ(nativeHarmony->tick(), Fraction(1, 4));
     EXPECT_EQ(nativeHarmony->staffIdx(), 1u);
@@ -780,9 +780,9 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4PreservesOffsetStaffAndSupportedFormattin
     delete native;
 }
 
-TEST_F(MusicXml_JiMS_Tests, ChordNameV4PreservesOffsetBetweenNoteOnsets)
+TEST_F(MusicXml_Melo_Tests, ChordNameV4PreservesOffsetBetweenNoteOnsets)
 {
-    MasterScore* score = readJims("jims-chord-name-unaligned-offset-v4.musicxml");
+    MasterScore* score = readMelo("jims-chord-name-unaligned-offset-v4.musicxml");
     ASSERT_TRUE(score);
     const std::vector<Harmony*> imported = harmoniesInOrder(score);
     ASSERT_EQ(imported.size(), 2u);
@@ -803,14 +803,14 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4PreservesOffsetBetweenNoteOnsets)
     delete again;
 }
 
-TEST_F(MusicXml_JiMS_Tests, ChordNameV4RejectsSupersededTildeMarker)
+TEST_F(MusicXml_Melo_Tests, ChordNameV4RejectsSupersededTildeMarker)
 {
-    MasterScore* score = readJims("jims-chord-name-tilde-invalid.musicxml");
+    MasterScore* score = readMelo("jims-chord-name-tilde-invalid.musicxml");
     EXPECT_FALSE(score);
     delete score;
 }
 
-TEST_F(MusicXml_JiMS_Tests, ChordNameV4RefusesNestedFretDiagramCarrierOnExport)
+TEST_F(MusicXml_Melo_Tests, ChordNameV4RefusesNestedFretDiagramCarrierOnExport)
 {
     MasterScore* score = ScoreRW::readScore(u"../../../engraving/tests/chordsymbol_data/add-to-fret.mscz");
     ASSERT_TRUE(score);
@@ -820,7 +820,7 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4RefusesNestedFretDiagramCarrierOnExport)
     ASSERT_TRUE(fretDiagram);
     fretDiagram->setHarmony(u"!So7/Ti");
     ASSERT_TRUE(fretDiagram->harmony());
-    fretDiagram->harmony()->setHarmonyType(HarmonyType::JIMS);
+    fretDiagram->harmony()->setHarmonyType(HarmonyType::MELO);
 
     muse::io::Buffer buffer;
     buffer.open(muse::io::IODevice::WriteOnly);
@@ -829,29 +829,29 @@ TEST_F(MusicXml_JiMS_Tests, ChordNameV4RefusesNestedFretDiagramCarrierOnExport)
     delete score;
 }
 
-TEST_F(MusicXml_JiMS_Tests, numberedStatesLandOnTheirStavesAndMidScoreStatesRideChangeCarriers)
+TEST_F(MusicXml_Melo_Tests, numberedStatesLandOnTheirStavesAndMidScoreStatesRideChangeCarriers)
 {
-    MasterScore* multi = readJims("jims-multi-staff.musicxml");
+    MasterScore* multi = readMelo("jims-multi-staff.musicxml");
     ASSERT_TRUE(multi);
     ASSERT_EQ(multi->nstaves(), 2u);
     const StaffType* s1 = staffTypeAtStart(multi, 0);
     const StaffType* s2 = staffTypeAtStart(multi, 1);
     ASSERT_TRUE(s1 && s2);
-    EXPECT_TRUE(s1->isJiMS());
-    EXPECT_TRUE(s2->isJiMS());
-    EXPECT_NE(s1->jimsStateJson(), s2->jimsStateJson());
+    EXPECT_TRUE(s1->isMelo());
+    EXPECT_TRUE(s2->isMelo());
+    EXPECT_NE(s1->meloStateJson(), s2->meloStateJson());
     delete multi;
 
-    MasterScore* mid = readJims("jims-mid-score-state-change.musicxml");
+    MasterScore* mid = readMelo("jims-mid-score-state-change.musicxml");
     ASSERT_TRUE(mid);
     const StaffTypeChange* stc = melo::changeCarrier(measureNo(mid, 2), 0);
     ASSERT_TRUE(stc);
-    EXPECT_TRUE(stc->staffType()->jimsStateJson().contains(u"\"generator_cents\":696.578"));
-    EXPECT_TRUE(staffTypeAtStart(mid)->jimsStateJson().contains(u"\"generator_cents\":700.0"));
+    EXPECT_TRUE(stc->staffType()->meloStateJson().contains(u"\"generator_cents\":696.578"));
+    EXPECT_TRUE(staffTypeAtStart(mid)->meloStateJson().contains(u"\"generator_cents\":700.0"));
     delete mid;
 }
 
-TEST_F(MusicXml_JiMS_Tests, allSixAcceptedPiecesImportWithTheirChangeCarrier)
+TEST_F(MusicXml_Melo_Tests, allSixAcceptedPiecesImportWithTheirChangeCarrier)
 {
     struct Case {
         const char* file;
@@ -867,31 +867,31 @@ TEST_F(MusicXml_JiMS_Tests, allSixAcceptedPiecesImportWithTheirChangeCarrier)
         { "jims-v3-m5-syshead.musicxml", 6, "\"mode_rotation\":0" },
     };
     for (const Case& c : cases) {
-        MasterScore* score = readJims(c.file);
+        MasterScore* score = readMelo(c.file);
         ASSERT_TRUE(score) << c.file;
-        EXPECT_TRUE(staffTypeAtStart(score)->isJiMS()) << c.file;
+        EXPECT_TRUE(staffTypeAtStart(score)->isMelo()) << c.file;
         const StaffTypeChange* stc = melo::changeCarrier(measureNo(score, c.changeMeasure), 0);
         ASSERT_TRUE(stc) << c.file;
-        EXPECT_TRUE(stc->staffType()->jimsStateJson().contains(String::fromUtf8(c.marker))) << c.file;
+        EXPECT_TRUE(stc->staffType()->meloStateJson().contains(String::fromUtf8(c.marker))) << c.file;
         for (const Note* n : notesInOrder(score)) {
-            EXPECT_TRUE(n->hasJimsPitch()) << c.file;
+            EXPECT_TRUE(n->hasMeloPitch()) << c.file;
         }
         delete score;
     }
 }
 
-TEST_F(MusicXml_JiMS_Tests, authoritativeJimsIdentityNormalizesContradictoryStandardPitchOnImport)
+TEST_F(MusicXml_Melo_Tests, authoritativeMeloIdentityNormalizesContradictoryStandardPitchOnImport)
 {
-    MasterScore* score = readJims("jims-v3-m5-key-down.musicxml");
+    MasterScore* score = readMelo("jims-v3-m5-key-down.musicxml");
     ASSERT_TRUE(score);
     int disagreements = 0;
     for (const Note* note : notesInOrder(score)) {
-        ASSERT_TRUE(note->hasJimsPitch());
+        ASSERT_TRUE(note->hasMeloPitch());
         const StaffType* state = note->staff()->staffTypeForElement(note);
-        ASSERT_TRUE(state && state->isJiMS());
+        ASSERT_TRUE(state && state->isMelo());
         melo::SoundingPitch projected;
         String error;
-        ASSERT_TRUE(melo::noteSoundingPitch(state->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), projected, &error))
+        ASSERT_TRUE(melo::noteSoundingPitch(state->meloStateJson(), note->meloNPer(), note->meloNGen(), projected, &error))
             << error.toStdString();
         disagreements += note->pitch() != projected.midiKey;
     }
@@ -929,11 +929,11 @@ MeloSnapshot snapshotOf(Score* score)
     for (staff_idx_t s = 0; s < score->nstaves(); ++s) {
         const Staff* staff = score->staff(s);
         const StaffType* base = staff->staffType(Fraction(0, 1));
-        snap.baseStates.push_back(base && base->isJiMS() ? canonicalState(base->jimsStateJson()) : String());
+        snap.baseStates.push_back(base && base->isMelo() ? canonicalState(base->meloStateJson()) : String());
         for (const Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
             const StaffTypeChange* c = melo::changeCarrier(m, s);
-            if (c && c->staffType() && c->staffType()->isJiMS()) {
-                snap.carriers.emplace_back(m->tick().ticks(), canonicalState(staff->staffType(m->tick())->jimsStateJson()));
+            if (c && c->staffType() && c->staffType()->isMelo()) {
+                snap.carriers.emplace_back(m->tick().ticks(), canonicalState(staff->staffType(m->tick())->meloStateJson()));
             }
         }
     }
@@ -943,14 +943,14 @@ MeloSnapshot snapshotOf(Score* score)
             if (el && el->isChord()) {
                 for (const Chord* g : toChord(el)->graceNotes()) {
                     for (const Note* n : g->notes()) {
-                        if (n->hasJimsPitch()) {
-                            snap.identities.emplace_back(n->jimsNPer(), n->jimsNGen());
+                        if (n->hasMeloPitch()) {
+                            snap.identities.emplace_back(n->meloNPer(), n->meloNGen());
                         }
                     }
                 }
                 for (const Note* n : toChord(el)->notes()) {
-                    if (n->hasJimsPitch()) {
-                        snap.identities.emplace_back(n->jimsNPer(), n->jimsNGen());
+                    if (n->hasMeloPitch()) {
+                        snap.identities.emplace_back(n->meloNPer(), n->meloNGen());
                     }
                 }
             }
@@ -981,7 +981,7 @@ String readAll(const String& path)
 }
 }
 
-TEST_F(MusicXml_JiMS_Tests, exportWritesV4AndRoundTripsThroughTheNativeImporter)
+TEST_F(MusicXml_Melo_Tests, exportWritesV4AndRoundTripsThroughTheNativeImporter)
 {
     const char* corpus[] = {
         "jims-v3-m5-mode.musicxml", "jims-v3-m5-key-up.musicxml", "jims-v3-m5-key-down.musicxml",
@@ -991,7 +991,7 @@ TEST_F(MusicXml_JiMS_Tests, exportWritesV4AndRoundTripsThroughTheNativeImporter)
         "jims-multi-staff.musicxml", "jims-12tet-diatonic.musicxml", "jims-v2-mode-change.musicxml",
     };
     for (const char* file : corpus) {
-        MasterScore* original = readJims(file);
+        MasterScore* original = readMelo(file);
         ASSERT_TRUE(original) << file;
         original->doLayout();
         const MeloSnapshot before = snapshotOf(original);
@@ -1027,11 +1027,11 @@ TEST_F(MusicXml_JiMS_Tests, exportWritesV4AndRoundTripsThroughTheNativeImporter)
     }
 }
 
-TEST_F(MusicXml_JiMS_Tests, exportOfANativeJiMSScoreCarriesStatesChangesAndIdentities)
+TEST_F(MusicXml_Melo_Tests, exportOfANativeMeloScoreCarriesStatesChangesAndIdentities)
 {
     // The M6/M7 gate file: base reference 62, bar-2 carrier (reference 53,
     // mode La), bar 3 pasted identities.
-    MasterScore* score = ScoreRW::readScore(JIMS_DATA_DIR + u"m7-gate.mscz");
+    MasterScore* score = ScoreRW::readScore(MELO_DATA_DIR + u"m7-gate.mscz");
     ASSERT_TRUE(score);
     score->doLayout();
     const MeloSnapshot before = snapshotOf(score);
@@ -1071,9 +1071,9 @@ TEST_F(MusicXml_JiMS_Tests, exportOfANativeJiMSScoreCarriesStatesChangesAndIdent
     delete again;
 }
 
-TEST_F(MusicXml_JiMS_Tests, multiStaffExportNumbersStatesThroughTheKernel)
+TEST_F(MusicXml_Melo_Tests, multiStaffExportNumbersStatesThroughTheKernel)
 {
-    MasterScore* score = readJims("jims-multi-staff.musicxml");
+    MasterScore* score = readMelo("jims-multi-staff.musicxml");
     ASSERT_TRUE(score);
     score->doLayout();
     const String out = exportToScratch(score, "export-multi-staff.musicxml");
@@ -1083,7 +1083,7 @@ TEST_F(MusicXml_JiMS_Tests, multiStaffExportNumbersStatesThroughTheKernel)
     delete score;
 }
 
-TEST_F(MusicXml_JiMS_Tests, stockScoreExportDeclaresNoJimsNamespace)
+TEST_F(MusicXml_Melo_Tests, stockScoreExportDeclaresNoMeloNamespace)
 {
     auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
         return importMusicXml(s, path.toQString(), false);
@@ -1098,9 +1098,9 @@ TEST_F(MusicXml_JiMS_Tests, stockScoreExportDeclaresNoJimsNamespace)
     delete score;
 }
 
-TEST_F(MusicXml_JiMS_Tests, exportFailsClosedWhenAJimsNoteLacksItsIdentity)
+TEST_F(MusicXml_Melo_Tests, exportFailsClosedWhenAMeloNoteLacksItsIdentity)
 {
-    MasterScore* score = ScoreRW::readScore(JIMS_DATA_DIR + u"m7-gate.mscz");
+    MasterScore* score = ScoreRW::readScore(MELO_DATA_DIR + u"m7-gate.mscz");
     ASSERT_TRUE(score);
     score->doLayout();
     // Strip one identity (a defective document): export must refuse and
@@ -1108,7 +1108,7 @@ TEST_F(MusicXml_JiMS_Tests, exportFailsClosedWhenAJimsNoteLacksItsIdentity)
     for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg; seg = seg->next1(SegmentType::ChordRest)) {
         EngravingItem* el = seg->element(0);
         if (el && el->isChord()) {
-            toChord(el)->notes().front()->setJimsPitch(INT_MIN, INT_MIN);   // Note::JIMS_UNSET (private)
+            toChord(el)->notes().front()->setMeloPitch(INT_MIN, INT_MIN);   // Note::MELO_UNSET (private)
             break;
         }
     }
@@ -1144,7 +1144,7 @@ TEST_F(MusicXml_JiMS_Tests, exportFailsClosedWhenAJimsNoteLacksItsIdentity)
     delete score;
 }
 
-TEST_F(MusicXml_JiMS_Tests, trustedRawFragmentWriterInsertsVerbatimAndKeepsBalance)
+TEST_F(MusicXml_Melo_Tests, trustedRawFragmentWriterInsertsVerbatimAndKeepsBalance)
 {
     muse::io::Buffer buf;
     buf.open(muse::io::IODevice::WriteOnly);
@@ -1167,9 +1167,9 @@ TEST_F(MusicXml_JiMS_Tests, trustedRawFragmentWriterInsertsVerbatimAndKeepsBalan
 // (score style jimsElideEmptyOctaves / jimsShowAllOctavesInFirstSystem, staff
 // type Auto/On/Off) never reach MusicXML — export is byte-identical with
 // elision off and on, and no jims:staff-state carries them.
-TEST_F(MusicXml_JiMS_Tests, m8ElisionSwitchesNeverChangeMusicXmlExport)
+TEST_F(MusicXml_Melo_Tests, m8ElisionSwitchesNeverChangeMusicXmlExport)
 {
-    MasterScore* score = ScoreRW::readScore(JIMS_DATA_DIR + u"m8-two-hand.mscx");
+    MasterScore* score = ScoreRW::readScore(MELO_DATA_DIR + u"m8-two-hand.mscx");
     ASSERT_TRUE(score);
     score->doLayout();
     const String off = readAll(exportToScratch(score, "export-m8-two-hand-off.musicxml"));
@@ -1177,9 +1177,9 @@ TEST_F(MusicXml_JiMS_Tests, m8ElisionSwitchesNeverChangeMusicXmlExport)
     EXPECT_FALSE(off.contains(u"elide"));
     EXPECT_FALSE(off.contains(u"Elide"));
 
-    score->style().set(Sid::jimsElideEmptyOctaves, true);
-    score->style().set(Sid::jimsShowAllOctavesInFirstSystem, false);
-    score->staff(0)->staffType(Fraction(0, 1))->setJimsElideOctaves(MeloElideOctaves::On);
+    score->style().set(Sid::meloElideEmptyOctaves, true);
+    score->style().set(Sid::meloShowAllOctavesInFirstSystem, false);
+    score->staff(0)->staffType(Fraction(0, 1))->setMeloElideOctaves(MeloElideOctaves::On);
     score->setLayoutAll();
     score->doLayout();
     // The banded layout is in effect (system 2 has two bands) ...
@@ -1191,7 +1191,7 @@ TEST_F(MusicXml_JiMS_Tests, m8ElisionSwitchesNeverChangeMusicXmlExport)
         }
     }
     ASSERT_TRUE(system2);
-    EXPECT_EQ(staffTypeAtStart(score)->jimsFrameView(score, 0, system2).bands.size(), 2u);
+    EXPECT_EQ(staffTypeAtStart(score)->meloFrameView(score, 0, system2).bands.size(), 2u);
     // ... and the export is byte for byte the same.
     const String on = readAll(exportToScratch(score, "export-m8-two-hand-on.musicxml"));
     EXPECT_EQ(on, off);
@@ -1207,12 +1207,12 @@ TEST_F(MusicXml_JiMS_Tests, m8ElisionSwitchesNeverChangeMusicXmlExport)
 // every JiMS part shares one state timeline.
 // ---------------------------------------------------------------------------
 
-TEST_F(MusicXml_JiMS_Tests, provenanceIsImportedSavedAndExportedVerbatim)
+TEST_F(MusicXml_Melo_Tests, provenanceIsImportedSavedAndExportedVerbatim)
 {
-    MasterScore* score = readJims("jims-provenance.musicxml");
+    MasterScore* score = readMelo("jims-provenance.musicxml");
     ASSERT_TRUE(score);
     score->doLayout();
-    const melo::Provenance prov = score->jimsProvenance();   // by value: the score is deleted before the reload check
+    const melo::Provenance prov = score->meloProvenance();   // by value: the score is deleted before the reload check
     ASSERT_EQ(prov.resources.size(), 3u);
     EXPECT_TRUE(prov.strictFallback);
     EXPECT_EQ(prov.resources[0].role, u"source");
@@ -1245,7 +1245,7 @@ TEST_F(MusicXml_JiMS_Tests, provenanceIsImportedSavedAndExportedVerbatim)
     };
     MasterScore* again = ScoreRW::readScore(out, true, importXml);
     ASSERT_TRUE(again);
-    EXPECT_TRUE(again->jimsProvenance() == prov);
+    EXPECT_TRUE(again->meloProvenance() == prov);
     delete again;
     // Score-file persistence (.mscz): survives save + reload, then exports the same.
     const String dir(u"jims-export-scratch");
@@ -1270,14 +1270,14 @@ TEST_F(MusicXml_JiMS_Tests, provenanceIsImportedSavedAndExportedVerbatim)
     MasterScore* reloaded = ScoreRW::readScore(mscz, true);
     ASSERT_TRUE(reloaded);
     reloaded->doLayout();
-    EXPECT_TRUE(reloaded->jimsProvenance() == prov);
+    EXPECT_TRUE(reloaded->meloProvenance() == prov);
     const String xml2 = readAll(exportToScratch(reloaded, "export-provenance-after-mscz.musicxml"));
     EXPECT_EQ(int(xml2.count(u"<jims:resource ")), 3);
     EXPECT_TRUE(xml2.contains(u"<jims:provenance fallback-profile=\"strict\">"));
     delete reloaded;
 }
 
-TEST_F(MusicXml_JiMS_Tests, tuningTrajectoriesAreImportedSavedAndExportedVerbatim)
+TEST_F(MusicXml_Melo_Tests, tuningTrajectoriesAreImportedSavedAndExportedVerbatim)
 {
     struct Case {
         const char* file;
@@ -1286,10 +1286,10 @@ TEST_F(MusicXml_JiMS_Tests, tuningTrajectoriesAreImportedSavedAndExportedVerbati
     };
     const Case cases[] = { { "jims-trajectory-linear.musicxml", "linear", 0 }, { "jims-trajectory-cubic.musicxml", "cubic-bezier", 2 } };
     for (const Case& c : cases) {
-        MasterScore* score = readJims(c.file);
+        MasterScore* score = readMelo(c.file);
         ASSERT_TRUE(score) << c.file;
         score->doLayout();
-        const std::vector<melo::TuningTrajectory>& ts = score->staff(0)->jimsTuningTrajectories();
+        const std::vector<melo::TuningTrajectory>& ts = score->staff(0)->meloTuningTrajectories();
         ASSERT_EQ(ts.size(), 1u) << c.file;
         const melo::TuningTrajectory t = ts[0];   // by value: the score is deleted before the reload check
         EXPECT_EQ(t.tick, Fraction(0, 1)) << c.file;
@@ -1332,8 +1332,8 @@ TEST_F(MusicXml_JiMS_Tests, tuningTrajectoriesAreImportedSavedAndExportedVerbati
         MasterScore* again = ScoreRW::readScore(out, true, importXml);
         ASSERT_TRUE(again) << c.file;
         again->doLayout();
-        ASSERT_EQ(again->staff(0)->jimsTuningTrajectories().size(), 1u) << c.file;
-        EXPECT_TRUE(again->staff(0)->jimsTuningTrajectories()[0] == t) << c.file;
+        ASSERT_EQ(again->staff(0)->meloTuningTrajectories().size(), 1u) << c.file;
+        EXPECT_TRUE(again->staff(0)->meloTuningTrajectories()[0] == t) << c.file;
         delete again;
         // Score-file persistence (.mscz).
         const String dir(u"jims-export-scratch");
@@ -1358,13 +1358,13 @@ TEST_F(MusicXml_JiMS_Tests, tuningTrajectoriesAreImportedSavedAndExportedVerbati
         MasterScore* reloaded = ScoreRW::readScore(mscz, true);
         ASSERT_TRUE(reloaded) << c.file;
         reloaded->doLayout();
-        ASSERT_EQ(reloaded->staff(0)->jimsTuningTrajectories().size(), 1u) << c.file;
-        EXPECT_TRUE(reloaded->staff(0)->jimsTuningTrajectories()[0] == t) << c.file;
+        ASSERT_EQ(reloaded->staff(0)->meloTuningTrajectories().size(), 1u) << c.file;
+        EXPECT_TRUE(reloaded->staff(0)->meloTuningTrajectories()[0] == t) << c.file;
         delete reloaded;
     }
 }
 
-TEST_F(MusicXml_JiMS_Tests, malformedCarriersAreFatalImportErrors)
+TEST_F(MusicXml_Melo_Tests, malformedCarriersAreFatalImportErrors)
 {
     // A trajectory segment without interpolation, and a provenance resource
     // without a role: a JiMS document never imports with part of its JiMS
@@ -1382,7 +1382,7 @@ TEST_F(MusicXml_JiMS_Tests, malformedCarriersAreFatalImportErrors)
         { "jims-provenance.musicxml", "role=\"master\" ", "", "bad-provenance.musicxml" },
     };
     for (const Bad& b : bads) {
-        String text = readAll(ScoreRW::rootPath() + u"/" + JIMS_DATA_DIR + String::fromUtf8(b.base));
+        String text = readAll(ScoreRW::rootPath() + u"/" + MELO_DATA_DIR + String::fromUtf8(b.base));
         ASSERT_TRUE(text.contains(String::fromUtf8(b.find))) << b.name;
         text.replace(String::fromUtf8(b.find), String::fromUtf8(b.replace));
         const String path = dir + u"/" + String::fromUtf8(b.name);
@@ -1399,14 +1399,14 @@ TEST_F(MusicXml_JiMS_Tests, malformedCarriersAreFatalImportErrors)
     }
 }
 
-TEST_F(MusicXml_JiMS_Tests, severalJimsPartsSharingOneTimelineImportAndRoundTrip)
+TEST_F(MusicXml_Melo_Tests, severalMeloPartsSharingOneTimelineImportAndRoundTrip)
 {
-    MasterScore* score = readJims("jims-multi-part-shared.musicxml");
+    MasterScore* score = readMelo("jims-multi-part-shared.musicxml");
     ASSERT_TRUE(score);
     score->doLayout();
     ASSERT_EQ(score->nstaves(), 2u);
     for (staff_idx_t s = 0; s < 2; ++s) {
-        EXPECT_TRUE(staffTypeAtStart(score, s)->isJiMS()) << s;
+        EXPECT_TRUE(staffTypeAtStart(score, s)->isMelo()) << s;
         Measure* m2 = measureNo(score, 2);
         ASSERT_TRUE(m2);
         EXPECT_TRUE(melo::changeCarrier(m2, s) != nullptr) << s;   // the La-mode section on both parts
@@ -1438,9 +1438,9 @@ TEST_F(MusicXml_JiMS_Tests, severalJimsPartsSharingOneTimelineImportAndRoundTrip
 // voices legitimately differ in frame extent, while tonic-ambit is one
 // song-wide value that every transport carrier must share. Before this
 // change the whole element was compared and such a document was refused.
-TEST_F(MusicXml_JiMS_Tests, partsDifferingOnlyInPerStaffFieldsImportAndRoundTrip)
+TEST_F(MusicXml_Melo_Tests, partsDifferingOnlyInPerStaffFieldsImportAndRoundTrip)
 {
-    MasterScore* score = readJims("jims-multi-part-perstaff-differs.musicxml");
+    MasterScore* score = readMelo("jims-multi-part-perstaff-differs.musicxml");
     ASSERT_TRUE(score);
     score->doLayout();
     ASSERT_EQ(score->nstaves(), 2u);
@@ -1494,14 +1494,14 @@ TEST_F(MusicXml_JiMS_Tests, partsDifferingOnlyInPerStaffFieldsImportAndRoundTrip
     delete again;
 }
 
-TEST_F(MusicXml_JiMS_Tests, aJimsPartBesideAStockPartImportsAndRoundTrips)
+TEST_F(MusicXml_Melo_Tests, aMeloPartBesideAStockPartImportsAndRoundTrips)
 {
-    MasterScore* score = readJims("jims-multi-part-mixed.musicxml");
+    MasterScore* score = readMelo("jims-multi-part-mixed.musicxml");
     ASSERT_TRUE(score);
     score->doLayout();
     ASSERT_EQ(score->nstaves(), 2u);
-    EXPECT_TRUE(staffTypeAtStart(score, 0)->isJiMS());
-    EXPECT_FALSE(staffTypeAtStart(score, 1)->isJiMS());
+    EXPECT_TRUE(staffTypeAtStart(score, 0)->isMelo());
+    EXPECT_FALSE(staffTypeAtStart(score, 1)->isMelo());
     const MeloSnapshot before = snapshotOf(score);
     EXPECT_EQ(before.identities.size(), 2u);   // only the JiMS part carries identities
     const String out = exportToScratch(score, "export-multi-part-mixed.musicxml");
@@ -1517,8 +1517,8 @@ TEST_F(MusicXml_JiMS_Tests, aJimsPartBesideAStockPartImportsAndRoundTrips)
     MasterScore* again = ScoreRW::readScore(out, true, importXml);
     ASSERT_TRUE(again);
     again->doLayout();
-    EXPECT_TRUE(staffTypeAtStart(again, 0)->isJiMS());
-    EXPECT_FALSE(staffTypeAtStart(again, 1)->isJiMS());
+    EXPECT_TRUE(staffTypeAtStart(again, 0)->isMelo());
+    EXPECT_FALSE(staffTypeAtStart(again, 1)->isMelo());
     const MeloSnapshot after = snapshotOf(again);
     EXPECT_EQ(after.baseStates, before.baseStates);
     EXPECT_EQ(after.identities, before.identities);
@@ -1526,20 +1526,20 @@ TEST_F(MusicXml_JiMS_Tests, aJimsPartBesideAStockPartImportsAndRoundTrips)
     delete again;
 }
 
-TEST_F(MusicXml_JiMS_Tests, jimsPartsWithDifferentTimelinesAreRefusedOnImportAndOnExport)
+TEST_F(MusicXml_Melo_Tests, meloPartsWithDifferentTimelinesAreRefusedOnImportAndOnExport)
 {
     // Import: the divergent fixture is refused outright.
-    EXPECT_FALSE(readJims("jims-multi-part-divergent-invalid.musicxml"));
+    EXPECT_FALSE(readMelo("jims-multi-part-divergent-invalid.musicxml"));
     // Export: a document whose JiMS parts have drifted apart in the editor
     // is refused, and nothing is written.
-    MasterScore* score = readJims("jims-multi-part-shared.musicxml");
+    MasterScore* score = readMelo("jims-multi-part-shared.musicxml");
     ASSERT_TRUE(score);
     score->doLayout();
     StaffType* st = score->staff(1)->staffType(Fraction(0, 1));
-    String json = st->jimsStateJson();
+    String json = st->meloStateJson();
     ASSERT_TRUE(json.contains(u"\"generator_cents\":700.0"));
     json.replace(u"\"generator_cents\":700.0", u"\"generator_cents\":696.578");
-    st->setJimsStateJson(json);
+    st->setMeloStateJson(json);
     score->setLayoutAll();
     score->doLayout();
     muse::io::Buffer buf;
@@ -1565,7 +1565,7 @@ String satbTemplatePath()
 // The four voices carry one shared musical timeline and four DIFFERENT frame
 // extents. Under the narrowed comparison that document is
 // accepted, and every voice's own frame height survives the round trip.
-TEST_F(MusicXml_JiMS_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExtent)
+TEST_F(MusicXml_Melo_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExtent)
 {
     MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
     ASSERT_TRUE(score) << "the SATB (JiMStaff) template is not shipped";
@@ -1577,7 +1577,7 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
     auto expectEmptyFrames = [](MasterScore* checked) {
         for (staff_idx_t idx = 0; idx < checked->nstaves(); ++idx) {
             const StaffType* st = checked->staff(idx)->staffType(Fraction(0, 1));
-            const auto& segments = st->jimsFrameSegments();
+            const auto& segments = st->meloFrameSegments();
             ASSERT_FALSE(segments.empty());
             EXPECT_NEAR(segments.front().lowerCents, -300.0, 1e-9);
             EXPECT_NEAR(segments.back().upperCents, 300.0, 1e-9);
@@ -1618,7 +1618,7 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
     // observed follow-up in the M9 final report.
     const String out2 = exportToScratch(again, "export-m9-satb-template-2.musicxml");
     const String xml2 = readAll(out2);
-    auto jimsLinesOf = [](const String& doc) {
+    auto meloLinesOf = [](const String& doc) {
         StringList out;
         for (const String& line : doc.split(u'\n')) {
             if (line.contains(u"jims:")) {
@@ -1627,7 +1627,7 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
         }
         return out;
     };
-    EXPECT_EQ(jimsLinesOf(xml2), jimsLinesOf(xml)) << "the JiMS content must not drift across a second round trip";
+    EXPECT_EQ(meloLinesOf(xml2), meloLinesOf(xml)) << "the JiMS content must not drift across a second round trip";
     EXPECT_EQ(xml2.count(u"lower-n-per=\"0\" lower-n-gen=\"1\" upper-n-per=\"0\" upper-n-gen=\"1\""), 1);
     EXPECT_EQ(xml2.count(u"lower-n-per=\"-1\" lower-n-gen=\"2\" upper-n-per=\"-1\" upper-n-gen=\"2\""), 1);
     EXPECT_EQ(xml2.count(u"lower-n-per=\"-2\" lower-n-gen=\"3\" upper-n-per=\"-2\" upper-n-gen=\"3\""), 1);
@@ -1640,7 +1640,7 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
 // A state change applied through the decision-2a path leaves every JiMS part
 // on the same musical chronology, which is exactly what the interchange rule
 // requires — so the changed score still exports.
-TEST_F(MusicXml_JiMS_Tests, m9SATBScoreWideChangeKeepsOneSharedTimelineOnExport)
+TEST_F(MusicXml_Melo_Tests, m9SATBScoreWideChangeKeepsOneSharedTimelineOnExport)
 {
     MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
     ASSERT_TRUE(score) << "the SATB (JiMStaff) template is not shipped";
@@ -1650,7 +1650,7 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBScoreWideChangeKeepsOneSharedTimelineOnExport)
     Measure* m2 = measureNo(score, 2);
     ASSERT_TRUE(m2);
     String error;
-    ASSERT_TRUE(melo::applyChangeToAllJimsParts(score, m2, { u"mode:1" }, error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChangeToAllMeloParts(score, m2, { u"mode:1" }, error)) << error.toStdString();
     score->doLayout();
 
     const String out = exportToScratch(score, "export-m9-satb-mode-change.musicxml");
@@ -1670,13 +1670,13 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBScoreWideChangeKeepsOneSharedTimelineOnExport)
 // The per-staff exclusion is exactly jims:extent; every song-wide divergence,
 // including tonic-ambit, is still refused in both
 // directions.
-TEST_F(MusicXml_JiMS_Tests, m9SATBExtentOnlyDivergenceIsAcceptedAndMusicalDivergenceIsStillRefused)
+TEST_F(MusicXml_Melo_Tests, m9SATBExtentOnlyDivergenceIsAcceptedAndMusicalDivergenceIsStillRefused)
 {
-    MasterScore* accepted = readJims("jims-multi-part-perstaff-differs.musicxml");
+    MasterScore* accepted = readMelo("jims-multi-part-perstaff-differs.musicxml");
     ASSERT_TRUE(accepted) << "parts differing only in per-staff fields must import";
     delete accepted;
 
-    EXPECT_FALSE(readJims("jims-multi-part-divergent-invalid.musicxml"))
+    EXPECT_FALSE(readMelo("jims-multi-part-divergent-invalid.musicxml"))
         << "a musical-field divergence must still be refused on import";
 
     MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
@@ -1685,10 +1685,10 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBExtentOnlyDivergenceIsAcceptedAndMusicalDiverg
     ASSERT_EQ(score->nstaves(), 4u);
     // Diverge one voice in a MUSICAL field: export must fail closed.
     StaffType* tenor = score->staff(2)->staffType(Fraction(0, 1));
-    String json = tenor->jimsStateJson();
+    String json = tenor->meloStateJson();
     ASSERT_TRUE(json.contains(u"\"generator_cents\":700.0"));
     json.replace(u"\"generator_cents\":700.0", u"\"generator_cents\":696.578");
-    tenor->setJimsStateJson(json);
+    tenor->setMeloStateJson(json);
     score->setLayoutAll();
     score->doLayout();
     muse::io::Buffer buf;
@@ -1699,11 +1699,11 @@ TEST_F(MusicXml_JiMS_Tests, m9SATBExtentOnlyDivergenceIsAcceptedAndMusicalDiverg
     delete score;
 }
 
-TEST_F(MusicXml_JiMS_Tests, MelodyPartDefaultsToSopranoAndDefaultIsOmittedOnExport)
+TEST_F(MusicXml_Melo_Tests, MelodyPartDefaultsToSopranoAndDefaultIsOmittedOnExport)
 {
     MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
     ASSERT_TRUE(score);
-    EXPECT_EQ(score->jimsMelodyPart(), melo::MelodyPart::Soprano);
+    EXPECT_EQ(score->meloMelodyPart(), melo::MelodyPart::Soprano);
     const String out = exportToScratch(score, "export-m10-melody-default.musicxml");
     const String xml = readAll(out);
     EXPECT_FALSE(xml.contains(u"<jims:melody-part>"));
@@ -1714,15 +1714,15 @@ TEST_F(MusicXml_JiMS_Tests, MelodyPartDefaultsToSopranoAndDefaultIsOmittedOnExpo
     };
     MasterScore* reloaded = ScoreRW::readScore(out, true, importXml);
     ASSERT_TRUE(reloaded);
-    EXPECT_EQ(reloaded->jimsMelodyPart(), melo::MelodyPart::Soprano);
+    EXPECT_EQ(reloaded->meloMelodyPart(), melo::MelodyPart::Soprano);
     delete reloaded;
 }
 
-TEST_F(MusicXml_JiMS_Tests, MelodyPartTenorOverrideRoundTripsAndInvalidValueIsRefused)
+TEST_F(MusicXml_Melo_Tests, MelodyPartTenorOverrideRoundTripsAndInvalidValueIsRefused)
 {
     MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
     ASSERT_TRUE(score);
-    score->setJimsMelodyPart(melo::MelodyPart::Tenor);
+    score->setMeloMelodyPart(melo::MelodyPart::Tenor);
     const String out = exportToScratch(score, "export-m10-melody-tenor.musicxml");
     String xml = readAll(out);
     EXPECT_TRUE(xml.contains(u"<jims:melody-part>tenor</jims:melody-part>"));
@@ -1733,7 +1733,7 @@ TEST_F(MusicXml_JiMS_Tests, MelodyPartTenorOverrideRoundTripsAndInvalidValueIsRe
     };
     MasterScore* reloaded = ScoreRW::readScore(out, true, importXml);
     ASSERT_TRUE(reloaded);
-    EXPECT_EQ(reloaded->jimsMelodyPart(), melo::MelodyPart::Tenor);
+    EXPECT_EQ(reloaded->meloMelodyPart(), melo::MelodyPart::Tenor);
     delete reloaded;
 
     xml.replace(u"<jims:melody-part>tenor</jims:melody-part>",

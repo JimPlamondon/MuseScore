@@ -100,8 +100,8 @@ void MeasureNumberLayout::layoutMeasureNumber(MeasureNumber* item, MeasureNumber
     // band must not push it away via autoplace, and nothing overlaps
     // it there (the tuning label lives in the header's own x-range).
     const Staff* jstaff = item->staff();
-    const StaffType* jimsSt = jstaff ? jstaff->staffTypeForElement(item) : nullptr;
-    if (jimsSt && jimsSt->isJiMS() && item->placeAbove()) {
+    const StaffType* meloSt = jstaff ? jstaff->staffTypeForElement(item) : nullptr;
+    if (meloSt && meloSt->isMelo() && item->placeAbove()) {
         const_cast<MeasureNumber*>(item)->setAutoplace(false);
         ldata->setPosY(-0.5 * item->spatium() - itemBBox.bottom());
     }

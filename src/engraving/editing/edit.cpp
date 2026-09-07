@@ -1044,7 +1044,7 @@ TextBase* Score::addText(TextStyleType type, EngravingItem* destinationElement)
 
 Harmony* Score::addHarmony(HarmonyType type, EngravingItem* destinationElement)
 {
-    if (type == HarmonyType::JIMS && destinationElement && destinationElement->isFretDiagram()) {
+    if (type == HarmonyType::MELO && destinationElement && destinationElement->isFretDiagram()) {
         return nullptr;
     }
 

@@ -33,7 +33,7 @@ using namespace muse::audio::synth;
 using namespace muse::audio;
 using namespace muse::audioplugins;
 
-static constexpr std::string_view JIMS_MPE_PITCH_BEND_RANGE_KEY = "jimsMpePitchBendRangeSemitones";
+static constexpr std::string_view MELO_MPE_PITCH_BEND_RANGE_KEY = "jimsMpePitchBendRangeSemitones";
 
 static const std::set<Steinberg::Vst::CtrlNumber> SUPPORTED_CONTROLLERS = {
     Steinberg::Vst::kCtrlVolume,
@@ -117,7 +117,7 @@ void VstSynthesiser::init(const OutputSpec& spec)
                          noteExpressionCapabilities);
         VstPerNotePitchConfig pitchConfig;
         pitchConfig.tuningExpression = noteExpressionCapabilities.tuning;
-        const auto range = m_params.configuration.find(JIMS_MPE_PITCH_BEND_RANGE_KEY.data());
+        const auto range = m_params.configuration.find(MELO_MPE_PITCH_BEND_RANGE_KEY.data());
         if (range != m_params.configuration.end()) {
             try {
                 pitchConfig.mpePitchBendRangeSemitones = std::stod(range->second);

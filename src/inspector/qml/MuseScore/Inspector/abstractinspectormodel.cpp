@@ -383,9 +383,9 @@ InspectorSectionTypeSet AbstractInspectorModel::sectionTypesByElementKeys(const 
 {
     InspectorSectionTypeSet types;
     for (EngravingItem* item : selectedElementList) {
-        if (item && item->staff() && item->staff()->staffType(item->tick())->isJiMS()) {
-            types << InspectorSectionType::SECTION_JIMS_STAFF;
-            types << InspectorSectionType::SECTION_JIMS_SCORE;
+        if (item && item->staff() && item->staff()->staffType(item->tick())->isMelo()) {
+            types << InspectorSectionType::SECTION_MELO_STAFF;
+            types << InspectorSectionType::SECTION_MELO_SCORE;
             break;
         }
     }
@@ -924,14 +924,14 @@ void AbstractInspectorModel::updateNotation()
     currentNotation()->notationChanged().notify();
 }
 
-bool AbstractInspectorModel::hasJimsSelection() const
+bool AbstractInspectorModel::hasMeloSelection() const
 {
     if (!m_repository) {
         return false;
     }
     for (const auto* item : m_repository->takeAllElements()) {
         const auto* staff = item ? item->staff() : nullptr;
-        if (staff && staff->staffType(item->tick())->isJiMS()) {
+        if (staff && staff->staffType(item->tick())->isMelo()) {
             return true;
         }
     }

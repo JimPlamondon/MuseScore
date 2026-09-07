@@ -13,8 +13,8 @@
  * create no undo entries; commit lands exactly one undoable edit;
  * cancel restores the pre-preview state. Never one undo per tick.
  */
-#ifndef MU_ENGRAVING_JIMSTUNINGCONTROLLER_H
-#define MU_ENGRAVING_JIMSTUNINGCONTROLLER_H
+#ifndef MU_ENGRAVING_MELOTUNINGCONTROLLER_H
+#define MU_ENGRAVING_MELOTUNINGCONTROLLER_H
 
 #include <vector>
 

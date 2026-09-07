@@ -210,7 +210,7 @@ private:
     UIDRegister* m_uids;
 
     /// JiMS MEI carriage (mei-jims profile)
-    MeloMeiExporter m_jims;
+    MeloMeiExporter m_melo;
 
     /** MEI xml element */
     pugi::xml_node m_mei;

@@ -535,7 +535,7 @@ bool connectorGlyph(ConnectorGlyph& out)
     return true;
 }
 
-static String jimsExtraCentsJson(const std::vector<double>& extraCents)
+static String meloExtraCentsJson(const std::vector<double>& extraCents)
 {
     String out = u"[";
     for (size_t i = 0; i < extraCents.size(); ++i) {
@@ -554,7 +554,7 @@ bool frameForMelody(const String& stateJson, const String& melodyJson,
     // Owner rule 2026-08-19 (7b): extra cents the frame must cover ride in
     // the same op's options; without them the envelope is byte-identical
     // to the Milestone-4 request.
-    String options = String(u"\"extra_cents\":%1").arg(jimsExtraCentsJson(extraCents));
+    String options = String(u"\"extra_cents\":%1").arg(meloExtraCentsJson(extraCents));
     if (!ratioLineExtentJson.isEmpty()) {
         options += String(u",\"ratio_extent\":%1").arg(ratioLineExtentJson);
     }
@@ -588,7 +588,7 @@ bool frameBandsForMelody(const String& stateJson, const String& melodyJson,
     String options = String(u"\"elide_empty_periods\":%1,\"min_band_periods\":%2,\"extra_cents\":%3")
                      .arg(String(elideEmptyPeriods ? u"true" : u"false"))
                      .arg(minBandPeriods)
-                     .arg(jimsExtraCentsJson(extraCents));
+                     .arg(meloExtraCentsJson(extraCents));
     if (!ratioLineExtentJson.isEmpty()) {
         options += String(u",\"ratio_extent\":%1").arg(ratioLineExtentJson);
     }

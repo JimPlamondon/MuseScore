@@ -7,8 +7,8 @@
  *
  * Copyright (C) 2026 MuseScore Limited and others
  */
-#ifndef MU_ENGRAVING_JIMSPITCHLABEL_H
-#define MU_ENGRAVING_JIMSPITCHLABEL_H
+#ifndef MU_ENGRAVING_MELOPITCHLABEL_H
+#define MU_ENGRAVING_MELOPITCHLABEL_H
 
 #include "draw/types/font.h"
 #include "draw/types/geometry.h"

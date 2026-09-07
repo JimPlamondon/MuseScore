@@ -4,7 +4,7 @@
 #include "project/internal/jimsstocklosswarning.h"
 using namespace muse;
 using namespace mu::project;
-TEST(JimsStockLossWarning, OnlyExplicitAcknowledgementCanDisableFutureWarnings)
+TEST(MeloStockLossWarning, OnlyExplicitAcknowledgementCanDisableFutureWarnings)
 {
     for (auto button : { IInteractive::Button::NoButton, IInteractive::Button::Cancel, IInteractive::Button::Close,
                          IInteractive::Button::Ok }) {

@@ -1298,7 +1298,7 @@ double HorizontalSpacing::shapeSpatium(const Shape& s)
 // (owner notation rulings 2026-08-16). Width comes from the ONE shared
 // header-geometry calculation; the decision of whether an indicator exists
 // is the Kernel's (empty model -> nothing reserved).
-static double jimsChangeTerrainExtra(const Segment* f, const Segment* ns)
+static double meloChangeTerrainExtra(const Segment* f, const Segment* ns)
 {
     if (!f || !ns || !ns->measure()) {
         return 0.0;
@@ -1321,7 +1321,7 @@ static double jimsChangeTerrainExtra(const Segment* f, const Segment* ns)
 
 double HorizontalSpacing::minHorizontalDistance(const Segment* f, const Segment* ns, double squeezeFactor)
 {
-    return minHorizontalDistanceImpl(f, ns, squeezeFactor) + jimsChangeTerrainExtra(f, ns);
+    return minHorizontalDistanceImpl(f, ns, squeezeFactor) + meloChangeTerrainExtra(f, ns);
 }
 
 double HorizontalSpacing::minHorizontalDistanceImpl(const Segment* f, const Segment* ns, double squeezeFactor)

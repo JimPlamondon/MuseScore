@@ -43,8 +43,8 @@ PreferencesPage {
 
         CheckBox {
             text: preferencesModel.warnWhenSavingNotationLabel
-            checked: preferencesModel.warnOnJimsSave
-            onClicked: preferencesModel.warnOnJimsSave = !checked
+            checked: preferencesModel.warnOnMeloSave
+            onClicked: preferencesModel.warnOnMeloSave = !checked
             navigation.panel: NavigationPanel {
                 name: "JimsSaveWarning"
                 section: root.navigationSection

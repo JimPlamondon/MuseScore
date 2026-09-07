@@ -102,7 +102,7 @@ class MeloUiModelTests : public ::testing::Test
 protected:
     void SetUp() override
     {
-        score.reset(ScoreRW::readScore(muse::String::fromUtf8(JIMS_UI_TEST_DATA_ROOT) + u"/jimstaff_data/mode-change.mscx", true));
+        score.reset(ScoreRW::readScore(muse::String::fromUtf8(MELO_UI_TEST_DATA_ROOT) + u"/jimstaff_data/mode-change.mscx", true));
         ASSERT_TRUE(score);
         global = std::make_shared<context::GlobalContext>();
         notation = std::make_shared<TestNotation>(score.get());
@@ -134,13 +134,13 @@ TEST_F(MeloUiModelTests, StaffSectionsAreRelevantOnlyForCompatibleSelection) {
     auto* selected = selectMeasure(0);
     ElementKeySet keys { AbstractInspectorModel::makeKey(selected) };
     auto sections = AbstractInspectorModel::sectionTypesByElementKeys(keys, false, { selected });
-    EXPECT_TRUE(sections.count(InspectorSectionType::SECTION_JIMS_STAFF));
-    EXPECT_TRUE(sections.count(InspectorSectionType::SECTION_JIMS_SCORE));
+    EXPECT_TRUE(sections.count(InspectorSectionType::SECTION_MELO_STAFF));
+    EXPECT_TRUE(sections.count(InspectorSectionType::SECTION_MELO_SCORE));
     EXPECT_TRUE(AbstractInspectorModel::sectionTypesByElementKeys({}, false, {}).empty());
     StaffType original = *score->staff(0)->staffType(Fraction(0, 1));
     *score->staff(0)->staffType(Fraction(0, 1)) = *StaffType::preset(StaffTypes::STANDARD);
     sections = AbstractInspectorModel::sectionTypesByElementKeys(keys, false, { selected });
-    EXPECT_FALSE(sections.count(InspectorSectionType::SECTION_JIMS_STAFF));
+    EXPECT_FALSE(sections.count(InspectorSectionType::SECTION_MELO_STAFF));
     *score->staff(0)->staffType(Fraction(0, 1)) = original;
 }
 TEST_F(MeloUiModelTests, StaffPresentationIsUndoableAndPreservesMusicalState) {
@@ -149,12 +149,12 @@ TEST_F(MeloUiModelTests, StaffPresentationIsUndoableAndPreservesMusicalState) {
     model.context.set(global);
     model.loadProperties();
     ASSERT_TRUE(model.settings()["available"].toBool());
-    auto before = score->staff(0)->staffType(Fraction(0, 1))->jimsStateJson();
+    auto before = score->staff(0)->staffType(Fraction(0, 1))->meloStateJson();
     int undo = score->undoStack()->size();
     model.setStaffOption("labels", 3);
     EXPECT_EQ(score->undoStack()->size(), undo + 1);
-    EXPECT_EQ(score->staff(0)->staffType(Fraction(0, 1))->jimsScaleDotLabelMode(), MeloScaleDotLabelMode::Split);
-    EXPECT_EQ(score->staff(0)->staffType(Fraction(0, 1))->jimsStateJson(), before);
+    EXPECT_EQ(score->staff(0)->staffType(Fraction(0, 1))->meloScaleDotLabelMode(), MeloScaleDotLabelMode::Split);
+    EXPECT_EQ(score->staff(0)->staffType(Fraction(0, 1))->meloStateJson(), before);
     model.setStaffOption("labels", 3);
     EXPECT_EQ(score->undoStack()->size(), undo + 1);
     score->undoRedo(true, nullptr);
@@ -193,7 +193,7 @@ TEST_F(MeloUiModelTests, KeyChoicesDistinguishEveryPeriod) {
 }
 TEST_F(MeloUiModelTests, ScaleChoiceReconcilesOtherPartsAndReportsTheMutation) {
     global->setCurrentNotation(nullptr);
-    score.reset(ScoreRW::readScore(muse::String::fromUtf8(JIMS_UI_TEST_DATA_ROOT) + u"/jimstaff_data/m9-satb-hymn.mscx", true));
+    score.reset(ScoreRW::readScore(muse::String::fromUtf8(MELO_UI_TEST_DATA_ROOT) + u"/jimstaff_data/m9-satb-hymn.mscx", true));
     ASSERT_TRUE(score);
     ASSERT_EQ(score->nstaves(), 4);
     notation = std::make_shared<TestNotation>(score.get());
@@ -201,7 +201,7 @@ TEST_F(MeloUiModelTests, ScaleChoiceReconcilesOtherPartsAndReportsTheMutation) {
     selectMeasure(1);
     Measure* measure = score->firstMeasure()->nextMeasure();
     muse::String error;
-    ASSERT_TRUE(melo::applyChangeToAllJimsParts(score.get(), measure, { u"scale:cycle:double-harmonic-minor" },
+    ASSERT_TRUE(melo::applyChangeToAllMeloParts(score.get(), measure, { u"scale:cycle:double-harmonic-minor" },
                                                 error)) << error.toStdString();
     ASSERT_TRUE(melo::removeChange(score.get(), 0, measure, error)) << error.toStdString();
     MeloStaffSettingsModel model(nullptr, muse::modularity::globalCtx(), &repository);
@@ -287,7 +287,7 @@ TEST_F(MeloUiModelTests, TuningCommitsOnceAndCancelsWhenSwitchingScores) {
     global->setCurrentNotation(nullptr);
     EXPECT_FALSE(model.available());
     double cents = 0, period = 0;
-    ASSERT_TRUE(melo::staffMetrics(score->staff(0)->staffType(Fraction(0, 1))->jimsStateJson(), cents, period));
+    ASSERT_TRUE(melo::staffMetrics(score->staff(0)->staffType(Fraction(0, 1))->meloStateJson(), cents, period));
     EXPECT_NEAR(cents, original, 1e-8);
 }
 TEST_F(MeloUiModelTests, TuningRoutesLiveGeneratorOnlyForTheCurrentScore)
@@ -371,7 +371,7 @@ TEST_F(MeloUiModelTests, RejectedCommitRestoresLiveTuningAfterAValidPreview)
     ASSERT_TRUE(boundaryNote);
     // This exact lattice identity is playable at generator700 and690;
     // generator720 projects it beyond the host's MIDI range.
-    boundaryNote->setJimsPitch(-1, 11);
+    boundaryNote->setMeloPitch(-1, 11);
     size_t repairs = 0;
     muse::String error;
     ASSERT_TRUE(melo::normalizeStoredPitchesAfterLoad(score.get(), repairs, error, false));
@@ -394,8 +394,8 @@ TEST_F(MeloUiModelTests, RejectedCommitRestoresLiveTuningAfterAValidPreview)
     EXPECT_DOUBLE_EQ(model.cents(), original);
     EXPECT_DOUBLE_EQ(routed.back(), original);
     EXPECT_EQ(score->undoStack()->size(), originalUndo);
-    EXPECT_EQ(boundaryNote->jimsNPer(), -1);
-    EXPECT_EQ(boundaryNote->jimsNGen(), 11);
+    EXPECT_EQ(boundaryNote->meloNPer(), -1);
+    EXPECT_EQ(boundaryNote->meloNGen(), 11);
 }
 TEST_F(MeloUiModelTests, TuningControlMouseDragPreviewsCommitsOneUndoAndEscCancels)
 {
@@ -416,7 +416,7 @@ TEST_F(MeloUiModelTests, TuningControlMouseDragPreviewsCommitsOneUndoAndEscCance
     engine.rootContext()->setContextProperty("ui", QVariantMap { { "theme", theme } });
     engine.globalObject().setProperty("qsTrc", engine.evaluate("(function(context, text) { return text; })"));
     engine.addImportPath("qrc:/qt/qml");
-    QQmlComponent component(&engine, QUrl("qrc:/qt/qml/MuseScore/Inspector/JimsTuningControl.qml"));
+    QQmlComponent component(&engine, QUrl("qrc:/qt/qml/MuseScore/Inspector/MeloTuningControl.qml"));
     ASSERT_TRUE(component.isReady()) << component.errorString().toStdString();
 
     muse::ui::NavigationPanel panel;
@@ -468,12 +468,12 @@ TEST_F(MeloUiModelTests, ScorePresentationDoesNotChangeMusicalStateAndUndoes) {
     MeloScoreSettingsModel model(nullptr, muse::modularity::globalCtx(), &repository);
     model.context.set(global);
     model.loadProperties();
-    auto state = score->staff(0)->staffType(Fraction(0, 1))->jimsStateJson();
+    auto state = score->staff(0)->staffType(Fraction(0, 1))->meloStateJson();
     bool original = model.settings()["elide"].toBool();
     int undo = score->undoStack()->size();
     model.setOption("elide", !original);
     EXPECT_EQ(score->undoStack()->size(), undo + 1);
-    EXPECT_EQ(score->staff(0)->staffType(Fraction(0, 1))->jimsStateJson(), state);
+    EXPECT_EQ(score->staff(0)->staffType(Fraction(0, 1))->meloStateJson(), state);
     score->undoRedo(true, nullptr);
     model.loadProperties();
     EXPECT_EQ(model.settings()["elide"].toBool(), original);

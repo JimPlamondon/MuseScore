@@ -32,7 +32,7 @@ namespace mu::instrumentsscene {
 class InstrumentsOnScoreListModel : public muse::uicomponents::SelectableItemListModel, public muse::Contextable
 {
     Q_OBJECT
-    Q_PROPERTY(QString jimsPresetName READ jimsPresetName CONSTANT)
+    Q_PROPERTY(QString meloPresetName READ meloPresetName CONSTANT)
 
     Q_PROPERTY(QStringList orders READ orders NOTIFY ordersChanged)
     Q_PROPERTY(int currentOrderIndex READ currentOrderIndex WRITE setCurrentOrderIndex NOTIFY currentOrderChanged)
@@ -53,7 +53,7 @@ public:
     int currentOrderIndex() const;
 
     Q_INVOKABLE void load();
-    QString jimsPresetName() const;
+    QString meloPresetName() const;
     Q_INVOKABLE void addInstruments(const QStringList& instrumentIdList);
 
     Q_INVOKABLE QVariant currentOrder() const;
@@ -73,7 +73,7 @@ private:
         RoleName = SelectableItemListModel::UserRole + 1,
         RoleDescription,
         RoleIsSoloist,
-        RoleUseJimsStaff,
+        RoleUseMeloStaff,
         RoleCanChooseStaffType
     };
 

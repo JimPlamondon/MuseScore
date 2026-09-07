@@ -116,7 +116,7 @@ QString NotationStatusBarModel::accessibilityInfo() const
 {
     const auto* item = m_notation ? m_notation->interaction()->selection()->element() : nullptr;
     if (item && item->isHarmony()) {
-        const auto error = mu::engraving::toHarmony(item)->jimsNameError();
+        const auto error = mu::engraving::toHarmony(item)->meloNameError();
         if (!error.empty()) {
             return error.toQString();
         }

@@ -67,7 +67,7 @@ const String SINGLE_OCTAVE(u"jimstaff_data/collision.mscx");
 
 const double EPS = 1e-9;
 
-class Engraving_JiMStaffM8BandElisionTests : public ::testing::Test
+class Engraving_MeloStaffM8BandElisionTests : public ::testing::Test
 {
 protected:
     static const StaffType* st(Score* score, staff_idx_t staffIdx = 0)
@@ -93,26 +93,26 @@ protected:
 
     static const StaffType::MeloFrameView& viewOn(Score* score, System* system, staff_idx_t staffIdx = 0)
     {
-        return st(score, staffIdx)->jimsFrameView(score, staffIdx, system);
+        return st(score, staffIdx)->meloFrameView(score, staffIdx, system);
     }
 
     static void setElision(Score* score, bool on)
     {
-        score->style().set(Sid::jimsElideEmptyOctaves, on);
+        score->style().set(Sid::meloElideEmptyOctaves, on);
         score->setLayoutAll();
         score->doLayout();
     }
 
     static void setFirstSystemAll(Score* score, bool on)
     {
-        score->style().set(Sid::jimsShowAllOctavesInFirstSystem, on);
+        score->style().set(Sid::meloShowAllOctavesInFirstSystem, on);
         score->setLayoutAll();
         score->doLayout();
     }
 
     static void setOverride(Score* score, MeloElideOctaves mode, staff_idx_t staffIdx = 0)
     {
-        mutSt(score, staffIdx)->setJimsElideOctaves(mode);
+        mutSt(score, staffIdx)->setMeloElideOctaves(mode);
         score->setLayoutAll();
         score->doLayout();
     }
@@ -143,8 +143,8 @@ protected:
     static int redDoLineCount(const StaffLines* lines)
     {
         int n = 0;
-        for (const StaffLines::MeloGuideLine& g : lines->jimsGuideLines()) {
-            if (!g.dashed && g.colorStyle == Sid::jimsDoLineColor) {
+        for (const StaffLines::MeloGuideLine& g : lines->meloGuideLines()) {
+            if (!g.dashed && g.colorStyle == Sid::meloDoLineColor) {
                 ++n;
             }
         }
@@ -185,28 +185,28 @@ protected:
 
 // One-band structural identity (Phase 2): the whole-piece view is one band at
 // yTop 0 whose map is the legacy seam bit for bit, and the inverse round-trips.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8WholeViewIsOneBandWithLegacyGeometry)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, m8WholeViewIsOneBandWithLegacyGeometry)
 {
     MasterScore* score = ScoreRW::readScore(TWO_HAND);
     ASSERT_TRUE(score);
     score->doLayout();
     const StaffType* jst = st(score);
-    ASSERT_TRUE(jst->isJiMS());
-    const StaffType::MeloFrameView& whole = jst->jimsWholeFrameView(score, 0);
+    ASSERT_TRUE(jst->isMelo());
+    const StaffType::MeloFrameView& whole = jst->meloWholeFrameView(score, 0);
     ASSERT_EQ(whole.bands.size(), 1u);
     EXPECT_FALSE(whole.banded);
     EXPECT_EQ(whole.omittedPeriodCount, 0);
     EXPECT_EQ(whole.bands[0].yTopLd, 0.0);
-    EXPECT_EQ(whole.bands[0].segments.size(), jst->jimsFrameSegments().size());
+    EXPECT_EQ(whole.bands[0].segments.size(), jst->meloFrameSegments().size());
     EXPECT_EQ(whole.bands[0].segments.size(), 5u);   // five segments across the fitted note extent
     // The whole frame's "[PitchN]:" names the period index selected by the
     // Kernel for its lowest labelled tonic row, not an inferred extent centre.
     EXPECT_EQ(whole.bands[0].labelPeriodIndex, 0);
     melo::TonicPitchLabel wholeLabel;
-    ASSERT_TRUE(melo::tonicPitchLabelInPeriod(jst->jimsStateJson(), whole.bands[0].labelPeriodIndex, wholeLabel));
+    ASSERT_TRUE(melo::tonicPitchLabelInPeriod(jst->meloStateJson(), whole.bands[0].labelPeriodIndex, wholeLabel));
     EXPECT_TRUE(whole.bands[0].tonicLabel == wholeLabel.label);
     for (double cents : { 0.0, 900.0, 2400.0, 3637.5, 5700.0, 5800.0 }) {
-        EXPECT_EQ(jst->jimsYFromCents(cents, whole), jst->jimsYFromCents(cents)) << cents;
+        EXPECT_EQ(jst->meloYFromCents(cents, whole), jst->meloYFromCents(cents)) << cents;
         EXPECT_NEAR(whole.centsFromYLd(whole.yLdFromCents(cents)), cents, EPS) << cents;
     }
     // Every system uses the whole view when elision is off, and no chord moved.
@@ -228,18 +228,18 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8WholeViewIsOneBandWithLegacyGeome
 
 // (i) Elision off (the default): every system draws the whole stack; the
 // three switches read their defaults; the staff type override is Auto.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8ElisionOffMatchesPhase2Baseline)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, m8ElisionOffMatchesPhase2Baseline)
 {
     MasterScore* score = ScoreRW::readScore(TWO_HAND);
     ASSERT_TRUE(score);
     score->doLayout();
-    EXPECT_FALSE(score->style().styleB(Sid::jimsElideEmptyOctaves));
-    EXPECT_TRUE(score->style().styleB(Sid::jimsShowAllOctavesInFirstSystem));
-    EXPECT_EQ(st(score)->jimsElideOctaves(), MeloElideOctaves::Auto);
+    EXPECT_FALSE(score->style().styleB(Sid::meloElideEmptyOctaves));
+    EXPECT_TRUE(score->style().styleB(Sid::meloShowAllOctavesInFirstSystem));
+    EXPECT_EQ(st(score)->meloElideOctaves(), MeloElideOctaves::Auto);
     const std::vector<System*> systems = measureSystems(score);
     ASSERT_EQ(systems.size(), 4u);
     for (System* system : systems) {
-        EXPECT_FALSE(st(score)->jimsElisionActive(score, 0, system));
+        EXPECT_FALSE(st(score)->meloElisionActive(score, 0, system));
         const StaffType::MeloFrameView& v = viewOn(score, system);
         EXPECT_EQ(v.bands.size(), 1u);
         EXPECT_NEAR(v.bottomCents(), 0.0, EPS);
@@ -255,7 +255,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8ElisionOffMatchesPhase2Baseline)
 // (ii) Style on + staff Auto: system 1 whole (first-system rule), later
 // systems two bands with one intervening segment omitted; per-band labels and Do-line
 // counts; staff height = band heights + one staffDistance gap.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StyleOnBandsLaterSystemsWithLabelsAndHeight)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, m8StyleOnBandsLaterSystemsWithLabelsAndHeight)
 {
     MasterScore* score = ScoreRW::readScore(TWO_HAND);
     ASSERT_TRUE(score);
@@ -285,7 +285,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StyleOnBandsLaterSystemsWithLabel
         EXPECT_EQ(v.bands[1].labelPeriodIndex, 2);
         for (const StaffType::MeloFrameBand& band : v.bands) {
             melo::TonicPitchLabel expected;
-            ASSERT_TRUE(melo::tonicPitchLabelInPeriod(st(score)->jimsStateJson(), band.labelPeriodIndex, expected));
+            ASSERT_TRUE(melo::tonicPitchLabelInPeriod(st(score)->meloStateJson(), band.labelPeriodIndex, expected));
             EXPECT_TRUE(band.tonicLabel == expected.label);
         }
         // Geometry: top band at 0, bottom band below it plus one gap.
@@ -310,13 +310,13 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StyleOnBandsLaterSystemsWithLabel
             }
             for (Chord* c : chordsOf(toMeasure(mb))) {
                 const Note* n = c->notes().front();
-                const StaffType::MeloFrameBand* band = v.bandForCents(n->jimsCentsAboveDo());
+                const StaffType::MeloFrameBand* band = v.bandForCents(n->meloCentsAboveDo());
                 ASSERT_TRUE(band);
-                const double expectedLd = band->yTopLd + (band->upperCents - v.topCents()) / StaffType::JIMS_CENTS_PER_LINE_DISTANCE;
+                const double expectedLd = band->yTopLd + (band->upperCents - v.topCents()) / StaffType::MELO_CENTS_PER_LINE_DISTANCE;
                 EXPECT_NEAR(c->ldata()->pos().y(), expectedLd * ld * c->spatium(), 1e-6);
                 // And the note's page y equals the piecewise map of its cents.
                 const double noteYLd = (c->ldata()->pos().y() + n->ldata()->pos().y()) / (ld * c->spatium());
-                EXPECT_NEAR(noteYLd, v.yLdFromCents(n->jimsCentsAboveDo()), 0.2) << "notehead centroid correction aside";
+                EXPECT_NEAR(noteYLd, v.yLdFromCents(n->meloCentsAboveDo()), 0.2) << "notehead centroid correction aside";
             }
         }
     }
@@ -327,7 +327,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StyleOnBandsLaterSystemsWithLabel
 // signature (tick 0) sits inside a band — the band holding the stack's
 // vertical middle, or the band above the gap when the middle falls in it —
 // never in the gap and never below the stack.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8FirstSystemSwitchOffBandsSystemOneToo)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, m8FirstSystemSwitchOffBandsSystemOneToo)
 {
     MasterScore* score = ScoreRW::readScore(TWO_HAND);
     ASSERT_TRUE(score);
@@ -363,7 +363,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8FirstSystemSwitchOffBandsSystemOn
 }
 
 // (iii) Staff Off beats style On; staff On beats style Off; Auto follows.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StaffOverrideBeatsStyleInBothDirections)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, m8StaffOverrideBeatsStyleInBothDirections)
 {
     MasterScore* score = ScoreRW::readScore(TWO_HAND);
     ASSERT_TRUE(score);
@@ -385,7 +385,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StaffOverrideBeatsStyleInBothDire
 }
 
 // Single-octave melody: one band, unchanged from the whole frame.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8SingleOctaveMelodyIsOneBandUnchanged)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, m8SingleOctaveMelodyIsOneBandUnchanged)
 {
     MasterScore* score = ScoreRW::readScore(SINGLE_OCTAVE);
     ASSERT_TRUE(score);
@@ -408,13 +408,13 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8SingleOctaveMelodyIsOneBandUnchan
             EXPECT_NEAR(v.bands.front().segments[k].upperCents, before[i][k].upperCents, EPS);
             EXPECT_EQ(v.bands.front().segments[k].whole, before[i][k].whole);
         }
-        EXPECT_NEAR(v.heightLd(), (v.topCents() - v.bottomCents()) / StaffType::JIMS_CENTS_PER_LINE_DISTANCE, EPS);
+        EXPECT_NEAR(v.heightLd(), (v.topCents() - v.bottomCents()) / StaffType::MELO_CENTS_PER_LINE_DISTANCE, EPS);
     }
     delete score;
 }
 
 // Every octave touched on a system: one band there, bands elsewhere.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8EveryOctaveTouchedIsOneBand)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, m8EveryOctaveTouchedIsOneBand)
 {
     const String path = fixtureWithExtraNotes({ -1, 0, 1 }, 3, "m8-every-octave.mscx");
     MasterScore* score = ScoreRW::readScore(path, true);
@@ -434,7 +434,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8EveryOctaveTouchedIsOneBand)
 
 // Gap clicks snap to the nearest band edge; the exact midpoint resolves toward
 // the lower-pitched band; the model inverse and note entry agree.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8GapClickSnapsToNearestBandEdgeAndTieGoesLow)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, m8GapClickSnapsToNearestBandEdgeAndTieGoesLow)
 {
     MasterScore* score = ScoreRW::readScore(TWO_HAND);
     ASSERT_TRUE(score);
@@ -481,7 +481,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8GapClickSnapsToNearestBandEdgeAnd
 
 // Drag freeze: while frozen the system view never re-derives; the drop
 // (unfreeze + layout) re-derives once and grows the band.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DragFreezeThenDropRederives)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, m8DragFreezeThenDropRederives)
 {
     MasterScore* score = ScoreRW::readScore(TWO_HAND);
     ASSERT_TRUE(score);
@@ -491,11 +491,11 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DragFreezeThenDropRederives)
     ASSERT_EQ(viewOn(score, system2).bands.size(), 2u);
     Chord* rh = chordsOf(system2->firstMeasure()).front();
     Note* n = rh->notes().front();
-    ASSERT_EQ(n->jimsNPer(), 2);   // D6 (2,0)
-    st(score)->jimsSetFrameFrozen(true);
+    ASSERT_EQ(n->meloNPer(), 2);   // D6 (2,0)
+    st(score)->meloSetFrameFrozen(true);
     // Move the note into the omitted interior period; its occupancy must
     // merge the two bands only after the frozen frame is released.
-    n->setJimsPitch(0, 0);
+    n->setMeloPitch(0, 0);
     n->setPitch(62);
     score->setLayoutAll();
     score->doLayout();
@@ -505,7 +505,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DragFreezeThenDropRederives)
     system2 = measureSystems(score)[1];
     EXPECT_EQ(viewOn(score, system2).bands.size(), 2u);
     EXPECT_EQ(viewOn(score, system2).omittedPeriodCount, 1);
-    st(score)->jimsSetFrameFrozen(false);
+    st(score)->meloSetFrameFrozen(false);
     score->setLayoutAll();
     score->doLayout();
     system2 = measureSystems(score)[1];
@@ -518,7 +518,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DragFreezeThenDropRederives)
 }
 
 // A keyboard octave step into a missing register grows only that system.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8KeyboardOctaveStepGrowsOnlyTheAffectedSystem)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, m8KeyboardOctaveStepGrowsOnlyTheAffectedSystem)
 {
     MasterScore* score = ScoreRW::readScore(TWO_HAND);
     ASSERT_TRUE(score);
@@ -527,14 +527,14 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8KeyboardOctaveStepGrowsOnlyTheAff
     std::vector<System*> systems = measureSystems(score);
     Chord* rh = chordsOf(systems[1]->firstMeasure()).front();
     Note* n = rh->notes().front();
-    ASSERT_EQ(n->jimsNPer(), 2);
+    ASSERT_EQ(n->meloNPer(), 2);
     score->select(n);
     score->startCmd(TranslatableString::untranslatable("M8 test octave step"));
     score->upDown(false, UpDownMode::OCTAVE);
     score->upDown(false, UpDownMode::OCTAVE);
     score->endCmd();
     score->doLayout();
-    EXPECT_EQ(n->jimsNPer(), 0);
+    EXPECT_EQ(n->meloNPer(), 0);
     systems = measureSystems(score);
     ASSERT_EQ(systems.size(), 4u);
     const StaffType::MeloFrameView& sys2 = viewOn(score, systems[1]);
@@ -559,7 +559,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8KeyboardOctaveStepGrowsOnlyTheAff
 // through the gap — with repeat dots at each band's middle rows; the tips of
 // a repeat sit at the stack's ends. Elision off: today's single span, no
 // band dot rows.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8BarlinesRunThroughTheGapWithDotsInEachBand)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, m8BarlinesRunThroughTheGapWithDotsInEachBand)
 {
     MasterScore* score = ScoreRW::readScore(TWO_HAND);
     ASSERT_TRUE(score);
@@ -601,14 +601,14 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8BarlinesRunThroughTheGapWithDotsI
             EXPECT_NEAR(data->y1, -lw, 1e-6) << "barline type " << int(bl->barLineType());
             EXPECT_NEAR(data->y2, v.heightLd() * lineDistance + lw, 1e-6) << "barline type " << int(bl->barLineType());
             // Dot rows: one pair per band, inside that band, straddling its middle.
-            ASSERT_EQ(data->jimsBandDotRows.size(), 2u);
+            ASSERT_EQ(data->meloBandDotRows.size(), 2u);
             for (size_t i = 0; i < 2; ++i) {
                 const StaffType::MeloFrameBand& band = v.bands[v.bands.size() - 1 - i];   // top to bottom
                 const double bandTop = band.yTopLd * lineDistance;
                 const double bandBottom = (band.yTopLd + band.heightLd()) * lineDistance;
-                EXPECT_GT(data->jimsBandDotRows[i].y1, bandTop);
-                EXPECT_LT(data->jimsBandDotRows[i].y2, bandBottom);
-                EXPECT_NEAR((data->jimsBandDotRows[i].y1 + data->jimsBandDotRows[i].y2) / 2.0,
+                EXPECT_GT(data->meloBandDotRows[i].y1, bandTop);
+                EXPECT_LT(data->meloBandDotRows[i].y2, bandBottom);
+                EXPECT_NEAR((data->meloBandDotRows[i].y1 + data->meloBandDotRows[i].y2) / 2.0,
                             (bandTop + bandBottom) / 2.0, 1e-6);
             }
             ++checked;
@@ -619,7 +619,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8BarlinesRunThroughTheGapWithDotsI
     setElision(score, false);
     for (Segment* s = measureNo(score, 3)->first(SegmentType::BarLineType); s; s = s->next(SegmentType::BarLineType)) {
         if (BarLine* bl = toBarLine(s->element(0))) {
-            EXPECT_TRUE(bl->ldata()->jimsBandDotRows.empty());
+            EXPECT_TRUE(bl->ldata()->meloBandDotRows.empty());
         }
     }
     delete score;
@@ -629,7 +629,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8BarlinesRunThroughTheGapWithDotsI
 // head (MuseScore's keyboard brace: the SMuFL brace glyph, x-magnified by the
 // Bracket span rule, stretched to the stack); the header reserves its width;
 // a whole stack has none.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8BraceJoinsTheBandsOfAHollowStack)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, m8BraceJoinsTheBandsOfAHollowStack)
 {
     MasterScore* score = ScoreRW::readScore(TWO_HAND);
     ASSERT_TRUE(score);
@@ -670,14 +670,14 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8BraceJoinsTheBandsOfAHollowStack)
     {
         System* system2 = measureSystems(score)[1];
         const StaffType::MeloFrameView& v = viewOn(score, system2);
-        EXPECT_EQ(st(score)->jimsHeaderGeometry(sp, dsp, &v).braceWidth, 0.0);
+        EXPECT_EQ(st(score)->meloHeaderGeometry(sp, dsp, &v).braceWidth, 0.0);
         EXPECT_FALSE(hasBrace(textsOf(system2->firstMeasure()->staffLines(0))));
     }
     setElision(score, true);
     System* system2 = measureSystems(score)[1];
     const StaffType::MeloFrameView& v = viewOn(score, system2);
     ASSERT_EQ(v.bands.size(), 2u);
-    const StaffType::MeloHeaderGeometry g = st(score)->jimsHeaderGeometry(sp, dsp, &v);
+    const StaffType::MeloHeaderGeometry g = st(score)->meloHeaderGeometry(sp, dsp, &v);
     EXPECT_GT(g.braceWidth, 0.0);
     EXPECT_NEAR(g.braceMagX, 2 + 1.625, 1e-9);   // MuseScore's brace x-magnification for a two-staff span
     EXPECT_TRUE(hasBrace(textsOf(system2->firstMeasure()->staffLines(0))));
@@ -691,7 +691,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8BraceJoinsTheBandsOfAHollowStack)
 // view's height (bands + gaps), so systems keep the minimum system distance
 // and a following staff keeps the staff distance — instead of collapsing to
 // the skyline minimum as with the nominal one-period height.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StaffHeightAndSystemDistanceUseTheFrame)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, m8StaffHeightAndSystemDistanceUseTheFrame)
 {
     for (bool elide : { false, true }) {
         MasterScore* score = ScoreRW::readScore(TWO_HAND);
@@ -734,7 +734,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StaffHeightAndSystemDistanceUseTh
 // it sits on — header labels of whole and banded stacks and the change
 // indicator's terrain label — checked against the Kernel's per-period label
 // for the row the text is drawn on.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8OctaveLabelsNameTheirRowEverywhere)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, m8OctaveLabelsNameTheirRowEverywhere)
 {
     struct Labeled {
         String text;
@@ -775,9 +775,9 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8OctaveLabelsNameTheirRowEverywher
                            const StaffType::MeloFrameView& v, const char* what) {
         const double topY = lines->pos().y();
         const double ld = jst->lineDistance().val();
-        const double periodCents = jst->jimsPeriodCents();
+        const double periodCents = jst->meloPeriodCents();
         melo::PeriodicOrigins origins;
-        ASSERT_TRUE(melo::periodicOrigins(jst->jimsStateJson(), origins));
+        ASSERT_TRUE(melo::periodicOrigins(jst->meloStateJson(), origins));
         const std::vector<Labeled> labels = labelsOf(lines);
         ASSERT_GE(labels.size(), 1u) << what;
         for (const Labeled& l : labels) {
@@ -785,7 +785,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8OctaveLabelsNameTheirRowEverywher
             const double cents = v.centsFromYLd(yLd);
             const int k = int(std::lround((cents - origins.tonicCentsAboveExtentLower) / periodCents));
             melo::TonicPitchLabel expected;
-            ASSERT_TRUE(melo::tonicPitchLabelInPeriod(jst->jimsStateJson(), k, expected)) << what;
+            ASSERT_TRUE(melo::tonicPitchLabelInPeriod(jst->meloStateJson(), k, expected)) << what;
             EXPECT_EQ(l.text, expected.label) << what << " row period " << k;
         }
         UNUSED(score);
@@ -816,8 +816,8 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8OctaveLabelsNameTheirRowEverywher
     Measure* m2 = measureNo(gate, 2);
     ASSERT_TRUE(m2);
     const StaffType* changeSt = gate->staff(0)->staffType(m2->tick());
-    ASSERT_TRUE(changeSt && changeSt->isJiMS());
-    const StaffType::MeloFrameView& gv = changeSt->jimsFrameView(gate, 0, m2->system());
+    ASSERT_TRUE(changeSt && changeSt->isMelo());
+    const StaffType::MeloFrameView& gv = changeSt->meloFrameView(gate, 0, m2->system());
     ASSERT_FALSE(gv.empty());
     checkLabels(gate, changeSt, m2->staffLines(0), gv, "terrain");
     delete gate;
@@ -839,7 +839,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8OctaveLabelsNameTheirRowEverywher
 //       segment; more where multiple visible segments share that Do row);
 //   (c) the Kernel's Do dot stack sits at 0 cents and its glyph is drawn on
 //       the red line of every period drawn.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsAndDoDots)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsAndDoDots)
 {
     const Color RED(0xE0, 0x30, 0x30);
     struct HeadPaint {
@@ -913,7 +913,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
     // dot-stack views.
     auto doGlyph = [&](Score* score, const StaffType* jst, SymId& sym, double& centroidDy) {
         std::vector<melo::LabeledDotStack> labelStacks;
-        ASSERT_TRUE(melo::scaleDotLabels(jst->jimsStateJson(), labelStacks));
+        ASSERT_TRUE(melo::scaleDotLabels(jst->meloStateJson(), labelStacks));
         int doMembers = 0;
         int doNGen = 0;
         for (const melo::LabeledDotStack& s : labelStacks) {
@@ -927,7 +927,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
         }
         ASSERT_EQ(doMembers, 1);
         std::vector<melo::ScaleDotStack> stacks;
-        ASSERT_TRUE(melo::scaleDots(jst->jimsStateJson(), stacks));
+        ASSERT_TRUE(melo::scaleDots(jst->meloStateJson(), stacks));
         int doStacks = 0;
         for (const melo::ScaleDotStack& s : stacks) {
             for (int nGen : s.frontToBack) {
@@ -939,7 +939,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
         }
         EXPECT_EQ(doStacks, 1);
         muse::String token;
-        ASSERT_TRUE(melo::noteheadToken(jst->jimsStateJson(), doNGen, token));
+        ASSERT_TRUE(melo::noteheadToken(jst->meloStateJson(), doNGen, token));
         sym = SymId::noteheadHalf;
         if (token == u"triangle-vertex-up") {
             sym = SymId::noteheadTriangleUpBlack;
@@ -967,21 +967,21 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                 }
                 Measure* m = toMeasure(mb);
                 const StaffType* jst = score->staff(0)->staffType(m->tick());
-                ASSERT_TRUE(jst && jst->isJiMS()) << what;
-                const StaffType::MeloFrameView& v = jst->jimsFrameView(score, 0, system);
+                ASSERT_TRUE(jst && jst->isMelo()) << what;
+                const StaffType::MeloFrameView& v = jst->meloFrameView(score, 0, system);
                 ASSERT_FALSE(v.empty()) << what;
-                const double period = jst->jimsPeriodCents();
+                const double period = jst->meloPeriodCents();
                 melo::PeriodicOrigins origins;
-                ASSERT_TRUE(melo::periodicOrigins(jst->jimsStateJson(), origins)) << what;
+                ASSERT_TRUE(melo::periodicOrigins(jst->meloStateJson(), origins)) << what;
                 std::vector<melo::JiLine> jiLines;
-                ASSERT_TRUE(melo::jiLines(jst->jimsStateJson(), jiLines)) << what;
+                ASSERT_TRUE(melo::jiLines(jst->meloStateJson(), jiLines)) << what;
                 const StaffLines* lines = m->staffLines(0);
                 ASSERT_TRUE(lines) << what;
                 const double topY = lines->pos().y();
                 const double ldSp = jst->lineDistance().val() * lines->spatium();
                 auto centsOfY = [&](double y) { return v.centsFromYLd((y - topY) / ldSp); };
                 auto hasGuideAt = [&](double cents) {
-                    return std::any_of(lines->jimsGuideLines().begin(), lines->jimsGuideLines().end(),
+                    return std::any_of(lines->meloGuideLines().begin(), lines->meloGuideLines().end(),
                                        [&](const StaffLines::MeloGuideLine& g) {
                         return std::abs(centsOfY(g.line.y1()) - cents) < 1e-6;
                     });
@@ -990,9 +990,9 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                 int red = 0;
                 std::vector<double> expectedDoRows;
                 std::vector<double> redYs;
-                for (const StaffLines::MeloGuideLine& g : lines->jimsGuideLines()) {
+                for (const StaffLines::MeloGuideLine& g : lines->meloGuideLines()) {
                     const double cents = centsOfY(g.line.y1());
-                    if (!g.dashed && g.colorStyle == Sid::jimsDoLineColor) {
+                    if (!g.dashed && g.colorStyle == Sid::meloDoLineColor) {
                         ++red;
                         redYs.push_back(g.line.y1());
                         EXPECT_TRUE(isDoRow(cents, period, origins.doCentsAboveExtentLower))
@@ -1052,10 +1052,10 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
                         for (; periodFloor < segment.upperCents - 1e-6; periodFloor += period) {
                             const double periodTopY
                                 = segmentTopY + (segment.upperCents - (periodFloor + period))
-                                  / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * ldSp;
+                                  / StaffType::MELO_CENTS_PER_LINE_DISTANCE * ldSp;
                             expectedHorns.push_back({ periodTopY,
                                                       periodTopY + period
-                                                      / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * ldSp });
+                                                      / StaffType::MELO_CENTS_PER_LINE_DISTANCE * ldSp });
                             const double periodCeiling = periodFloor + period;
                             if (segment.upperCents > periodFloor + 1e-6
                                 && segment.upperCents < periodCeiling - 1e-6) {
@@ -1140,10 +1140,10 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
         ASSERT_TRUE(score) << g;
         score->doLayout();
         double generator = 0.0, period = 0.0;
-        ASSERT_TRUE(melo::staffMetrics(st(score)->jimsStateJson(), generator, period));
+        ASSERT_TRUE(melo::staffMetrics(st(score)->meloStateJson(), generator, period));
         EXPECT_NEAR(generator, g, 1e-9);
         double tonic = 0.0;
-        ASSERT_TRUE(melo::tonicCentsAboveDo(st(score)->jimsStateJson(), tonic));
+        ASSERT_TRUE(melo::tonicCentsAboveDo(st(score)->meloStateJson(), tonic));
         EXPECT_GT(tonic, 1.0) << "the fixture must be off-Do (La-mode)";
         bool sawPartial = false;
         const std::string what = "syshead@" + std::to_string(int(g));
@@ -1181,7 +1181,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHornsA
 // 2026-08-30): every visible JiMStaff segment has an explicit top and bottom
 // boundary throughout tuning motion, and a clipped crescent's closure belongs
 // only to the staff-local occurrence whose period is actually cut.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8PartialStaffEdgesPreserveRealRatioLinesAndLocalCrescentClosures)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, m8PartialStaffEdgesPreserveRealRatioLinesAndLocalCrescentClosures)
 {
     MasterScore* score = ScoreRW::readScore(TWO_STAVES);
     ASSERT_TRUE(score);
@@ -1200,24 +1200,24 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8PartialStaffEdgesPreserveRealRati
         const double ldSp = jst->lineDistance().val() * lines->spatium();
         auto centsOfY = [&](double y) { return view.centsFromYLd((y - topY) / ldSp); };
         auto hasGuideAt = [&](double cents) {
-            return std::any_of(lines->jimsGuideLines().begin(), lines->jimsGuideLines().end(),
+            return std::any_of(lines->meloGuideLines().begin(), lines->meloGuideLines().end(),
                                [&](const StaffLines::MeloGuideLine& guide) {
                 return std::abs(centsOfY(guide.line.y1()) - cents) < 1e-6;
             });
         };
         auto hasBlackGuideAt = [&](double cents) {
-            return std::any_of(lines->jimsGuideLines().begin(), lines->jimsGuideLines().end(),
+            return std::any_of(lines->meloGuideLines().begin(), lines->meloGuideLines().end(),
                                [&](const StaffLines::MeloGuideLine& guide) {
                 return lines->style().value(guide.colorStyle).value<Color>() == Color::BLACK
                        && std::abs(centsOfY(guide.line.y1()) - cents) < 1e-6;
             });
         };
         std::vector<double> expectedClosures;
-        const double periodCents = jst->jimsPeriodCents();
+        const double periodCents = jst->meloPeriodCents();
         melo::PeriodicOrigins origins;
-        ASSERT_TRUE(melo::periodicOrigins(jst->jimsStateJson(), origins));
+        ASSERT_TRUE(melo::periodicOrigins(jst->meloStateJson(), origins));
         std::vector<melo::JiLine> ratios;
-        ASSERT_TRUE(melo::jiLines(jst->jimsStateJson(), ratios));
+        ASSERT_TRUE(melo::jiLines(jst->meloStateJson(), ratios));
         auto isRatioRow = [&](double cents) {
             const double relative = cents - origins.doCentsAboveExtentLower;
             if (std::abs(relative - std::round(relative / periodCents) * periodCents) < 1e-6) {
@@ -1299,13 +1299,13 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8PartialStaffEdgesPreserveRealRati
 // farther while the boundary remains fixed. The boundary dot and its label
 // must therefore survive whenever their painted glyph intersects the staff.
 // The tonic pitch label belongs in the open lane to the right of Do's dot.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, fixedRatioEdgeKeepsSoDotAndLabelAndPlacesTonicPitchLabelRightOfDo)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, fixedRatioEdgeKeepsSoDotAndLabelAndPlacesTonicPitchLabelRightOfDo)
 {
     MasterScore* score = ScoreRW::readScore(SINGLE_OCTAVE);
     ASSERT_TRUE(score);
     StaffType* type = mutSt(score);
-    ASSERT_TRUE(type && type->isJiMS());
-    type->setJimsStateJson(
+    ASSERT_TRUE(type && type->isMelo());
+    type->setMeloStateJson(
         u"{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],"
         u"\"collection_rotation\":0,\"mode_rotation\":0,\"generator_cents\":700.0,"
         u"\"period_cents\":1200.0,\"embedding\":{\"large_steps\":5,\"small_steps\":2},"
@@ -1313,13 +1313,13 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, fixedRatioEdgeKeepsSoDotAndLabelAnd
         u"\"upper\":{\"nPer\":-1,\"nGen\":-2}},"
         u"\"reference\":{\"reference-pitch\":{\"key_number\":62}},"
         u"\"tonic_ambit\":\"tonic-bounded\"}");
-    type->setJimsRatioLineExtentJson(
+    type->setMeloRatioLineExtentJson(
         u"{\"lower\":{\"period\":-1,\"ratio\":\"3/2\"},"
         u"\"upper\":{\"period\":0,\"ratio\":\"1/1\"}}");
     for (Measure* measure = score->firstMeasure(); measure; measure = measure->nextMeasure()) {
         for (Chord* chord : chordsOf(measure)) {
             for (Note* note : chord->notes()) {
-                note->setJimsPitch(-2, -1);
+                note->setMeloPitch(-2, -1);
             }
         }
     }
@@ -1366,7 +1366,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, fixedRatioEdgeKeepsSoDotAndLabelAnd
     ASSERT_TRUE(sawTonicPitch);
 
     const StaffType::MeloHeaderGeometry geometry
-        = type->jimsHeaderGeometry(lines->spatium(), score->style().defaultSpatium(), &view);
+        = type->meloHeaderGeometry(lines->spatium(), score->style().defaultSpatium(), &view);
     const double clefRight = lines->pos().x() - 0.3 * lines->spatium();
     const double clefLeft = clefRight - geometry.clefRx;
     EXPECT_NEAR(geometry.rightLabelBand, 0.0, 1e-6)
@@ -1389,7 +1389,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, fixedRatioEdgeKeepsSoDotAndLabelAnd
 // staff. The indicator must anchor on the Do-line that keeps the whole
 // indicator on the staff — the lowest such Do-line — and, when none does,
 // on the one that overflows least (extending the staff is a follow-up).
-TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorAnchorsOnTheDoLineThatKeepsItOnTheStaff)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, changeIndicatorAnchorsOnTheDoLineThatKeepsItOnTheStaff)
 {
     const double P = 1200.0;
     auto whole = [&](double lower, double upper) {
@@ -1457,13 +1457,13 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorAnchorsOnTheDoLineTh
     Measure* m2 = measureNo(score, 2);
     ASSERT_TRUE(m2);
     const StaffType* changeSt = score->staff(0)->staffType(m2->tick());
-    ASSERT_TRUE(changeSt && changeSt->isJiMS());
+    ASSERT_TRUE(changeSt && changeSt->isMelo());
     const StaffLines* lines = m2->staffLines(0);
     ASSERT_TRUE(lines);
-    const StaffType::MeloFrameView& v = changeSt->jimsFrameView(score, 0, m2->system());
+    const StaffType::MeloFrameView& v = changeSt->meloFrameView(score, 0, m2->system());
     ASSERT_FALSE(v.empty());
-    const double topY = lines->pos().y() + changeSt->jimsYFromCents(v.topCents(), v) * lines->spatium();
-    const double bottomY = lines->pos().y() + changeSt->jimsYFromCents(v.bottomCents(), v) * lines->spatium();
+    const double topY = lines->pos().y() + changeSt->meloYFromCents(v.topCents(), v) * lines->spatium();
+    const double bottomY = lines->pos().y() + changeSt->meloYFromCents(v.bottomCents(), v) * lines->spatium();
     std::shared_ptr<BufferedPaintProvider> prv = std::make_shared<BufferedPaintProvider>();
     Painter p(prv, "m8");
     p.setViewport(RectF(0, 0, 4000, 4000));
@@ -1497,14 +1497,14 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorAnchorsOnTheDoLineTh
 
 // MuseScore's stock hide-empty-staves still hides a fully empty JiMStaff on
 // a system, unchanged, whether or not elision is on.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StockHideEmptyStavesStillHidesAnEmptyJiMStaff)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, m8StockHideEmptyStavesStillHidesAnEmptyMeloStaff)
 {
     MasterScore* score = ScoreRW::readScore(TWO_STAVES);
     ASSERT_TRUE(score);
     score->doLayout();
     ASSERT_EQ(score->nstaves(), 2u);
     for (bool elide : { false, true }) {
-        score->style().set(Sid::jimsElideEmptyOctaves, elide);
+        score->style().set(Sid::meloElideEmptyOctaves, elide);
         score->style().set(Sid::hideEmptyStaves, true);
         score->setLayoutAll();
         score->doLayout();
@@ -1521,15 +1521,15 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8StockHideEmptyStavesStillHidesAnE
 
 // .mscz round trip preserves the two styles and the staff-type override;
 // an absent override reads as Auto; unknown values read as Auto.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8RoundTripPreservesSwitchesAndAbsentOverrideIsAuto)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, m8RoundTripPreservesSwitchesAndAbsentOverrideIsAuto)
 {
     MasterScore* score = ScoreRW::readScore(TWO_HAND);
     ASSERT_TRUE(score);
     score->doLayout();
-    EXPECT_EQ(st(score)->jimsElideOctaves(), MeloElideOctaves::Auto);
-    score->style().set(Sid::jimsElideEmptyOctaves, true);
-    score->style().set(Sid::jimsShowAllOctavesInFirstSystem, false);
-    mutSt(score)->setJimsElideOctaves(MeloElideOctaves::On);
+    EXPECT_EQ(st(score)->meloElideOctaves(), MeloElideOctaves::Auto);
+    score->style().set(Sid::meloElideEmptyOctaves, true);
+    score->style().set(Sid::meloShowAllOctavesInFirstSystem, false);
+    mutSt(score)->setMeloElideOctaves(MeloElideOctaves::On);
     const String dir = ScoreRW::rootPath() + u"/../../../build.release/jims-m8-scratch";
     io::Dir::mkpath(dir);
     // A real .mscz container (MscSaver -> MscWriter zip), read back through
@@ -1554,17 +1554,17 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8RoundTripPreservesSwitchesAndAbse
     MasterScore* again = ScoreRW::readScore(out, true);
     ASSERT_TRUE(again);
     again->doLayout();
-    EXPECT_TRUE(again->style().styleB(Sid::jimsElideEmptyOctaves));
-    EXPECT_FALSE(again->style().styleB(Sid::jimsShowAllOctavesInFirstSystem));
-    EXPECT_EQ(st(again)->jimsElideOctaves(), MeloElideOctaves::On);
+    EXPECT_TRUE(again->style().styleB(Sid::meloElideEmptyOctaves));
+    EXPECT_FALSE(again->style().styleB(Sid::meloShowAllOctavesInFirstSystem));
+    EXPECT_EQ(st(again)->meloElideOctaves(), MeloElideOctaves::On);
     // Off round-trips too.
-    mutSt(again)->setJimsElideOctaves(MeloElideOctaves::Off);
+    mutSt(again)->setMeloElideOctaves(MeloElideOctaves::Off);
     const String out2 = dir + u"/m8-roundtrip-off.mscx";
     ASSERT_TRUE(ScoreRW::saveScore(again, out2));
     delete again;
     MasterScore* third = ScoreRW::readScore(out2, true);
     ASSERT_TRUE(third);
-    EXPECT_EQ(st(third)->jimsElideOctaves(), MeloElideOctaves::Off);
+    EXPECT_EQ(st(third)->meloElideOctaves(), MeloElideOctaves::Off);
     delete third;
     // Unknown value -> Auto (safe parsing, no invented behaviour).
     io::File f(out2);
@@ -1580,36 +1580,36 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8RoundTripPreservesSwitchesAndAbse
     w.close();
     MasterScore* fourth = ScoreRW::readScore(out3, true);
     ASSERT_TRUE(fourth);
-    EXPECT_EQ(st(fourth)->jimsElideOctaves(), MeloElideOctaves::Auto);
+    EXPECT_EQ(st(fourth)->meloElideOctaves(), MeloElideOctaves::Auto);
     delete fourth;
 }
 
-TEST_F(Engraving_JiMStaffM8BandElisionTests, fixedRatioLineExtentRoundTripsPerStaffType)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, fixedRatioLineExtentRoundTripsPerStaffType)
 {
     MasterScore* score = ScoreRW::readScore(TWO_HAND);
     ASSERT_TRUE(score);
-    EXPECT_TRUE(st(score)->jimsRatioLineExtentJson().isEmpty());
+    EXPECT_TRUE(st(score)->meloRatioLineExtentJson().isEmpty());
     const String extent
         = u"{\"lower\":{\"period\":-2,\"ratio\":\"3/2\"},"
           u"\"upper\":{\"period\":6,\"ratio\":\"3/2\"}}";
-    mutSt(score)->setJimsRatioLineExtentJson(extent);
+    mutSt(score)->setMeloRatioLineExtentJson(extent);
     const String out = ScoreRW::rootPath() + u"/../../../build.release/jims-m8-scratch/ratio-extent-roundtrip.mscx";
     ASSERT_TRUE(ScoreRW::saveScore(score, out));
     delete score;
     MasterScore* again = ScoreRW::readScore(out, true);
     ASSERT_TRUE(again);
-    EXPECT_EQ(st(again)->jimsRatioLineExtentJson(), extent);
+    EXPECT_EQ(st(again)->meloRatioLineExtentJson(), extent);
     delete again;
 }
 
 // None of the three settings enters the Kernel state; the notes' identities
 // and Kernel sounding pitches (what playback consumes) are unchanged.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8SettingsNeverEnterKernelStateAndPlaybackIdentityIsUnchanged)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, m8SettingsNeverEnterKernelStateAndPlaybackIdentityIsUnchanged)
 {
     MasterScore* score = ScoreRW::readScore(TWO_HAND);
     ASSERT_TRUE(score);
     score->doLayout();
-    const String stateBefore = st(score)->jimsStateJson();
+    const String stateBefore = st(score)->meloStateJson();
     struct Ident {
         int nPer;
         int nGen;
@@ -1622,8 +1622,8 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8SettingsNeverEnterKernelStateAndP
             for (Chord* c : chordsOf(m)) {
                 for (Note* n : c->notes()) {
                     melo::SoundingPitch sp;
-                    EXPECT_TRUE(melo::noteSoundingPitch(st(score)->jimsStateJson(), n->jimsNPer(), n->jimsNGen(), sp));
-                    out.push_back({ n->jimsNPer(), n->jimsNGen(), sp.midiKey, sp.centsOffset });
+                    EXPECT_TRUE(melo::noteSoundingPitch(st(score)->meloStateJson(), n->meloNPer(), n->meloNGen(), sp));
+                    out.push_back({ n->meloNPer(), n->meloNGen(), sp.midiKey, sp.centsOffset });
                 }
             }
         }
@@ -1631,12 +1631,12 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8SettingsNeverEnterKernelStateAndP
     };
     const std::vector<Ident> before = collect();
     ASSERT_EQ(before.size(), 32u);
-    score->style().set(Sid::jimsElideEmptyOctaves, true);
-    score->style().set(Sid::jimsShowAllOctavesInFirstSystem, false);
-    mutSt(score)->setJimsElideOctaves(MeloElideOctaves::On);
+    score->style().set(Sid::meloElideEmptyOctaves, true);
+    score->style().set(Sid::meloShowAllOctavesInFirstSystem, false);
+    mutSt(score)->setMeloElideOctaves(MeloElideOctaves::On);
     score->setLayoutAll();
     score->doLayout();
-    EXPECT_EQ(st(score)->jimsStateJson(), stateBefore);
+    EXPECT_EQ(st(score)->meloStateJson(), stateBefore);
     EXPECT_FALSE(stateBefore.contains(u"elide"));
     const std::vector<Ident> after = collect();
     ASSERT_EQ(after.size(), before.size());
@@ -1655,7 +1655,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8SettingsNeverEnterKernelStateAndP
 // paint path (PNG/PDF/print/SVG all paint with isPrinting), absent when the
 // score hides unprintables, and absent when elision is off. Its text comes
 // from the Kernel's omitted-period count.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, m8GapIndicatorIsScreenOnlyAndNeverPrints)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, m8GapIndicatorIsScreenOnlyAndNeverPrints)
 {
     MasterScore* score = ScoreRW::readScore(TWO_HAND);
     ASSERT_TRUE(score);
@@ -1725,7 +1725,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8GapIndicatorIsScreenOnlyAndNeverP
     {
         const StaffType::MeloFrameView& v = viewOn(score, system2);
         const StaffType::MeloHeaderGeometry g
-            = st(score)->jimsHeaderGeometry(lines->spatium(), score->style().defaultSpatium(), &v);
+            = st(score)->meloHeaderGeometry(lines->spatium(), score->style().defaultSpatium(), &v);
         const double sp = lines->spatium();
         const double clefRight = lines->pos().x() - 0.3 * sp;
         const double clefLeft = clefRight - g.clefRx;
@@ -1755,21 +1755,21 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, m8GapIndicatorIsScreenOnlyAndNeverP
 }
 } // namespace
 
-TEST_F(Engraving_JiMStaffM8BandElisionTests, legacyTonicExtentSpellingIsNotAnAlias)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, legacyTonicExtentSpellingIsNotAnAlias)
 {
     StaffType st;
-    st.setJiMS(true);
-    st.setJimsStateJson(String::fromUtf8(
+    st.setMelo(true);
+    st.setMeloStateJson(String::fromUtf8(
                             "{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],"
                             "\"collection_rotation\":0,\"mode_rotation\":0,"
                             "\"generator_cents\":700.0,\"period_cents\":1200.0,"
                             "\"embedding\":{\"large_steps\":5,\"small_steps\":2},"
                             "\"extent\":{\"lower\":{\"nPer\":1,\"nGen\":-2},\"upper\":{\"nPer\":2,\"nGen\":-2}},"
                             "\"reference\":\"none\",\"tonic_extent\":\"tonic-centered\"}"));
-    EXPECT_TRUE(st.jimsStateJson().contains(u"tonic_extent"));
-    EXPECT_FALSE(st.jimsStateJson().contains(u"\"tonic_ambit\""));
+    EXPECT_TRUE(st.meloStateJson().contains(u"tonic_extent"));
+    EXPECT_FALSE(st.meloStateJson().contains(u"\"tonic_ambit\""));
     std::vector<melo::StaveSegment> segments;
-    EXPECT_FALSE(melo::frameForMelody(st.jimsStateJson(), u"{\"notes\":[]}", u"tonic-bounded", segments));
+    EXPECT_FALSE(melo::frameForMelody(st.meloStateJson(), u"{\"notes\":[]}", u"tonic-bounded", segments));
 }
 
 // Owner rule 7b (2026-08-19): when no Do-line of the stave keeps a change
@@ -1782,7 +1782,7 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, legacyTonicExtentSpellingIsNotAnAli
 // 900), so with the only anchor at 0 the upper Do overflows and the change
 // section's frame must extend to cover it — here to the full [0, 1200]
 // octave, which then holds the whole indicator.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorExtendsTheStaffWhenNoDoLineKeepsItOn)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, changeIndicatorExtendsTheStaffWhenNoDoLineKeepsItOn)
 {
     MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m5-mode.mscx");
     ASSERT_TRUE(score);
@@ -1791,9 +1791,9 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorExtendsTheStaffWhenN
         for (Chord* chord : chordsOf(m)) {
             for (Note* note : chord->notes()) {
                 if (alternate) {
-                    note->setJimsPitch(2, -3);   // Fa4 = 500 c
+                    note->setMeloPitch(2, -3);   // Fa4 = 500 c
                 } else {
-                    note->setJimsPitch(0, 0);    // Re4 = 200 c
+                    note->setMeloPitch(0, 0);    // Re4 = 200 c
                 }
                 alternate = !alternate;
             }
@@ -1805,10 +1805,10 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorExtendsTheStaffWhenN
     ASSERT_TRUE(m2);
     const StaffType* baseSt = st(score);
     const StaffType* changeSt = score->staff(0)->staffType(m2->tick());
-    ASSERT_TRUE(changeSt && changeSt->isJiMS() && changeSt != baseSt);
+    ASSERT_TRUE(changeSt && changeSt->isMelo() && changeSt != baseSt);
     // The base section keeps the exact half-period minimum about the
     // midpoint of its retained written extremes, without ratio-line snapping.
-    const StaffType::MeloFrameView& baseView = baseSt->jimsWholeFrameView(score, 0);
+    const StaffType::MeloFrameView& baseView = baseSt->meloWholeFrameView(score, 0);
     ASSERT_FALSE(baseView.empty());
     EXPECT_NEAR(baseView.bottomCents(), -250.0, 1e-6);
     EXPECT_NEAR(baseView.topCents(), 350.0, 1e-6);
@@ -1816,45 +1816,45 @@ TEST_F(Engraving_JiMStaffM8BandElisionTests, changeIndicatorExtendsTheStaffWhenN
     // indicator — La sits 300 cents below Do, one margin further down.
     melo::ChangeIndicator model;
     ASSERT_TRUE(melo::changeIndicatorIntoStaffType(score, 0, changeSt, model));
-    const StaffType::MeloFrameView& changeView = changeSt->jimsWholeFrameView(score, 0);
+    const StaffType::MeloFrameView& changeView = changeSt->meloWholeFrameView(score, 0);
     ASSERT_FALSE(changeView.empty());
     // Before extension the indicator overflowed the base-shaped window.
-    EXPECT_FALSE(melo::changeIndicatorOverflowCents(baseView, model, changeSt->jimsPeriodCents()).empty())
+    EXPECT_FALSE(melo::changeIndicatorOverflowCents(baseView, model, changeSt->meloPeriodCents()).empty())
         << "the indicator does not fit the un-extended window";
     // After extension: the section's frame grew (here to the Do..Do octave)
     // and the whole indicator is on the staff.
     EXPECT_GE(changeView.topCents(), 1200.0 - 1e-6) << "the section's staff extends to the upper Do";
     EXPECT_NEAR(changeView.bottomCents(), 0.0, 1e-6);
-    EXPECT_TRUE(melo::changeIndicatorOverflowCents(changeView, model, changeSt->jimsPeriodCents()).empty())
+    EXPECT_TRUE(melo::changeIndicatorOverflowCents(changeView, model, changeSt->meloPeriodCents()).empty())
         << "after extension the whole indicator is on the staff";
-    EXPECT_DOUBLE_EQ(melo::changeAnchorPeriodCents(changeView, model, changeSt->jimsPeriodCents()), 0.0);
+    EXPECT_DOUBLE_EQ(melo::changeAnchorPeriodCents(changeView, model, changeSt->meloPeriodCents()), 0.0);
     delete score;
 }
 
 // M10 supersedes the old layout-time derivation seam: layout is read-only.
 // Song-wide tonic ambit is recomputed only by the explicit designated-melody
 // triggers covered by Engraving_JiMStaffM10SATBTests.
-TEST_F(Engraving_JiMStaffM8BandElisionTests, tonicAmbitIsNeverDerivedAsALayoutSideEffect)
+TEST_F(Engraving_MeloStaffM8BandElisionTests, tonicAmbitIsNeverDerivedAsALayoutSideEffect)
 {
     MasterScore* score = ScoreRW::readScore(SINGLE_OCTAVE);
     ASSERT_TRUE(score);
     score->doLayout();
-    ASSERT_TRUE(st(score)->jimsTonicAmbit() == u"tonic-bounded");
-    const String stateBefore = st(score)->jimsStateJson();
+    ASSERT_TRUE(st(score)->meloTonicAmbit() == u"tonic-bounded");
+    const String stateBefore = st(score)->meloStateJson();
     const std::vector<std::pair<int, int> > plagal = { { -1, -1 }, { -2, 1 }, { 0, -2 }, { -1, 0 }, { 1, -3 } };
     size_t k = 0;
     for (Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
         for (Chord* chord : chordsOf(m)) {
             for (Note* note : chord->notes()) {
                 const auto& id = plagal[k++ % plagal.size()];
-                note->setJimsPitch(id.first, id.second);
+                note->setMeloPitch(id.first, id.second);
             }
         }
     }
     score->setLayoutAll();
     score->doLayout();
-    EXPECT_TRUE(st(score)->jimsTonicAmbit() == u"tonic-bounded");
-    EXPECT_TRUE(st(score)->jimsStateJson() == stateBefore)
+    EXPECT_TRUE(st(score)->meloTonicAmbit() == u"tonic-bounded");
+    EXPECT_TRUE(st(score)->meloStateJson() == stateBefore)
         << "layout must never mutate the song-wide tonic-ambit carrier";
     delete score;
 }

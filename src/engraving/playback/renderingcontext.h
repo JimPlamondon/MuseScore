@@ -152,12 +152,12 @@ struct NominalNoteCtx {
     static muse::mpe::pitch_level_t nominalPitchLevelOf(const Note* note,
                                                         std::optional<muse::mpe::ExactPitch>* exactPitch = nullptr)
     {
-        if (note->hasJimsPitch() && note->staff()) {
+        if (note->hasMeloPitch() && note->staff()) {
             const StaffType* st = note->staff()->staffTypeForElement(note);
-            if (st && st->isJiMS()) {
+            if (st && st->isMelo()) {
                 melo::SoundingPitch sp;
                 muse::String error;
-                if (melo::noteSoundingPitch(st->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), sp, &error)) {
+                if (melo::noteSoundingPitch(st->meloStateJson(), note->meloNPer(), note->meloNGen(), sp, &error)) {
                     if (exactPitch) {
                         // The same Kernel answer, lossless: frequency, the
                         // transport key + full residual cents, and the
@@ -167,15 +167,15 @@ struct NominalNoteCtx {
                         exact.midiKey = sp.midiKey;
                         exact.centsOffset = sp.centsOffset;
                         exact.hasLattice = 1;
-                        exact.nPer = note->jimsNPer();
-                        exact.nGen = note->jimsNGen();
+                        exact.nPer = note->meloNPer();
+                        exact.nGen = note->meloNGen();
                         *exactPitch = exact;
                     }
-                    return jimsPitchLevelFromMidi(sp.midiKey, sp.centsOffset);
+                    return meloPitchLevelFromMidi(sp.midiKey, sp.centsOffset);
                 }
                 // Explicit degraded path (never a silent wrong pitch): the
                 // stock event plays, and the reason is logged.
-                LOGE() << "JiMS note_sounding_pitch failed for identity (" << note->jimsNPer() << ", " << note->jimsNGen()
+                LOGE() << "JiMS note_sounding_pitch failed for identity (" << note->meloNPer() << ", " << note->meloNGen()
                        << "): " << error << " - playing the compatibility pitch";
             }
         }

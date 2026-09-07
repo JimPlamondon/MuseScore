@@ -49,16 +49,16 @@ Item {
     }
 
     MeloTuningModel {
-        id: jimsTuning
+        id: meloTuning
         Component.onCompleted: init()
     }
 
     FlatButton {
         id: tuningButton
-        visible: jimsTuning.available && noteInputModel.showJimsTuning
+        visible: meloTuning.available && noteInputModel.showMeloTuning
         width: gridView.isHorizontal ? 126 : 76
         height: 32
-        text: "M5= " + jimsTuning.cents.toLocaleString(Qt.locale(), 'f', 1) + "¢"
+        text: "M5= " + meloTuning.cents.toLocaleString(Qt.locale(), 'f', 1) + "¢"
         transparent: true
         toolTipTitle: qsTrc("notation", "Tuning — M5 (major fifth)")
         toolTipDescription: qsTrc("notation", "Change tuning in cents. The score updates as you move the slider.")
@@ -70,10 +70,10 @@ Item {
             id: tuningPopup
             contentWidth: 370
             contentHeight: tuningControl.implicitHeight
-            onClosed: jimsTuning.cancel()
-            JimsTuningControl {
+            onClosed: meloTuning.cancel()
+            MeloTuningControl {
                 id: tuningControl
-                model: jimsTuning
+                model: meloTuning
                 navigationPanel: NavigationPanel { name: "TuningPopup"; section: tuningPopup.navigationSection; order: 1; direction: NavigationPanel.Vertical }
             }
         }

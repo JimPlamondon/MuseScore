@@ -110,11 +110,11 @@ void NoteInputBarModel::load()
 
     ToolConfig noteInputConfig = uiConfiguration()->toolConfig(TOOLBAR_NAME, NotationUiActions::defaultNoteInputBarConfig());
 
-    m_showJimsTuning = true;
+    m_showMeloTuning = true;
     int section = 0;
     for (const ToolConfig::Item& citem : noteInputConfig.items) {
         if (citem.action == "jims-tuning-readout") {
-            m_showJimsTuning = citem.show;
+            m_showMeloTuning = citem.show;
             continue;
         }
         if (!citem.show) {
@@ -139,7 +139,7 @@ void NoteInputBarModel::load()
 
     items << makeAddItem(QString::number(++section));
     setItems(items);
-    emit showJimsTuningChanged();
+    emit showMeloTuningChanged();
 }
 
 bool NoteInputBarModel::isInputAllowed() const

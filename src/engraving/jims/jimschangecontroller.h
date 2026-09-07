@@ -11,8 +11,8 @@
  * creating or updating the measure's StaffTypeChange carrier as ONE
  * undoable command, or removing it. No musical fact is computed here.
  */
-#ifndef MU_ENGRAVING_JIMSCHANGECONTROLLER_H
-#define MU_ENGRAVING_JIMSCHANGECONTROLLER_H
+#ifndef MU_ENGRAVING_MELOCHANGECONTROLLER_H
+#define MU_ENGRAVING_MELOCHANGECONTROLLER_H
 
 #include "jimsbridge.h"
 #include "../types/types.h"
@@ -76,8 +76,8 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
 ///
 /// `bind:` is NOT routed through here: a reference names what one staff's
 /// Re0 is, which stays staff-wide (owner decision 9). Use `applyChange`.
-bool applyChangeToAllJimsParts(Score* score, Measure* measure, const std::vector<muse::String>& choiceIds, muse::String& error);
-bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& tick, const std::vector<muse::String>& choiceIds,
+bool applyChangeToAllMeloParts(Score* score, Measure* measure, const std::vector<muse::String>& choiceIds, muse::String& error);
+bool applyChangeToAllMeloParts(Score* score, Measure* measure, const Fraction& tick, const std::vector<muse::String>& choiceIds,
                                muse::String& error);
 
 /// Remove the JiMS change carrier at `measure` (one undo step). False with

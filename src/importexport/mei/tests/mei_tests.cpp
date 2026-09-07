@@ -98,7 +98,7 @@ void Mei_Tests::meiReadTest(const char* file)
 
 // JiMS MEI (mei-jims profile) focused round trip: typed state import,
 // native carriers, and extMeta regeneration on export.
-TEST_F(Mei_Tests, mei_jims_roundtrip_01) {
+TEST_F(Mei_Tests, mei_melo_roundtrip_01) {
     auto importFunc = [](MasterScore* score, const muse::io::path_t& path) -> Err {
         MeiReader meiReader(nullptr);
         return meiReader.import(score, path);
@@ -115,9 +115,9 @@ TEST_F(Mei_Tests, mei_jims_roundtrip_01) {
     const Staff* staff = score->staff(0);
     ASSERT_TRUE(staff);
     const StaffType* base = staff->staffType(Fraction(0, 1));
-    ASSERT_TRUE(base && base->isJiMS());
-    EXPECT_FALSE(base->jimsStateJson().isEmpty());
-    EXPECT_EQ(base->jimsTonicAmbit(), String(u"tonic-bounded"));
+    ASSERT_TRUE(base && base->isMelo());
+    EXPECT_FALSE(base->meloStateJson().isEmpty());
+    EXPECT_EQ(base->meloTonicAmbit(), String(u"tonic-bounded"));
 
     // Note identities and melody part.
     int pitched = 0;
@@ -130,7 +130,7 @@ TEST_F(Mei_Tests, mei_jims_roundtrip_01) {
             }
             for (const Note* note : toChord(item)->notes()) {
                 ++pitched;
-                if (note->hasJimsPitch()) {
+                if (note->hasMeloPitch()) {
                     ++identified;
                 }
             }
@@ -138,10 +138,10 @@ TEST_F(Mei_Tests, mei_jims_roundtrip_01) {
     }
     EXPECT_GT(pitched, 0);
     EXPECT_EQ(pitched, identified);
-    EXPECT_EQ(score->jimsMelodyPart(), engraving::melo::MelodyPart::Soprano);
-    ASSERT_EQ(score->jimsProvenance().resources.size(), size_t(1));
-    EXPECT_TRUE(score->jimsProvenance().strictFallback);
-    EXPECT_EQ(staff->jimsTuningTrajectories().size(), size_t(1));
+    EXPECT_EQ(score->meloMelodyPart(), engraving::melo::MelodyPart::Soprano);
+    ASSERT_EQ(score->meloProvenance().resources.size(), size_t(1));
+    EXPECT_TRUE(score->meloProvenance().strictFallback);
+    EXPECT_EQ(staff->meloTuningTrajectories().size(), size_t(1));
 
     // Export regenerates the typed carriers. The harness never rebuilds the
     // MIDI mapping the way the application does on load; writeInstrDef needs

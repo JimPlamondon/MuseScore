@@ -151,25 +151,25 @@ NoteVal Score::noteValForPosition(Position pos, AccidentalType at, bool& error)
         // realizable lattice pitch, supplying the compatibility spelling
         // — the diatonic step arithmetic below never runs for JiMS.
         {
-            const StaffType* jimsSt = st->staffType(tick);
-            if (jimsSt && jimsSt->isJiMS()) {
+            const StaffType* meloSt = st->staffType(tick);
+            if (meloSt && meloSt->isMelo()) {
                 // Milestone 8: the inverse map is the frame VIEW of the
                 // system clicked in — piecewise over bands, a click in a
                 // gap snapping to the nearest band-edge pitch (an exact
                 // midpoint resolves toward the lower-pitched band); the
                 // whole-piece view is today's single affine inverse.
                 const System* system = pos.segment && pos.segment->measure() ? pos.segment->measure()->system() : nullptr;
-                const StaffType::MeloFrameView& view = jimsSt->jimsFrameView(st->score(), st->idx(), system);
+                const StaffType::MeloFrameView& view = meloSt->meloFrameView(st->score(), st->idx(), system);
                 // `line` counts half line-distances below the staff top.
                 const double cents = view.bands.size() <= 1
-                                     ? jimsSt->jimsFrameTopCents()
-                                     - double(line) * StaffType::JIMS_CENTS_PER_LINE_DISTANCE / 2.0
+                                     ? meloSt->meloFrameTopCents()
+                                     - double(line) * StaffType::MELO_CENTS_PER_LINE_DISTANCE / 2.0
                                      : view.centsFromYLd(double(line) / 2.0);
                 mu::engraving::melo::PitchHit hit;
-                if (mu::engraving::melo::nearestPitch(jimsSt->jimsStateJson(), cents,
+                if (mu::engraving::melo::nearestPitch(meloSt->meloStateJson(), cents,
                                                       false, 0, 0, hit)) {
                     mu::engraving::melo::SoundingPitch projection;
-                    if (mu::engraving::melo::noteSoundingPitch(jimsSt->jimsStateJson(), hit.nPer, hit.nGen, projection)) {
+                    if (mu::engraving::melo::noteSoundingPitch(meloSt->meloStateJson(), hit.nPer, hit.nGen, projection)) {
                         const int stepIndex = int(muse::String(u"CDEFGAB").indexOf(muse::Char(projection.step)));
                         nval.pitch = projection.midiKey;
                         nval.tpc1 = step2tpc(stepIndex, AccidentalVal(projection.alter));

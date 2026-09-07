@@ -383,12 +383,12 @@ void ProjectConfigurationStub::setShowCloudIsNotAvailableWarning(bool)
 {
 }
 
-bool ProjectConfigurationStub::showJimsStockLossWarning() const
+bool ProjectConfigurationStub::showMeloStockLossWarning() const
 {
     return false;
 }
 
-void ProjectConfigurationStub::setShowJimsStockLossWarning(bool)
+void ProjectConfigurationStub::setShowMeloStockLossWarning(bool)
 {
 }
 

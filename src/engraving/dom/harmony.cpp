@@ -268,7 +268,7 @@ String Harmony::harmonyName() const
 
 bool Harmony::isRealizable() const
 {
-    if (m_harmonyType == HarmonyType::JIMS) {
+    if (m_harmonyType == HarmonyType::MELO) {
         return false;
     }
     if (m_chords.empty()) {
@@ -754,8 +754,8 @@ bool Harmony::edit(EditData& ed)
     // check spelling
     String str = xmlText();
 
-    if (m_harmonyType == HarmonyType::JIMS) {
-        m_isMisspelled = !isValidJimsName(plainText());
+    if (m_harmonyType == HarmonyType::MELO) {
+        m_isMisspelled = !isValidMeloName(plainText());
         return rv;
     }
 
@@ -823,7 +823,7 @@ void Harmony::endEdit(EditData& ed)
     setPlainText(harmonyName());
 
     // A refused JiMS edit keeps its explanation until the next valid edit.
-    if (m_harmonyType != HarmonyType::JIMS) {
+    if (m_harmonyType != HarmonyType::MELO) {
         m_isMisspelled = false;
     }
 
@@ -839,7 +839,7 @@ void Harmony::endEdit(EditData& ed)
             // at this point chord will already have been rendered in same key as original
             // (as a result of TextBase::endEdit() calling setText() for linked elements)
             // we may now need to change the TPC's and the text, and re-render
-            if (harmonyType() != HarmonyType::JIMS
+            if (harmonyType() != HarmonyType::MELO
                 && style().styleB(Sid::concertPitch) != h->style().styleB(Sid::concertPitch)) {
                 Staff* staffDest = h->staff();
                 Segment* segment = getParentSeg();
@@ -867,7 +867,7 @@ void Harmony::endEdit(EditData& ed)
 
 bool Harmony::isPlayable() const
 {
-    return m_harmonyType != HarmonyType::JIMS && !isInFretBox();
+    return m_harmonyType != HarmonyType::MELO && !isInFretBox();
 }
 
 //---------------------------------------------------------
@@ -878,8 +878,8 @@ void Harmony::setHarmony(const String& s)
 {
     m_realizedHarmony.setDirty(true);
 
-    if (m_harmonyType == HarmonyType::JIMS) {
-        m_isMisspelled = !isValidJimsName(s);
+    if (m_harmonyType == HarmonyType::MELO) {
+        m_isMisspelled = !isValidMeloName(s);
         if (m_isMisspelled) {
             return;
         }
@@ -1172,7 +1172,7 @@ const ParsedChord* Harmony::parsedForm()const
 Color Harmony::curColor(const rendering::PaintOptions& opt) const
 {
     if (!opt.isPrinting
-        && (m_harmonyType == HarmonyType::JIMS && cursor() && cursor()->editing() ? !isValidJimsName(plainText()) : m_isMisspelled)) {
+        && (m_harmonyType == HarmonyType::MELO && cursor() && cursor()->editing() ? !isValidMeloName(plainText()) : m_isMisspelled)) {
         return configuration()->criticalColor();
     }
 
@@ -1304,7 +1304,7 @@ void Harmony::setHarmonyType(HarmonyType val)
     case HarmonyType::NASHVILLE:
         initTextStyleType(TextStyleType::HARMONY_NASHVILLE);
         break;
-    case HarmonyType::JIMS:
+    case HarmonyType::MELO:
         initTextStyleType(TextStyleType::HARMONY_A);
         m_play = false;
         break;
@@ -1323,7 +1323,7 @@ TranslatableString Harmony::typeUserName() const
         return TranslatableString("engraving", "Roman numeral");
     case HarmonyType::NASHVILLE:
         return TranslatableString("engraving", "Nashville number");
-    case HarmonyType::JIMS:
+    case HarmonyType::MELO:
         return mu::engraving::melo::chordName();
     case HarmonyType::STANDARD:
         break;
@@ -1335,7 +1335,7 @@ TranslatableString Harmony::typeUserName() const
 //   accessibleInfo
 //---------------------------------------------------------
 
-bool Harmony::isValidJimsName(const String& text)
+bool Harmony::isValidMeloName(const String& text)
 {
     if (text.isEmpty() || text.contains(u'~')) {
         return false;
@@ -1348,17 +1348,17 @@ bool Harmony::isValidJimsName(const String& text)
     return true;
 }
 
-String Harmony::jimsNameError() const
+String Harmony::meloNameError() const
 {
-    return m_harmonyType == HarmonyType::JIMS && (cursor() && cursor()->editing() ? !isValidJimsName(plainText()) : m_isMisspelled)
+    return m_harmonyType == HarmonyType::MELO && (cursor() && cursor()->editing() ? !isValidMeloName(plainText()) : m_isMisspelled)
            ? muse::mtrc("engraving", "Chord name refused: use one nonempty name without spaces or ~. The previous name is preserved.")
            : String();
 }
 
 String Harmony::accessibleInfo() const
 {
-    if (!jimsNameError().empty()) {
-        return jimsNameError();
+    if (!meloNameError().empty()) {
+        return meloNameError();
     }
     return String(u"%1: %2").arg(translatedTypeUserName(), harmonyName());
 }
@@ -1378,7 +1378,7 @@ String Harmony::screenReaderInfo() const
 
 String Harmony::generateScreenReaderInfo() const
 {
-    if (m_harmonyType == HarmonyType::JIMS) {
+    if (m_harmonyType == HarmonyType::MELO) {
         return harmonyName();
     }
     String rez;
@@ -1446,7 +1446,7 @@ String Harmony::generateScreenReaderInfo() const
             break;
         }
         case HarmonyType::STANDARD:
-        case HarmonyType::JIMS:
+        case HarmonyType::MELO:
         default:
             rez = String(u"%1 %2").arg(rez, tpc2name(info->rootTpc(), NoteSpellingType::STANDARD, NoteCaseType::AUTO, true));
         }
@@ -1618,7 +1618,7 @@ bool Harmony::setProperty(Pid pid, const PropertyValue& v)
         String newText = xmlText();
         if (newText != curText) {
             FretDiagram* fretDiagram = explicitParent()->isFretDiagram() ? toFretDiagram(explicitParent()) : nullptr;
-            if (m_harmonyType != HarmonyType::JIMS && fretDiagram && !fretDiagram->isCustom(curText)
+            if (m_harmonyType != HarmonyType::MELO && fretDiagram && !fretDiagram->isCustom(curText)
                 && configuration()->autoUpdateFretboardDiagrams()) {
                 fretDiagram->updateDiagram(plainText());
             }
@@ -1655,7 +1655,7 @@ PropertyValue Harmony::propertyDefault(Pid id) const
         case HarmonyType::NASHVILLE:
             v = TextStyleType::HARMONY_NASHVILLE;
             break;
-        case HarmonyType::JIMS:
+        case HarmonyType::MELO:
             v = TextStyleType::HARMONY_A;
             break;
         }
@@ -1667,7 +1667,7 @@ PropertyValue Harmony::propertyDefault(Pid id) const
     case Pid::HARMONY_DO_NOT_STACK_MODIFIERS:
         return false;
     case Pid::PLAY:
-        v = m_harmonyType != HarmonyType::JIMS;
+        v = m_harmonyType != HarmonyType::MELO;
         break;
     case Pid::OFFSET: {
         const FretDiagram* fd = explicitParent() && explicitParent()->isFretDiagram() ? toFretDiagram(explicitParent()) : nullptr;
@@ -1718,7 +1718,7 @@ Sid Harmony::getPropertyStyle(Pid pid) const
             return Sid::romanNumeralPlacement;
         case HarmonyType::NASHVILLE:
             return Sid::nashvilleNumberPlacement;
-        case HarmonyType::JIMS:
+        case HarmonyType::MELO:
             return Sid::harmonyPlacement;
         }
     }

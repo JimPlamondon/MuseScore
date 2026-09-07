@@ -118,7 +118,7 @@ Item {
             required isSelected
             required property string name
             required property string description
-            required property bool useJimsStaff
+            required property bool useMeloStaff
             required property bool canChooseStaffType
             required property bool isSoloist
             required property int index
@@ -178,15 +178,15 @@ Item {
                 visible: item.canChooseStaffType
                 model: [
                     { text: qsTrc("instruments", "Standard staff"), value: false },
-                    { text: root.instrumentsOnScoreModel.jimsPresetName, value: true }
+                    { text: root.instrumentsOnScoreModel.meloPresetName, value: true }
                 ]
-                currentIndex: item.useJimsStaff ? 1 : 0
+                currentIndex: item.useMeloStaff ? 1 : 0
                 navigation.name: item.name + "StaffType"
                 navigation.panel: instrumentsView.navigation
                 navigation.row: 1 + item.index
                 navigation.column: 2
                 navigation.accessible.name: qsTrc("instruments", "Staff type for %1").arg(item.name)
-                onActivated: function(index, value) { item.model.useJimsStaff = value }
+                onActivated: function(index, value) { item.model.useMeloStaff = value }
             }
 
             onClicked: {

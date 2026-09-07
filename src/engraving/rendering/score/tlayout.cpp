@@ -5044,8 +5044,8 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
     // Ordinates route through the single StaffType seam. The bbox above
     // stays the stock (_lines - 1) * dist frame, which for the 13-location
     // JiMS preset is exactly the one-period staff height.
-    const StaffType* jimsSt = s ? s->staffType(item->measure()->tick()) : nullptr;
-    if (jimsSt && jimsSt->isJiMS()) {
+    const StaffType* meloSt = s ? s->staffType(item->measure()->tick()) : nullptr;
+    if (meloSt && meloSt->isMelo()) {
         const bool systemHead = item->measure() && item->measure()->system()
                                 && item->measure()->system()->firstMeasure() == item->measure();
 
@@ -5058,10 +5058,10 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         // layout); the whole-piece legacy view is one band, so the
         // elision-off geometry below is today's, bit for bit.
         const StaffType::MeloFrameView& view
-            = jimsSt->jimsFrameView(item->score(), item->staffIdx(), item->measure()->system());
-        const double periodCents = jimsSt->jimsPeriodCents();
+            = meloSt->meloFrameView(item->score(), item->staffIdx(), item->measure()->system());
+        const double periodCents = meloSt->meloPeriodCents();
         if (view.empty() || periodCents <= 0.0) {
-            item->setJimsGuideLines({});
+            item->setMeloGuideLines({});
             item->setLines({});
             return;
         }
@@ -5074,13 +5074,13 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         // FINAL §5.4.4) — label bands included when the resolved mode
         // shows them.
         const StaffType::MeloHeaderGeometry headerGeom
-            = jimsSt->jimsHeaderGeometry(_spatium, item->score()->style().defaultSpatium(), &view);
+            = meloSt->meloHeaderGeometry(_spatium, item->score()->style().defaultSpatium(), &view);
         const double leftEdge = x1 - headerGeom.headerWidth;
         const double lineStartX = systemHead ? leftEdge : x1;
 
         std::vector<StaffLines::MeloGuideLine> guides;
         auto guide = [&](double cents, bool dashed, Sid colorStyle, int primeLimit = 0) {
-            double gy = y + jimsSt->jimsYFromCents(cents, view) * _spatium;
+            double gy = y + meloSt->meloYFromCents(cents, view) * _spatium;
             const bool alreadyPresent
                 = std::any_of(guides.begin(), guides.end(), [&](const StaffLines::MeloGuideLine& existing) {
                 return std::abs(existing.line.y1() - gy) < 1e-6
@@ -5093,19 +5093,19 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         };
         // Kernel JI lines for the scaffold colors (fetched once).
         std::vector<melo::JiLine> jiLines;
-        const bool haveJi = melo::jiLines(jimsSt->jimsStateJson(), jiLines);
+        const bool haveJi = melo::jiLines(meloSt->meloStateJson(), jiLines);
         melo::PeriodicOrigins origins;
-        if (!melo::periodicOrigins(jimsSt->jimsStateJson(), origins)) {
-            item->setJimsGuideLines({});
+        if (!melo::periodicOrigins(meloSt->meloStateJson(), origins)) {
+            item->setMeloGuideLines({});
             item->setLines({});
             return;
         }
         auto limitColor = [](int limit) {
             switch (limit) {
-            case 3: return Sid::jimsJiLimit3Color;
-            case 5: return Sid::jimsJiLimit5Color;
-            case 7: return Sid::jimsJiLimit7Color;
-            default: return Sid::jimsJiLimit11Color;
+            case 3: return Sid::meloJiLimit3Color;
+            case 5: return Sid::meloJiLimit5Color;
+            case 7: return Sid::meloJiLimit7Color;
+            default: return Sid::meloJiLimit11Color;
             }
         };
         // Per segment: red Do-lines at every period boundary inside the
@@ -5123,7 +5123,7 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
                                                    / periodCents) * periodCents;
                 for (double boundary = firstBoundary; boundary <= segment.upperCents + epsilon;
                      boundary += periodCents) {
-                    guide(boundary, false, Sid::jimsDoLineColor);
+                    guide(boundary, false, Sid::meloDoLineColor);
                 }
                 const double basePeriod = origins.doCentsAboveExtentLower
                                           + std::floor((segment.lowerCents - origins.doCentsAboveExtentLower)
@@ -5134,30 +5134,30 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
                             const double cents = period + ji.cents;
                             const bool isFixedEdge = std::abs(cents - segment.lowerCents) <= epsilon
                                                      || std::abs(cents - segment.upperCents) <= epsilon;
-                            if ((isFixedEdge || (jimsSt->jimsJiLines() && ji.visible))
+                            if ((isFixedEdge || (meloSt->meloJiLines() && ji.visible))
                                 && cents >= segment.lowerCents - epsilon
                                 && cents <= segment.upperCents + epsilon) {
                                 guide(cents, true, limitColor(ji.limit), ji.limit);
                             }
                         }
-                    } else if (!jimsSt->jimsJiLines()) {
+                    } else if (!meloSt->meloJiLines()) {
                         const double cents = period + periodCents / 2.0; // mid-frame line
                         if (cents >= segment.lowerCents - epsilon
                             && cents <= segment.upperCents + epsilon) {
-                            guide(cents, true, Sid::jimsMidFrameLineColor);
+                            guide(cents, true, Sid::meloMidFrameLineColor);
                         }
                     }
                 }
             }
         }
-        item->setJimsGuideLines(guides);
+        item->setMeloGuideLines(guides);
         item->setLines({});
         // Drawn height: one band -> today's expression; banded -> the sum
         // of band heights plus one staffDistance gap per interior boundary
         // (StaffType::MeloFrameView::heightLd), which is what the skyline
         // and the barline spans see.
         const double frameHeightSp = view.bands.size() == 1
-                                     ? (frameTop - frameBottom) / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * dist
+                                     ? (frameTop - frameBottom) / StaffType::MELO_CENTS_PER_LINE_DISTANCE * dist
                                      : view.heightLd() * dist;
         if (systemHead) {
             const double headerWidth = x1 - leftEdge;
@@ -5172,7 +5172,7 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         }
         return;
     }
-    item->setJimsGuideLines({});
+    item->setMeloGuideLines({});
 
     std::vector<LineF> ll;
     for (int i = 0; i < _lines; ++i) {
@@ -6364,19 +6364,19 @@ void TLayout::layoutTimeSig(const TimeSig* item, TimeSig::LayoutData* ldata, con
     // crescent exists to have a mouth. Header timesigs only (tick zero).
     {
         const Staff* jstaff = item->staff();
-        const StaffType* jimsSt = jstaff ? jstaff->staffTypeForElement(item) : nullptr;
-        if (jimsSt && jimsSt->isJiMS() && item->segment() && item->segment()->tick().isZero()) {
+        const StaffType* meloSt = jstaff ? jstaff->staffTypeForElement(item) : nullptr;
+        if (meloSt && meloSt->isMelo() && item->segment() && item->segment()->tick().isZero()) {
             // Measure layout runs before the measure's system is known, so
             // this centres on the WHOLE-piece frame (today's expression on
             // the legacy accessors; an empty frame reads the nominal line
             // count there). Milestone 8: on a banded first system,
-            // SystemLayout::applyJimsBandOffsets re-centres the time
+            // SystemLayout::applyMeloBandOffsets re-centres the time
             // signature into a band once the system is final.
-            const StaffType::MeloFrameView& view = jimsSt->jimsWholeFrameView(item->score(), jstaff->idx());
-            const double ld = jimsSt->lineDistance().val();
-            const double frameMid = (jimsSt->jimsFrameTopCents() - jimsSt->jimsFrameBottomCents())
-                                    / 2.0 / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * ld;
-            const double nominalMid = (jimsSt->lines() - 1) / 2.0 * ld;
+            const StaffType::MeloFrameView& view = meloSt->meloWholeFrameView(item->score(), jstaff->idx());
+            const double ld = meloSt->lineDistance().val();
+            const double frameMid = (meloSt->meloFrameTopCents() - meloSt->meloFrameBottomCents())
+                                    / 2.0 / StaffType::MELO_CENTS_PER_LINE_DISTANCE * ld;
+            const double nominalMid = (meloSt->lines() - 1) / 2.0 * ld;
             ldata->moveY((frameMid - nominalMid) * spatium);
             bool hasWhole = false;
             for (const StaffType::MeloFrameBand& band : view.bands) {

@@ -3331,9 +3331,9 @@ bool TRead::readProperties(Note* n, XmlReader& e, ReadContext& ctx)
     } else if (tag == "fixedLine") {
         n->setFixedLine(e.readInt());
     } else if (tag == "jimsNPer") {
-        TRead::readProperty(n, e, ctx, Pid::JIMS_NPER);
+        TRead::readProperty(n, e, ctx, Pid::MELO_NPER);
     } else if (tag == "jimsNGen") {
-        TRead::readProperty(n, e, ctx, Pid::JIMS_NGEN);
+        TRead::readProperty(n, e, ctx, Pid::MELO_NGEN);
     } else if (tag == "headScheme") {
         TRead::readProperty(n, e, ctx, Pid::HEAD_SCHEME);
     } else if (tag == "head") {
@@ -4020,27 +4020,27 @@ void TRead::read(StaffType* t, XmlReader& e, ReadContext& ctx)
         } else if (tag == "color") {
             t->setColor(e.readColor());
         } else if (tag == "jims") {
-            t->setJiMS(e.readInt());
+            t->setMelo(e.readInt());
         } else if (tag == "jimsStateJson") {
-            t->setJimsStateJson(e.readText());
+            t->setMeloStateJson(e.readText());
         } else if (tag == "jimsTonicAmbit" || tag == "jimsTonicExtent") {   // legacy tag still read
-            t->setJimsTonicAmbit(e.readText());
+            t->setMeloTonicAmbit(e.readText());
         } else if (tag == "jimsJiLines") {
-            t->setJimsJiLines(e.readInt());
+            t->setMeloJiLines(e.readInt());
         } else if (tag == "jimsScaleDotLabels") {
             const String mode = e.readText();
-            t->setJimsScaleDotLabelMode(mode == u"none" ? MeloScaleDotLabelMode::None
+            t->setMeloScaleDotLabelMode(mode == u"none" ? MeloScaleDotLabelMode::None
                                         : mode == u"left" ? MeloScaleDotLabelMode::Left
                                         : mode == u"split" ? MeloScaleDotLabelMode::Split
                                         : MeloScaleDotLabelMode::Auto);
         } else if (tag == "jimsElideOctaves") {
             // Milestone 8: on/off; anything else (or absent) is Auto.
             const String mode = e.readText();
-            t->setJimsElideOctaves(mode == u"on" ? MeloElideOctaves::On
+            t->setMeloElideOctaves(mode == u"on" ? MeloElideOctaves::On
                                    : mode == u"off" ? MeloElideOctaves::Off
                                    : MeloElideOctaves::Auto);
         } else if (tag == "jimsRatioLineExtent") {
-            t->setJimsRatioLineExtentJson(e.readText());
+            t->setMeloRatioLineExtentJson(e.readText());
         } else if (tag == "durations") {
             t->setGenDurations(e.readBool());
         } else if (tag == "durationFontName") {
@@ -4168,7 +4168,7 @@ bool TRead::readProperties(Staff* s, XmlReader& e, ReadContext& ctx)
                 e.unknown();
             }
         }
-        s->addJimsTuningTrajectory(t);
+        s->addMeloTuningTrajectory(t);
     } else if (tag == "keylist") {
         TRead::read(s->keyList(), e, ctx);
     } else if (tag == "bracket") {

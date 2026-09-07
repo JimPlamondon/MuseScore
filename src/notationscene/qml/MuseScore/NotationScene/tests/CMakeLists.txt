@@ -49,6 +49,6 @@ set(MODULE_TEST_DATA_ROOT ${CMAKE_CURRENT_LIST_DIR})
 
 include(SetupGTest)
 
-target_compile_definitions(${MODULE_TEST} PRIVATE JIMS_UI_TEST_DATA_ROOT="${PROJECT_SOURCE_DIR}/src/engraving/tests")
+target_compile_definitions(${MODULE_TEST} PRIVATE MELO_UI_TEST_DATA_ROOT="${PROJECT_SOURCE_DIR}/src/engraving/tests")
 
 target_include_directories(${MODULE_TEST} PRIVATE ${PROJECT_SOURCE_DIR}/src/inspector)

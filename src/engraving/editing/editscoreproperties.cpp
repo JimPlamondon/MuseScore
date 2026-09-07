@@ -28,10 +28,10 @@
 
 using namespace mu::engraving;
 
-void ChangeJimsMelodyPart::flip(EditData*)
+void ChangeMeloMelodyPart::flip(EditData*)
 {
-    const melo::MelodyPart old = score->jimsMelodyPart();
-    score->setJimsMelodyPart(part);
+    const melo::MelodyPart old = score->meloMelodyPart();
+    score->setMeloMelodyPart(part);
     melo::deriveTonicAmbits(score);
     score->setLayoutAll();
     part = old;

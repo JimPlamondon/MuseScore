@@ -9,8 +9,8 @@
  * literal anywhere else in this fork; tools/jims/check_jims_strings.py
  * enforces that.
  */
-#ifndef MU_ENGRAVING_JIMSSTRINGS_H
-#define MU_ENGRAVING_JIMSSTRINGS_H
+#ifndef MU_ENGRAVING_MELOSTRINGS_H
+#define MU_ENGRAVING_MELOSTRINGS_H
 
 #include "translation.h"
 #include "types/translatablestring.h"

@@ -19,7 +19,7 @@
 #
 # Examples:
 #   tools/run-tests.sh engraving_tests --gtest_filter='Engraving_JiMStaff*'
-#   tools/run-tests.sh iex_musicxml_tests --gtest_filter='MusicXml_JiMS_Tests.*'
+#   tools/run-tests.sh iex_musicxml_tests --gtest_filter='MusicXml_Melo_Tests.*'
 
 set -euo pipefail
 

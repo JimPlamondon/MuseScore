@@ -173,7 +173,7 @@ public:
             double y1 = 0.0;
             double y2 = 0.0;
         };
-        std::vector<MeloDotRows> jimsBandDotRows;
+        std::vector<MeloDotRows> meloBandDotRows;
     };
 
     DECLARE_LAYOUTDATA_METHODS(BarLine)

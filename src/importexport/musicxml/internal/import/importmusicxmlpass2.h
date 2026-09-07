@@ -422,7 +422,7 @@ public:
     void clearSpanner(const MusicXmlSpannerDesc& desc);
     void deleteHandledSpanner(engraving::SLine* const& spanner);
     int divs() { return m_divs; }
-    void setJimsError() { m_jimsError = engraving::Err::FileBadFormat; }   // native JiMS import: fatal carrier error
+    void setMeloError() { m_meloError = engraving::Err::FileBadFormat; }   // native JiMS import: fatal carrier error
 
     engraving::SLine* delayedOttava() { return m_delayedOttava; }
     void setDelayedOttava(engraving::SLine* ottava) { m_delayedOttava = ottava; }
@@ -458,7 +458,7 @@ private:
     void measureLayout(engraving::Measure* measure);
     void setMeasureRepeats(const engraving::staff_idx_t scoreRelStaff, engraving::Measure* measure);
     void attributes(const muse::String& partId, engraving::Measure* measure, const engraving::Fraction& tick);
-    void jimsStaffState(const muse::String& partId, const engraving::Fraction& tick);
+    void meloStaffState(const muse::String& partId, const engraving::Fraction& tick);
     void measureStyle(engraving::Measure* measure);
     void barline(const muse::String& partId, engraving::Measure* measure, const engraving::Fraction& tick);
     void key(const muse::String& partId, engraving::Measure* measure, const engraving::Fraction& tick);
@@ -501,8 +501,8 @@ private:
     int m_divs = 0;                        // the current divisions value
     engraving::Score* m_score = nullptr;              // the score
     MusicXmlParserPass1& m_pass1;          // the pass1 results
-    MeloImportContext m_jims;              // native JiMS import: resolved prefix + buffered states
-    engraving::Err m_jimsError = engraving::Err::NoError;   // fatal JiMS condition, returned by parse()
+    MeloImportContext m_melo;              // native JiMS import: resolved prefix + buffered states
+    engraving::Err m_meloError = engraving::Err::NoError;   // fatal JiMS condition, returned by parse()
     MusicXmlLogger* m_logger = nullptr;    // Error logger
     muse::String m_errors;                       // Errors to present to the user
 
@@ -663,7 +663,7 @@ private:
     std::pair<int, int> m_swing = { 0, 0 };
     std::vector<engraving::EngravingItem*> m_elems;
     engraving::Fraction m_offset;
-    std::optional<engraving::melo::TuningTrajectory> m_jimsTrajectory;   // native JiMS import: transported carrier
+    std::optional<engraving::melo::TuningTrajectory> m_meloTrajectory;   // native JiMS import: transported carrier
     engraving::track_idx_t m_track = muse::nidx;
 };
 

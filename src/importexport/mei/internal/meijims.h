@@ -50,8 +50,8 @@ class Staff;
 }
 
 namespace mu::iex::mei {
-static constexpr const char* JIMS_MEI_NS = "urn:jims:mei:1";
-static constexpr const char* JIMS_MUSICXML_NS = "urn:jims:musicxml:4";
+static constexpr const char* MELO_MEI_NS = "urn:jims:mei:1";
+static constexpr const char* MELO_MUSICXML_NS = "urn:jims:musicxml:4";
 
 /// Export-side plan and emission.
 class MeloMeiExporter

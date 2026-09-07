@@ -8,8 +8,8 @@
  * by the Kernel; nothing here computes note classes, memberships, cents, or
  * notehead classes itself.
  */
-#ifndef MU_ENGRAVING_JIMSBRIDGE_H
-#define MU_ENGRAVING_JIMSBRIDGE_H
+#ifndef MU_ENGRAVING_MELOBRIDGE_H
+#define MU_ENGRAVING_MELOBRIDGE_H
 
 #include <vector>
 

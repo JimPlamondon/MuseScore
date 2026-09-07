@@ -1810,12 +1810,12 @@ void Convert::harmFromMEI(engraving::Harmony* harmony, const StringList& meiLine
     if (Convert::hasTypeValue(meiHarm.GetType(), std::string(HARMONY_TYPE) + "roman")) {
         harmonyType = engraving::HarmonyType::ROMAN;
     } else if (Convert::hasTypeValue(meiHarm.GetType(), "jims-chord-name")) {
-        harmonyType = engraving::HarmonyType::JIMS;
+        harmonyType = engraving::HarmonyType::MELO;
     }
 
     // text content
     harmony->setHarmonyType(harmonyType);
-    if (harmonyType == engraving::HarmonyType::JIMS) {
+    if (harmonyType == engraving::HarmonyType::MELO) {
         // One opaque canonical JiMS chord name; never run the conventional
         // chord parser on it (mirrors the MusicXML importer).
         engraving::HarmonyInfo* info = new engraving::HarmonyInfo(harmony->score());
@@ -1852,7 +1852,7 @@ libmei::Harm Convert::harmToMEI(const engraving::Harmony* harmony, StringList& m
         case (engraving::HarmonyType::ROMAN):
             harmonyType = std::string(HARMONY_TYPE) + "roman";
             break;
-        case (engraving::HarmonyType::JIMS):
+        case (engraving::HarmonyType::MELO):
             // mei-jims profile: the canonical JiMS chord name as typed harm
             harmonyType = "jims-chord-name";
             break;
@@ -1862,7 +1862,7 @@ libmei::Harm Convert::harmToMEI(const engraving::Harmony* harmony, StringList& m
     }
 
     // content
-    if (harmony->harmonyType() == engraving::HarmonyType::JIMS) {
+    if (harmony->harmonyType() == engraving::HarmonyType::MELO) {
         meiLines = StringList { harmony->harmonyName() };
     } else {
         String plainText = harmony->plainText();

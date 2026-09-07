@@ -61,7 +61,7 @@ using ::testing::NiceMock;
 using ::testing::Return;
 
 namespace {
-class Engraving_JiMStaffM7PlaybackTests : public ::testing::Test
+class Engraving_MeloStaffM7PlaybackTests : public ::testing::Test
 {
 protected:
     void SetUp() override
@@ -133,10 +133,10 @@ protected:
     static melo::SoundingPitch kernelSoundingPitch(const Note* note)
     {
         const StaffType* st = note->staff()->staffTypeForElement(note);
-        EXPECT_TRUE(st && st->isJiMS());
+        EXPECT_TRUE(st && st->isMelo());
         melo::SoundingPitch sp;
         String err;
-        EXPECT_TRUE(melo::noteSoundingPitch(st->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), sp, &err)) << err.toStdString();
+        EXPECT_TRUE(melo::noteSoundingPitch(st->meloStateJson(), note->meloNPer(), note->meloNGen(), sp, &err)) << err.toStdString();
         return sp;
     }
 
@@ -145,11 +145,11 @@ protected:
     static pitch_level_t kernelPitchLevel(const Note* note)
     {
         const StaffType* st = note->staff()->staffTypeForElement(note);
-        EXPECT_TRUE(st && st->isJiMS());
+        EXPECT_TRUE(st && st->isMelo());
         melo::SoundingPitch sp;
         String err;
-        EXPECT_TRUE(melo::noteSoundingPitch(st->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), sp, &err)) << err.toStdString();
-        return jimsPitchLevelFromMidi(sp.midiKey, sp.centsOffset);
+        EXPECT_TRUE(melo::noteSoundingPitch(st->meloStateJson(), note->meloNPer(), note->meloNGen(), sp, &err)) << err.toStdString();
+        return meloPitchLevelFromMidi(sp.midiKey, sp.centsOffset);
     }
 
     /// Notes of staff 0 in document order (voice 1 only, single-note chords).
@@ -178,23 +178,23 @@ const String COMMON_TONE(u"jimstaff_data/ws-jims-common-tone-projection.mscx");
 
 // The MIDI-key → pitch-level conversion (owner decision 1a): raw MIDI
 // numbering onto the pitch-level scale, C4 = 60, cents in 2-cent steps.
-TEST_F(Engraving_JiMStaffM7PlaybackTests, m7PitchLevelFromMidiMatchesTheMpeScale)
+TEST_F(Engraving_MeloStaffM7PlaybackTests, m7PitchLevelFromMidiMatchesTheMpeScale)
 {
-    EXPECT_EQ(jimsPitchLevelFromMidi(60, 0.0), pitchLevel(PitchClass::C, 4));
-    EXPECT_EQ(jimsPitchLevelFromMidi(69, 0.0), pitchLevel(PitchClass::A, 4));
-    EXPECT_EQ(jimsPitchLevelFromMidi(12, 0.0), 0);
-    EXPECT_EQ(jimsPitchLevelFromMidi(61, 0.0), pitchLevel(PitchClass::C_sharp, 4));
-    EXPECT_EQ(jimsPitchLevelFromMidi(60, 50.0), pitchLevel(PitchClass::C, 4) + PITCH_LEVEL_STEP / 2);
-    EXPECT_EQ(jimsPitchLevelFromMidi(60, -50.0), pitchLevel(PitchClass::C, 4) - PITCH_LEVEL_STEP / 2);
+    EXPECT_EQ(meloPitchLevelFromMidi(60, 0.0), pitchLevel(PitchClass::C, 4));
+    EXPECT_EQ(meloPitchLevelFromMidi(69, 0.0), pitchLevel(PitchClass::A, 4));
+    EXPECT_EQ(meloPitchLevelFromMidi(12, 0.0), 0);
+    EXPECT_EQ(meloPitchLevelFromMidi(61, 0.0), pitchLevel(PitchClass::C_sharp, 4));
+    EXPECT_EQ(meloPitchLevelFromMidi(60, 50.0), pitchLevel(PitchClass::C, 4) + PITCH_LEVEL_STEP / 2);
+    EXPECT_EQ(meloPitchLevelFromMidi(60, -50.0), pitchLevel(PitchClass::C, 4) - PITCH_LEVEL_STEP / 2);
     // Same result as the stock path for a plain 12-TET note with a tuning.
-    EXPECT_EQ(jimsPitchLevelFromMidi(64, 10.0), notePitchLevel(Tpc::TPC_E, 4, 10.0));
+    EXPECT_EQ(meloPitchLevelFromMidi(64, 10.0), notePitchLevel(Tpc::TPC_E, 4, 10.0));
 }
 
 // Default 12-TET (unpinned → Kernel default Re0 = 62) and the M6 gate
 // file's reference-53 section (bar 2 onward): every JiMS note plays the
 // Kernel's answer for ITS section — bar 2's notes no longer sound their
 // bar-1 compatibility pitches.
-TEST_F(Engraving_JiMStaffM7PlaybackTests, m7PlaybackUsesKernelPitchForDefaultAndReference53Sections)
+TEST_F(Engraving_MeloStaffM7PlaybackTests, m7PlaybackUsesKernelPitchForDefaultAndReference53Sections)
 {
     Score* score = ScoreRW::readScore(M7_GATE);
     ASSERT_TRUE(score);
@@ -205,8 +205,8 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, m7PlaybackUsesKernelPitchForDefaultAnd
     // bar 2+ carries reference 53 (mode La). Both facts come from the file.
     const StaffType* bar1 = notes[0]->staff()->staffTypeForElement(notes[0]);
     const StaffType* bar2 = notes[4]->staff()->staffTypeForElement(notes[4]);
-    ASSERT_TRUE(bar1->jimsStateJson().contains(u"\"key_number\":62"));
-    ASSERT_TRUE(bar2->jimsStateJson().contains(u"\"key_number\":53"));
+    ASSERT_TRUE(bar1->meloStateJson().contains(u"\"key_number\":62"));
+    ASSERT_TRUE(bar2->meloStateJson().contains(u"\"key_number\":53"));
     std::vector<pitch_level_t> levels = nominalPitchLevels(score);
     ASSERT_EQ(levels.size(), notes.size());
     for (size_t i = 0; i < notes.size(); ++i) {
@@ -224,7 +224,7 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, m7PlaybackUsesKernelPitchForDefaultAnd
 // note_sounding_pitch answer, lossless (frequency, transport key, full
 // residual cents) plus the note's lattice identity — beside the integer
 // pitch level; never reconstructed downstream.
-TEST_F(Engraving_JiMStaffM7PlaybackTests, jimsynthJimsNotesCarryTheExactKernelPitchAndLatticeIdentity)
+TEST_F(Engraving_MeloStaffM7PlaybackTests, meloSynthMeloNotesCarryTheExactKernelPitchAndLatticeIdentity)
 {
     Score* score = ScoreRW::readScore(M7_GATE);
     ASSERT_TRUE(score);
@@ -240,8 +240,8 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, jimsynthJimsNotesCarryTheExactKernelPi
         EXPECT_EQ(exact[i]->midiKey, sp.midiKey) << "note " << i;
         EXPECT_DOUBLE_EQ(exact[i]->centsOffset, sp.centsOffset) << "note " << i;
         EXPECT_EQ(exact[i]->hasLattice, 1);
-        EXPECT_EQ(exact[i]->nPer, notes[i]->jimsNPer());
-        EXPECT_EQ(exact[i]->nGen, notes[i]->jimsNGen());
+        EXPECT_EQ(exact[i]->nPer, notes[i]->meloNPer());
+        EXPECT_EQ(exact[i]->nGen, notes[i]->meloNGen());
         // Transport precision: key + full cents recover the Kernel frequency
         // within 0.01 cent (the pitch-level grid alone cannot: 2-cent steps).
         const double hz = 440.0 * std::pow(2.0, (exact[i]->midiKey - 69 + exact[i]->centsOffset / 100.0) / 12.0);
@@ -250,7 +250,7 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, jimsynthJimsNotesCarryTheExactKernelPi
     delete score;
 }
 
-TEST_F(Engraving_JiMStaffM7PlaybackTests, jimsynthStockNotesCarryNoExactPitch)
+TEST_F(Engraving_MeloStaffM7PlaybackTests, meloSynthStockNotesCarryNoExactPitch)
 {
     Score* score = ScoreRW::readScore(u"playback/playbackmodel_data/repeat_range/repeat_range.mscx");
     ASSERT_TRUE(score);
@@ -263,7 +263,7 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, jimsynthStockNotesCarryNoExactPitch)
     delete score;
 }
 
-TEST_F(Engraving_JiMStaffM7PlaybackTests, jimsingerPlaybackCarriesKernelProfileAtEveryJimsNoteAndTracksSectionChanges)
+TEST_F(Engraving_MeloStaffM7PlaybackTests, meloSingerPlaybackCarriesKernelProfileAtEveryMeloNoteAndTracksSectionChanges)
 {
     Score* score = ScoreRW::readScore(M7_GATE);
     ASSERT_TRUE(score);
@@ -279,7 +279,7 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, jimsingerPlaybackCarriesKernelProfileA
     delete score;
 }
 
-TEST_F(Engraving_JiMStaffM7PlaybackTests, stockPlaybackCarriesNoDynamicTonalityProfile)
+TEST_F(Engraving_MeloStaffM7PlaybackTests, stockPlaybackCarriesNoDynamicTonalityProfile)
 {
     Score* score = ScoreRW::readScore(u"playback/playbackmodel_data/repeat_range/repeat_range.mscx");
     ASSERT_TRUE(score);
@@ -289,17 +289,17 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, stockPlaybackCarriesNoDynamicTonalityP
 }
 
 // A non-12-TET generator (17-TET) sounds its own cents across periods.
-TEST_F(Engraving_JiMStaffM7PlaybackTests, m7PlaybackUsesNonTwelveTetGenerator)
+TEST_F(Engraving_MeloStaffM7PlaybackTests, m7PlaybackUsesNonTwelveTetGenerator)
 {
     Score* score = ScoreRW::readScore(M7_DEFAULT);
     ASSERT_TRUE(score);
     score->doLayout();
     StaffType* st = score->staff(0)->staffType(Fraction(0, 1));
-    ASSERT_TRUE(st && st->isJiMS());
-    String s17 = st->jimsStateJson();
+    ASSERT_TRUE(st && st->isMelo());
+    String s17 = st->meloStateJson();
     s17.replace(u"\"generator_cents\":700.0", u"\"generator_cents\":705.8823529411765");
-    ASSERT_NE(s17, st->jimsStateJson());
-    st->setJimsStateJson(s17);
+    ASSERT_NE(s17, st->meloStateJson());
+    st->setMeloStateJson(s17);
     score->setLayoutAll();
     score->doLayout();
     std::vector<Note*> notes = notesOf(score);
@@ -321,7 +321,7 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, m7PlaybackUsesNonTwelveTetGenerator)
 // reference-53 section (bar 3 of the gate file, pasted live during the M6
 // gate) sound at the DESTINATION section's pitch for their identity —
 // which is not the source's compatibility pitch.
-TEST_F(Engraving_JiMStaffM7PlaybackTests, m7PastedNotesUseDestinationSectionState)
+TEST_F(Engraving_MeloStaffM7PlaybackTests, m7PastedNotesUseDestinationSectionState)
 {
     Score* score = ScoreRW::readScore(M7_GATE);
     ASSERT_TRUE(score);
@@ -332,8 +332,8 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, m7PastedNotesUseDestinationSectionStat
     ASSERT_EQ(levels.size(), 12u);
     for (size_t i = 8; i < 12; ++i) {
         // Same identity as bar 1's note i-8 (the paste kept it) ...
-        EXPECT_EQ(notes[i]->jimsNPer(), notes[i - 8]->jimsNPer());
-        EXPECT_EQ(notes[i]->jimsNGen(), notes[i - 8]->jimsNGen());
+        EXPECT_EQ(notes[i]->meloNPer(), notes[i - 8]->meloNPer());
+        EXPECT_EQ(notes[i]->meloNGen(), notes[i - 8]->meloNGen());
         // ... but it sounds the destination section's pitch, per the Kernel.
         EXPECT_EQ(levels[i], kernelPitchLevel(notes[i])) << "pasted note " << i;
         EXPECT_NE(levels[i], levels[i - 8]) << "reference 53 vs 62 must differ";
@@ -343,7 +343,7 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, m7PastedNotesUseDestinationSectionStat
 
 // Tuning-slider preview and cancel (no undo entry) and commit/undo/redo:
 // the NEXT playback rebuild always uses the current section state.
-TEST_F(Engraving_JiMStaffM7PlaybackTests, m7PlaybackTracksTuningPreviewCommitCancelUndoRedo)
+TEST_F(Engraving_MeloStaffM7PlaybackTests, m7PlaybackTracksTuningPreviewCommitCancelUndoRedo)
 {
     Score* score = ScoreRW::readScore(M7_DEFAULT);
     ASSERT_TRUE(score);
@@ -383,7 +383,7 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, m7PlaybackTracksTuningPreviewCommitCan
 // channel) follows a tuning preview and its cancel — preview edits state
 // outside an undoable command, so the controller announces it through the
 // score's existing change signal (no new signal, no per-note cache).
-TEST_F(Engraving_JiMStaffM7PlaybackTests, m7LivePlaybackModelFollowsTuningPreviewAndCancel)
+TEST_F(Engraving_MeloStaffM7PlaybackTests, m7LivePlaybackModelFollowsTuningPreviewAndCancel)
 {
     Score* score = ScoreRW::readScore(M7_DEFAULT);
     ASSERT_TRUE(score);
@@ -425,7 +425,7 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, m7LivePlaybackModelFollowsTuningPrevie
 // all voices): every playback event's pitch level is a Kernel answer for
 // some JiMS note's identity in ITS section state — order-independent
 // multiset comparison against fresh Kernel calls.
-TEST_F(Engraving_JiMStaffM7PlaybackTests, m7ImportedAndAcceptedPiecesUseEffectiveSectionPitch)
+TEST_F(Engraving_MeloStaffM7PlaybackTests, m7ImportedAndAcceptedPiecesUseEffectiveSectionPitch)
 {
     const std::vector<String> pieces = {
         u"jimstaff_data/m5-key-down.mscx", u"jimstaff_data/m5-key-up.mscx", u"jimstaff_data/m5-key-mode.mscx",
@@ -444,7 +444,7 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, m7ImportedAndAcceptedPiecesUseEffectiv
                 EngravingItem* el = seg->element(t);
                 if (el && el->isChord()) {
                     for (Note* n : toChord(el)->notes()) {
-                        if (n->hasJimsPitch() && n->staff()->staffTypeForElement(n)->isJiMS() && !n->tieBack()) {
+                        if (n->hasMeloPitch() && n->staff()->staffTypeForElement(n)->isMelo() && !n->tieBack()) {
                             expected.insert(kernelPitchLevel(n));
                         }
                     }
@@ -463,7 +463,7 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, m7ImportedAndAcceptedPiecesUseEffectiv
     EXPECT_GT(checked, 0);
 }
 
-TEST_F(Engraving_JiMStaffM7PlaybackTests, fullTieAcrossStateChangeHasOneAttackAtLatchedFrequency)
+TEST_F(Engraving_MeloStaffM7PlaybackTests, fullTieAcrossStateChangeHasOneAttackAtLatchedFrequency)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/m5-key-up.mscx");
     ASSERT_TRUE(score);
@@ -471,9 +471,9 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, fullTieAcrossStateChangeHasOneAttackAt
     ASSERT_GE(notes.size(), 5u);
     Note* start = notes[3];
     Note* continuation = notes[4];
-    start->setJimsPitch(0, 0);
+    start->setMeloPitch(0, 0);
     start->setPitch(62, 16, 16);
-    continuation->setJimsPitch(0, 0);
+    continuation->setMeloPitch(0, 0);
     continuation->setPitch(62, 16, 16);
     Tie* tie = Factory::createTie(score->dummy());
     tie->setStartNote(start);
@@ -493,12 +493,12 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, fullTieAcrossStateChangeHasOneAttackAt
     EXPECT_NEAR(continuationProjection.frequencyHz, startProjection.frequencyHz, 1e-9);
     const std::vector<pitch_level_t> events = nominalPitchLevels(score);
     EXPECT_EQ(events.size(), notes.size() - 1) << "the tied continuation must not create a second attack";
-    EXPECT_EQ(std::count(events.begin(), events.end(), jimsPitchLevelFromMidi(startProjection.midiKey,
+    EXPECT_EQ(std::count(events.begin(), events.end(), meloPitchLevelFromMidi(startProjection.midiKey,
                                                                               startProjection.centsOffset)), 1);
     delete score;
 }
 
-TEST_F(Engraving_JiMStaffM7PlaybackTests, syntheticCommonToneHasOneAttackAtOneExactFrequency)
+TEST_F(Engraving_MeloStaffM7PlaybackTests, syntheticCommonToneHasOneAttackAtOneExactFrequency)
 {
     Score* score = ScoreRW::readScore(COMMON_TONE);
     ASSERT_TRUE(score);
@@ -506,14 +506,14 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, syntheticCommonToneHasOneAttackAtOneEx
     const std::vector<Note*> notes = notesOf(score);
     ASSERT_EQ(notes.size(), 2u);
     ASSERT_TRUE(notes[0]->tieForNonPartial());
-    EXPECT_NE(std::make_pair(notes[0]->jimsNPer(), notes[0]->jimsNGen()),
-              std::make_pair(notes[1]->jimsNPer(), notes[1]->jimsNGen()));
+    EXPECT_NE(std::make_pair(notes[0]->meloNPer(), notes[0]->meloNGen()),
+              std::make_pair(notes[1]->meloNPer(), notes[1]->meloNGen()));
     const melo::SoundingPitch first = kernelSoundingPitch(notes[0]);
     const melo::SoundingPitch continuation = kernelSoundingPitch(notes[1]);
     EXPECT_NEAR(first.frequencyHz, continuation.frequencyHz, 1e-9);
     const std::vector<pitch_level_t> events = nominalPitchLevels(score);
     ASSERT_EQ(events.size(), 1u);
-    EXPECT_EQ(events.front(), jimsPitchLevelFromMidi(first.midiKey, first.centsOffset));
+    EXPECT_EQ(events.front(), meloPitchLevelFromMidi(first.midiKey, first.centsOffset));
     const std::vector<std::optional<ExactPitch> > exact = exactPitches(score);
     ASSERT_EQ(exact.size(), 1u);
     ASSERT_TRUE(exact.front().has_value());
@@ -523,7 +523,7 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, syntheticCommonToneHasOneAttackAtOneEx
 
 // Negative control: a stock (non-JiMS) score's pitch levels are exactly
 // the stock formula — byte-identical playback for every non-JiMS staff.
-TEST_F(Engraving_JiMStaffM7PlaybackTests, m7StockPlaybackPitchIsUnchanged)
+TEST_F(Engraving_MeloStaffM7PlaybackTests, m7StockPlaybackPitchIsUnchanged)
 {
     Score* score = ScoreRW::readScore(u"playback/playbackmodel_data/repeat_range/repeat_range.mscx");
     ASSERT_TRUE(score);
@@ -540,7 +540,7 @@ TEST_F(Engraving_JiMStaffM7PlaybackTests, m7StockPlaybackPitchIsUnchanged)
             EngravingItem* el = seg->element(t);
             if (el && el->isChord()) {
                 for (Note* n : toChord(el)->notes()) {
-                    EXPECT_FALSE(n->staff()->staffTypeForElement(n)->isJiMS());
+                    EXPECT_FALSE(n->staff()->staffTypeForElement(n)->isMelo());
                     (void)n;
                 }
             }

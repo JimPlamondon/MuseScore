@@ -120,14 +120,14 @@ bool MeiExporter::write(std::string& meiData)
         decl.append_attribute("version") = "1.0";
         decl.append_attribute("encoding") = "UTF-8";
 
-        if (!m_jims.buildPlan(m_score)) {
-            LOGE() << m_jims.error();
+        if (!m_melo.buildPlan(m_score)) {
+            LOGE() << m_melo.error();
             return false;
         }
 
         // schema processing instruction; a JiMS score uses the full CMN
         // profile its carriers require (the mei-jims customization)
-        std::string schema = m_jims.present()
+        std::string schema = m_melo.present()
                              ? "https://music-encoding.org/schema/5.1/mei-CMN.rng"
                              : "https://music-encoding.org/schema/5.1/mei-basic.rng";
         decl = meiDoc.append_child(pugi::node_declaration);
@@ -167,7 +167,7 @@ bool MeiExporter::write(std::string& meiData)
 
         libmei::AttConverter converter;
         libmei::meiVersion_MEIVERSION meiVersion = libmei::meiVersion_MEIVERSION_5_1plusbasic;
-        if (m_jims.present()) {
+        if (m_melo.present()) {
             m_mei.append_attribute("meiversion") = "5.1";
         } else {
             m_mei.append_attribute("meiversion") = (converter.MeiVersionMeiversionToStr(meiVersion)).c_str();
@@ -177,8 +177,8 @@ bool MeiExporter::write(std::string& meiData)
 
         this->writeScore();
 
-        if (!m_jims.writeExtMeta(m_mei.child("meiHead"))) {
-            LOGE() << m_jims.error();
+        if (!m_melo.writeExtMeta(m_mei.child("meiHead"))) {
+            LOGE() << m_melo.error();
             return false;
         }
 
@@ -282,7 +282,7 @@ bool MeiExporter::writeScore()
 
     this->writeScoreDef();
 
-    m_jims.writeScoreAnnots(m_currentNode);
+    m_melo.writeScoreAnnots(m_currentNode);
 
     m_currentNode = m_currentNode.append_child();
     libmei::Section meiSection;
@@ -598,7 +598,7 @@ bool MeiExporter::writeScoreDefChange()
         // mei-jims profile: a known mode rides on a child keySig (an
         // attribute cannot carry it); otherwise keep the attribute form.
         const KeyMode mode = scoreDefKeySig->keySigEvent().mode();
-        if (m_jims.present() && mode != KeyMode::UNKNOWN && mode != KeyMode::NONE) {
+        if (m_melo.present() && mode != KeyMode::UNKNOWN && mode != KeyMode::NONE) {
             pugi::xml_node ksNode = scoreDefNode.append_child("keySig");
             libmei::AttConverter attConverter;
             UNUSED(attConverter);
@@ -760,8 +760,8 @@ bool MeiExporter::writeStaffDef(const Staff* staff, const Measure* measure, cons
 
     meiStaffDef.Write(staffDefNode);
 
-    if (!m_jims.onStaffDef(staffDefNode, staff)) {
-        LOGE() << m_jims.error();
+    if (!m_melo.onStaffDef(staffDefNode, staff)) {
+        LOGE() << m_melo.error();
         return false;
     }
 
@@ -881,7 +881,7 @@ bool MeiExporter::writeMeasure(const Measure* measure, int& measureN, bool& isFi
     m_currentNode = m_currentNode.append_child();
     const std::string measureXmlId = this->getMeasureXmlId(measure);
     meiMeasure.Write(m_currentNode, measureXmlId);
-    m_jims.onMeasure(measure, measureXmlId);
+    m_melo.onMeasure(measure, measureXmlId);
 
     // Reset keySig and timeSig change
     m_keySig = nullptr;
@@ -947,7 +947,7 @@ bool MeiExporter::writeMeasure(const Measure* measure, int& measureN, bool& isFi
         }
     }
     success = success && this->writeTimestampedHarmonies(measure);
-    m_jims.writeMeasureAnnots(m_currentNode, measure);
+    m_melo.writeMeasureAnnots(m_currentNode, measure);
     m_startingControlEventList.clear();
 
     for (auto controlEvent : m_tstampControlEventMap) {
@@ -1443,7 +1443,7 @@ bool MeiExporter::writeNote(const Note* note, const Chord* chord, const Staff* s
     Convert::colorToMEI(note, meiNote);
     std::string xmlId = this->getXmlIdFor(note, 'n');
     meiNote.Write(m_currentNode, xmlId);
-    m_jims.onNote(note, xmlId);
+    m_melo.onNote(note, xmlId);
     if (!isChord) {
         this->fillControlEventMap(xmlId, chord);
     }
@@ -1997,7 +1997,7 @@ bool MeiExporter::writeHarm(const Harmony* harmony, const std::string& startid)
     meiHarm.SetStartid(startid);
     const std::string harmXmlId = this->getXmlIdFor(harmony, 'h');
     meiHarm.Write(harmNode, harmXmlId);
-    m_jims.onHarm(harmNode, harmony, harmXmlId);
+    m_melo.onHarm(harmNode, harmony, harmXmlId);
 
     this->writeLines(harmNode, meiLines);
 
@@ -2021,7 +2021,7 @@ bool MeiExporter::writeHarm(const Harmony* harmony, double tstamp)
     meiHarm.SetTstamp(tstamp);
     const std::string harmXmlId = this->getXmlIdFor(harmony, 'h');
     meiHarm.Write(harmNode, harmXmlId);
-    m_jims.onHarm(harmNode, harmony, harmXmlId);
+    m_melo.onHarm(harmNode, harmony, harmXmlId);
 
     this->writeLines(harmNode, meiLines);
 

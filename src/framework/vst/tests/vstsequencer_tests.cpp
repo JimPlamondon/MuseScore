@@ -67,7 +67,7 @@ ExactPitch exactOf(double hz, int key, double cents, int nPer, int nGen)
     return e;
 }
 
-NoteEvent jimsNote(timestamp_t at, duration_t dur, pitch_level_t level, const ExactPitch& exact)
+NoteEvent meloNote(timestamp_t at, duration_t dur, pitch_level_t level, const ExactPitch& exact)
 {
     return NoteEvent(at, dur, 0, 0, level, 5000, ArticulationMap(), 2.0, 0.f, PitchCurve(), exact);
 }
@@ -147,13 +147,13 @@ std::vector<ParamChangeEvent> paramEventsOf(const VstSequencer::EventSequenceMap
     return out;
 }
 
-VstNoteExpressionCapabilities jimsynthCaps()
+VstNoteExpressionCapabilities meloSynthCaps()
 {
     // What JiMSynth advertises: standard tuning + both lattice types over
     // the Kernel-declared domains (nPer [-64, +63], nGen [-17, +17]).
     VstNoteExpressionCapabilities c;
     c.tuning = true;
-    c.jimsLattice = true;
+    c.meloLattice = true;
     c.nPerMin = -64;
     c.nPerStepCount = 127;
     c.nGenMin = -17;
@@ -272,17 +272,17 @@ TEST(Vst_SequencerTests, idsAreMonotonicAcrossRebuildsAndWrapOnlyAfterFlushing)
 
 // ---- exact optional JiMS pitch --------------------------------------------------
 
-TEST(Vst_SequencerTests, jimsNoteOnUsesTheExactKernelKeyAndFullResidualCents)
+TEST(Vst_SequencerTests, meloNoteOnUsesTheExactKernelKeyAndFullResidualCents)
 {
     // A note 33.3333 cents above A4: the pitch level grid would round to
     // 34 cents (2-cent steps); the exact field keeps 33.3333.
     const double cents = 33.3333;
     ExactPitch exact = exactOf(440.0 * std::pow(2.0, cents / 1200.0), 69, cents, 0, 3);
     PlaybackEventsMap events;
-    events[0].push_back(jimsNote(0, SECOND, 69 * 50 - 600 + 17, exact)); // level ≈ A4 + 34 cents (2-cent grid)
+    events[0].push_back(meloNote(0, SECOND, 69 * 50 - 600 + 17, exact)); // level ≈ A4 + 34 cents (2-cent grid)
 
     Harness h;
-    VstSequencer::EventSequenceMap seq = h.run(events, jimsynthCaps());
+    VstSequencer::EventSequenceMap seq = h.run(events, meloSynthCaps());
     std::vector<VstEvent> ons = vstEventsOf(seq, VstEvent::kNoteOnEvent);
     ASSERT_EQ(ons.size(), 1u);
     EXPECT_EQ(ons[0].noteOn.pitch, 69);
@@ -302,7 +302,7 @@ TEST(Vst_SequencerTests, stockNotesKeepTheStockPitchConstruction)
     PlaybackEventsMap events;
     events[0].push_back(stockNote(0, SECOND, 69 * 50 - 600 + 17));
     Harness h;
-    VstSequencer::EventSequenceMap seq = h.run(events, jimsynthCaps());
+    VstSequencer::EventSequenceMap seq = h.run(events, meloSynthCaps());
     std::vector<VstEvent> ons = vstEventsOf(seq, VstEvent::kNoteOnEvent);
     ASSERT_EQ(ons.size(), 1u);
     // Stock: noteIndex = 12 + level/50 (float, clamped) → 69.34 → 69; tuning = 34 cents.
@@ -316,12 +316,12 @@ TEST(Vst_SequencerTests, latticeIdentityIsSentOnceAfterNoteOnOnlyToAPlugInThatAd
 {
     ExactPitch exact = exactOf(293.664768, 62, 0.0, 1, -4);
     PlaybackEventsMap events;
-    events[0].push_back(jimsNote(0, SECOND, 62 * 50 - 600, exact));
+    events[0].push_back(meloNote(0, SECOND, 62 * 50 - 600, exact));
 
     // JiMSynth: both types advertised → nPer/nGen once, same id, after the Note On.
     {
         Harness h;
-        VstSequencer::EventSequenceMap seq = h.run(events, jimsynthCaps());
+        VstSequencer::EventSequenceMap seq = h.run(events, meloSynthCaps());
         const auto& first = seq.begin()->second;
         ASSERT_GE(first.size(), 3u);
         ASSERT_TRUE(std::holds_alternative<VstEvent>(first[0]));
@@ -330,18 +330,18 @@ TEST(Vst_SequencerTests, latticeIdentityIsSentOnceAfterNoteOnOnlyToAPlugInThatAd
         const VstEvent& nper = std::get<VstEvent>(first[1]);
         const VstEvent& ngen = std::get<VstEvent>(first[2]);
         EXPECT_EQ(nper.type, VstEvent::kNoteExpressionValueEvent);
-        EXPECT_EQ(nper.noteExpressionValue.typeId, JIMS_NOTE_EXPRESSION_NPER);
+        EXPECT_EQ(nper.noteExpressionValue.typeId, MELO_NOTE_EXPRESSION_NPER);
         EXPECT_EQ(nper.noteExpressionValue.noteId, on.noteOn.noteId);
         EXPECT_DOUBLE_EQ(nper.noteExpressionValue.value, (1.0 - (-64.0)) / 127.0);
-        EXPECT_EQ(ngen.noteExpressionValue.typeId, JIMS_NOTE_EXPRESSION_NGEN);
+        EXPECT_EQ(ngen.noteExpressionValue.typeId, MELO_NOTE_EXPRESSION_NGEN);
         EXPECT_EQ(ngen.noteExpressionValue.noteId, on.noteOn.noteId);
         EXPECT_DOUBLE_EQ(ngen.noteExpressionValue.value, (-4.0 - (-17.0)) / 34.0);
         EXPECT_EQ(vstEventsOf(seq, VstEvent::kNoteExpressionValueEvent).size(), 2u) << "exactly once";
     }
     // Only one of the two types advertised → no lattice at all.
     {
-        VstNoteExpressionCapabilities partial = jimsynthCaps();
-        partial.jimsLattice = false;
+        VstNoteExpressionCapabilities partial = meloSynthCaps();
+        partial.meloLattice = false;
         Harness h;
         VstSequencer::EventSequenceMap seq = h.run(events, partial);
         EXPECT_TRUE(vstEventsOf(seq, VstEvent::kNoteExpressionValueEvent).empty());
@@ -357,9 +357,9 @@ TEST(Vst_SequencerTests, latticeIdentityIsSentOnceAfterNoteOnOnlyToAPlugInThatAd
     {
         ExactPitch far = exactOf(16.0, 12, 0.0, -70, 0);
         PlaybackEventsMap farEvents;
-        farEvents[0].push_back(jimsNote(0, SECOND, 0, far));
+        farEvents[0].push_back(meloNote(0, SECOND, 0, far));
         Harness h;
-        VstSequencer::EventSequenceMap seq = h.run(farEvents, jimsynthCaps());
+        VstSequencer::EventSequenceMap seq = h.run(farEvents, meloSynthCaps());
         EXPECT_TRUE(vstEventsOf(seq, VstEvent::kNoteExpressionValueEvent).empty());
         EXPECT_EQ(vstEventsOf(seq, VstEvent::kNoteOnEvent).size(), 1u) << "the exact pitch still plays";
     }
@@ -394,7 +394,7 @@ TEST(Vst_SequencerTests, bendsBecomePerNoteTuningExpressionsWhenAdvertisedAndSta
         ParamsMapping mapping;
         mapping.emplace(PITCH_BEND_IDX, PITCH_BEND_PARAM); // even if mapped, not used for this curve
         Harness h;
-        VstSequencer::EventSequenceMap seq = h.run(events, jimsynthCaps(), mapping);
+        VstSequencer::EventSequenceMap seq = h.run(events, meloSynthCaps(), mapping);
         EXPECT_TRUE(paramEventsOf(seq, PITCH_BEND_PARAM).empty()) << "no global pitch-bend event represents the curve";
         std::vector<VstEvent> ons = vstEventsOf(seq, VstEvent::kNoteOnEvent);
         ASSERT_EQ(ons.size(), 2u);
@@ -441,10 +441,10 @@ TEST(Vst_SequencerTests, samePitchSortKeepsExpressionsBehindTheirNoteOn)
     // sort reorders Note Ons by pitch, and each note's identity events stay
     // with it.
     PlaybackEventsMap events;
-    events[0].push_back(jimsNote(0, SECOND, 3000, exactOf(440.0, 69, 0.0, 0, 0)));
-    events[0].push_back(jimsNote(0, SECOND, 2000, exactOf(220.0, 57, 0.0, -1, 0)));
+    events[0].push_back(meloNote(0, SECOND, 3000, exactOf(440.0, 69, 0.0, 0, 0)));
+    events[0].push_back(meloNote(0, SECOND, 2000, exactOf(220.0, 57, 0.0, -1, 0)));
     Harness h;
-    VstSequencer::EventSequenceMap seq = h.run(events, jimsynthCaps());
+    VstSequencer::EventSequenceMap seq = h.run(events, meloSynthCaps());
     const auto& first = seq.begin()->second;
     ASSERT_EQ(first.size(), 6u);
     std::vector<int32_t> idsInOrder;

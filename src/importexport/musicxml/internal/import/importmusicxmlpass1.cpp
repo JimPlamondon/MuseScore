@@ -1324,12 +1324,12 @@ Err MusicXmlParserPass1::parse()
             // Native JiMS import: resolve the JiMS namespace prefix from the
             // root's xmlns:* bindings (pugixml is not namespace-aware); an
             // unsupported JiMS version refuses the import.
-            if (m_jims.resolveFromRoot(m_e.attributes(), m_logger, &m_e) != Err::NoError) {
+            if (m_melo.resolveFromRoot(m_e.attributes(), m_logger, &m_e) != Err::NoError) {
                 m_e.skipCurrentElement();
                 return Err::FileBadFormat;
             }
             scorePartwise();
-            if (m_jimsProvenanceError) {
+            if (m_meloProvenanceError) {
                 // A document that declares itself JiMS never imports with part
                 // of its JiMS content silently dropped (same rule as states).
                 return Err::FileBadFormat;
@@ -1562,24 +1562,24 @@ void MusicXmlParserPass1::identification()
             }
         } else if (m_e.name() == "source") {
             m_score->setMetaTag(u"source", m_e.readText());
-        } else if (m_jims.hasJims() && m_jims.isJimsElement(m_e.name(), "provenance")) {
+        } else if (m_melo.hasMelo() && m_melo.isMeloElement(m_e.name(), "provenance")) {
             // Native JiMS import: transported carrier (owner decision 2026-08-19).
             engraving::melo::Provenance prov;
             String error;
-            if (m_jims.parseProvenance(m_e, prov, error)) {
-                m_score->setJimsProvenance(prov);
+            if (m_melo.parseProvenance(m_e, prov, error)) {
+                m_score->setMeloProvenance(prov);
             } else {
                 m_logger->logError(error, &m_e);
-                m_jimsProvenanceError = true;
+                m_meloProvenanceError = true;
             }
-        } else if (m_jims.hasJims() && m_jims.isJimsElement(m_e.name(), "melody-part")) {
+        } else if (m_melo.hasMelo() && m_melo.isMeloElement(m_e.name(), "melody-part")) {
             engraving::melo::MelodyPart part = engraving::melo::MelodyPart::Soprano;
             const String token = m_e.readText().trimmed();
             if (engraving::melo::melodyPartFromToken(token, part)) {
-                m_score->setJimsMelodyPart(part);
+                m_score->setMeloMelodyPart(part);
             } else {
                 m_logger->logError(String(u"invalid jims:melody-part '%1'").arg(token), &m_e);
-                m_jimsProvenanceError = true;
+                m_meloProvenanceError = true;
             }
         } else if (m_e.name() == "miscellaneous") {
             // store all miscellaneous information

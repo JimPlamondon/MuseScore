@@ -657,7 +657,7 @@ enum class HarmonyType {
     STANDARD  = int(mu::engraving::HarmonyType::STANDARD),
     ROMAN     = int(mu::engraving::HarmonyType::ROMAN),
     NASHVILLE = int(mu::engraving::HarmonyType::NASHVILLE),
-    JIMS      = int(mu::engraving::HarmonyType::JIMS)
+    MELO      = int(mu::engraving::HarmonyType::MELO)
                 ///\}
 };
 Q_ENUM_NS(HarmonyType);

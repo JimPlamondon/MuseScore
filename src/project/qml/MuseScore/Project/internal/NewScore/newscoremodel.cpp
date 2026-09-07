@@ -113,9 +113,9 @@ ProjectCreateOptions NewScoreModel::parseOptions(const QVariantMap& info) const
 
         String instrumentId = objMap["instrumentId"].toString();
         pi.instrumentTemplate = instrumentsRepository()->instrumentTemplate(instrumentId);
-        if (objMap["useJimsStaff"].toBool() && !pi.isExistingPart
+        if (objMap["useMeloStaff"].toBool() && !pi.isExistingPart
             && pi.instrumentTemplate.staffGroup == engraving::StaffGroup::STANDARD) {
-            pi.instrumentTemplate.staffTypePreset = engraving::StaffType::preset(engraving::StaffTypes::JIMS_12TET);
+            pi.instrumentTemplate.staffTypePreset = engraving::StaffType::preset(engraving::StaffTypes::MELO_12TET);
         }
         pi.isExistingPart = objMap["isExistingPart"].toBool();
         pi.isSoloist = objMap["isSoloist"].toBool();

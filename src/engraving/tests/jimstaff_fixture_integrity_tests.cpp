@@ -96,7 +96,7 @@ struct Mismatch {
 };
 
 /// Every JiMS test file under jimstaff_data, discovered rather than listed.
-std::vector<muse::String> jimsFixtures()
+std::vector<muse::String> meloFixtures()
 {
     const muse::String dir = ScoreRW::rootPath() + u"/jimstaff_data";
     std::vector<muse::String> out;
@@ -123,8 +123,8 @@ bool keyChangedSince(const Score* score, staff_idx_t s, const Fraction& tick)
     melo::SoundingPitch a, b;
     // Re0 is the score's key anchor; project the same identity under both
     // states and see whether the anchor moved. Asking the Kernel, not parsing.
-    if (!melo::noteSoundingPitch(first->jimsStateJson(), 0, 0, a)
-        || !melo::noteSoundingPitch(here->jimsStateJson(), 0, 0, b)) {
+    if (!melo::noteSoundingPitch(first->meloStateJson(), 0, 0, a)
+        || !melo::noteSoundingPitch(here->meloStateJson(), 0, 0, b)) {
         return false;
     }
     return a.referenceKeyNumber != b.referenceKeyNumber;
@@ -137,7 +137,7 @@ void checkScore(const muse::String& path, MasterScore* score, std::vector<Mismat
     for (staff_idx_t s = 0; s < score->nstaves(); ++s) {
         for (Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
             const StaffType* st = score->staff(s)->staffType(m->tick());
-            if (!st || !st->isJiMS()) {
+            if (!st || !st->isMelo()) {
                 continue;                       // a stock staff has nothing to agree about
             }
             for (Segment* seg = m->first(SegmentType::ChordRest); seg; seg = seg->next(SegmentType::ChordRest)) {
@@ -147,20 +147,20 @@ void checkScore(const muse::String& path, MasterScore* score, std::vector<Mismat
                         continue;
                     }
                     for (Note* n : toChord(e)->notes()) {
-                        if (!n->hasJimsPitch()) {
+                        if (!n->hasMeloPitch()) {
                             continue;           // a stock note carries no identity
                         }
                         melo::SoundingPitch sounding;
                         muse::String err;
-                        if (!melo::noteSoundingPitch(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(),
+                        if (!melo::noteSoundingPitch(st->meloStateJson(), n->meloNPer(), n->meloNGen(),
                                                      sounding, &err)) {
                             ADD_FAILURE() << name << ": the Kernel could not project identity ("
-                                          << n->jimsNPer() << "," << n->jimsNGen() << "): " << err.toStdString();
+                                          << n->meloNPer() << "," << n->meloNGen() << "): " << err.toStdString();
                             continue;
                         }
                         ++checked;
                         if (n->pitch() != sounding.midiKey) {
-                            const Mismatch mm{ name, s, m->no() + 1, n->jimsNPer(), n->jimsNGen(),
+                            const Mismatch mm{ name, s, m->no() + 1, n->meloNPer(), n->meloNGen(),
                                                n->pitch(), sounding.midiKey, sounding.referenceKeyNumber,
                                                sounding.anchor.toStdString() };
                             // KNOWN OPEN DEFECT, pinned not ignored. When the key
@@ -185,9 +185,9 @@ void checkScore(const muse::String& path, MasterScore* score, std::vector<Mismat
 }
 }
 
-TEST(Engraving_JiMStaffFixtureIntegrity, everyJimsNoteSoundsAtThePitchItsFileClaims)
+TEST(Engraving_MeloStaffFixtureIntegrity, everyMeloNoteSoundsAtThePitchItsFileClaims)
 {
-    const std::vector<muse::String> fixtures = jimsFixtures();
+    const std::vector<muse::String> fixtures = meloFixtures();
     ASSERT_FALSE(fixtures.empty()) << "no JiMS test files were discovered — the scan is broken, "
                                       "and a guard that scans nothing guards nothing";
 
@@ -240,7 +240,7 @@ TEST(Engraving_JiMStaffFixtureIntegrity, everyJimsNoteSoundsAtThePitchItsFileCla
     EXPECT_GT(withNotes, 5u) << "only " << withNotes << " files carried JiMS notes";
 }
 
-TEST(Engraving_JiMStaffFixtureIntegrity, writeKernelNormalizedProjectionFixtures)
+TEST(Engraving_MeloStaffFixtureIntegrity, writeKernelNormalizedProjectionFixtures)
 {
     const char* output = std::getenv("JIMS_NORMALIZED_FIXTURE_OUT");
     if (!output) {
@@ -273,7 +273,7 @@ TEST(Engraving_JiMStaffFixtureIntegrity, writeKernelNormalizedProjectionFixtures
     }
 }
 
-TEST(Engraving_JiMStaffFixtureIntegrity, contradictoryNativeLoadRepairsOnceAndMarksDocumentModified)
+TEST(Engraving_MeloStaffFixtureIntegrity, contradictoryNativeLoadRepairsOnceAndMarksDocumentModified)
 {
     const String scratchDir = ScoreRW::rootPath() + u"/../../../build.release/jims-projection-scratch";
     ASSERT_TRUE(muse::io::Dir::mkpath(scratchDir));
@@ -300,7 +300,7 @@ TEST(Engraving_JiMStaffFixtureIntegrity, contradictoryNativeLoadRepairsOnceAndMa
     Note* note = toChord(repaired->firstSegment(SegmentType::ChordRest)->element(0))->notes().front();
     const StaffType* state = note->staff()->staffTypeForElement(note);
     melo::SoundingPitch expected;
-    ASSERT_TRUE(melo::noteSoundingPitch(state->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), expected));
+    ASSERT_TRUE(melo::noteSoundingPitch(state->meloStateJson(), note->meloNPer(), note->meloNGen(), expected));
     EXPECT_EQ(note->pitch(), expected.midiKey);
     repaired->undoRedo(true, nullptr);
     EXPECT_NE(note->pitch(), expected.midiKey) << "the complete repair is one undo step";

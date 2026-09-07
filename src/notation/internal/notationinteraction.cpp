@@ -1950,7 +1950,7 @@ bool NotationInteraction::dropSingle(const PointF& pos, Qt::KeyboardModifiers mo
     if (edd.ed.dropElement->isActionIcon() && toActionIcon(edd.ed.dropElement)->actionCode() == "jims-change") {
         staff_idx_t staffIndex = 0;
         MeasureBase* base = score()->pos2measure(pos, &staffIndex, 0, nullptr, 0);
-        if (!base || !base->isMeasure() || !score()->staff(staffIndex)->staffType(base->tick())->isJiMS()) {
+        if (!base || !base->isMeasure() || !score()->staff(staffIndex)->staffType(base->tick())->isMelo()) {
             resetDropData();
             return false;
         }
@@ -2342,7 +2342,7 @@ bool NotationInteraction::applyPaletteElement(mu::engraving::EngravingItem* elem
         // Opening the chooser must not create an empty or guessed musical state.
         bool compatible = false;
         for (const EngravingItem* selected : sel.elements()) {
-            if (selected->staff() && selected->staff()->staffType(selected->tick())->isJiMS()) {
+            if (selected->staff() && selected->staff()->staffType(selected->tick())->isMelo()) {
                 compatible = true;
                 break;
             }
@@ -3285,9 +3285,9 @@ bool NotationInteraction::prepareDropMeasureAnchorElement(const PointF& pos)
         measureRect.adjust(page->x(), page->y(), page->x(), page->y());
         edd.ed.pos = measureRect.center();
 
-        const bool jimsChooser = dropElem->isActionIcon() && toActionIcon(dropElem)->actionCode() == "jims-change";
+        const bool meloChooser = dropElem->isActionIcon() && toActionIcon(dropElem)->actionCode() == "jims-change";
         const bool dropAccepted
-            = jimsChooser ? score()->staff(staffIdx)->staffType(targetMeasure->tick())->isJiMS() : targetMeasure->acceptDrop(edd.ed);
+            = meloChooser ? score()->staff(staffIdx)->staffType(targetMeasure->tick())->isMelo() : targetMeasure->acceptDrop(edd.ed);
         if (dropAccepted) {
             setAnchorLines({ LineF(pos, measureRect.topLeft()) });
         }
@@ -8114,7 +8114,7 @@ void NotationInteraction::addFretboardDiagram()
                 continue;
             }
 
-            if (toHarmony(element)->harmonyType() == HarmonyType::JIMS) {
+            if (toHarmony(element)->harmonyType() == HarmonyType::MELO) {
                 continue;
             }
 

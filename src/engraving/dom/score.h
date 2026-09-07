@@ -900,13 +900,13 @@ public:
     void setMasterScore(MasterScore* s) { m_masterScore = s; }
 
     // JiMS MusicXML interchange carrier (transported, never interpreted; see jims/jimsinterchange.h)
-    const melo::Provenance& jimsProvenance() const { return m_jimsProvenance; }
-    void setJimsProvenance(const melo::Provenance& p) { m_jimsProvenance = p; }
-    melo::MelodyPart jimsMelodyPart() const { return m_jimsMelodyPart; }
-    void setJimsMelodyPart(melo::MelodyPart part) { m_jimsMelodyPart = part; }
+    const melo::Provenance& meloProvenance() const { return m_meloProvenance; }
+    void setMeloProvenance(const melo::Provenance& p) { m_meloProvenance = p; }
+    melo::MelodyPart meloMelodyPart() const { return m_meloMelodyPart; }
+    void setMeloMelodyPart(melo::MelodyPart part) { m_meloMelodyPart = part; }
     /// The JiMS evidentiary review record (transported; see jims/jimsreview.h)
-    const melo::ReviewRecord& jimsReview() const { return m_jimsReview; }
-    void setJimsReview(const melo::ReviewRecord& r) { m_jimsReview = r; }
+    const melo::ReviewRecord& meloReview() const { return m_meloReview; }
+    void setMeloReview(const melo::ReviewRecord& r) { m_meloReview = r; }
 
     const std::map<String, String>& metaTags() const { return m_metaTags; }
     std::map<String, String>& metaTags() { return m_metaTags; }
@@ -1238,9 +1238,9 @@ private:
     bool m_needSetUpTempoMap = true;
 
     std::map<String, String> m_metaTags;
-    melo::Provenance m_jimsProvenance;
-    melo::MelodyPart m_jimsMelodyPart = melo::MelodyPart::Soprano;
-    melo::ReviewRecord m_jimsReview;
+    melo::Provenance m_meloProvenance;
+    melo::MelodyPart m_meloMelodyPart = melo::MelodyPart::Soprano;
+    melo::ReviewRecord m_meloReview;
 
     Selection m_selection;
     SelectionFilter m_selectionFilter;

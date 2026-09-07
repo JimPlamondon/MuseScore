@@ -64,7 +64,7 @@
 using namespace mu::engraving;
 using namespace mu::engraving::read460;
 
-static melo::ReviewValue readJimsReviewValue(XmlReader& e)
+static melo::ReviewValue readMeloReviewValue(XmlReader& e)
 {
     using Kind = melo::ReviewValue::Kind;
     melo::ReviewValue v;
@@ -73,7 +73,7 @@ static melo::ReviewValue readJimsReviewValue(XmlReader& e)
     if (tag == "o" || tag == "a") {
         v.kind = (tag == "o") ? Kind::Object : Kind::Array;
         while (e.readNextStartElement()) {
-            v.children.push_back(readJimsReviewValue(e));
+            v.children.push_back(readMeloReviewValue(e));
         }
     } else if (tag == "s") {
         v.kind = Kind::String;
@@ -92,7 +92,7 @@ static melo::ReviewValue readJimsReviewValue(XmlReader& e)
 }
 
 /// Read the JiMS evidentiary review record (jims/jimsreview.h).
-static melo::ReviewRecord readJimsReview(XmlReader& e)
+static melo::ReviewRecord readMeloReview(XmlReader& e)
 {
     melo::ReviewRecord review;
     review.schema = e.attribute("schema");
@@ -100,7 +100,7 @@ static melo::ReviewRecord readJimsReview(XmlReader& e)
         const AsciiStringView tag = e.name();
         if (tag == "work") {
             while (e.readNextStartElement()) {
-                review.work = readJimsReviewValue(e);
+                review.work = readMeloReviewValue(e);
             }
         } else if (tag == "focusedReviewReason") {
             review.focusedReviewReasons.push_back(e.readText());
@@ -113,7 +113,7 @@ static melo::ReviewRecord readJimsReview(XmlReader& e)
                 if (e.name() == "reason") {
                     a.reason = e.readText();
                 } else {
-                    a.record = readJimsReviewValue(e);
+                    a.record = readMeloReviewValue(e);
                 }
             }
             review.audits.push_back(a);
@@ -131,7 +131,7 @@ static melo::ReviewRecord readJimsReview(XmlReader& e)
                 } else if (e.name() == "sourceAnalysis") {
                     adj.sourceAnalysis = e.readText();
                 } else {
-                    adj.record = readJimsReviewValue(e);
+                    adj.record = readMeloReviewValue(e);
                 }
             }
             review.adjudications.push_back(adj);
@@ -203,7 +203,7 @@ muse::Ret Read460::readScoreFile(Score* score, XmlReader& e, rw::ReadInOutData* 
         }
         for (const StaffType* state : states) {
             String error;
-            if (state && state->isJiMS() && !melo::validateState(state->jimsStateJson(), error)) {
+            if (state && state->isMelo() && !melo::validateState(state->meloStateJson(), error)) {
                 return make_ret(Err::FileBadFormat,
                                 muse::mtrc("engraving",
                                            "This score contains JiMS data that this version cannot read. The original file has not been changed. Open it in the JiMS version that saved it, and keep a native copy. Details: %1")
@@ -309,13 +309,13 @@ bool Read460::readScoreTag(Score* score, XmlReader& e, ReadContext& ctx)
                     e.unknown();
                 }
             }
-            score->setJimsProvenance(prov);
+            score->setMeloProvenance(prov);
         } else if (tag == "jimsReview") {
-            score->setJimsReview(readJimsReview(e));
+            score->setMeloReview(readMeloReview(e));
         } else if (tag == "jimsMelodyPart") {
             melo::MelodyPart part = melo::MelodyPart::Soprano;
             if (melo::melodyPartFromToken(e.readText().trimmed(), part)) {
-                score->setJimsMelodyPart(part);
+                score->setMeloMelodyPart(part);
             }
         } else if (tag == "Order") {
             ScoreOrder order;
