@@ -41,9 +41,9 @@ def jims_namespace(root):
         if isinstance(element.tag, str) and element.tag.startswith("{urn:jims:musicxml:"):
             uri = element.tag[1:element.tag.index("}")]
             if uri not in JIMS_NAMESPACES:
-                sys.exit(f"ERROR: unsupported JiMS namespace {uri}")
+                sys.exit(f"ERROR: unsupported MeloPresto namespace {uri}")
             return uri
-    sys.exit("ERROR: the enriched file carries no JiMS namespace")
+    sys.exit("ERROR: the enriched file carries no MeloPresto namespace")
 
 
 def parse_reference(element, ns):

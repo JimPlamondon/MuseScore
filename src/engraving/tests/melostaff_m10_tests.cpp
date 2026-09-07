@@ -48,7 +48,7 @@ muse::String forkRoot()
 
 muse::String satbTemplatePath()
 {
-    return forkRoot() + u"/share/templates/02-Choral/12-SATB_(JiMStaff)/12-SATB_(JiMStaff).mscx";
+    return forkRoot() + u"/share/templates/02-Choral/12-SATB_(MeloPresto_Staff)/12-SATB_(MeloPresto_Staff).mscx";
 }
 
 std::vector<Note*> notesOn(Score* score, staff_idx_t staffIdx)

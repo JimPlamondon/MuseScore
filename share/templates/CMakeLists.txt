@@ -37,7 +37,7 @@ install(DIRECTORY
       01-General/01-Treble_Clef
       01-General/02-Bass_Clef
       01-General/03-Grand_Staff
-      01-General/04-JiMStaff
+      01-General/04-MeloPresto_Staff
       DESTINATION ${Mscore_SHARE_NAME}${Mscore_INSTALL_NAME}templates/01-General
       )
 
@@ -53,7 +53,7 @@ install(DIRECTORY
       02-Choral/09-Barbershop_Quartet_\(Women\)
       02-Choral/10-Liturgical_Unmetrical
       02-Choral/11-Liturgical_Unmetrical_+_Organ
-      02-Choral/12-SATB_\(JiMStaff\)
+      02-Choral/12-SATB_\(MeloPresto_Staff\)
       DESTINATION ${Mscore_SHARE_NAME}${Mscore_INSTALL_NAME}templates/02-Choral
       )
 

@@ -6,7 +6,7 @@
           "01-General/01-Treble_Clef/01-Treble_Clef.mscx",
           "01-General/02-Bass_Clef/02-Bass_Clef.mscx",
           "01-General/03-Grand_Staff/03-Grand_Staff.mscx",
-          "01-General/04-JiMStaff/04-JiMStaff.mscx"
+          "01-General/04-MeloPresto_Staff/04-MeloPresto_Staff.mscx"
       ]
     },
     {
@@ -24,7 +24,7 @@
           "02-Choral/09-Barbershop_Quartet_(Women)/09-Barbershop_Quartet_(Women).mscx",
           "02-Choral/10-Liturgical_Unmetrical/10-Liturgical_Unmetrical.mscx",
           "02-Choral/11-Liturgical_Unmetrical_+_Organ/11-Liturgical_Unmetrical_+_Organ.mscx",
-            "02-Choral/12-SATB_(JiMStaff)/12-SATB_(JiMStaff).mscx"
+            "02-Choral/12-SATB_(MeloPresto_Staff)/12-SATB_(MeloPresto_Staff).mscx"
       ]
     },
     {
