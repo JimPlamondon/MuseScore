@@ -80,7 +80,7 @@ target_sources(engraving PRIVATE
     melo/melointerchange.h
 )
 
-# Keep the JiMS sources out of unity batches: their addition would reshuffle
+# Keep the MeloPresto sources out of unity batches: their addition would reshuffle
 # the upstream unity groups, which collide the two 'compat' namespaces.
 set_source_files_properties(melo/melobridge.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE)
 set_source_files_properties(melo/melopitchlabel.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE)
@@ -443,7 +443,7 @@ target_link_libraries(engraving PRIVATE muse::draw)
 # staticlib (Apache-2.0, from the JiMS Kernel repository) — the license/ABI
 # seam through which every JiMS musical fact reaches this fork.
 include(${CMAKE_CURRENT_LIST_DIR}/melo/SetupMeloBridge.cmake)
-setup_jims_bridge(engraving)
+setup_melo_bridge(engraving)
 
 if (MUSE_QT_SUPPORT)
     target_link_libraries(engraving PRIVATE Qt::Quick)

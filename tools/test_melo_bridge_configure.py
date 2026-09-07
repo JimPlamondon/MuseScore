@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # MuseScore-Studio-CLA-applies
 # Copyright (C) 2026 Jim Plamondon
-"""Exercise the JiMS bridge checkout-selection CMake contract without Rust builds.
+"""Exercise the MeloPresto bridge checkout-selection CMake contract without Rust builds.
 
 Run with either ``python3`` or the project's ``.venv/bin/python``.  The default
 checks the checked-in bridge configuration.  ``--expect-env-reset`` is provided
@@ -33,7 +33,7 @@ def fail(message: str) -> None:
 def write_checkout(root: Path) -> None:
     crate = root / "Libraries/melo/crates/melo-musescore-bridge"
     (crate / "include").mkdir(parents=True)
-    (root / "Libraries/melo/.jims-configure-fixture").touch()
+    (root / "Libraries/melo/.melo-configure-fixture").touch()
     (crate / "Cargo.toml").write_text(
         "[package]\nname = \"melo-musescore-bridge\"\nversion = \"0.0.0\"\n",
         encoding="utf-8",
@@ -45,7 +45,7 @@ def write_fake_cargo(directory: Path) -> None:
     cargo.write_text(
         "#!/bin/sh\n"
         "set -eu\n"
-        "test -f .jims-configure-fixture || { echo 'refusing non-fixture workspace' >&2; exit 1; }\n"
+        "test -f .melo-configure-fixture || { echo 'refusing non-fixture workspace' >&2; exit 1; }\n"
         "mkdir -p target/release\n"
         ": > target/release/libmelo_musescore_bridge.a\n",
         encoding="utf-8",
@@ -57,25 +57,25 @@ def write_fixture_project(directory: Path, bridge_cmake: Path) -> None:
     cmake_path = bridge_cmake.resolve().as_posix()
     (directory / "CMakeLists.txt").write_text(
         "cmake_minimum_required(VERSION 3.18)\n"
-        "project(jims_bridge_configure_fixture C)\n"
+        "project(melo_bridge_configure_fixture C)\n"
         f"include(\"{cmake_path}\")\n"
         "add_library(consumer STATIC consumer.c)\n"
-        "setup_jims_bridge(consumer)\n"
-        "get_target_property(JIMS_BRIDGE_LIBRARY melo_musescore_bridge IMPORTED_LOCATION)\n"
-        "get_filename_component(SELECTED_ROOT \"${JIMS_BRIDGE_LIBRARY}/../../../../..\" ABSOLUTE)\n"
+        "setup_melo_bridge(consumer)\n"
+        "get_target_property(MELO_BRIDGE_LIBRARY melo_musescore_bridge IMPORTED_LOCATION)\n"
+        "get_filename_component(SELECTED_ROOT \"${MELO_BRIDGE_LIBRARY}/../../../../..\" ABSOLUTE)\n"
         "file(WRITE \"${CMAKE_BINARY_DIR}/selected-root.txt\" \"${SELECTED_ROOT}\")\n",
         encoding="utf-8",
     )
-    (directory / "consumer.c").write_text("void jims_bridge_fixture(void) {}\n", encoding="utf-8")
+    (directory / "consumer.c").write_text("void melo_bridge_fixture(void) {}\n", encoding="utf-8")
 
 
-def configure(project: Path, build: Path, cargo_bin: Path, jims_root: Optional[Path], explicit_root: Optional[Path] = None) -> subprocess.CompletedProcess[str]:
+def configure(project: Path, build: Path, cargo_bin: Path, melo_root: Optional[Path], explicit_root: Optional[Path] = None) -> subprocess.CompletedProcess[str]:
     environment = os.environ.copy()
     environment["PATH"] = str(cargo_bin) + os.pathsep + environment.get("PATH", "")
-    if jims_root is None:
+    if melo_root is None:
         environment.pop("JIMS_ROOT", None)
     else:
-        environment["JIMS_ROOT"] = str(jims_root)
+        environment["JIMS_ROOT"] = str(melo_root)
 
     command = ["cmake", "-S", str(project), "-B", str(build)]
     command.append(f"-DCARGO_EXECUTABLE={cargo_bin / 'cargo'}")
@@ -102,7 +102,7 @@ def run_checks(bridge_cmake: Path, expect_env_reset: bool) -> None:
     if not bridge_cmake.is_file():
         fail(f"bridge CMake file does not exist: {bridge_cmake}")
 
-    with tempfile.TemporaryDirectory(prefix="jims-bridge-configure-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="melo-bridge-configure-") as temporary:
         temporary_path = Path(temporary)
         checkout_a = temporary_path / "checkout-a"
         checkout_b = temporary_path / "checkout-b"
@@ -150,7 +150,7 @@ def run_checks(bridge_cmake: Path, expect_env_reset: bool) -> None:
         missing_result = configure(project, missing_build, cargo_bin, checkout_a, explicit_root=missing_checkout)
         if missing_result.returncode == 0:
             fail("missing checkout unexpectedly configured successfully")
-        if "JiMS bridge crate not found" not in missing_result.stdout:
+        if "MeloPresto bridge crate not found" not in missing_result.stdout:
             fail(f"missing checkout did not produce the expected diagnostic:\n{missing_result.stdout}")
 
 
@@ -166,7 +166,7 @@ def main() -> int:
     except AssertionError as error:
         print(f"FAIL: {error}", file=sys.stderr)
         return 1
-    print("PASS: JiMS bridge checkout selection and missing-checkout diagnostics")
+    print("PASS: MeloPresto bridge checkout selection and missing-checkout diagnostics")
     return 0
 
 
