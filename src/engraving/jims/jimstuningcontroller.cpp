@@ -5,6 +5,7 @@
  * JiMStaff Milestone 3 — shared continuous-tuning controller.
  * See jimstuningcontroller.h.
  */
+#include "engraving/jims/jimsstrings.h"
 #include "jimstuningcontroller.h"
 
 #include <algorithm>
@@ -287,7 +288,7 @@ bool TuningController::commit(double generatorCents)
     }
     restoreSpans(original);
     const auto t0 = std::chrono::steady_clock::now();
-    m_score->startCmd(TranslatableString("undoableAction", "Change JiMS tuning"));
+    m_score->startCmd(mu::engraving::jims::changeTuningAction());
     m_score->undo(new JimsChangeStaffStates(std::move(staves), std::move(ticks), std::move(states)));
     size_t repairs = 0;
     String error;

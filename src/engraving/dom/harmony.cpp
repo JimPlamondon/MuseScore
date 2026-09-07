@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "engraving/jims/jimsstrings.h"
 #include "harmony.h"
 
 #include "containers.h"
@@ -1323,7 +1324,7 @@ TranslatableString Harmony::typeUserName() const
     case HarmonyType::NASHVILLE:
         return TranslatableString("engraving", "Nashville number");
     case HarmonyType::JIMS:
-        return TranslatableString("engraving", "JiMS chord name");
+        return mu::engraving::jims::chordName();
     case HarmonyType::STANDARD:
         break;
     }

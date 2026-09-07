@@ -42,7 +42,7 @@ PreferencesPage {
         spacing: root.sectionsSpacing
 
         CheckBox {
-            text: qsTrc("project/save", "Warn when saving JiMS notation")
+            text: preferencesModel.warnWhenSavingNotationLabel
             checked: preferencesModel.warnOnJimsSave
             onClicked: preferencesModel.warnOnJimsSave = !checked
             navigation.panel: NavigationPanel {

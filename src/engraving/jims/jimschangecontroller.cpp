@@ -6,6 +6,7 @@
  * 2026-08-16). Transports Kernel-returned states into the StaffTypeChange
  * carrier; computes no musical fact.
  */
+#include "engraving/jims/jimsstrings.h"
 #include "jimschangecontroller.h"
 
 #include "../dom/factory.h"
@@ -78,7 +79,7 @@ bool projectionFor(const std::vector<StateEdit>& edits, Note* note, SoundingPitc
     const StaffType* current = note->staff() ? note->staff()->staffTypeForElement(note) : nullptr;
     const String state = edit ? edit->state : (current ? current->jimsStateJson() : String());
     if (state.isEmpty()) {
-        error = mtrc("engraving", "a linked JiMS note has no effective JiMS state");
+        error = mu::engraving::jims::linkedNoteMissingState();
         return false;
     }
 
@@ -139,7 +140,7 @@ bool prepareNoteEdits(Score* score, const std::vector<StateEdit>& stateEdits,
                             continue;
                         }
                         if (note->incomingPartialTie() || note->outgoingPartialTie()) {
-                            error = mtrc("engraving", "a path-dependent partial tie crosses the JiMS state span; the edit was not applied");
+                            error = mu::engraving::jims::partialTieCrossesState();
                             return false;
                         }
                         SoundingPitch projection;
@@ -149,7 +150,7 @@ bool prepareNoteEdits(Score* score, const std::vector<StateEdit>& stateEdits,
                         for (EngravingObject* linkedObject : note->linkList()) {
                             Note* linked = toNote(linkedObject);
                             if (!linked->hasJimsPitch()) {
-                                error = mtrc("engraving", "a linked note disagrees about JiMS identity; the edit was not applied");
+                                error = mu::engraving::jims::linkedNoteIdentityMismatch();
                                 return false;
                             }
                             SoundingPitch linkedProjection;
@@ -157,7 +158,7 @@ bool prepareNoteEdits(Score* score, const std::vector<StateEdit>& stateEdits,
                                 return false;
                             }
                             if (!sameProjection(projection, linkedProjection)) {
-                                error = mtrc("engraving", "linked notes require conflicting JiMS projections; the edit was not applied");
+                                error = mu::engraving::jims::conflictingLinkedProjections();
                                 return false;
                             }
                             seen.insert(linked);
@@ -280,7 +281,7 @@ bool canInsertChange(const Score* score, staff_idx_t staffIdx, const Measure* me
 {
     String state;
     if (!effectiveState(score, staffIdx, measure, tick, state)) {
-        reason = mtrc("engraving", "not a JiMStaff");
+        reason = mu::engraving::jims::notSystemStaff();
         return false;
     }
     if (tick.isZero()) {
@@ -290,7 +291,7 @@ bool canInsertChange(const Score* score, staff_idx_t staffIdx, const Measure* me
         return true;        // the JiMS carrier is updated in place
     }
     if (anyCarrierAt(measure, staffIdx, tick)) {
-        reason = mtrc("engraving", "this position already carries a non-JiMS staff type change on this staff");
+        reason = mu::engraving::jims::positionHasOtherStaffChange();
         return false;
     }
     if (!measure->canAddStaffTypeChange(staffIdx, tick - measure->tick())) {
@@ -322,7 +323,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
     }
     if (!defaultExtentForEmptyStaffSpan(score->staff(staffIdx), tick,
                                         nextCarrierTick(score, staffIdx, tick), next, next)) {
-        error = mtrc("engraving", "the JiMS Kernel could not derive the empty staff centre");
+        error = mu::engraving::jims::emptyStaffCentreUnavailable();
         return false;
     }
     if (next == current) {
@@ -358,7 +359,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
                 return false;
             }
             if (!defaultExtentForEmptyStaffSpan(staff, tick, nextCarrierTick(score, staffIdx, tick), bound, bound)) {
-                error = mtrc("engraving", "the JiMS Kernel could not derive the empty staff centre");
+                error = mu::engraving::jims::emptyStaffCentreUnavailable();
                 return false;
             }
             if (bound != st->jimsStateJson()) {
@@ -387,7 +388,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
         if (!prepareNoteEdits(score, stateEdits, noteEdits, error)) {
             return false;
         }
-        score->startCmd(TranslatableString("undoableAction", "Bind JiMS reference"));
+        score->startCmd(mu::engraving::jims::bindReferenceAction());
         for (const auto& e : edits) {
             score->undo(new JimsChangeStateAt(staff, e.first, e.second));
         }
@@ -402,7 +403,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
     if (!prepareNoteEdits(score, stateEdits, noteEdits, error)) {
         return false;
     }
-    score->startCmd(TranslatableString("undoableAction", "Insert JiMS change"));
+    score->startCmd(mu::engraving::jims::insertChangeAction());
     if (origin || hasCarrier) {
         // The base type (origin) or the carrier's copy in the staff list is
         // the type in force at this tick: replace its state in place.
@@ -476,7 +477,7 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& t
         if (!canInsertChange(score, staffIdx, measure, tick, reason)) {
             const StaffType* here = staff->staffType(tick);
             if (!here || !here->isJiMS()) {
-                reason = mtrc("engraving", "this measure already carries a non-JiMS staff type change on this staff");
+                reason = mu::engraving::jims::measureHasOtherStaffChange();
             }
             error = mtrc("engraving", "staff %1: %2").arg(int(staffIdx) + 1).arg(reason);
             return false;
@@ -484,7 +485,7 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& t
         String current;
         const StaffType* effective = nullptr;
         if (!effectiveState(score, staffIdx, measure, tick, current, &effective)) {
-            error = mtrc("engraving", "staff %1: no JiMS state in force at this position").arg(int(staffIdx) + 1);
+            error = mu::engraving::jims::staffStateUnavailable().arg(int(staffIdx) + 1);
             return false;
         }
         // The Kernel applies the issued ids, in order, to THIS target's own
@@ -504,7 +505,7 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& t
         }
         if (!defaultExtentForEmptyStaffSpan(staff, tick,
                                             nextCarrierTick(score, staffIdx, tick), next, next)) {
-            error = mtrc("engraving", "staff %1: the JiMS Kernel could not derive the empty staff centre")
+            error = mu::engraving::jims::numberedStaffCentreUnavailable()
                     .arg(int(staffIdx) + 1);
             return false;
         }
@@ -531,7 +532,7 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& t
 
     // COMMIT. One startCmd/endCmd pair for every target and every choice id,
     // so the whole gesture is one undo step and one redo step.
-    score->startCmd(TranslatableString("undoableAction", "Insert JiMS change"));
+    score->startCmd(mu::engraving::jims::insertChangeAction());
     for (const Prepared& p : prepared) {
         if (p.editInPlace) {
             score->undo(new JimsChangeStateAt(p.staff, tick, p.next));
@@ -561,14 +562,14 @@ bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fr
 {
     const StaffTypeChange* stc = changeCarrierAt(measure, staffIdx, tick);
     if (!stc) {
-        error = mtrc("engraving", "no JiMS change at this position");
+        error = mu::engraving::jims::changeUnavailable();
         return false;
     }
     Staff* staff = score->staff(staffIdx);
     const Fraction before = Fraction::fromTicks(std::max(0, tick.ticks() - 1));
     const StaffType* previousType = staff ? staff->staffType(before) : nullptr;
     if (!previousType || !previousType->isJiMS()) {
-        error = mtrc("engraving", "no preceding JiMS state can replace this change");
+        error = mu::engraving::jims::precedingStateUnavailable();
         return false;
     }
     const std::vector<StateEdit> stateEdits {
@@ -578,7 +579,7 @@ bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fr
     if (!prepareNoteEdits(score, stateEdits, noteEdits, error)) {
         return false;
     }
-    score->startCmd(TranslatableString("undoableAction", "Remove JiMS change"));
+    score->startCmd(mu::engraving::jims::removeChangeAction());
     score->undoRemoveElement(const_cast<StaffTypeChange*>(stc));
     commitNoteEdits(score, noteEdits);
     score->endCmd();
@@ -632,7 +633,7 @@ bool normalizeStoredPitchesAfterLoad(Score* score, size_t& repairs, String& erro
     }
     if (undoable) {
         if (!commandOpen) {
-            score->startCmd(TranslatableString("undoableAction", "Normalize JiMS stored pitches"));
+            score->startCmd(mu::engraving::jims::normalizeStoredPitchesAction());
         }
         commitNoteEdits(score, repairsNeeded);
         if (!commandOpen) {

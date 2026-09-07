@@ -516,7 +516,7 @@ TEST_F(Engraving_ChordSymbolTests, jimsHarmonyCreationIsPerObjectUndoableCloneab
     score->endCmd();
     EXPECT_EQ(jims->harmonyType(), HarmonyType::JIMS);
     EXPECT_EQ(jims->harmonyName(), u"Fi@Te:M3²+La,Ti/Re");
-    EXPECT_TRUE(jims->accessibleInfo().contains(u"JiMS chord name"));
+    EXPECT_TRUE(jims->accessibleInfo().contains(u"MeloPresto chord name"));
     EXPECT_TRUE(jims->accessibleInfo().contains(u"Fi@Te:M3²+La,Ti/Re"));
     EXPECT_TRUE(jims->screenReaderInfo().contains(u"Fi@Te:M3²+La,Ti/Re"));
 

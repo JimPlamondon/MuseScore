@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "saveandpublishpreferencesmodel.h"
+#include "engraving/jims/jimsstrings.h"
 
 using namespace mu::preferences;
 
@@ -83,6 +84,11 @@ void SaveAndPublishPreferencesModel::setAlsoShareAudioCom(bool share)
     }
 
     projectConfiguration()->setAlsoShareAudioCom(share);
+}
+
+QString SaveAndPublishPreferencesModel::warnWhenSavingNotationLabel() const
+{
+    return engraving::jims::warnWhenSavingNotation().toQString();
 }
 
 bool SaveAndPublishPreferencesModel::warnOnJimsSave() const
