@@ -31,9 +31,9 @@ def fail(message: str) -> None:
 
 
 def write_checkout(root: Path) -> None:
-    crate = root / "Libraries/jims/crates/melo-musescore-bridge"
+    crate = root / "Libraries/melo/crates/melo-musescore-bridge"
     (crate / "include").mkdir(parents=True)
-    (root / "Libraries/jims/.jims-configure-fixture").touch()
+    (root / "Libraries/melo/.jims-configure-fixture").touch()
     (crate / "Cargo.toml").write_text(
         "[package]\nname = \"melo-musescore-bridge\"\nversion = \"0.0.0\"\n",
         encoding="utf-8",

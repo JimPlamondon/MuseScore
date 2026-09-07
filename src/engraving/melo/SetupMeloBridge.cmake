@@ -17,7 +17,7 @@ function(setup_jims_bridge target)
         endif()
     endif()
     set(JIMS_ROOT "${JIMS_ROOT}" CACHE PATH "JiMS Kernel checkout used by this build")
-    set(JIMS_WORKSPACE "${JIMS_ROOT}/Libraries/jims")
+    set(JIMS_WORKSPACE "${JIMS_ROOT}/Libraries/melo")
     set(JIMS_BRIDGE_CRATE "${JIMS_WORKSPACE}/crates/melo-musescore-bridge")
 
     if (NOT EXISTS "${JIMS_BRIDGE_CRATE}/Cargo.toml")
