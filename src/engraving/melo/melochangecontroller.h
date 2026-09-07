@@ -25,9 +25,9 @@ class StaffTypeChange;
 }
 
 namespace mu::engraving::melo {
-/// The effective JiMS state at `measure` on `staffIdx`: the carrier's state
-/// when the measure carries a JiMS change, otherwise the staff type in
-/// force at the measure's tick. False when the staff is not a JiMStaff.
+/// The effective MeloPresto state at `measure` on `staffIdx`: the carrier's state
+/// when the measure carries a MeloPresto change, otherwise the staff type in
+/// force at the measure's tick. False when the staff is not a MeloPresto Staff.
 bool effectiveState(const Score* score, staff_idx_t staffIdx, const Measure* measure, muse::String& stateJson,
                     const StaffType** effective = nullptr);
 bool effectiveState(const Score* score, staff_idx_t staffIdx, const Measure* measure, const Fraction& tick, muse::String& stateJson,
@@ -37,8 +37,8 @@ bool effectiveState(const Score* score, staff_idx_t staffIdx, const Measure* mea
 bool changeOptions(const Score* score, staff_idx_t staffIdx, const Measure* measure, StateChangeOptions& options);
 bool changeOptions(const Score* score, staff_idx_t staffIdx, const Measure* measure, const Fraction& tick, StateChangeOptions& options);
 
-/// May a JiMS change be inserted at `measure` on `staffIdx`? False with a
-/// reason when the staff is not JiMS, when a NON-JiMS StaffTypeChange
+/// May a MeloPresto change be inserted at `measure` on `staffIdx`? False with a
+/// reason when the staff is not MeloPresto, when a NON-MeloPresto StaffTypeChange
 /// already occupies the staff/measure, or when Measure::canAddStaffTypeChange
 /// refuses.
 bool canInsertChange(const Score* score, staff_idx_t staffIdx, const Measure* measure, muse::String& reason);
@@ -80,12 +80,12 @@ bool applyChangeToAllMeloParts(Score* score, Measure* measure, const std::vector
 bool applyChangeToAllMeloParts(Score* score, Measure* measure, const Fraction& tick, const std::vector<muse::String>& choiceIds,
                                muse::String& error);
 
-/// Remove the JiMS change carrier at `measure` (one undo step). False with
+/// Remove the MeloPresto change carrier at `measure` (one undo step). False with
 /// `error` when there is none.
 bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, muse::String& error);
 bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fraction& tick, muse::String& error);
 
-/// Enforce the persisted JiMS authority contract after native load or import.
+/// Enforce the persisted MeloPresto authority contract after native load or import.
 /// Authoritative identity plus effective state replace contradictory ordinary
 /// pitch fields in one undoable repair command. `repairs` counts notes, while
 /// callers emit at most one document-level diagnostic.

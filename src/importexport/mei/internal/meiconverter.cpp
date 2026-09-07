@@ -1816,7 +1816,7 @@ void Convert::harmFromMEI(engraving::Harmony* harmony, const StringList& meiLine
     // text content
     harmony->setHarmonyType(harmonyType);
     if (harmonyType == engraving::HarmonyType::MELO) {
-        // One opaque canonical JiMS chord name; never run the conventional
+        // One opaque canonical MeloPresto chord name; never run the conventional
         // chord parser on it (mirrors the MusicXML importer).
         engraving::HarmonyInfo* info = new engraving::HarmonyInfo(harmony->score());
         info->setId(-1);
@@ -1853,7 +1853,7 @@ libmei::Harm Convert::harmToMEI(const engraving::Harmony* harmony, StringList& m
             harmonyType = std::string(HARMONY_TYPE) + "roman";
             break;
         case (engraving::HarmonyType::MELO):
-            // mei-jims profile: the canonical JiMS chord name as typed harm
+            // mei-jims profile: the canonical MeloPresto chord name as typed harm
             harmonyType = "jims-chord-name";
             break;
         default: break;

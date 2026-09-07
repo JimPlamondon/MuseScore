@@ -37,6 +37,7 @@
 #include "playbackcontext.h"
 
 #include "log.h"
+#include "engraving/melo/melostrings.h"
 
 namespace mu::engraving {
 struct RenderingContext {
@@ -175,7 +176,7 @@ struct NominalNoteCtx {
                 }
                 // Explicit degraded path (never a silent wrong pitch): the
                 // stock event plays, and the reason is logged.
-                LOGE() << "JiMS note_sounding_pitch failed for identity (" << note->meloNPer() << ", " << note->meloNGen()
+                LOGE() << mu::engraving::melo::diagnostic::soundingPitchFailed << note->meloNPer() << ", " << note->meloNGen()
                        << "): " << error << " - playing the compatibility pitch";
             }
         }

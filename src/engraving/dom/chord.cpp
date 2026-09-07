@@ -170,7 +170,7 @@ Note* Chord::downNote() const
     }
 
     const StaffType* st  = stf->staffTypeForElement(this);
-    // JiMStaff: "down" is the lowest cents (see upNote).
+    // MeloPresto Staff: "down" is the lowest cents (see upNote).
     if (st->isMelo()) {
         for (Note* n : m_notes) {
             if (n->hasMeloPitch() && result->hasMeloPitch()

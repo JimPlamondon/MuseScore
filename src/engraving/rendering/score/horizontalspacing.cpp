@@ -1304,7 +1304,7 @@ static double meloChangeTerrainExtra(const Segment* f, const Segment* ns)
         return 0.0;
     }
     // Courtesy terrain at the END of a measure that is (currently) the last
-    // of its system and whose successor carries a JiMS change: reserve it
+    // of its system and whose successor carries a MeloPresto change: reserve it
     // before the closing barline (the pair last-content -> end barline).
     if (f->measure() == ns->measure() && (ns->segmentType() & SegmentType::EndBarLine)) {
         return melo::courtesyTerrainWidth(ns->measure());

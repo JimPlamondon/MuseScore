@@ -31,7 +31,7 @@ using namespace muse;
 
 namespace mu::engraving::melo {
 namespace {
-// One undoable edit covering every JiMS span in the score: flip() swaps all
+// One undoable edit covering every MeloPresto span in the score: flip() swaps all
 // captured state JSONs at once, so undo/redo is a single step.
 class MeloChangeStaffStates : public UndoCommand
 {

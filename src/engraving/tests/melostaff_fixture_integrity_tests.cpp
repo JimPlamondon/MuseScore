@@ -95,7 +95,7 @@ struct Mismatch {
     }
 };
 
-/// Every JiMS test file under jimstaff_data, discovered rather than listed.
+/// Every MeloPresto test file under jimstaff_data, discovered rather than listed.
 std::vector<muse::String> meloFixtures()
 {
     const muse::String dir = ScoreRW::rootPath() + u"/jimstaff_data";
@@ -188,7 +188,7 @@ void checkScore(const muse::String& path, MasterScore* score, std::vector<Mismat
 TEST(Engraving_MeloStaffFixtureIntegrity, everyMeloNoteSoundsAtThePitchItsFileClaims)
 {
     const std::vector<muse::String> fixtures = meloFixtures();
-    ASSERT_FALSE(fixtures.empty()) << "no JiMS test files were discovered — the scan is broken, "
+    ASSERT_FALSE(fixtures.empty()) << "no MeloPresto test files were discovered — the scan is broken, "
                                       "and a guard that scans nothing guards nothing";
 
     std::vector<Mismatch> bad;
@@ -213,31 +213,31 @@ TEST(Engraving_MeloStaffFixtureIntegrity, everyMeloNoteSoundsAtThePitchItsFileCl
     }
 
     for (const std::string& u : unreadable) {
-        ADD_FAILURE() << "could not read JiMS test file " << u;
+        ADD_FAILURE() << "could not read MeloPresto test file " << u;
     }
 
     for (const Mismatch& m : bad) {
         ADD_FAILURE() << m.describe();
     }
 
-    // Every retained JiMS note must agree with the Kernel projection. A
+    // Every retained MeloPresto note must agree with the Kernel projection. A
     // historical exact-count exception would turn known contradictions into
     // an oracle and allow stale conventional fields to remain live.
     for (const Mismatch& m : staleAfterKeyChange) {
         RecordProperty("stale_after_key_change", m.describe());
     }
     EXPECT_TRUE(staleAfterKeyChange.empty())
-        << staleAfterKeyChange.size() << " JiMS notes retain stale conventional pitch fields after a state change";
+        << staleAfterKeyChange.size() << " MeloPresto notes retain stale conventional pitch fields after a state change";
 
     EXPECT_TRUE(bad.empty())
-        << bad.size() << " of " << checked << " JiMS notes disagree with the pitch their file claims. "
+        << bad.size() << " of " << checked << " MeloPresto notes disagree with the pitch their file claims. "
         << "A file whose identities were written against the wrong starting point looks correct to "
         << "every other test and wrong only on the printed page.";
 
     // The guard must actually be looking at something.
     EXPECT_GT(checked, 100u) << "only " << checked << " notes were checked across "
                              << fixtures.size() << " files — the walk is not reaching the notes";
-    EXPECT_GT(withNotes, 5u) << "only " << withNotes << " files carried JiMS notes";
+    EXPECT_GT(withNotes, 5u) << "only " << withNotes << " files carried MeloPresto notes";
 }
 
 TEST(Engraving_MeloStaffFixtureIntegrity, writeKernelNormalizedProjectionFixtures)

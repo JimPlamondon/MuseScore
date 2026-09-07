@@ -96,7 +96,7 @@ void Mei_Tests::meiReadTest(const char* file)
     EXPECT_TRUE(ScoreComp::compareFiles(fileName + u".test.mei", ScoreRW::rootPath() + u"/" + MEI_DIR + fileName + u".mei"));
 }
 
-// JiMS MEI (mei-jims profile) focused round trip: typed state import,
+// MeloPresto MEI (mei-jims profile) focused round trip: typed state import,
 // native carriers, and extMeta regeneration on export.
 TEST_F(Mei_Tests, mei_melo_roundtrip_01) {
     auto importFunc = [](MasterScore* score, const muse::io::path_t& path) -> Err {
@@ -111,7 +111,7 @@ TEST_F(Mei_Tests, mei_melo_roundtrip_01) {
     MasterScore* score = ScoreRW::readScore(MEI_DIR + u"jims/jims-synthetic.mei", false, importFunc);
     ASSERT_TRUE(score);
 
-    // Typed staff state: JiMS staff type at tick 0 plus two later states.
+    // Typed staff state: MeloPresto staff type at tick 0 plus two later states.
     const Staff* staff = score->staff(0);
     ASSERT_TRUE(staff);
     const StaffType* base = staff->staffType(Fraction(0, 1));

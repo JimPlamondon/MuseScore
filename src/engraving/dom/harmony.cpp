@@ -822,7 +822,7 @@ void Harmony::endEdit(EditData& ed)
     setHarmony(s);
     setPlainText(harmonyName());
 
-    // A refused JiMS edit keeps its explanation until the next valid edit.
+    // A refused MeloPresto edit keeps its explanation until the next valid edit.
     if (m_harmonyType != HarmonyType::MELO) {
         m_isMisspelled = false;
     }

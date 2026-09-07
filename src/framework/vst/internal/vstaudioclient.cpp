@@ -966,7 +966,7 @@ bool VstAudioClient::processIdleParamChange(const ParamChangeEvent& param)
         return false;
     }
 
-    // Do not consume the live render queue while the score is stopped. JiMSynth
+    // Do not consume the live render queue while the score is stopped. MeloPresto Synth
     // accepts zero-frame parameter-only calls and applies their events to its
     // state, so an editor close can serialize the new value without advancing
     // an audition block or discarding its note events.

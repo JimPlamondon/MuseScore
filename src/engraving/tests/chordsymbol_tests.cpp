@@ -509,7 +509,7 @@ TEST_F(Engraving_ChordSymbolTests, meloHarmonyCreationIsPerObjectUndoableCloneab
     ChordRest* chordRest = segment->cr(0);
     ASSERT_TRUE(chordRest);
 
-    score->startCmd(TranslatableString::untranslatable("Add JiMS chord name"));
+    score->startCmd(TranslatableString::untranslatable("Add MeloPresto chord name"));
     Harmony* melo = score->addHarmony(HarmonyType::MELO, chordRest);
     ASSERT_TRUE(melo);
     melo->setHarmony(u"Fi@Te:M3²+La,Ti/Re");
@@ -598,7 +598,7 @@ TEST_F(Engraving_ChordSymbolTests, meloHarmonyRangeCopyPasteKeepsTypeAndCanonica
     EngravingItem* destination = destinationMeasure->first(SegmentType::ChordRest)->element(0);
     ASSERT_TRUE(destination);
     score->select(destination);
-    score->startCmd(TranslatableString::untranslatable("Paste JiMS chord name"));
+    score->startCmd(TranslatableString::untranslatable("Paste MeloPresto chord name"));
     QMimeDataAdapter adapter(&mimeData);
     score->cmdPaste(&adapter, 0);
     score->endCmd();

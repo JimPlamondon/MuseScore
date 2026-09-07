@@ -342,7 +342,7 @@ TEST_F(MeloUiModelTests, TuningRoutesLiveGeneratorOnlyForTheCurrentScore)
     notation->notationChanged().notify();
     EXPECT_DOUBLE_EQ(routed.back().value, 690.0);
 
-    // Selecting JiMSynth after the track already exists must adopt the
+    // Selecting MeloPresto Synth after the track already exists must adopt the
     // score's current generator without requiring another tuning gesture.
     const size_t callsBeforeResourceChange = routed.size();
     resourceChanged.notify();

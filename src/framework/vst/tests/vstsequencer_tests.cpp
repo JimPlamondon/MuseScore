@@ -149,7 +149,7 @@ std::vector<ParamChangeEvent> paramEventsOf(const VstSequencer::EventSequenceMap
 
 VstNoteExpressionCapabilities meloSynthCaps()
 {
-    // What JiMSynth advertises: standard tuning + both lattice types over
+    // What MeloPresto Synth advertises: standard tuning + both lattice types over
     // the Kernel-declared domains (nPer [-64, +63], nGen [-17, +17]).
     VstNoteExpressionCapabilities c;
     c.tuning = true;
@@ -270,7 +270,7 @@ TEST(Vst_SequencerTests, idsAreMonotonicAcrossRebuildsAndWrapOnlyAfterFlushing)
     EXPECT_NE(a, b);
 }
 
-// ---- exact optional JiMS pitch --------------------------------------------------
+// ---- exact optional MeloPresto pitch --------------------------------------------------
 
 TEST(Vst_SequencerTests, meloNoteOnUsesTheExactKernelKeyAndFullResidualCents)
 {
@@ -318,7 +318,7 @@ TEST(Vst_SequencerTests, latticeIdentityIsSentOnceAfterNoteOnOnlyToAPlugInThatAd
     PlaybackEventsMap events;
     events[0].push_back(meloNote(0, SECOND, 62 * 50 - 600, exact));
 
-    // JiMSynth: both types advertised → nPer/nGen once, same id, after the Note On.
+    // MeloPresto Synth: both types advertised → nPer/nGen once, same id, after the Note On.
     {
         Harness h;
         VstSequencer::EventSequenceMap seq = h.run(events, meloSynthCaps());
@@ -388,7 +388,7 @@ TEST(Vst_SequencerTests, bendsBecomePerNoteTuningExpressionsWhenAdvertisedAndSta
         EXPECT_FALSE(paramEventsOf(seq, PITCH_BEND_PARAM).empty()) << "global bend for a plug-in without per-note tuning";
         EXPECT_TRUE(vstEventsOf(seq, VstEvent::kNoteExpressionValueEvent).empty());
     }
-    // JiMSynth-like plug-in: kTuningTypeID events with the bent note's id,
+    // MeloPresto Synth-like plug-in: kTuningTypeID events with the bent note's id,
     // no global bend, the partner untouched.
     {
         ParamsMapping mapping;
@@ -437,7 +437,7 @@ TEST(Vst_SequencerTests, bendsBecomePerNoteTuningExpressionsWhenAdvertisedAndSta
 
 TEST(Vst_SequencerTests, samePitchSortKeepsExpressionsBehindTheirNoteOn)
 {
-    // Two JiMS notes at the same offset, higher pitch first; the keyswitch
+    // Two MeloPresto notes at the same offset, higher pitch first; the keyswitch
     // sort reorders Note Ons by pitch, and each note's identity events stay
     // with it.
     PlaybackEventsMap events;

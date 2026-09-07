@@ -128,7 +128,7 @@ protected:
         return out;
     }
 
-    /// The Kernel's fresh sounding-pitch answer for a JiMS note (the oracle
+    /// The Kernel's fresh sounding-pitch answer for a MeloPresto note (the oracle
     /// for the exact-pitch field).
     static melo::SoundingPitch kernelSoundingPitch(const Note* note)
     {
@@ -140,7 +140,7 @@ protected:
         return sp;
     }
 
-    /// The Kernel's expected pitch level for a JiMS note in the section
+    /// The Kernel's expected pitch level for a MeloPresto note in the section
     /// state in force at that note (fresh call; the oracle).
     static pitch_level_t kernelPitchLevel(const Note* note)
     {
@@ -191,7 +191,7 @@ TEST_F(Engraving_MeloStaffM7PlaybackTests, m7PitchLevelFromMidiMatchesTheMpeScal
 }
 
 // Default 12-TET (unpinned → Kernel default Re0 = 62) and the M6 gate
-// file's reference-53 section (bar 2 onward): every JiMS note plays the
+// file's reference-53 section (bar 2 onward): every MeloPresto note plays the
 // Kernel's answer for ITS section — bar 2's notes no longer sound their
 // bar-1 compatibility pitches.
 TEST_F(Engraving_MeloStaffM7PlaybackTests, m7PlaybackUsesKernelPitchForDefaultAndReference53Sections)
@@ -421,9 +421,9 @@ TEST_F(Engraving_MeloStaffM7PlaybackTests, m7LivePlaybackModelFollowsTuningPrevi
     delete score;
 }
 
-// The accepted M5 pieces and the other JiMStaff fixtures (all staves,
+// The accepted M5 pieces and the other MeloPresto Staff fixtures (all staves,
 // all voices): every playback event's pitch level is a Kernel answer for
-// some JiMS note's identity in ITS section state — order-independent
+// some MeloPresto note's identity in ITS section state — order-independent
 // multiset comparison against fresh Kernel calls.
 TEST_F(Engraving_MeloStaffM7PlaybackTests, m7ImportedAndAcceptedPiecesUseEffectiveSectionPitch)
 {
@@ -521,8 +521,8 @@ TEST_F(Engraving_MeloStaffM7PlaybackTests, syntheticCommonToneHasOneAttackAtOneE
     delete score;
 }
 
-// Negative control: a stock (non-JiMS) score's pitch levels are exactly
-// the stock formula — byte-identical playback for every non-JiMS staff.
+// Negative control: a stock (non-MeloPresto) score's pitch levels are exactly
+// the stock formula — byte-identical playback for every non-MeloPresto staff.
 TEST_F(Engraving_MeloStaffM7PlaybackTests, m7StockPlaybackPitchIsUnchanged)
 {
     Score* score = ScoreRW::readScore(u"playback/playbackmodel_data/repeat_range/repeat_range.mscx");

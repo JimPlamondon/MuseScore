@@ -174,7 +174,7 @@ Score* syntheticCommonToneScore()
         delete score;
         return nullptr;
     }
-    score->setMetaTag(u"workTitle", u"JiMS Common-Tone Projection Acceptance");
+    score->setMetaTag(u"workTitle", u"MeloPresto Common-Tone Projection Acceptance");
     score->doLayout();
     return score;
 }
@@ -1099,9 +1099,9 @@ TEST(MeloStaffTests, ambiguousPartialTieAcrossStateBoundaryIsRefusedWithoutMutat
 }
 
 // Binding Requirement 2 (letter entry): typing a letter (with the input
-// state's accidental) on a JiMStaff enters THAT NOTE — its identity is
+// state's accidental) on a MeloPresto Staff enters THAT NOTE — its identity is
 // established through the Kernel entry seam (Note::setNval), not read off
-// a stock-clef line position (a JiMStaff has no clef; its lines are 50 cents
+// a stock-clef line position (a MeloPresto Staff has no clef; its lines are 50 cents
 // apart). D-sharp typed = D#4 = identity (-4, 7); E-flat = (3, -5); C = (1, -2).
 TEST(MeloStaffTests, m6LetterEntryEstablishesTheKernelIdentityOfTheNamedNote)
 {
@@ -1179,7 +1179,7 @@ TEST(MeloStaffTests, conventionalEntryUsesTheEffectivePostChangeState)
     delete score;
 }
 
-// Phase 7 — the editing-only scenario: starting from the JiMStaff template
+// Phase 7 — the editing-only scenario: starting from the MeloPresto Staff template
 // (no XML edit, no converter, no caller-authored state JSON), reproduce the
 // accepted m5-key-mode piece through the new commands alone — bind the
 // reference at bar 1, type the notes (letters + accidentals, chords by

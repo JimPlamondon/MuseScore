@@ -82,6 +82,7 @@
 #include "thirdparty/libmei/midi.h"
 
 #include "pugixml.hpp"
+#include "engraving/melo/melostrings.h"
 
 using namespace muse;
 using namespace mu;
@@ -132,7 +133,7 @@ bool MeiImporter::read(const muse::io::path_t& path)
     pugi::xml_node root = doc.first_child();
 
     pugi::xml_attribute meiVersion = root.attribute("meiversion");
-    // "5.1" is the JiMS MEI profile (mei-jims customization of MEI 5.1 CMN)
+    // "5.1" is the MeloPresto MEI profile (mei-jims customization of MEI 5.1 CMN)
     if (!meiVersion
         || (String(meiVersion.value()) != String(MEI_BASIC_VERSION)
             && String(meiVersion.value()) != u"5.1")) {
@@ -156,7 +157,7 @@ bool MeiImporter::read(const muse::io::path_t& path)
         }
         if (hasMeloCarrier) {
             Convert::logs.push_back(muse::mtrc("iex_mei",
-                                               "JiMS data is incomplete: its required state record is missing. Import was stopped to avoid silently losing the notation. Use the original JiMS file."));
+                                               mu::engraving::melo::diagnostic::incompleteMeiState));
             return false;
         }
     }

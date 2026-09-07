@@ -1013,7 +1013,7 @@ void StaffType::meloEnsureFrame(const Score* score, staff_idx_t staffIdx) const
         // and a diagnostic is emitted; nothing is synthesized fork-side.
         std::vector<MeloSegment> cached;
         if (token.isEmpty()) {
-            LOGE() << "JiMStaff: no declared tonic-ambit token; frame unavailable for staff " << staffIdx;
+            LOGE() << mu::engraving::melo::diagnostic::staffFrameMissingAmbit << staffIdx;
         } else {
             std::vector<melo::StaveSegment> segments;
             if (melo::frameForMelody(meloStateJson(), melody, token, segments, {}, m_meloRatioLineExtentJson,
@@ -1048,7 +1048,7 @@ void StaffType::meloEnsureFrame(const Score* score, staff_idx_t staffIdx) const
                     }
                 }
             } else {
-                LOGE() << "JiMStaff: Kernel frame derivation failed for staff " << staffIdx
+                LOGE() << mu::engraving::melo::diagnostic::staffFrameDerivationFailed << staffIdx
                        << " (state/melody rejected); frame cleared";
             }
         }
@@ -1212,7 +1212,7 @@ double StaffType::meloYFromCents(double centsAboveDo, const MeloFrameView& view)
 
 // The system-range melody collector: the same lattice-identity walk as
 // jimsEnsureFrame's whole-piece collector (document order, every voice of
-// the staff, main-chord notes with a JiMS identity), restricted to the
+// the staff, main-chord notes with a MeloPresto identity), restricted to the
 // measures of one system. Pure transport — no musical fact is computed.
 static muse::String meloCollectSystemMelody(const System* system, staff_idx_t staffIdx, const StaffType* staffType)
 {
@@ -1318,7 +1318,7 @@ bool StaffType::meloElisionActive(const Score* score, staff_idx_t staffIdx, cons
     }
     // The override is a PER-STAFF fact (MuseScore's per-staff hideWhenEmpty
     // shape): read from the staff's base staff type (tick 0), which is where
-    // the JiMS Staff panel sets it; section copies made by a StaffTypeChange
+    // the MeloPresto Staff panel sets it; section copies made by a StaffTypeChange
     // do not carry their own policy.
     const Staff* staff = staffIdx < score->nstaves() ? score->staff(staffIdx) : nullptr;
     const StaffType* base = staff ? staff->staffType(Fraction(0, 1)) : this;
@@ -1477,7 +1477,7 @@ const StaffType::MeloFrameView& StaffType::meloFrameView(const Score* score, sta
         return true;
     };
     if (token.isEmpty()) {
-        LOGE() << "JiMStaff: no declared tonic-ambit token; banded frame unavailable for staff " << staffIdx;
+        LOGE() << mu::engraving::melo::diagnostic::staffBandsMissingAmbit << staffIdx;
     } else if (deriveBands({}, view)) {
         if (hasIndicator && meloPeriodCents() > 0.0) {
             melo::PeriodicOrigins origins;
@@ -1490,7 +1490,7 @@ const StaffType::MeloFrameView& StaffType::meloFrameView(const Score* score, sta
             }
         }
     } else {
-        LOGE() << "JiMStaff: Kernel banded frame derivation failed for staff " << staffIdx
+        LOGE() << mu::engraving::melo::diagnostic::staffBandsDerivationFailed << staffIdx
                << " (state/melody rejected); banded view cleared";
     }
     MeloFrameView& stored = m_meloFrameViews[rangeKey];

@@ -209,7 +209,7 @@ private:
     /** The uid register */
     UIDRegister* m_uids;
 
-    /// JiMS MEI carriage (mei-jims profile)
+    /// MeloPresto MEI carriage (mei-jims profile)
     MeloMeiExporter m_melo;
 
     /** MEI xml element */

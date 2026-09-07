@@ -62,14 +62,14 @@ class MusicXmlLogger;
 class MeloImportContext
 {
 public:
-    /// The JiMS namespace versions this importer understands.
+    /// The MeloPresto namespace versions this importer understands.
     static constexpr int MIN_VERSION = 1;
     static constexpr int MAX_VERSION = 4;
 
-    /// Resolve the JiMS prefix from the root element's attributes. Returns
-    /// NoError when no JiMS namespace is declared or exactly one supported
+    /// Resolve the MeloPresto prefix from the root element's attributes. Returns
+    /// NoError when no MeloPresto namespace is declared or exactly one supported
     /// version is bound; FileBadFormat (after logging) for an unsupported
-    /// version, a default-namespace binding, or two distinct JiMS profiles.
+    /// version, a default-namespace binding, or two distinct MeloPresto profiles.
     engraving::Err resolveFromRoot(const std::vector<muse::XmlStreamReader::Attribute>& attributes, MusicXmlLogger* logger,
                                    const muse::XmlStreamReader* e);
 
@@ -99,7 +99,7 @@ public:
     bool anyBuffered() const { return !m_states.empty(); }
 
     /// Apply the buffered states of one part: the first state per staff
-    /// becomes the JiMS StaffType at tick 0, every later state a
+    /// becomes the MeloPresto StaffType at tick 0, every later state a
     /// StaffTypeChange at its exact tick; sets the JiMSMusic engraving font.
     /// `staffIndexForNumber` maps a MusicXML staff number to a part-relative
     /// staff index (-1 when invalid). Returns false (after logging) when the

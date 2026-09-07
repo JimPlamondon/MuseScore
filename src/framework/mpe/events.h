@@ -124,7 +124,7 @@ struct PitchContext
 {
     pitch_level_t nominalPitchLevel = 0;
     PitchCurve pitchCurve;
-    /// Present only for a lattice-identified JiMS note (see ExactPitch);
+    /// Present only for a lattice-identified MeloPresto note (see ExactPitch);
     /// every stock consumer ignores it and every stock event leaves it empty.
     std::optional<ExactPitch> exactPitch;
 

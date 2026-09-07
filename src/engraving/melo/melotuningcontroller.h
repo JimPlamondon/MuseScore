@@ -34,7 +34,7 @@ public:
     /// The selected staff's current generator width, read through the Kernel.
     double currentGeneratorCents() const;
 
-    /// Capture the pre-drag score-wide JiMS spans. True if the selected staff is JiMS.
+    /// Capture the pre-drag score-wide MeloPresto spans. True if the selected staff is MeloPresto.
     bool beginPreview();
 
     /// Transient per-tick update: every span's generator_cents replaced,

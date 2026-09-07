@@ -1343,7 +1343,7 @@ void ExportMusicXml::calcDivisions()
         }
     }
 
-    // JiMS tuning trajectories: their offsets and segment durations must be
+    // MeloPresto tuning trajectories: their offsets and segment durations must be
     // representable in the chosen divisions too.
     for (const Staff* staff : m_score->staves()) {
         for (const melo::TuningTrajectory& t : staff->meloTuningTrajectories()) {
@@ -1712,7 +1712,7 @@ static void pitch2xml(const Note* note, String& s, int& alter, int& octave)
             octave = projection.octave;
             return;
         }
-        LOGE() << "JiMS export projection failed after preflight: " << error;
+        LOGE() << mu::engraving::melo::diagnostic::exportProjectionFailed << error;
     }
     const Instrument* instr = st->part()->instrument(tick);
     const Interval intval = note->concertPitch() ? 0 : instr->transpose();
@@ -7375,9 +7375,9 @@ void ExportMusicXml::identification(XmlWriter& xml, Score const* const score)
         metaTagNames.emplace(u"source");
     }
 
-    // JiMS provenance rides in identification before miscellaneous
+    // MeloPresto provenance rides in identification before miscellaneous
     // (urn:jims:musicxml:4); transported verbatim, only when the document
-    // is JiMS (the namespace is declared only then).
+    // is MeloPresto (the namespace is declared only then).
     if (m_meloPlan.present && !score->meloProvenance().empty()) {
         const melo::Provenance& prov = score->meloProvenance();
         XmlWriter::Attributes pattrs;
@@ -8819,10 +8819,10 @@ void ExportMusicXml::writeMeasure(const Measure* const m,
         repeatAtMeasureStart(m_attr, m, strack, etrack, strack);
     }
 
-    // JiMS states (base at tick 0, later sections at their carriers) with
+    // MeloPresto states (base at tick 0, later sections at their carriers) with
     // their Kernel-written change events — a separate attributes block.
     writeMeloAttributes(m, partIndex);
-    // JiMS tuning trajectories starting in this measure (transported carriers).
+    // MeloPresto tuning trajectories starting in this measure (transported carriers).
     writeMeloTrajectories(m, partIndex);
 
     // write data in the staves
@@ -9142,7 +9142,7 @@ bool ExportMusicXml::buildMeloExportPlan()
             }
         }
     }
-    // Every note on a JiMS staff must carry its lattice identity.
+    // Every note on a MeloPresto staff must carry its lattice identity.
     for (const Segment* seg = m_score->firstSegment(SegmentType::ChordRest); seg; seg = seg->next1(SegmentType::ChordRest)) {
         for (track_idx_t t = 0; t < m_score->ntracks(); ++t) {
             const EngravingItem* el = seg->element(t);
@@ -9305,7 +9305,7 @@ bool ExportMusicXml::write(muse::io::IODevice* dev)
         u"score-partwise PUBLIC \"-//Recordare//DTD MusicXML 4.0 Partwise//EN\" \"http://www.musicxml.org/dtds/partwise.dtd\"");
 
     if (m_meloPlan.present) {
-        // The V4 namespace is declared when a JiMStaff or JiMS chord name is present.
+        // The V4 namespace is declared when a MeloPresto Staff or MeloPresto chord name is present.
         m_xml.startElement("score-partwise", { { "version", "4.0" }, { "xmlns:jims", "urn:jims:musicxml:4" } });
     } else {
         m_xml.startElement("score-partwise", { { "version", "4.0" } });

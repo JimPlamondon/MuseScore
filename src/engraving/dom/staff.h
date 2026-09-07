@@ -138,7 +138,7 @@ public:
 
     bool hideSystemBarLine() const { return m_hideSystemBarLine; }
     void setHideSystemBarLine(bool val) { m_hideSystemBarLine = val; }
-    // JiMS MusicXML interchange carriers riding on this staff (transported, never interpreted)
+    // MeloPresto MusicXML interchange carriers riding on this staff (transported, never interpreted)
     const std::vector<melo::TuningTrajectory>& meloTuningTrajectories() const { return m_meloTuningTrajectories; }
     void setMeloTuningTrajectories(const std::vector<melo::TuningTrajectory>& t) { m_meloTuningTrajectories = t; }
     void addMeloTuningTrajectory(const melo::TuningTrajectory& t) { m_meloTuningTrajectories.push_back(t); }

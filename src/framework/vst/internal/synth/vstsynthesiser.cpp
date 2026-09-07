@@ -122,7 +122,7 @@ void VstSynthesiser::init(const OutputSpec& spec)
             try {
                 pitchConfig.mpePitchBendRangeSemitones = std::stod(range->second);
             } catch (...) {
-                LOGW() << "Invalid JiMS MPE pitch-bend range for " << m_params.resourceMeta.id;
+                LOGW() << "Invalid MPE pitch-bend range for " << m_params.resourceMeta.id;
             }
         }
         m_mpePitchBendRangeSemitones = pitchConfig.mpePitchBendRangeSemitones;
@@ -135,7 +135,7 @@ void VstSynthesiser::init(const OutputSpec& spec)
         m_pluginPtr->pluginParamChanged().onReceive(this, [this](PluginParamId id, PluginParamValue normalized,
                                                                  PluginParamChangeGeneration generation) {
             // Editor values are normalized already. Treat them as score-owned
-            // state so a stop flush cannot restore JiMSynth's default.
+            // state so a stop flush cannot restore MeloPresto Synth's default.
             if (m_vstAudioClient->handlePersistentParamChange({ id, normalized })) {
                 // This exact main-thread edit may be acknowledged only after
                 // the audio client reports its processor delivery.
@@ -457,7 +457,7 @@ samples_t VstSynthesiser::processSequence(const VstSequencer::EventSequence& seq
             }
             if (accepted) {
                 // Effects receive MuseScore's canonical note, including its
-                // exact JiMS tuning, not the instrument-specific adaptation.
+                // exact MeloPresto tuning, not the instrument-specific adaptation.
                 m_noteEventBridge.capture(vstEvent, sequenceSampleOffset);
             }
         } else if (std::holds_alternative<ParamChangeEvent>(event)) {

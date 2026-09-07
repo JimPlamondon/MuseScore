@@ -1523,7 +1523,7 @@ void ProjectActionsController::warnMeloStockLossOnce(const INotationProjectPtr& 
     }
     m_meloStockLossWarned.insert(project.get());
 
-    std::string title = muse::trc("project/save", "This score uses JiMS notation");
+    std::string title = muse::trc("project/save", mu::engraving::melo::diagnostic::scoreUsesNotation);
     std::string msg = mu::engraving::melo::stockLossWarning().toStdString();
 
     auto result = interactive()->warning(title, msg,

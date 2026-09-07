@@ -109,6 +109,7 @@
 #include "engraving/rendering/score/tlayout.h"
 
 #include "log.h"
+#include "engraving/melo/melostrings.h"
 
 using namespace muse;
 using namespace mu;
@@ -2083,7 +2084,7 @@ Err MusicXmlParserPass2::parse(const ByteArray& data)
 Err MusicXmlParserPass2::parse()
 {
     bool found = false;
-    m_melo = m_pass1.melo();        // resolved JiMS prefix (native JiMS import); buffers fill below
+    m_melo = m_pass1.melo();        // resolved MeloPresto prefix (native MeloPresto import); buffers fill below
     m_meloError = Err::NoError;
     while (m_e.readNextStartElement()) {
         if (m_e.name() == "score-partwise") {
@@ -2507,8 +2508,8 @@ void MusicXmlParserPass2::part()
 
     part->setShow(showPart);
 
-    // Native JiMS import: apply the buffered jims:staff-state timeline now
-    // that every stock handler for this part has run (first state -> JiMS
+    // Native MeloPresto import: apply the buffered jims:staff-state timeline now
+    // that every stock handler for this part has run (first state -> MeloPresto
     // StaffType at tick 0, later states -> StaffTypeChange carriers).
     if (m_melo.statesFor(id)) {
         const MusicXmlPart& meloPart = m_pass1.getMusicXmlPart(id);
@@ -2519,10 +2520,10 @@ void MusicXmlParserPass2::part()
             size_t repairs = 0;
             String repairError;
             if (!melo::normalizeStoredPitchesAfterLoad(m_score, repairs, repairError, false)) {
-                m_logger->logError(String(u"the JiMS Kernel could not normalize imported note projections: %1").arg(repairError), &m_e);
+                m_logger->logError(String(mu::engraving::melo::diagnostic::importNormalizationFailed).arg(repairError), &m_e);
                 m_meloError = Err::FileBadFormat;
             } else if (repairs > 0) {
-                m_logger->logDebugInfo(String(u"normalized %1 contradictory JiMS compatibility pitch projection(s)").arg(repairs), &m_e);
+                m_logger->logDebugInfo(String(mu::engraving::melo::diagnostic::importedProjectionsNormalized).arg(repairs), &m_e);
             }
         }
     }
@@ -3214,10 +3215,10 @@ void MusicXmlParserPass2::attributes(const String& partId, Measure* measure, con
 //---------------------------------------------------------
 
 /**
- Parse a jims:staff-state (native JiMS import) into the Kernel's state JSON
+ Parse a jims:staff-state (native MeloPresto import) into the Kernel's state JSON
  and buffer it for the part; StaffType / StaffTypeChange construction happens
  after normal part parsing (end of part()) so no later stock handler can
- overwrite the JiMS staff type. A malformed state is a fatal import error.
+ overwrite the MeloPresto staff type. A malformed state is a fatal import error.
  */
 
 void MusicXmlParserPass2::meloStaffState(const String& partId, const Fraction& tick)
@@ -3226,7 +3227,7 @@ void MusicXmlParserPass2::meloStaffState(const String& partId, const Fraction& t
     String error;
     int staffNumber = 0;
     if (!m_melo.parseStaffState(m_e, json, staffNumber, error)) {
-        LOGE() << "JiMS MusicXML import: " << error;
+        LOGE() << mu::engraving::melo::diagnostic::musicXmlImport << error;
         m_logger->logError(error, &m_e);
         m_meloError = Err::FileBadFormat;
         return;
@@ -7191,7 +7192,7 @@ Note* MusicXmlParserPass2::note(const String& partId,
 
     MusicXmlNoteDuration mnd { m_divs, m_logger, &m_pass1 };
     MusicXmlNotePitch mnp { m_logger };
-    bool hasMeloPitch = false;      // native JiMS import: jims:pitch identity
+    bool hasMeloPitch = false;      // native MeloPresto import: jims:pitch identity
     int meloNPer = 0;
     int meloNGen = 0;
 

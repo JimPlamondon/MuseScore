@@ -46,6 +46,7 @@
 #include "inoutdata.h"
 
 #include "log.h"
+#include "engraving/melo/melostrings.h"
 
 using namespace mu;
 using namespace muse;
@@ -231,14 +232,14 @@ Ret MscLoader::loadMscz(MasterScore* masterScore, const MscReader& mscReader, rw
             if (!melo::normalizeStoredPitchesAfterLoad(score, scoreRepairs, repairError)) {
                 return make_ret(Err::FileBadFormat,
                                 muse::mtrc("engraving",
-                                           "This score contains JiMS data that this version cannot read. The original file has not been changed. Open it in the JiMS version that saved it, and keep a native copy. Details: %1")
+                                           mu::engraving::melo::diagnostic::unreadableScore)
                                 .arg(repairError));
             }
             repairCount += scoreRepairs;
         }
         if (repairCount > 0) {
             LOGW() << "Normalized " << repairCount
-                   << " contradictory JiMS stored pitch projection(s); the document is marked modified";
+                   << mu::engraving::melo::diagnostic::storedProjectionsNormalized;
         }
     }
 
