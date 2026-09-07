@@ -1558,7 +1558,7 @@ String satbTemplatePath()
 {
     // This module's data root is src/importexport/musicxml/tests, so the fork
     // root is four levels up (the engraving suite is three).
-    return ScoreRW::rootPath() + u"/../../../../share/templates/02-Choral/12-SATB_(JiMStaff)/12-SATB_(JiMStaff).mscx";
+    return ScoreRW::rootPath() + u"/../../../../share/templates/02-Choral/12-SATB_(MeloPresto_Staff)/12-SATB_(MeloPresto_Staff).mscx";
 }
 }
 

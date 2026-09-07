@@ -1,10 +1,10 @@
 name: 'Check: Unit Tests (utest)'
 
 on:
-  # musescore-jims: this full build-and-test workflow takes roughly 30 minutes
+  # melopresto-score: this full build-and-test workflow takes roughly 30 minutes
   # per push in the fork. Keep it available for deliberate verification, but
   # do not spend hosted-runner time automatically on integration/task pushes.
-  # musescore-jims: the upstream Thursday coverage schedule is removed (needs upstream S3 secrets).
+  # melopresto-score: the upstream Thursday coverage schedule is removed (needs upstream S3 secrets).
   workflow_dispatch:
     inputs:
       code_coverage:
@@ -62,7 +62,7 @@ jobs:
       run: |
         bash ./buildscripts/ci/linux/setup.sh
 
-    # musescore-jims: the engraving module links the JiMS Kernel's
+    # melopresto-score: the engraving module links the MeloPresto Kernel's
     # melo-musescore-bridge staticlib (built by cargo during CMake configure,
     # see src/engraving/melo/SetupMeloBridge.cmake). The Kernel repository is
     # private: JIMS_KERNEL_TOKEN is a fine-grained PAT with read-only
@@ -73,15 +73,15 @@ jobs:
         repository: JimPlamondon/melopresto
         ref: main
         token: ${{ secrets.JIMS_KERNEL_TOKEN }}
-        path: jims-kernel
-    - name: Setup Rust (JiMS bridge)
+        path: melo-kernel
+    - name: Setup Rust (MeloPresto bridge)
       uses: dtolnay/rust-toolchain@stable
     - name: Point the build at the Kernel
       run: |
-        echo "JIMS_ROOT=${{ github.workspace }}/jims-kernel" | tee -a $GITHUB_ENV
+        echo "JIMS_ROOT=${{ github.workspace }}/melo-kernel" | tee -a $GITHUB_ENV
         cargo --version
 
-    - name: Verify JiMS Kernel checkout persistence
+    - name: Verify MeloPresto Kernel checkout persistence
       run: python3 tools/test_melo_bridge_configure.py
 
     - name: Verify MeloPresto interface label authority

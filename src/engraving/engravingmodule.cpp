@@ -80,7 +80,7 @@ static void engraving_init_qrc()
 #ifndef NO_QT_SUPPORT
     Q_INIT_RESOURCE(engraving);
 
-    Q_INIT_RESOURCE(fonts_JiMSMusic);
+    Q_INIT_RESOURCE(fonts_MeloMusic);
     Q_INIT_RESOURCE(fonts_Leland);
     Q_INIT_RESOURCE(fonts_Bravura);
     Q_INIT_RESOURCE(fonts_Campania);

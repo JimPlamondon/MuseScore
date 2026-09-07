@@ -1,18 +1,18 @@
 name: 'Check: Codestyle'
 
 on:
-  # musescore-jims: run on pushes to the integration and task branches too.
+  # melopresto-score: run on pushes to the integration and task branches too.
   push:
     branches:
       - melo/main
       - 'claude/**'
       - 'codex/**'
-  # musescore-jims: no pull_request trigger — the push trigger above already covers every branch a PR could come from (a PR would run this twice).
+  # melopresto-score: no pull_request trigger — the push trigger above already covers every branch a PR could come from (a PR would run this twice).
   workflow_dispatch:
 
 jobs:
   codestyle:
-    # musescore-jims: self-contained — the upstream fetch of checkcodestyle
+    # melopresto-score: self-contained — the upstream fetch of checkcodestyle
     # scripts from musescore/framework_tmp no longer resolves (that repo moved
     # into the muse submodule). Build the uncrustify version upstream pins in
     # muse_deps (recipes/uncrustify: 0.74.0, sha256 pinned) and run this

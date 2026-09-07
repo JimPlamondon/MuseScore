@@ -335,7 +335,7 @@
         <height>10</height>
         <Text>
           <style>title</style>
-          <text>SATB (JiMStaff)</text>
+          <text>SATB (MeloPresto Staff)</text>
           </Text>
         </VBox>
       <Measure>

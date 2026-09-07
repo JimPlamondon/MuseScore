@@ -39,9 +39,9 @@
           <ledgerlines>0</ledgerlines>
           </StaffType>
         </Staff>
-      <trackName>Jimmy</trackName>
+      <trackName>Jammer</trackName>
       <Instrument id="grand-piano">
-        <longName>Jimmy</longName>
+        <longName>Jammer</longName>
         <trackName></trackName>
         <instrumentId>keyboard.piano.grand</instrumentId>
         <Articulation>
@@ -98,7 +98,7 @@
         <Text>
           <eid>F6UhN3RVvTO_H/Fw1FUYjvJ</eid>
           <style>title</style>
-          <text>JiMStaff</text>
+          <text>MeloPresto Staff</text>
           </Text>
         </VBox>
       <Measure>

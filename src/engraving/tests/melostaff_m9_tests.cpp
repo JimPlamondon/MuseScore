@@ -82,12 +82,12 @@ muse::String forkRoot()
 
 muse::String satbTemplateDir()
 {
-    return forkRoot() + u"/share/templates/02-Choral/12-SATB_(JiMStaff)";
+    return forkRoot() + u"/share/templates/02-Choral/12-SATB_(MeloPresto_Staff)";
 }
 
 muse::String satbTemplatePath()
 {
-    return satbTemplateDir() + u"/12-SATB_(JiMStaff).mscx";
+    return satbTemplateDir() + u"/12-SATB_(MeloPresto_Staff).mscx";
 }
 
 std::string readFile(const muse::String& path)
@@ -311,7 +311,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9TemplateFileCarriesNoStyleBlockAndVoiceOn
 
 TEST(Engraving_MeloStaffM9SATBTests, m9TemplateIsRegisteredInAllThreeRegistrationFilesWithItsPackageAssets)
 {
-    const muse::String rel(u"02-Choral/12-SATB_(JiMStaff)/12-SATB_(JiMStaff).mscx");
+    const muse::String rel(u"02-Choral/12-SATB_(MeloPresto_Staff)/12-SATB_(MeloPresto_Staff).mscx");
 
     const std::string categories = readFile(forkRoot() + u"/share/templates/categories.json");
     ASSERT_FALSE(categories.empty());
@@ -320,12 +320,12 @@ TEST(Engraving_MeloStaffM9SATBTests, m9TemplateIsRegisteredInAllThreeRegistratio
 
     const std::string cmake = readFile(forkRoot() + u"/share/templates/CMakeLists.txt");
     ASSERT_FALSE(cmake.empty());
-    EXPECT_NE(cmake.find("02-Choral/12-SATB_\\(JiMStaff\\)"), std::string::npos)
+    EXPECT_NE(cmake.find("02-Choral/12-SATB_\\(MeloPresto_Staff\\)"), std::string::npos)
         << "CMakeLists.txt must install the package, with the parenthesis escaping the Barbershop entries use";
 
     const std::string convert = readFile(forkRoot() + u"/share/templates/convert.json");
     ASSERT_FALSE(convert.empty());
-    EXPECT_NE(convert.find("02-Choral/12-SATB_(JiMStaff).mscx"), std::string::npos)
+    EXPECT_NE(convert.find("02-Choral/12-SATB_(MeloPresto_Staff).mscx"), std::string::npos)
         << "convert.json uses the flattened path convention";
 
     // The package assets the current format requires, matching the stock
@@ -336,7 +336,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9TemplateIsRegisteredInAllThreeRegistratio
             << "missing package asset " << muse::String(asset).toStdString();
     }
     const std::string container = readFile(satbTemplateDir() + u"/META-INF/container.xml");
-    EXPECT_NE(container.find("12-SATB_(JiMStaff).mscx"), std::string::npos);
+    EXPECT_NE(container.find("12-SATB_(MeloPresto_Staff).mscx"), std::string::npos);
 }
 
 // ---------------------------------------------------------------------------
