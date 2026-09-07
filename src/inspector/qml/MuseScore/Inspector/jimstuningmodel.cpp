@@ -16,7 +16,7 @@ using namespace mu::inspector;
 using namespace mu::engraving;
 
 namespace {
-const muse::audio::AudioResourceId JIMSYNTH_RESOURCE_ID = "JiMSynth";
+const muse::audio::AudioResourceId MELO_SYNTH_RESOURCE_ID = "JiMSynth";
 }
 
 MeloTuningModel::MeloTuningModel(QObject* parent)
@@ -65,7 +65,7 @@ void MeloTuningModel::refresh()
     Score* score = m_notation ? m_notation->elements()->msScore() : nullptr;
     if (score) {
         for (const Staff* staff : score->staves()) {
-            if (staff->staffType(Fraction(0, 1))->isJiMS()) {
+            if (staff->staffType(Fraction(0, 1))->isMelo()) {
                 m_controller = std::make_unique<melo::TuningController>(score, staff->idx());
                 break;
             }
@@ -130,7 +130,7 @@ void MeloTuningModel::setLiveGenerator(double value)
     if (m_generatorParamId == 0 || !std::isfinite(value) || !isCurrentNotation() || !playbackController()) {
         return;
     }
-    playbackController()->setInputParamPlainForResource(m_notation, JIMSYNTH_RESOURCE_ID, m_generatorParamId, value);
+    playbackController()->setInputParamPlainForResource(m_notation, MELO_SYNTH_RESOURCE_ID, m_generatorParamId, value);
 }
 
 void MeloTuningModel::syncLiveGenerator()

@@ -154,7 +154,7 @@ struct ParamChangeEvent {
 //! Ordinary plug-ins leave both flags false and receive only standard events.
 struct VstNoteExpressionCapabilities {
     bool tuning = false;
-    bool jimsLattice = false;
+    bool meloLattice = false;
     int32_t nPerMin = 0;
     int32_t nPerStepCount = 0;
     int32_t nGenMin = 0;
@@ -162,14 +162,14 @@ struct VstNoteExpressionCapabilities {
 
     bool operator==(const VstNoteExpressionCapabilities& o) const
     {
-        return tuning == o.tuning && jimsLattice == o.jimsLattice
+        return tuning == o.tuning && meloLattice == o.meloLattice
                && nPerMin == o.nPerMin && nPerStepCount == o.nPerStepCount
                && nGenMin == o.nGenMin && nGenStepCount == o.nGenStepCount;
     }
 };
 
-static constexpr Steinberg::Vst::NoteExpressionTypeID JIMS_NOTE_EXPRESSION_NPER = 100000u;
-static constexpr Steinberg::Vst::NoteExpressionTypeID JIMS_NOTE_EXPRESSION_NGEN = 100001u;
+static constexpr Steinberg::Vst::NoteExpressionTypeID MELO_NOTE_EXPRESSION_NPER = 100000u;
+static constexpr Steinberg::Vst::NoteExpressionTypeID MELO_NOTE_EXPRESSION_NGEN = 100001u;
 }
 
 template<>

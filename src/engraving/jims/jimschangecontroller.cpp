@@ -77,7 +77,7 @@ bool projectionFor(const std::vector<StateEdit>& edits, Note* note, SoundingPitc
 {
     const StateEdit* edit = stateEditFor(edits, note);
     const StaffType* current = note->staff() ? note->staff()->staffTypeForElement(note) : nullptr;
-    const String state = edit ? edit->state : (current ? current->jimsStateJson() : String());
+    const String state = edit ? edit->state : (current ? current->meloStateJson() : String());
     if (state.isEmpty()) {
         error = mu::engraving::melo::linkedNoteMissingState();
         return false;
@@ -91,20 +91,20 @@ bool projectionFor(const std::vector<StateEdit>& edits, Note* note, SoundingPitc
         SoundingPitch established;
         const StateEdit* firstEdit = stateEditFor(edits, first);
         const StaffType* firstCurrent = first->staff() ? first->staff()->staffTypeForElement(first) : nullptr;
-        const String firstState = firstEdit ? firstEdit->state : (firstCurrent ? firstCurrent->jimsStateJson() : String());
+        const String firstState = firstEdit ? firstEdit->state : (firstCurrent ? firstCurrent->meloStateJson() : String());
         if (firstState.isEmpty()
-            || !noteSoundingPitch(firstState, first->jimsNPer(), first->jimsNGen(), established, &error)) {
+            || !noteSoundingPitch(firstState, first->meloNPer(), first->meloNGen(), established, &error)) {
             return false;
         }
         // A mode edit can leave the known lattice note sounding unchanged.
         // Preserve that identity before considering a different continuation.
-        if (noteSoundingPitch(state, note->jimsNPer(), note->jimsNGen(), projection, &error)
+        if (noteSoundingPitch(state, note->meloNPer(), note->meloNGen(), projection, &error)
             && std::abs(projection.frequencyHz - established.frequencyHz) < 1e-9) {
             return true;
         }
         return noteContinuation(state, established.frequencyHz, projection, &error);
     }
-    return noteSoundingPitch(state, note->jimsNPer(), note->jimsNGen(), projection, &error);
+    return noteSoundingPitch(state, note->meloNPer(), note->meloNGen(), projection, &error);
 }
 
 bool sameProjection(const SoundingPitch& a, const SoundingPitch& b)
@@ -136,7 +136,7 @@ bool prepareNoteEdits(Score* score, const std::vector<StateEdit>& stateEdits,
                         if (note->tick() < edit.tick || (!edit.stop.negative() && note->tick() >= edit.stop)) {
                             continue;
                         }
-                        if (!note->hasJimsPitch() || seen.count(note)) {
+                        if (!note->hasMeloPitch() || seen.count(note)) {
                             continue;
                         }
                         if (note->incomingPartialTie() || note->outgoingPartialTie()) {
@@ -149,7 +149,7 @@ bool prepareNoteEdits(Score* score, const std::vector<StateEdit>& stateEdits,
                         }
                         for (EngravingObject* linkedObject : note->linkList()) {
                             Note* linked = toNote(linkedObject);
-                            if (!linked->hasJimsPitch()) {
+                            if (!linked->hasMeloPitch()) {
                                 error = mu::engraving::melo::linkedNoteIdentityMismatch();
                                 return false;
                             }
@@ -176,8 +176,8 @@ bool prepareNoteEdits(Score* score, const std::vector<StateEdit>& stateEdits,
 void commitNoteEdits(Score* score, const std::vector<NoteEdit>& edits)
 {
     for (const NoteEdit& edit : edits) {
-        edit.note->undoChangeProperty(Pid::JIMS_NPER, edit.projection.nPer);
-        edit.note->undoChangeProperty(Pid::JIMS_NGEN, edit.projection.nGen);
+        edit.note->undoChangeProperty(Pid::MELO_NPER, edit.projection.nPer);
+        edit.note->undoChangeProperty(Pid::MELO_NGEN, edit.projection.nGen);
         score->undoChangePitch(edit.note, edit.projection.midiKey, edit.tpc, edit.tpc);
         edit.note->undoChangeProperty(Pid::TUNING, edit.projection.centsOffset);
     }
@@ -201,10 +201,10 @@ class MeloChangeStateAt : public UndoCommand
         if (!st) {
             return;
         }
-        String previous = st->jimsStateJson();
-        const bool previousEmpty = st->jimsExtentIsEmptyDefault();
-        st->setJimsStateJson(m_state);
-        st->setJimsExtentIsEmptyDefault(m_emptyDefault);
+        String previous = st->meloStateJson();
+        const bool previousEmpty = st->meloExtentIsEmptyDefault();
+        st->setMeloStateJson(m_state);
+        st->setMeloExtentIsEmptyDefault(m_emptyDefault);
         m_state = previous;
         m_emptyDefault = previousEmpty;
         m_staff->staffTypeListChanged(m_tick);
@@ -246,10 +246,10 @@ bool effectiveState(const Score* score, staff_idx_t staffIdx, const Measure* mea
         return false;
     }
     const StaffType* st = score->staff(staffIdx)->staffType(tick);
-    if (!st || !st->isJiMS()) {
+    if (!st || !st->isMelo()) {
         return false;
     }
-    stateJson = st->jimsStateJson();
+    stateJson = st->meloStateJson();
     if (effective) {
         *effective = st;
     }
@@ -342,11 +342,11 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
         // keep their own reference. One undo step; no carrier is created.
         std::vector<std::pair<Fraction, String> > edits;
         auto consider = [&](const StaffType* st, const Fraction& tick) {
-            if (!st || !st->isJiMS()) {
+            if (!st || !st->isMelo()) {
                 return true;
             }
             StateChangeOptions opts;
-            if (!stateChangeOptions(st->jimsStateJson(), opts)) {
+            if (!stateChangeOptions(st->meloStateJson(), opts)) {
                 return true;
             }
             if (opts.referenceBound) {
@@ -354,7 +354,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
             }
             String bound;
             String err;
-            if (!applyStateChange(st->jimsStateJson(), choiceId, bound, err)) {
+            if (!applyStateChange(st->meloStateJson(), choiceId, bound, err)) {
                 error = err;
                 return false;
             }
@@ -362,7 +362,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
                 error = mu::engraving::melo::emptyStaffCentreUnavailable();
                 return false;
             }
-            if (bound != st->jimsStateJson()) {
+            if (bound != st->meloStateJson()) {
                 edits.emplace_back(tick, bound);
             }
             return true;
@@ -416,8 +416,8 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
         stc->setRtick(tick - measure->tick());
         stc->setTrack(staffIdx * VOICES);
         StaffType* st = new StaffType(*effective);
-        st->setJimsStateJson(next);
-        st->setJimsExtentIsEmptyDefault(staffSpanIsEmpty(staff, tick, nextCarrierTick(score, staffIdx, tick)));
+        st->setMeloStateJson(next);
+        st->setMeloExtentIsEmptyDefault(staffSpanIsEmpty(staff, tick, nextCarrierTick(score, staffIdx, tick)));
         stc->setStaffType(st, true);
         score->undoAddElement(stc);
     }
@@ -426,12 +426,12 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
     return true;
 }
 
-bool applyChangeToAllJimsParts(Score* score, Measure* measure, const std::vector<String>& choiceIds, String& error)
+bool applyChangeToAllMeloParts(Score* score, Measure* measure, const std::vector<String>& choiceIds, String& error)
 {
-    return applyChangeToAllJimsParts(score, measure, measure ? measure->tick() : Fraction(-1, 1), choiceIds, error);
+    return applyChangeToAllMeloParts(score, measure, measure ? measure->tick() : Fraction(-1, 1), choiceIds, error);
 }
 
-bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& tick,
+bool applyChangeToAllMeloParts(Score* score, Measure* measure, const Fraction& tick,
                                const std::vector<String>& choiceIds, String& error)
 {
     // Owner decision 2a (2026-08-22). Same shape as the `bind:` branch above —
@@ -470,13 +470,13 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& t
     for (staff_idx_t staffIdx = 0; staffIdx < score->nstaves(); ++staffIdx) {
         Staff* staff = score->staff(staffIdx);
         const StaffType* base = staff ? staff->staffType(Fraction(0, 1)) : nullptr;
-        if (!base || !base->isJiMS()) {
+        if (!base || !base->isMelo()) {
             continue;                       // not a JiMS part: untouched
         }
         String reason;
         if (!canInsertChange(score, staffIdx, measure, tick, reason)) {
             const StaffType* here = staff->staffType(tick);
-            if (!here || !here->isJiMS()) {
+            if (!here || !here->isMelo()) {
                 reason = mu::engraving::melo::measureHasOtherStaffChange();
             }
             error = mtrc("engraving", "staff %1: %2").arg(int(staffIdx) + 1).arg(reason);
@@ -542,8 +542,8 @@ bool applyChangeToAllJimsParts(Score* score, Measure* measure, const Fraction& t
             stc->setRtick(tick - measure->tick());
             stc->setTrack(p.staffIdx * VOICES);
             StaffType* st = new StaffType(*p.effective);
-            st->setJimsStateJson(p.next);
-            st->setJimsExtentIsEmptyDefault(staffSpanIsEmpty(p.staff, tick, nextCarrierTick(score, p.staffIdx, tick)));
+            st->setMeloStateJson(p.next);
+            st->setMeloExtentIsEmptyDefault(staffSpanIsEmpty(p.staff, tick, nextCarrierTick(score, p.staffIdx, tick)));
             stc->setStaffType(st, true);
             score->undoAddElement(stc);
         }
@@ -568,12 +568,12 @@ bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fr
     Staff* staff = score->staff(staffIdx);
     const Fraction before = Fraction::fromTicks(std::max(0, tick.ticks() - 1));
     const StaffType* previousType = staff ? staff->staffType(before) : nullptr;
-    if (!previousType || !previousType->isJiMS()) {
+    if (!previousType || !previousType->isMelo()) {
         error = mu::engraving::melo::precedingStateUnavailable();
         return false;
     }
     const std::vector<StateEdit> stateEdits {
-        { staff, staffIdx, tick, nextCarrierTick(score, staffIdx, tick), previousType->jimsStateJson() }
+        { staff, staffIdx, tick, nextCarrierTick(score, staffIdx, tick), previousType->meloStateJson() }
     };
     std::vector<NoteEdit> noteEdits;
     if (!prepareNoteEdits(score, stateEdits, noteEdits, error)) {
@@ -597,19 +597,19 @@ bool normalizeStoredPitchesAfterLoad(Score* score, size_t& repairs, String& erro
     for (staff_idx_t staffIdx = 0; staffIdx < score->nstaves(); ++staffIdx) {
         Staff* staff = score->staff(staffIdx);
         const StaffType* base = staff ? staff->staffType(Fraction(0, 1)) : nullptr;
-        if (!base || !base->isJiMS()) {
+        if (!base || !base->isMelo()) {
             continue;
         }
         stateEdits.push_back({ staff, staffIdx, Fraction(0, 1),
-                               nextCarrierTick(score, staffIdx, Fraction(0, 1)), base->jimsStateJson() });
+                               nextCarrierTick(score, staffIdx, Fraction(0, 1)), base->meloStateJson() });
         for (Measure* measure = score->firstMeasure(); measure; measure = measure->nextMeasure()) {
             for (const StaffTypeChange* carrier : changeCarriers(measure, staffIdx)) {
-                if (!carrier->staffType() || !carrier->staffType()->isJiMS()) {
+                if (!carrier->staffType() || !carrier->staffType()->isMelo()) {
                     continue;
                 }
                 stateEdits.push_back({ staff, staffIdx, carrier->tick(),
                                        nextCarrierTick(score, staffIdx, carrier->tick()),
-                                       carrier->staffType()->jimsStateJson() });
+                                       carrier->staffType()->meloStateJson() });
             }
         }
     }
@@ -619,8 +619,8 @@ bool normalizeStoredPitchesAfterLoad(Score* score, size_t& repairs, String& erro
     }
     std::vector<NoteEdit> repairsNeeded;
     for (const NoteEdit& edit : projected) {
-        if (edit.note->jimsNPer() != edit.projection.nPer
-            || edit.note->jimsNGen() != edit.projection.nGen
+        if (edit.note->meloNPer() != edit.projection.nPer
+            || edit.note->meloNGen() != edit.projection.nGen
             || edit.note->pitch() != edit.projection.midiKey
             || edit.note->tpc1() != edit.tpc || edit.note->tpc2() != edit.tpc
             || std::abs(edit.note->tuning() - edit.projection.centsOffset) >= 1e-9) {
@@ -643,7 +643,7 @@ bool normalizeStoredPitchesAfterLoad(Score* score, size_t& repairs, String& erro
         for (const NoteEdit& edit : repairsNeeded) {
             for (EngravingObject* linkedObject : edit.note->linkList()) {
                 Note* linked = toNote(linkedObject);
-                linked->setJimsPitch(edit.projection.nPer, edit.projection.nGen);
+                linked->setMeloPitch(edit.projection.nPer, edit.projection.nGen);
                 widenExtentForNote(linked);
                 linked->setPitch(edit.projection.midiKey, edit.tpc, edit.tpc);
                 linked->setTuning(edit.projection.centsOffset);

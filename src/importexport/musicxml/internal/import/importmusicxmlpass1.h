@@ -143,8 +143,8 @@ public:
     engraving::Err parse(const muse::ByteArray& data);
     engraving::Err parse();
     muse::String errors() const { return m_errors; }
-    const MeloImportContext& melo() const { return m_jims; }
-    bool jimsProvenanceError() const { return m_jimsProvenanceError; }
+    const MeloImportContext& melo() const { return m_melo; }
+    bool meloProvenanceError() const { return m_meloProvenanceError; }
     void scorePartwise();
     void identification();
     void credit(CreditWordsList& credits);
@@ -241,8 +241,8 @@ private:
     engraving::Score* m_score = nullptr;                    // MuseScore score
     MusicXmlLogger* m_logger = nullptr;              // Error logger
     muse::String m_errors;                             // Errors to present to the user
-    MeloImportContext m_jims;
-    bool m_jimsProvenanceError = false;   // a malformed jims:provenance is a fatal import error                    // JiMS namespace resolution (native JiMS import)
+    MeloImportContext m_melo;
+    bool m_meloProvenanceError = false;   // a malformed jims:provenance is a fatal import error                    // JiMS namespace resolution (native JiMS import)
     bool m_hasBeamingInfo = false;               // Whether the score supports or contains beaming info
     bool m_hasInferredHeaderText = false;
 

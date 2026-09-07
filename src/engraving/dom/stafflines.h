@@ -56,11 +56,11 @@ public:
     struct MeloGuideLine {
         LineF line;
         bool dashed = false;
-        Sid colorStyle = Sid::jimsDoLineColor;
+        Sid colorStyle = Sid::meloDoLineColor;
         int primeLimit = 0;
     };
-    const std::vector<MeloGuideLine>& jimsGuideLines() const { return m_jimsGuideLines; }
-    void setJimsGuideLines(const std::vector<MeloGuideLine>& l) { m_jimsGuideLines = l; }
+    const std::vector<MeloGuideLine>& meloGuideLines() const { return m_meloGuideLines; }
+    void setMeloGuideLines(const std::vector<MeloGuideLine>& l) { m_meloGuideLines = l; }
 
     Measure* measure() const { return (Measure*)explicitParent(); }
     double y1() const;
@@ -79,7 +79,7 @@ private:
 
     double m_lw = 0.0;
     std::vector<LineF> m_lines;
-    std::vector<MeloGuideLine> m_jimsGuideLines;
+    std::vector<MeloGuideLine> m_meloGuideLines;
 };
 }
 

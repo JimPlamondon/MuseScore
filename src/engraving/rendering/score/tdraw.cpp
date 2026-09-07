@@ -900,7 +900,7 @@ void TDraw::draw(const BarLine* item, Painter* painter, const PaintOptions& opt)
     // repeat dots at each band's middle rows; a stock staff (or a one-band
     // stack) draws exactly as before.
     drawBarLineForm(item, data->y1, data->y2,
-                    data->jimsBandDotRows.empty() ? nullptr : &data->jimsBandDotRows, painter, opt);
+                    data->meloBandDotRows.empty() ? nullptr : &data->meloBandDotRows, painter, opt);
 
     // draw irregular measure mark
 
@@ -2746,11 +2746,11 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
 
     setMask(item, painter);
 
-    if (!item->jimsGuideLines().empty()) {
+    if (!item->meloGuideLines().empty()) {
         // JiMStaff (Milestone 1): each guide line carries its own style —
         // the one deliberate exception to the single-pen staff-line rule,
         // reached only when the JiMS layout branch populated guides.
-        for (const StaffLines::MeloGuideLine& guide : item->jimsGuideLines()) {
+        for (const StaffLines::MeloGuideLine& guide : item->meloGuideLines()) {
             Color color = item->style().value(guide.colorStyle).value<Color>();
             if (!opt.isPrinting && item->configuration()->isHighContrast()) {
                 color = item->configuration()->defaultColor();
@@ -2777,13 +2777,13 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
         // closed by a new horizontal line there.
         // All ordinates come from the Kernel (frame cache + render
         // geometry); drawing is the only thing happening here.
-        const Staff* jimsStaff = item->staff();
-        const StaffType* jimsSt = jimsStaff ? jimsStaff->staffType(item->measure()->tick()) : nullptr;
+        const Staff* meloStaff = item->staff();
+        const StaffType* meloSt = meloStaff ? meloStaff->staffType(item->measure()->tick()) : nullptr;
         const bool systemHead = item->measure()->system()
                                 && item->measure()->system()->firstMeasure() == item->measure();
-        if (jimsSt && jimsSt->isJiMS() && systemHead) {
+        if (meloSt && meloSt->isMelo() && systemHead) {
             const double _spatium = item->spatium();
-            const double dist = jimsSt->lineDistance().val() * _spatium;
+            const double dist = meloSt->lineDistance().val() * _spatium;
             const double topY = item->pos().y();
             // The frame is the Kernel's, always (Milestone 4): no
             // fork-side nominal frame; with no frame there is no header.
@@ -2791,19 +2791,19 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             // draws its own header (crescents, dots, tonic indicators,
             // labels); the whole-piece legacy view is one band.
             const StaffType::MeloFrameView& view
-                = jimsSt->jimsFrameView(item->score(), item->staffIdx(), item->measure()->system());
-            const double periodCents = jimsSt->jimsPeriodCents();
+                = meloSt->meloFrameView(item->score(), item->staffIdx(), item->measure()->system());
+            const double periodCents = meloSt->meloPeriodCents();
             if (view.empty() || periodCents <= 0.0) {
                 painter->restore();
                 return;
             }
             auto yOf = [&](double cents) {
-                return topY + jimsSt->jimsYFromCents(cents, view) * _spatium;
+                return topY + meloSt->meloYFromCents(cents, view) * _spatium;
             };
-            const double periodH = (periodCents / StaffType::JIMS_CENTS_PER_LINE_DISTANCE) * dist;
+            const double periodH = (periodCents / StaffType::MELO_CENTS_PER_LINE_DISTANCE) * dist;
             const double clefRy = periodH / 2.0;
             const StaffType::MeloHeaderGeometry headerGeom
-                = jimsSt->jimsHeaderGeometry(_spatium, item->score()->style().defaultSpatium(), &view);
+                = meloSt->meloHeaderGeometry(_spatium, item->score()->style().defaultSpatium(), &view);
             const double clefRx = headerGeom.clefRx;
             const double indicatorW = headerGeom.indicatorW;
             const double clefRight = item->pos().x() - 0.3 * _spatium;
@@ -2823,29 +2823,29 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             // Kernel's canonical name for the fifth, per the (P8, M5)
             // lattice. The value comes from staff_metrics; the fork never
             // parses the state JSON for musical facts.
-            bool topVisibleJimsStaff = false;
+            bool topVisibleMeloStaff = false;
             const System* system = item->measure()->system();
             if (system && item->staffIdx() < system->staves().size()
-                && system->staff(item->staffIdx())->show() && jimsStaff->show()) {
-                topVisibleJimsStaff = true;
+                && system->staff(item->staffIdx())->show() && meloStaff->show()) {
+                topVisibleMeloStaff = true;
                 for (staff_idx_t staffIdx = 0; staffIdx < item->staffIdx(); ++staffIdx) {
                     const Staff* staff = item->score()->staff(staffIdx);
                     const StaffType* type = staff ? staff->staffType(item->measure()->tick()) : nullptr;
-                    if (type && type->isJiMS() && staff->show()
+                    if (type && type->isMelo() && staff->show()
                         && staffIdx < system->staves().size() && system->staff(staffIdx)->show()) {
-                        topVisibleJimsStaff = false;
+                        topVisibleMeloStaff = false;
                         break;
                     }
                 }
             }
-            if (topVisibleJimsStaff) {
+            if (topVisibleMeloStaff) {
                 double generatorCents = 0.0;
                 double periodCents = 0.0;
-                if (melo::staffMetrics(jimsSt->jimsStateJson(), generatorCents, periodCents)) {
+                if (melo::staffMetrics(meloSt->meloStateJson(), generatorCents, periodCents)) {
                     muse::String label = muse::String(u"M5= %1¢")
                                          .arg(muse::String::number(generatorCents, 1));
                     std::set<int> visibleLimits;
-                    for (const auto& guide : item->jimsGuideLines()) {
+                    for (const auto& guide : item->meloGuideLines()) {
                         if (guide.primeLimit) {
                             visibleLimits.insert(guide.primeLimit);
                         }
@@ -2867,15 +2867,15 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             std::vector<melo::ScaleDotStack> stacks;
             double tonicCents = 0.0;
             melo::PeriodicOrigins origins;
-            if (!melo::periodicOrigins(jimsSt->jimsStateJson(), origins)) {
+            if (!melo::periodicOrigins(meloSt->meloStateJson(), origins)) {
                 return;
             }
-            const bool haveTonic = melo::tonicCentsAboveDo(jimsSt->jimsStateJson(), tonicCents);
+            const bool haveTonic = melo::tonicCentsAboveDo(meloSt->meloStateJson(), tonicCents);
             const double epsilon = 1e-6;
             auto dotSymbol = [&](int nGen) {
                 muse::String token;
                 SymId symbol = SymId::noteheadHalf;
-                if (melo::noteheadToken(jimsSt->jimsStateJson(), nGen, token)) {
+                if (melo::noteheadToken(meloSt->meloStateJson(), nGen, token)) {
                     if (token == u"triangle-vertex-up") {
                         symbol = SymId::noteheadTriangleUpBlack;
                     } else if (token == u"triangle-vertex-down") {
@@ -2921,7 +2921,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                 const double segmentBottom = yOf(segment.lowerCents);
                 return inkBottom >= segmentTop - epsilon && inkTop <= segmentBottom + epsilon;
             };
-            if (font && melo::scaleDots(jimsSt->jimsStateJson(), stacks)) {
+            if (font && melo::scaleDots(meloSt->meloStateJson(), stacks)) {
                 for (const StaffType::MeloFrameBand& band : view.bands) {
                     std::vector<double> drawnStacks;
                     std::vector<double> drawnTonics;
@@ -2994,15 +2994,15 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             // left, sharp side right with a semi-transparent white
             // backing that dims but never erases the lines beneath.
             {
-                const MeloScaleDotLabelMode labelMode = jimsSt->jimsResolvedScaleDotLabelMode();
+                const MeloScaleDotLabelMode labelMode = meloSt->meloResolvedScaleDotLabelMode();
                 std::vector<melo::LabeledDotStack> labelStacks;
                 // Current-key label "[PitchN]:" left of the tonic indicator's
                 // row (owner spec 2026-08-17) — Kernel-derived; drawn even
                 // when class labels are off.
                 melo::TonicPitchLabel keyLabel;
-                const bool haveKeyLabel = haveTonic && melo::tonicPitchLabel(jimsSt->jimsStateJson(), keyLabel);
+                const bool haveKeyLabel = haveTonic && melo::tonicPitchLabel(meloSt->meloStateJson(), keyLabel);
                 if ((labelMode != MeloScaleDotLabelMode::None || haveKeyLabel)
-                    && melo::scaleDotLabels(jimsSt->jimsStateJson(), labelStacks)) {
+                    && melo::scaleDotLabels(meloSt->meloStateJson(), labelStacks)) {
                     Font labelFont(u"Edwin", Font::Type::Text);
                     labelFont.setPointSizeF(9.0 * item->spatium() / item->defaultSpatium());
                     FontMetrics fm(labelFont);
@@ -3134,7 +3134,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                         // crescent whose hidden portion crosses such a gap.
                         const double periodTopY
                             = segTopY + (segment.upperCents - periodCeiling)
-                              / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * dist;
+                              / StaffType::MELO_CENTS_PER_LINE_DISTANCE * dist;
                         const RectF outerArc(clefRight - clefRx, periodTopY, 2.0 * clefRx, 2.0 * clefRy);
                         const RectF innerArc(clefRight - clefRy, periodTopY, 2.0 * clefRy, 2.0 * clefRy);
                         PainterPath crescentFill;
@@ -3266,18 +3266,18 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                 // a bar the measure keeps its starting frame, so using the
                 // incoming frame would detach every element from its note-line.
                 const StaffType::MeloFrameView& view
-                    = displayedSt->jimsFrameView(item->score(), item->staffIdx(), item->measure()->system());
-                const double periodCents = displayedSt->jimsPeriodCents();
+                    = displayedSt->meloFrameView(item->score(), item->staffIdx(), item->measure()->system());
+                const double periodCents = displayedSt->meloPeriodCents();
                 if (!view.empty() && periodCents > 0.0) {
                     melo::PeriodicOrigins origins;
-                    if (!melo::periodicOrigins(displayedSt->jimsStateJson(), origins)) {
+                    if (!melo::periodicOrigins(displayedSt->meloStateJson(), origins)) {
                         return;
                     }
                     auto yOf = [&](double cents) {
-                        return topY + displayedSt->jimsYFromCents(cents, view) * _spatium;
+                        return topY + displayedSt->meloYFromCents(cents, view) * _spatium;
                     };
                     const StaffType::MeloHeaderGeometry g
-                        = changeSt->jimsHeaderGeometry(_spatium, item->score()->style().defaultSpatium());
+                        = changeSt->meloHeaderGeometry(_spatium, item->score()->style().defaultSpatium());
                     const double indicatorW = g.indicatorW;
                     // Terrain columns, left to right, from the measure's left edge.
                     const double labelRight = x0 + 0.3 * _spatium + g.changeLabelBand;
@@ -3330,7 +3330,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     // change moves the tonic, else the indicator whose class
                     // the Kernel names.
                     melo::TonicPitchLabel keyLabel;
-                    const bool haveKeyLabel = melo::tonicPitchLabel(changeSt->jimsStateJson(), keyLabel);
+                    const bool haveKeyLabel = melo::tonicPitchLabel(changeSt->meloStateJson(), keyLabel);
                     // Owner finding 2 (2026-08-18): the terrain's "[PitchN]:" names
                     // the octave of the ROW it is drawn on — the Kernel label for
                     // the row's frame period (base period + the point's offset).
@@ -3343,7 +3343,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                             return found->second;
                         }
                         melo::TonicPitchLabel rowLabel;
-                        const muse::String text = melo::tonicPitchLabelInPeriod(changeSt->jimsStateJson(), k, rowLabel)
+                        const muse::String text = melo::tonicPitchLabelInPeriod(changeSt->meloStateJson(), k, rowLabel)
                                                   ? rowLabel.label : keyLabel.label;
                         labelByPeriod[k] = text;
                         return text;
@@ -3372,7 +3372,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     const double top = yOf(view.topCents());
                     const double bottom = yOf(view.bottomCents());
                     if (placement == ChangePlacement::MID_BAR) {
-                        painter->setPen(Pen(item->curColor(item->visible(), item->style().value(Sid::jimsMidBarFlankColor).value<Color>(),
+                        painter->setPen(Pen(item->curColor(item->visible(), item->style().value(Sid::meloMidBarFlankColor).value<Color>(),
                                                            opt), flankWidth,
                                             PenStyle::DashLine, PenCapStyle::FlatCap));
                         painter->drawLine(LineF(x0, top, x0, bottom));
@@ -3397,7 +3397,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                             for (const melo::ChangePoint& member : stack.members) {
                                 String token;
                                 SymId dotSym = SymId::noteheadHalf;
-                                const bool haveToken = melo::noteheadToken(changeSt->jimsStateJson(), member.nGen, token);
+                                const bool haveToken = melo::noteheadToken(changeSt->meloStateJson(), member.nGen, token);
                                 const bool grey = false; // all labels left (owner ruling); right band unused
                                 if (font && haveToken) {
                                     if (token == u"triangle-vertex-up") {
@@ -3498,14 +3498,14 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     // Kernel connector head at the `to` end.
                     melo::ConnectorGlyph head;
                     if (melo::connectorGlyph(head)) {
-                        const double pen = head.penCents / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * dist;
-                        const double hh = head.headHeightCents / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * dist;
-                        const double hw = head.headHalfWidthCents / StaffType::JIMS_CENTS_PER_LINE_DISTANCE * dist;
+                        const double pen = head.penCents / StaffType::MELO_CENTS_PER_LINE_DISTANCE * dist;
+                        const double hh = head.headHeightCents / StaffType::MELO_CENTS_PER_LINE_DISTANCE * dist;
+                        const double hw = head.headHalfWidthCents / StaffType::MELO_CENTS_PER_LINE_DISTANCE * dist;
                         // Owner ruling (M5 gate, 2026-08-16): arrows in black ink,
                         // heavier than the tonic indicator, large head.
                         const Color arrowInk = opt.isPrinting ? Color::BLACK
                                                : item->curColor(item->visible(),
-                                                                item->style().value(Sid::jimsChangeArrowColor).value<Color>(), opt);
+                                                                item->style().value(Sid::meloChangeArrowColor).value<Color>(), opt);
                         for (const melo::ChangeArrow& a : model.arrows) {
                             const double yFrom = yOf(centsOf(a.from));
                             const double yTo = yOf(centsOf(a.to));
@@ -3536,7 +3536,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                 }
             }
         };
-        if (jimsSt && jimsSt->isJiMS()) {
+        if (meloSt && meloSt->isMelo()) {
             melo::ChangeIndicator model;
             const StaffType* changeSt = nullptr;
             if (!systemHead && melo::midSystemChangeIndicator(item->measure(), item->staffIdx(), model, &changeSt) && changeSt) {
@@ -3553,10 +3553,10 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                 if (!anchor) {
                     continue;
                 }
-                const double g = midBarSt->jimsHeaderGeometry(
+                const double g = midBarSt->meloHeaderGeometry(
                     item->spatium(), item->score()->style().defaultSpatium()).changeTerrainWidth;
                 const double noteGap = item->style().styleMM(Sid::barNoteDistance);
-                paintChangeTerrain(midBar, midBarSt, jimsSt, anchor->x() - g - noteGap, ChangePlacement::MID_BAR);
+                paintChangeTerrain(midBar, midBarSt, meloSt, anchor->x() - g - noteGap, ChangePlacement::MID_BAR);
             }
             melo::ChangeIndicator courtesy;
             const StaffType* courtesySt = nullptr;
@@ -3564,7 +3564,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                 const Segment* endBar = item->measure()->findSegmentR(SegmentType::EndBarLine, item->measure()->ticks());
                 if (endBar) {
                     const double g
-                        = courtesySt->jimsHeaderGeometry(item->spatium(), item->score()->style().defaultSpatium()).changeTerrainWidth;
+                        = courtesySt->meloHeaderGeometry(item->spatium(), item->score()->style().defaultSpatium()).changeTerrainWidth;
                     paintChangeTerrain(courtesy, courtesySt, courtesySt, endBar->x() - g,
                                        ChangePlacement::END_BAR_COURTESY);
                 }

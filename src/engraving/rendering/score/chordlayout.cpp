@@ -1254,14 +1254,14 @@ void ChordLayout::layoutStem(Chord* item, const LayoutContext& ctx)
     // Kernel-derived ordinate difference — correct by the difference so
     // the stem tracks the far head at EVERY tuning.
     {
-        const StaffType* jimsSt = item->staff() ? item->staff()->staffTypeForElement(item) : nullptr;
-        if (jimsSt && jimsSt->isJiMS() && item->notes().size() > 1
-            && item->upNote()->hasJimsPitch() && item->downNote()->hasJimsPitch()
-            && item->upNote()->jimsCentsValid() && item->downNote()->jimsCentsValid()) {
+        const StaffType* meloSt = item->staff() ? item->staff()->staffTypeForElement(item) : nullptr;
+        if (meloSt && meloSt->isMelo() && item->notes().size() > 1
+            && item->upNote()->hasMeloPitch() && item->downNote()->hasMeloPitch()
+            && item->upNote()->meloCentsValid() && item->downNote()->meloCentsValid()) {
             const double lineSpan = (item->downLine() - item->upLine()) * 0.5
-                                    * item->spatium() * jimsSt->lineDistance().val();
-            const double centsSpan = std::abs(item->downNote()->jimsPosY(jimsSt)
-                                              - item->upNote()->jimsPosY(jimsSt));
+                                    * item->spatium() * meloSt->lineDistance().val();
+            const double centsSpan = std::abs(item->downNote()->meloPosY(meloSt)
+                                              - item->upNote()->meloPosY(meloSt));
             item->setDefaultStemLength(item->defaultStemLength() + (centsSpan - lineSpan));
         }
     }
@@ -1323,7 +1323,7 @@ void ChordLayout::updateLedgerLines(Chord* item, LayoutContext& ctx)
         // staff never has ledger lines — out-of-range notes get stacked
         // partial staves instead — and the suppression is by NOT
         // GENERATING the elements, never by hiding them at paint time.
-        if (const StaffType* jimsSt = st->staffType(tick); jimsSt && jimsSt->isJiMS()) {
+        if (const StaffType* meloSt = st->staffType(tick); meloSt && meloSt->isMelo()) {
             muse::DeleteAll(item->ledgerLines());
             item->ledgerLines().clear();
             return;
@@ -2270,10 +2270,10 @@ void ChordLayout::layoutChords1(LayoutContext& ctx, Segment* segment, staff_idx_
     const StaffType* staffType = staff->staffType(segment->tick());
 
     // JiMStaff Milestone 8: a chord's octave-band offset
-    // (SystemLayout::applyJimsBandOffsets) belongs to the SYSTEM the
+    // (SystemLayout::applyMeloBandOffsets) belongs to the SYSTEM the
     // measure ends up in; measure layout always starts from zero so an
     // offset never leaks from one layout pass into the next.
-    if (staffType && staffType->isJiMS()) {
+    if (staffType && staffType->isMelo()) {
         for (track_idx_t track = startTrack; track < endTrack; ++track) {
             EngravingItem* e = segment->element(track);
             if (e && e->isChord() && toChord(e)->ldata()->pos().y() != 0.0) {
@@ -2414,12 +2414,12 @@ double ChordLayout::layoutChords2(std::vector<Note*>& notes, bool up, LayoutCont
         // diatonic-line adjacency, which diverges from the drawn heights
         // away from 12-TET (the enharmonic dyad is adjacent-line at
         // every tuning but only collides where the Kernel says so).
-        if (tab && tab->isJiMS() && note->hasJimsPitch()
-            && prevNote && prevNote->hasJimsPitch()
-            && note->jimsCentsValid() && prevNote->jimsCentsValid()) {
+        if (tab && tab->isMelo() && note->hasMeloPitch()
+            && prevNote && prevNote->hasMeloPitch()
+            && note->meloCentsValid() && prevNote->meloCentsValid()) {
             const bool centsOverlap
-                = std::abs(prevNote->jimsCentsAboveDo() - note->jimsCentsAboveDo())
-                  < StaffType::JIMS_CENTS_PER_LINE_DISTANCE;
+                = std::abs(prevNote->meloCentsAboveDo() - note->meloCentsAboveDo())
+                  < StaffType::MELO_CENTS_PER_LINE_DISTANCE;
             conflict = centsOverlap && (prevStaffIdx == staffIdx) && note->visible() && prevVisible
                        && (sameTrack || Chord::combineVoice(chord, prevChord));
         }
@@ -2802,9 +2802,9 @@ void ChordLayout::layoutChords3(const std::vector<Chord*>& chords,
             // JiMStaff (Milestone 1): a lattice-identified note on a JiMS
             // staff takes its y from the single StaffType cents seam, not
             // from the diatonic step product (audited second-writer site).
-            const StaffType* jimsSt = chord->staff() ? chord->staff()->staffTypeForElement(chord) : nullptr;
-            if (jimsSt && jimsSt->isJiMS() && note->hasJimsPitch() && note->jimsCentsValid()) {
-                ny = note->jimsPosY(jimsSt);
+            const StaffType* meloSt = chord->staff() ? chord->staff()->staffTypeForElement(chord) : nullptr;
+            if (meloSt && meloSt->isMelo() && note->hasMeloPitch() && note->meloCentsValid()) {
+                ny = note->meloPosY(meloSt);
             }
             if (note->ldata()->pos().y() != ny) {
                 note->mutldata()->setPosY(ny);

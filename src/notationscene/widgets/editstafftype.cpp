@@ -311,17 +311,17 @@ void EditStaffType::setValues()
     mu::engraving::StaffGroup group = staffType.group();
     int i = int(group);
     stack->setCurrentIndex(i);
-    groupName->setText(staffType.isJiMS() ? melo::presetName().toQString() : TConv::translatedUserName(group).toQString());
+    groupName->setText(staffType.isMelo() ? melo::presetName().toQString() : TConv::translatedUserName(group).toQString());
     templateCombo->setCurrentIndex(templateCombo->findData(int(staffType.type())));
-    setWindowTitle(staffType.isJiMS()
+    setWindowTitle(staffType.isMelo()
                    ? muse::qtrc("notation", "Edit staff type: %1").arg(melo::presetName().toQString())
                    : muse::qtrc("notation", "Edit staff type"));
     for (QWidget* control : std::initializer_list<QWidget*> { lines, lineDistance, genClef, noteHeadScheme, label_3, label_4, label }) {
-        control->setVisible(!staffType.isJiMS());
+        control->setVisible(!staffType.isMelo());
     }
 
     name->setText(staffType.name());
-    name->setPlaceholderText(staffType.isJiMS() ? melo::presetName().toQString() : QString());
+    name->setPlaceholderText(staffType.isMelo() ? melo::presetName().toQString() : QString());
     lines->setValue(staffType.lines());
     lineDistance->setValue(staffType.lineDistance().val());
     genClef->setChecked(staffType.genClef());

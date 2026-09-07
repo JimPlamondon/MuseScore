@@ -135,7 +135,7 @@ inline muse::mpe::octave_t actualOctave(const int nominalOctave, const muse::mpe
 /// sounding pitch arrives as a MIDI key + residual cents; it maps straight
 /// onto the pitch-level scale (MIDI 12 = C0 = pitch level 0), with no
 /// invented enharmonic spelling in between.
-inline muse::mpe::pitch_level_t jimsPitchLevelFromMidi(const int midiKey, const double centsOffset)
+inline muse::mpe::pitch_level_t meloPitchLevelFromMidi(const int midiKey, const double centsOffset)
 {
     const int semitonesAboveC0 = midiKey - muse::mpe::ZERO_PITCH_LEVEL_MIDI_EQUIVALENT;
     const int octave = static_cast<int>(std::floor(semitonesAboveC0 / 12.0));

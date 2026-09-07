@@ -27,9 +27,9 @@ using namespace muse;
 
 namespace mu::engraving::melo {
 namespace {
-class ChangeJimsExtent : public UndoCommand
+class ChangeMeloExtent : public UndoCommand
 {
-    OBJECT_ALLOCATOR(engraving, ChangeJimsExtent)
+    OBJECT_ALLOCATOR(engraving, ChangeMeloExtent)
 
     Staff* m_staff = nullptr;
     Fraction m_tick;
@@ -42,10 +42,10 @@ class ChangeJimsExtent : public UndoCommand
         if (!st) {
             return;
         }
-        String previous = st->jimsStateJson();
-        const bool previousEmptyDefault = st->jimsExtentIsEmptyDefault();
-        st->setJimsStateJson(m_state);
-        st->setJimsExtentIsEmptyDefault(m_emptyDefault);
+        String previous = st->meloStateJson();
+        const bool previousEmptyDefault = st->meloExtentIsEmptyDefault();
+        st->setMeloStateJson(m_state);
+        st->setMeloExtentIsEmptyDefault(m_emptyDefault);
         m_state = previous;
         m_emptyDefault = previousEmptyDefault;
         m_staff->staffTypeListChanged(m_tick);
@@ -53,9 +53,9 @@ class ChangeJimsExtent : public UndoCommand
     }
 
 public:
-    ChangeJimsExtent(Staff* staff, const Fraction& tick, String state)
+    ChangeMeloExtent(Staff* staff, const Fraction& tick, String state)
         : m_staff(staff), m_tick(tick), m_state(std::move(state)) {}
-    UNDO_NAME("ChangeJimsExtent")
+    UNDO_NAME("ChangeMeloExtent")
     UNDO_CHANGED_OBJECTS({ m_staff })
 };
 }
@@ -73,7 +73,7 @@ const StaffTypeChange* changeCarrierAt(const Measure* measure, staff_idx_t staff
     for (const EngravingItem* el : measure->el()) {
         if (el && el->isStaffTypeChange() && el->staffIdx() == staffIdx) {
             const StaffTypeChange* stc = toStaffTypeChange(el);
-            if (stc->tick() == tick && stc->staffType() && stc->staffType()->isJiMS()) {
+            if (stc->tick() == tick && stc->staffType() && stc->staffType()->isMelo()) {
                 return stc;
             }
         }
@@ -92,7 +92,7 @@ std::vector<const StaffTypeChange*> changeCarriers(const Measure* measure, staff
             continue;
         }
         const StaffTypeChange* stc = toStaffTypeChange(el);
-        if (stc->staffType() && stc->staffType()->isJiMS()) {
+        if (stc->staffType() && stc->staffType()->isMelo()) {
             result.push_back(stc);
         }
     }
@@ -111,10 +111,10 @@ static bool indicatorForCarrier(const StaffTypeChange* stc, ChangeIndicator& out
     const StaffType* newSt = staff->staffType(stc->tick());
     const Fraction before = Fraction::fromTicks(std::max(0, stc->tick().ticks() - 1));
     const StaffType* oldSt = staff->staffType(before);
-    if (!newSt || !oldSt || !newSt->isJiMS() || !oldSt->isJiMS() || newSt == oldSt) {
+    if (!newSt || !oldSt || !newSt->isMelo() || !oldSt->isMelo() || newSt == oldSt) {
         return false;
     }
-    if (!changeIndicator(oldSt->jimsStateJson(), newSt->jimsStateJson(), out)) {
+    if (!changeIndicator(oldSt->meloStateJson(), newSt->meloStateJson(), out)) {
         return false;
     }
     if (newStaffType) {
@@ -157,7 +157,7 @@ double changeTerrainWidth(const Measure* measure)
         const StaffType* st = nullptr;
         if (midSystemChangeIndicator(measure, s, model, &st) && st) {
             const double sp = score->style().spatium();
-            width = std::max(width, st->jimsHeaderGeometry(sp, score->style().defaultSpatium()).changeTerrainWidth);
+            width = std::max(width, st->meloHeaderGeometry(sp, score->style().defaultSpatium()).changeTerrainWidth);
         }
     }
     return width;
@@ -176,7 +176,7 @@ double changeTerrainWidthAt(const Measure* measure, const Fraction& tick)
         const StaffType* st = nullptr;
         if (midBarChangeIndicator(carrier, model, &st) && st) {
             const double sp = score->style().spatium();
-            width = std::max(width, st->jimsHeaderGeometry(sp, score->style().defaultSpatium()).changeTerrainWidth);
+            width = std::max(width, st->meloHeaderGeometry(sp, score->style().defaultSpatium()).changeTerrainWidth);
         }
     }
     return width;
@@ -198,10 +198,10 @@ bool courtesyChangeIndicator(const Measure* measure, staff_idx_t staffIdx,
     }
     const StaffType* oldSt = staff->staffType(measure->tick());
     const StaffType* newSt = staff->staffType(next->tick());
-    if (!oldSt || !newSt || !oldSt->isJiMS() || !newSt->isJiMS() || oldSt == newSt) {
+    if (!oldSt || !newSt || !oldSt->isMelo() || !newSt->isMelo() || oldSt == newSt) {
         return false;
     }
-    if (!changeIndicator(oldSt->jimsStateJson(), newSt->jimsStateJson(), out)) {
+    if (!changeIndicator(oldSt->meloStateJson(), newSt->meloStateJson(), out)) {
         return false;
     }
     if (stateStaffType) {
@@ -222,7 +222,7 @@ double courtesyTerrainWidth(const Measure* measure)
         const StaffType* st = nullptr;
         if (courtesyChangeIndicator(measure, s, model, &st) && st) {
             const double sp = score->style().spatium();
-            width = std::max(width, st->jimsHeaderGeometry(sp, score->style().defaultSpatium()).changeTerrainWidth);
+            width = std::max(width, st->meloHeaderGeometry(sp, score->style().defaultSpatium()).changeTerrainWidth);
         }
     }
     return width;
@@ -300,7 +300,7 @@ double changeAnchorPeriodCents(const StaffType::MeloFrameView& view, const Chang
 bool changeIndicatorIntoStaffType(const Score* score, staff_idx_t staffIdx, const StaffType* newStaffType,
                                   ChangeIndicator& out)
 {
-    if (!score || !newStaffType || !newStaffType->isJiMS()) {
+    if (!score || !newStaffType || !newStaffType->isMelo()) {
         return false;
     }
     const Staff* staff = score->staff(staffIdx);
@@ -314,10 +314,10 @@ bool changeIndicatorIntoStaffType(const Score* score, staff_idx_t staffIdx, cons
             }
             const Fraction before = Fraction::fromTicks(std::max(0, carrier->tick().ticks() - 1));
             const StaffType* oldSt = staff->staffType(before);
-            if (!oldSt || !oldSt->isJiMS() || oldSt == newStaffType) {
+            if (!oldSt || !oldSt->isMelo() || oldSt == newStaffType) {
                 return false;
             }
-            return changeIndicator(oldSt->jimsStateJson(), newStaffType->jimsStateJson(), out);
+            return changeIndicator(oldSt->meloStateJson(), newStaffType->meloStateJson(), out);
         }
     }
     return false;
@@ -327,7 +327,7 @@ bool changeIndicatorsTouchingStaffType(const Score* score, staff_idx_t staffIdx,
                                        ChangeIndicator& out)
 {
     out = {};
-    if (!score || !staffType || !staffType->isJiMS()) {
+    if (!score || !staffType || !staffType->isMelo()) {
         return false;
     }
     const Staff* staff = score->staff(staffIdx);
@@ -358,7 +358,7 @@ bool changeIndicatorsTouchingStaffType(const Score* score, staff_idx_t staffIdx,
                 continue;
             }
             ChangeIndicator model;
-            if (changeIndicator(oldStaffType->jimsStateJson(), newStaffType->jimsStateJson(), model)
+            if (changeIndicator(oldStaffType->meloStateJson(), newStaffType->meloStateJson(), model)
                 && !model.empty()) {
                 append(model);
             }
@@ -416,30 +416,30 @@ bool hasCompleteTonicAmbits(const Score* score)
     if (!score) {
         return false;
     }
-    bool foundJiMS = false;
+    bool foundMelo = false;
     for (staff_idx_t staffIdx = 0; staffIdx < score->nstaves(); ++staffIdx) {
         const Staff* staff = score->staff(staffIdx);
         const StaffType* base = staff ? staff->staffType(Fraction(0, 1)) : nullptr;
-        if (base && base->isJiMS()) {
-            foundJiMS = true;
-            if (base->jimsTonicAmbit().empty()) {
+        if (base && base->isMelo()) {
+            foundMelo = true;
+            if (base->meloTonicAmbit().empty()) {
                 return false;
             }
         }
         for (const Measure* measure = score->firstMeasure(); measure; measure = measure->nextMeasure()) {
             for (const StaffTypeChange* carrier : changeCarriers(measure, staffIdx)) {
                 const StaffType* type = carrier ? carrier->staffType() : nullptr;
-                if (!type || !type->isJiMS()) {
+                if (!type || !type->isMelo()) {
                     continue;
                 }
-                foundJiMS = true;
-                if (type->jimsTonicAmbit().empty()) {
+                foundMelo = true;
+                if (type->meloTonicAmbit().empty()) {
                     return false;
                 }
             }
         }
     }
-    return foundJiMS;
+    return foundMelo;
 }
 
 int deriveTonicAmbits(Score* score)
@@ -447,7 +447,7 @@ int deriveTonicAmbits(Score* score)
     if (!score) {
         return 0;
     }
-    const String wanted = melodyPartToken(score->jimsMelodyPart());
+    const String wanted = melodyPartToken(score->meloMelodyPart());
     Staff* melodyStaff = nullptr;
     for (Part* part : score->parts()) {
         if (partHasVocalRole(part, wanted) && !part->staves().empty()) {
@@ -471,7 +471,7 @@ int deriveTonicAmbits(Score* score)
     }
     for (size_t i = 0; i < starts.size(); ++i) {
         StaffType* authority = melodyStaff->staffType(starts[i]);
-        if (!authority || !authority->isJiMS() || authority->jimsStateJson().isEmpty()) {
+        if (!authority || !authority->isMelo() || authority->meloStateJson().isEmpty()) {
             continue;
         }
         const bool bounded = i + 1 < starts.size();
@@ -492,13 +492,13 @@ int deriveTonicAmbits(Score* score)
                     continue;
                 }
                 for (const Note* note : toChord(el)->notes()) {
-                    if (!note->hasJimsPitch()) {
+                    if (!note->hasMeloPitch()) {
                         continue;
                     }
                     if (!first) {
                         melody += u",";
                     }
-                    melody += String(u"{\"nPer\":%1,\"nGen\":%2}").arg(note->jimsNPer()).arg(note->jimsNGen());
+                    melody += String(u"{\"nPer\":%1,\"nGen\":%2}").arg(note->meloNPer()).arg(note->meloNGen());
                     first = false;
                 }
             }
@@ -509,7 +509,7 @@ int deriveTonicAmbits(Score* score)
         }
         String token;
         String error;
-        if (!tonicAmbitForMelody(authority->jimsStateJson(), melody, token, &error)) {
+        if (!tonicAmbitForMelody(authority->meloStateJson(), melody, token, &error)) {
             continue;
         }
         // The identical Kernel token is repeated through every staff carrier;
@@ -517,10 +517,10 @@ int deriveTonicAmbits(Score* score)
         for (staff_idx_t staffIdx = 0; staffIdx < score->nstaves(); ++staffIdx) {
             Staff* staff = score->staff(staffIdx);
             StaffType* st = staff ? staff->staffType(starts[i]) : nullptr;
-            if (!st || !st->isJiMS() || token == st->jimsTonicAmbit()) {
+            if (!st || !st->isMelo() || token == st->meloTonicAmbit()) {
                 continue;
             }
-            String state = st->jimsStateJson();
+            String state = st->meloStateJson();
             static const String key = u"\"tonic_ambit\":\"";
             const size_t at = state.indexOf(key);
             if (at != muse::nidx) {
@@ -537,7 +537,7 @@ int deriveTonicAmbits(Score* score)
                 }
                 state = state.left(close) + u",\"tonic_ambit\":\"" + token + u"\"}";
             }
-            st->setJimsStateJson(state);
+            st->setMeloStateJson(state);
             ++changed;
         }
     }
@@ -581,7 +581,7 @@ bool staffSpanIsEmpty(const Staff* staff, const Fraction& start, const Fraction&
                 continue;
             }
             for (const Note* note : toChord(el)->notes()) {
-                if (note->hasJimsPitch()) {
+                if (note->hasMeloPitch()) {
                     return false;
                 }
             }
@@ -633,7 +633,7 @@ int reconcileExtents(Score* score)
         }
         for (size_t i = 0; i < starts.size(); ++i) {
             StaffType* st = staff->staffType(starts[i]);
-            if (!st || !st->isJiMS()) {
+            if (!st || !st->isMelo()) {
                 continue;
             }
             const bool bounded = i + 1 < starts.size();
@@ -653,13 +653,13 @@ int reconcileExtents(Score* score)
                         continue;
                     }
                     for (const Note* note : toChord(el)->notes()) {
-                        if (!note->hasJimsPitch()) {
+                        if (!note->hasMeloPitch()) {
                             continue;
                         }
                         if (!first) {
                             melody += u",";
                         }
-                        melody += String(u"{\"nPer\":%1,\"nGen\":%2}").arg(note->jimsNPer()).arg(note->jimsNGen());
+                        melody += String(u"{\"nPer\":%1,\"nGen\":%2}").arg(note->meloNPer()).arg(note->meloNGen());
                         first = false;
                     }
                 }
@@ -668,16 +668,16 @@ int reconcileExtents(Score* score)
             String updated;
             bool ok = false;
             if (!first) {
-                ok = fitExtent(st->jimsStateJson(), melody, updated);
+                ok = fitExtent(st->meloStateJson(), melody, updated);
             } else {
                 ok = defaultExtentForEmptyStaffSpan(staff, starts[i], bounded ? end : Fraction(-1, 1),
-                                                    st->jimsStateJson(), updated);
+                                                    st->meloStateJson(), updated);
             }
             if (ok) {
-                st->setJimsExtentIsEmptyDefault(first);
+                st->setMeloExtentIsEmptyDefault(first);
             }
-            if (ok && updated != st->jimsStateJson()) {
-                st->setJimsStateJson(updated);
+            if (ok && updated != st->meloStateJson()) {
+                st->setMeloStateJson(updated);
                 ++changed;
             }
         }
@@ -687,22 +687,22 @@ int reconcileExtents(Score* score)
 
 bool widenExtentForNote(Note* note)
 {
-    if (!note || !note->staff() || !note->hasJimsPitch()) {
+    if (!note || !note->staff() || !note->hasMeloPitch()) {
         return false;
     }
     StaffType* st = note->staff()->staffType(note->tick());
-    if (!st || !st->isJiMS()) {
+    if (!st || !st->isMelo()) {
         return false;
     }
     String updated;
-    const bool wasEmpty = st->jimsExtentIsEmptyDefault();
+    const bool wasEmpty = st->meloExtentIsEmptyDefault();
     const bool ok = wasEmpty
-                    ? fitExtent(st->jimsStateJson(),
-                                String(u"{\"notes\":[{\"nPer\":%1,\"nGen\":%2}]}").arg(note->jimsNPer()).arg(note->jimsNGen()), updated)
-                    : widenExtent(st->jimsStateJson(), note->jimsNPer(), note->jimsNGen(), updated);
-    const bool changed = ok && (wasEmpty || updated != st->jimsStateJson());
+                    ? fitExtent(st->meloStateJson(),
+                                String(u"{\"notes\":[{\"nPer\":%1,\"nGen\":%2}]}").arg(note->meloNPer()).arg(note->meloNGen()), updated)
+                    : widenExtent(st->meloStateJson(), note->meloNPer(), note->meloNGen(), updated);
+    const bool changed = ok && (wasEmpty || updated != st->meloStateJson());
     if (changed) {
-        note->score()->undo(new ChangeJimsExtent(note->staff(), note->tick(), updated));
+        note->score()->undo(new ChangeMeloExtent(note->staff(), note->tick(), updated));
     }
     designatedMelodyNoteChanged(note);
     return changed;
@@ -713,7 +713,7 @@ void designatedMelodyNoteChanged(Note* note)
     if (!note || !note->score() || !note->part()) {
         return;
     }
-    const String wanted = melodyPartToken(note->score()->jimsMelodyPart());
+    const String wanted = melodyPartToken(note->score()->meloMelodyPart());
     if (partHasVocalRole(note->part(), wanted)) {
         deriveTonicAmbits(note->score());
     }

@@ -11,7 +11,7 @@ MeloScoreSettingsModel::MeloScoreSettingsModel(QObject* parent, const muse::modu
                                                IElementRepositoryService* repository)
     : AbstractInspectorModel(parent, ctx, repository)
 {
-    setSectionType(InspectorSectionType::SECTION_JIMS_SCORE);
+    setSectionType(InspectorSectionType::SECTION_MELO_SCORE);
     setTitle(muse::qtrc("inspector", "%1 score").arg(melo::featureName().toQString()));
 }
 
@@ -21,9 +21,9 @@ void MeloScoreSettingsModel::loadProperties()
     m_settings.clear();
     Score* score = currentNotation() ? currentNotation()->elements()->msScore() : nullptr;
     if (score) {
-        m_settings["elide"] = score->style().styleB(Sid::jimsElideEmptyOctaves);
-        m_settings["firstSystem"] = score->style().styleB(Sid::jimsShowAllOctavesInFirstSystem);
-        m_settings["melody"] = int(score->jimsMelodyPart());
+        m_settings["elide"] = score->style().styleB(Sid::meloElideEmptyOctaves);
+        m_settings["firstSystem"] = score->style().styleB(Sid::meloShowAllOctavesInFirstSystem);
+        m_settings["melody"] = int(score->meloMelodyPart());
     }
     emit settingsChanged();
 }
@@ -37,17 +37,17 @@ void MeloScoreSettingsModel::setOption(const QString& name, const QVariant& valu
     if (name == "melody") {
         bool valid = false;
         int part = value.toInt(&valid);
-        if (!valid || part < 0 || part > 3 || part == int(score->jimsMelodyPart())) {
+        if (!valid || part < 0 || part > 3 || part == int(score->meloMelodyPart())) {
             return;
         }
         score->startCmd(mu::engraving::melo::changeMelodyPartAction());
-        score->undo(new ChangeJimsMelodyPart(score, melo::MelodyPart(part)));
+        score->undo(new ChangeMeloMelodyPart(score, melo::MelodyPart(part)));
         score->endCmd();
     } else {
         if (name != "elide" && name != "firstSystem") {
             return;
         }
-        Sid sid = name == "elide" ? Sid::jimsElideEmptyOctaves : Sid::jimsShowAllOctavesInFirstSystem;
+        Sid sid = name == "elide" ? Sid::meloElideEmptyOctaves : Sid::meloShowAllOctavesInFirstSystem;
         if (score->style().styleB(sid) == value.toBool()) {
             return;
         }

@@ -189,13 +189,13 @@ bool StaffType::operator==(const StaffType& st) const
     equal &= (m_group == st.m_group);
     equal &= (m_xmlName == st.m_xmlName);
     equal &= (m_name == st.m_name);
-    equal &= (m_jims == st.m_jims);
-    equal &= (m_jimsStateJson == st.m_jimsStateJson);
-    equal &= (m_jimsTonicAmbit == st.m_jimsTonicAmbit);
-    equal &= (m_jimsJiLines == st.m_jimsJiLines);
-    equal &= (m_jimsScaleDotLabelMode == st.m_jimsScaleDotLabelMode);
-    equal &= (m_jimsElideOctaves == st.m_jimsElideOctaves);
-    equal &= (m_jimsRatioLineExtentJson == st.m_jimsRatioLineExtentJson);
+    equal &= (m_melo == st.m_melo);
+    equal &= (m_meloStateJson == st.m_meloStateJson);
+    equal &= (m_meloTonicAmbit == st.m_meloTonicAmbit);
+    equal &= (m_meloJiLines == st.m_meloJiLines);
+    equal &= (m_meloScaleDotLabelMode == st.m_meloScaleDotLabelMode);
+    equal &= (m_meloElideOctaves == st.m_meloElideOctaves);
+    equal &= (m_meloRatioLineExtentJson == st.m_meloRatioLineExtentJson);
     equal &= (m_userMag == st.m_userMag);
     equal &= (m_yoffset == st.m_yoffset);
     equal &= (m_small == st.m_small);
@@ -251,7 +251,7 @@ StaffTypes StaffType::type() const
 {
     static const std::map<String, StaffTypes> xmlNameToType {
         { u"stdNormal", StaffTypes::STANDARD },
-        { u"jims12tet", StaffTypes::JIMS_12TET },
+        { u"jims12tet", StaffTypes::MELO_12TET },
 
         { u"perc1Line", StaffTypes::PERC_1LINE },
         { u"perc2Line", StaffTypes::PERC_2LINE },
@@ -777,17 +777,17 @@ double StaffType::physStringToYOffset(int strg) const
 //    aliases would create a duplicate musical authority.
 //---------------------------------------------------------
 
-void StaffType::setJimsStateJson(const String& s)
+void StaffType::setMeloStateJson(const String& s)
 {
-    m_jimsStateJson = s;
-    m_jimsTonicAmbit.clear();
+    m_meloStateJson = s;
+    m_meloTonicAmbit.clear();
     static const String marker = u"\"tonic_ambit\":\"";
     size_t at = s.indexOf(marker);
     if (at != muse::nidx) {
         size_t from = at + marker.size();
         size_t end = s.indexOf(u'"', from);
         if (end != muse::nidx) {
-            m_jimsTonicAmbit = s.mid(from, end - from);
+            m_meloTonicAmbit = s.mid(from, end - from);
         }
     }
 }
@@ -800,16 +800,16 @@ void StaffType::setJimsStateJson(const String& s)
 //    Explicit modes pass through. A bridge failure keeps labels off.
 //---------------------------------------------------------
 
-MeloScaleDotLabelMode StaffType::jimsResolvedScaleDotLabelMode() const
+MeloScaleDotLabelMode StaffType::meloResolvedScaleDotLabelMode() const
 {
-    if (m_jimsScaleDotLabelMode != MeloScaleDotLabelMode::Auto) {
-        return m_jimsScaleDotLabelMode;
+    if (m_meloScaleDotLabelMode != MeloScaleDotLabelMode::Auto) {
+        return m_meloScaleDotLabelMode;
     }
     double generatorCents = 0.0;
     double periodCents = 0.0;
     double minCents = 0.0;
     double maxCents = 0.0;
-    if (!melo::staffMetrics(m_jimsStateJson, generatorCents, periodCents)
+    if (!melo::staffMetrics(m_meloStateJson, generatorCents, periodCents)
         || !melo::labelLegibilityRange(minCents, maxCents)) {
         return MeloScaleDotLabelMode::None;
     }
@@ -828,12 +828,12 @@ MeloScaleDotLabelMode StaffType::jimsResolvedScaleDotLabelMode() const
 //    system margin) reads this — no independent formulas.
 //---------------------------------------------------------
 
-StaffType::MeloHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, double defaultSpatium,
+StaffType::MeloHeaderGeometry StaffType::meloHeaderGeometry(double spatium, double defaultSpatium,
                                                             const MeloFrameView* view) const
 {
     MeloHeaderGeometry g;
     const double dist = m_lineDistance.val() * spatium;
-    const double periodH = (jimsPeriodCents() / JIMS_CENTS_PER_LINE_DISTANCE) * dist;
+    const double periodH = (meloPeriodCents() / MELO_CENTS_PER_LINE_DISTANCE) * dist;
     g.clefRx = (periodH / 2.0) * 4.0 / 3.0;
     g.indicatorW = 1.3 * dist;
     g.headerWidth = 0.3 * spatium + g.clefRx + 2.0 * g.indicatorW;
@@ -848,13 +848,13 @@ StaffType::MeloHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
     const IEngravingFontPtr engravingFont = m_score ? m_score->engravingFont() : nullptr;
     const double gap = 0.25 * spatium;
     std::vector<melo::LabeledDotStack> stacks;
-    const bool haveLabels = melo::scaleDotLabels(m_jimsStateJson, stacks);
+    const bool haveLabels = melo::scaleDotLabels(m_meloStateJson, stacks);
     // Current-key label "[PitchN]:" to the right of Do's scale dot (owner
     // corrections 2026-08-30): its established home is inside the open
     // curve of the crescent clef. It contributes to change-terrain width,
     // but MUST NOT reserve a header label band or move the scale-dot stack.
     melo::TonicPitchLabel key;
-    double keyAdvance = melo::tonicPitchLabel(m_jimsStateJson, key)
+    double keyAdvance = melo::tonicPitchLabel(m_meloStateJson, key)
                         ? melo::pitchLabelLayout(key.label + u": ", labelFont, engravingFont).advance : 0.0;
     if (view && keyAdvance > 0.0) {
         // Milestone 8: reserve for the widest band label of this system (the
@@ -901,7 +901,7 @@ StaffType::MeloHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
         }
     }
 
-    const MeloScaleDotLabelMode mode = jimsResolvedScaleDotLabelMode();
+    const MeloScaleDotLabelMode mode = meloResolvedScaleDotLabelMode();
     if (mode == MeloScaleDotLabelMode::None || !haveLabels) {
         g.headerWidth += g.braceWidth;
         return g;
@@ -950,15 +950,15 @@ StaffType::MeloHeaderGeometry StaffType::jimsHeaderGeometry(double spatium, doub
 //    single-system scores rendered notes against the degenerate frame).
 //---------------------------------------------------------
 
-void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
+void StaffType::meloEnsureFrame(const Score* score, staff_idx_t staffIdx) const
 {
-    if (!isJiMS() || !score) {
+    if (!isMelo() || !score) {
         return;
     }
     // Mid-drag: keep the frame the drag started with (see
     // jimsSetFrameFrozen); the dragged note may draw past the frozen
     // edge as transient feedback, and the drop re-derives once.
-    if (m_jimsFrameFrozen && !m_jimsFrameSegments.empty()) {
+    if (m_meloFrameFrozen && !m_meloFrameSegments.empty()) {
         return;
     }
     muse::String melody = u"{\"notes\":[";
@@ -972,12 +972,12 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
             EngravingItem* el = seg->element(track);
             if (el && el->isChord()) {
                 for (Note* note : toChord(el)->notes()) {
-                    if (note->hasJimsPitch()) {
+                    if (note->hasMeloPitch()) {
                         if (!first) {
                             melody += u",";
                         }
                         melody += muse::String(u"{\"nPer\":%1,\"nGen\":%2}")
-                                  .arg(note->jimsNPer()).arg(note->jimsNGen());
+                                  .arg(note->meloNPer()).arg(note->meloNGen());
                         first = false;
                     }
                 }
@@ -985,7 +985,7 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
         }
     }
     melody += u"]}";
-    const muse::String token = jimsTonicAmbit();
+    const muse::String token = meloTonicAmbit();
     // Owner rule 2026-08-19 (7b): the change indicator drawn against this
     // staff type's frame (its own section start) is part of the derivation
     // input — when no Do-line keeps it on the staff, the frame is re-derived
@@ -1002,10 +1002,10 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
                             .arg(a.to.ordinate).arg(a.to.periodOffset);
         }
     }
-    const muse::String key = jimsStateJson() + u"|" + token + u"|" + melody
-                             + (m_jimsExtentIsEmptyDefault ? u"|empty:1" : u"|empty:0")
-                             + u"|ratio:" + m_jimsRatioLineExtentJson + u"|ind:" + indicatorKey;
-    if (jimsFrameKey() != key) {
+    const muse::String key = meloStateJson() + u"|" + token + u"|" + melody
+                             + (m_meloExtentIsEmptyDefault ? u"|empty:1" : u"|empty:0")
+                             + u"|ratio:" + m_meloRatioLineExtentJson + u"|ind:" + indicatorKey;
+    if (meloFrameKey() != key) {
         // Milestone 4: EVERY melody — including the empty one — asks the
         // Kernel (empty defaults span half P8 around their centre).
         // A changed input never reuses a stale
@@ -1016,12 +1016,12 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
             LOGE() << "JiMStaff: no declared tonic-ambit token; frame unavailable for staff " << staffIdx;
         } else {
             std::vector<melo::StaveSegment> segments;
-            if (melo::frameForMelody(jimsStateJson(), melody, token, segments, {}, m_jimsRatioLineExtentJson,
-                                     !m_jimsExtentIsEmptyDefault)) {
+            if (melo::frameForMelody(meloStateJson(), melody, token, segments, {}, m_meloRatioLineExtentJson,
+                                     !m_meloExtentIsEmptyDefault)) {
                 for (const melo::StaveSegment& segment : segments) {
                     cached.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
                 }
-                if (hasIndicator && jimsPeriodCents() > 0.0) {
+                if (hasIndicator && meloPeriodCents() > 0.0) {
                     // Provisional one-band view -> overflow -> covering re-derivation.
                     MeloFrameView provisional;
                     MeloFrameBand band;
@@ -1032,14 +1032,14 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
                     }
                     provisional.bands.push_back(band);
                     melo::PeriodicOrigins origins;
-                    const std::vector<double> extra = melo::periodicOrigins(jimsStateJson(), origins)
+                    const std::vector<double> extra = melo::periodicOrigins(meloStateJson(), origins)
                                                       ? melo::changeIndicatorOverflowCents(
-                        provisional, intoThis, jimsPeriodCents(), origins.doCentsAboveExtentLower)
+                        provisional, intoThis, meloPeriodCents(), origins.doCentsAboveExtentLower)
                                                       : std::vector<double>();
                     if (!extra.empty()) {
                         std::vector<melo::StaveSegment> covering;
-                        if (melo::frameForMelody(jimsStateJson(), melody, token, covering, extra,
-                                                 m_jimsRatioLineExtentJson, !m_jimsExtentIsEmptyDefault)) {
+                        if (melo::frameForMelody(meloStateJson(), melody, token, covering, extra,
+                                                 m_meloRatioLineExtentJson, !m_meloExtentIsEmptyDefault)) {
                             cached.clear();
                             for (const melo::StaveSegment& segment : covering) {
                                 cached.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
@@ -1052,7 +1052,7 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
                        << " (state/melody rejected); frame cleared";
             }
         }
-        setJimsFrame(key, cached);
+        setMeloFrame(key, cached);
     }
 }
 
@@ -1067,17 +1067,17 @@ void StaffType::jimsEnsureFrame(const Score* score, staff_idx_t staffIdx) const
 //    second cents-to-y formula may exist anywhere.
 //---------------------------------------------------------
 
-double StaffType::jimsPeriodCents() const
+double StaffType::meloPeriodCents() const
 {
     double generatorCents = 0.0;
     double periodCents = 0.0;
-    if (!isJiMS() || !melo::staffMetrics(jimsStateJson(), generatorCents, periodCents)) {
+    if (!isMelo() || !melo::staffMetrics(meloStateJson(), generatorCents, periodCents)) {
         return 0.0;
     }
     return periodCents;
 }
 
-double StaffType::jimsYFromCents(double centsAboveDo) const
+double StaffType::meloYFromCents(double centsAboveDo) const
 {
     // Continuous cents axis (owner ruling 2026-08-14, Milestone 2): the
     // staff defines NO discrete locations; a note's height is its cents
@@ -1087,7 +1087,7 @@ double StaffType::jimsYFromCents(double centsAboveDo) const
     // geometry derived from the configured line count. Every musical
     // cents value entering this map comes from the Kernel. y grows
     // downward, so the frame top maps to zero.
-    return (jimsFrameTopCents() - centsAboveDo) / JIMS_CENTS_PER_LINE_DISTANCE * m_lineDistance.val();
+    return (meloFrameTopCents() - centsAboveDo) / MELO_CENTS_PER_LINE_DISTANCE * m_lineDistance.val();
 }
 
 //---------------------------------------------------------
@@ -1108,7 +1108,7 @@ double StaffType::MeloFrameView::heightLd() const
     if (bands.size() == 1) {
         // Today's expression for the whole frame (kept verbatim so the
         // legacy path is unchanged bit for bit).
-        return (bands.back().upperCents - bands.front().lowerCents) / JIMS_CENTS_PER_LINE_DISTANCE;
+        return (bands.back().upperCents - bands.front().lowerCents) / MELO_CENTS_PER_LINE_DISTANCE;
     }
     // Bands are bottom to top; the top band is the last one and sits at
     // yTopLd 0; the bottom band's bottom edge is the total height.
@@ -1134,10 +1134,10 @@ double StaffType::MeloFrameView::yLdFromCents(double cents) const
     if (bands.size() == 1) {
         // The legacy affine map (top band at 0): identical to
         // jimsYFromCents's numerator, bit for bit.
-        return (bands.back().upperCents - cents) / JIMS_CENTS_PER_LINE_DISTANCE;
+        return (bands.back().upperCents - cents) / MELO_CENTS_PER_LINE_DISTANCE;
     }
     if (const MeloFrameBand* band = bandForCents(cents)) {
-        return band->yTopLd + (band->upperCents - cents) / JIMS_CENTS_PER_LINE_DISTANCE;
+        return band->yTopLd + (band->upperCents - cents) / MELO_CENTS_PER_LINE_DISTANCE;
     }
     // Outside every band: above the top band or below the bottom band the
     // outer band's affine map extrapolates (today's edge behaviour); in a
@@ -1147,10 +1147,10 @@ double StaffType::MeloFrameView::yLdFromCents(double cents) const
     const MeloFrameBand& top = bands.back();
     const MeloFrameBand& bottom = bands.front();
     if (cents > top.upperCents) {
-        return top.yTopLd + (top.upperCents - cents) / JIMS_CENTS_PER_LINE_DISTANCE;
+        return top.yTopLd + (top.upperCents - cents) / MELO_CENTS_PER_LINE_DISTANCE;
     }
     if (cents < bottom.lowerCents) {
-        return bottom.yTopLd + (bottom.upperCents - cents) / JIMS_CENTS_PER_LINE_DISTANCE;
+        return bottom.yTopLd + (bottom.upperCents - cents) / MELO_CENTS_PER_LINE_DISTANCE;
     }
     for (size_t i = 0; i + 1 < bands.size(); ++i) {
         const MeloFrameBand& lower = bands[i];
@@ -1171,7 +1171,7 @@ double StaffType::MeloFrameView::centsFromYLd(double yLd) const
         return 0.0;
     }
     if (bands.size() == 1) {
-        return bands.back().upperCents - yLd * JIMS_CENTS_PER_LINE_DISTANCE;
+        return bands.back().upperCents - yLd * MELO_CENTS_PER_LINE_DISTANCE;
     }
     // Inside a band: that band's affine inverse. Above the top band or
     // below the bottom band: extrapolate from the outer band (today's
@@ -1179,14 +1179,14 @@ double StaffType::MeloFrameView::centsFromYLd(double yLd) const
     const MeloFrameBand& top = bands.back();
     const MeloFrameBand& bottom = bands.front();
     if (yLd <= top.yTopLd) {
-        return top.upperCents - (yLd - top.yTopLd) * JIMS_CENTS_PER_LINE_DISTANCE;
+        return top.upperCents - (yLd - top.yTopLd) * MELO_CENTS_PER_LINE_DISTANCE;
     }
     if (yLd >= bottom.yTopLd + bottom.heightLd()) {
-        return bottom.upperCents - (yLd - bottom.yTopLd) * JIMS_CENTS_PER_LINE_DISTANCE;
+        return bottom.upperCents - (yLd - bottom.yTopLd) * MELO_CENTS_PER_LINE_DISTANCE;
     }
     for (const MeloFrameBand& band : bands) {
         if (yLd >= band.yTopLd && yLd <= band.yTopLd + band.heightLd()) {
-            return band.upperCents - (yLd - band.yTopLd) * JIMS_CENTS_PER_LINE_DISTANCE;
+            return band.upperCents - (yLd - band.yTopLd) * MELO_CENTS_PER_LINE_DISTANCE;
         }
     }
     // In a gap: snap to the nearest band edge; an exact midpoint resolves
@@ -1205,7 +1205,7 @@ double StaffType::MeloFrameView::centsFromYLd(double yLd) const
     return top.upperCents;
 }
 
-double StaffType::jimsYFromCents(double centsAboveDo, const MeloFrameView& view) const
+double StaffType::meloYFromCents(double centsAboveDo, const MeloFrameView& view) const
 {
     return view.yLdFromCents(centsAboveDo) * m_lineDistance.val();
 }
@@ -1214,7 +1214,7 @@ double StaffType::jimsYFromCents(double centsAboveDo, const MeloFrameView& view)
 // jimsEnsureFrame's whole-piece collector (document order, every voice of
 // the staff, main-chord notes with a JiMS identity), restricted to the
 // measures of one system. Pure transport — no musical fact is computed.
-static muse::String jimsCollectSystemMelody(const System* system, staff_idx_t staffIdx, const StaffType* staffType)
+static muse::String meloCollectSystemMelody(const System* system, staff_idx_t staffIdx, const StaffType* staffType)
 {
     muse::String melody = u"{\"notes\":[";
     bool first = true;
@@ -1231,12 +1231,12 @@ static muse::String jimsCollectSystemMelody(const System* system, staff_idx_t st
                 EngravingItem* el = seg->element(track);
                 if (el && el->isChord()) {
                     for (Note* note : toChord(el)->notes()) {
-                        if (note->hasJimsPitch()) {
+                        if (note->hasMeloPitch()) {
                             if (!first) {
                                 melody += u",";
                             }
                             melody += muse::String(u"{\"nPer\":%1,\"nGen\":%2}")
-                                      .arg(note->jimsNPer()).arg(note->jimsNGen());
+                                      .arg(note->meloNPer()).arg(note->meloNGen());
                             first = false;
                         }
                     }
@@ -1248,28 +1248,28 @@ static muse::String jimsCollectSystemMelody(const System* system, staff_idx_t st
     return melody;
 }
 
-const StaffType::MeloFrameView& StaffType::jimsWholeFrameView(const Score* score, staff_idx_t staffIdx) const
+const StaffType::MeloFrameView& StaffType::meloWholeFrameView(const Score* score, staff_idx_t staffIdx) const
 {
     static const MeloFrameView noView;
-    if (!isJiMS()) {
+    if (!isMelo()) {
         return noView;
     }
-    jimsEnsureFrame(score, staffIdx);
+    meloEnsureFrame(score, staffIdx);
     // The whole-piece view is the legacy cache as one band; its identity
     // is the legacy cache key, so it refreshes exactly when the frame does.
-    MeloFrameView& view = m_jimsFrameViews[u"whole"];
-    if (view.key == m_jimsFrameKey && (view.bands.empty() == m_jimsFrameSegments.empty())) {
+    MeloFrameView& view = m_meloFrameViews[u"whole"];
+    if (view.key == m_meloFrameKey && (view.bands.empty() == m_meloFrameSegments.empty())) {
         return view;
     }
     view = MeloFrameView();
-    view.key = m_jimsFrameKey;
+    view.key = m_meloFrameKey;
     view.banded = false;
-    if (!m_jimsFrameSegments.empty()) {
+    if (!m_meloFrameSegments.empty()) {
         MeloFrameBand band;
-        band.segments = m_jimsFrameSegments;
-        band.lowerCents = m_jimsFrameSegments.front().lowerCents;
-        band.upperCents = m_jimsFrameSegments.back().upperCents;
-        const double periodCents = jimsPeriodCents();
+        band.segments = m_meloFrameSegments;
+        band.lowerCents = m_meloFrameSegments.front().lowerCents;
+        band.upperCents = m_meloFrameSegments.back().upperCents;
+        const double periodCents = meloPeriodCents();
         if (periodCents > 0.0) {
             band.lowestPeriodIndex = int(std::floor((band.lowerCents + 1e-6) / periodCents));
             band.highestPeriodIndex = int(std::floor((band.upperCents + 1e-6) / periodCents));
@@ -1280,7 +1280,7 @@ const StaffType::MeloFrameView& StaffType::jimsWholeFrameView(const Score* score
             // tonic_pitch_label with period_index); nothing is inferred here.
             band.labelPeriodIndex = band.lowestPeriodIndex;
             melo::PeriodicOrigins origins;
-            if (melo::periodicOrigins(jimsStateJson(), origins)) {
+            if (melo::periodicOrigins(meloStateJson(), origins)) {
                 for (int k = band.lowestPeriodIndex; k <= band.highestPeriodIndex; ++k) {
                     const double row = double(k) * periodCents + origins.tonicCentsAboveExtentLower;
                     if (row >= band.lowerCents - 1e-6 && row <= band.upperCents + 1e-6) {
@@ -1290,7 +1290,7 @@ const StaffType::MeloFrameView& StaffType::jimsWholeFrameView(const Score* score
                 }
             }
             melo::TonicPitchLabel label;
-            if (melo::tonicPitchLabelInPeriod(jimsStateJson(), band.labelPeriodIndex, label)) {
+            if (melo::tonicPitchLabelInPeriod(meloStateJson(), band.labelPeriodIndex, label)) {
                 band.tonicLabel = label.label;
             }
         }
@@ -1311,9 +1311,9 @@ const StaffType::MeloFrameView& StaffType::jimsWholeFrameView(const Score* score
 //    whole-piece legacy view and nothing on the page can change.
 //---------------------------------------------------------
 
-bool StaffType::jimsElisionActive(const Score* score, staff_idx_t staffIdx, const System* system) const
+bool StaffType::meloElisionActive(const Score* score, staff_idx_t staffIdx, const System* system) const
 {
-    if (!isJiMS() || !score || !system) {
+    if (!isMelo() || !score || !system) {
         return false;
     }
     // The override is a PER-STAFF fact (MuseScore's per-staff hideWhenEmpty
@@ -1323,18 +1323,18 @@ bool StaffType::jimsElisionActive(const Score* score, staff_idx_t staffIdx, cons
     const Staff* staff = staffIdx < score->nstaves() ? score->staff(staffIdx) : nullptr;
     const StaffType* base = staff ? staff->staffType(Fraction(0, 1)) : this;
     bool on = false;
-    switch ((base ? base : this)->m_jimsElideOctaves) {
+    switch ((base ? base : this)->m_meloElideOctaves) {
     case MeloElideOctaves::On: on = true;
         break;
     case MeloElideOctaves::Off: on = false;
         break;
-    case MeloElideOctaves::Auto: on = score->style().styleB(Sid::jimsElideEmptyOctaves);
+    case MeloElideOctaves::Auto: on = score->style().styleB(Sid::meloElideEmptyOctaves);
         break;
     }
     if (!on) {
         return false;
     }
-    if (score->style().styleB(Sid::jimsShowAllOctavesInFirstSystem)) {
+    if (score->style().styleB(Sid::meloShowAllOctavesInFirstSystem)) {
         // The first system of the score (or of a section — MuseScore's
         // dontHideStavesInFirstSystem treats a section's first system the
         // same way) always shows the whole stack.
@@ -1352,15 +1352,15 @@ bool StaffType::jimsElisionActive(const Score* score, staff_idx_t staffIdx, cons
     return true;
 }
 
-const StaffType::MeloFrameView& StaffType::jimsFrameView(const Score* score, staff_idx_t staffIdx,
+const StaffType::MeloFrameView& StaffType::meloFrameView(const Score* score, staff_idx_t staffIdx,
                                                          const System* system) const
 {
     static const MeloFrameView noView;
-    if (!isJiMS() || !score) {
+    if (!isMelo() || !score) {
         return noView;
     }
-    if (!system || !jimsElisionActive(score, staffIdx, system)) {
-        return jimsWholeFrameView(score, staffIdx);
+    if (!system || !meloElisionActive(score, staffIdx, system)) {
+        return meloWholeFrameView(score, staffIdx);
     }
     // Per-system view: keyed by the system's tick range; the entry
     // remembers the full derivation key (state | token | melody slice |
@@ -1369,15 +1369,15 @@ const StaffType::MeloFrameView& StaffType::jimsFrameView(const Score* score, sta
     const Measure* fm = system->firstMeasure();
     const Measure* lm = system->lastMeasure();
     if (!fm || !lm) {
-        return jimsWholeFrameView(score, staffIdx);
+        return meloWholeFrameView(score, staffIdx);
     }
     const muse::String rangeKey = muse::String(u"sys:%1-%2").arg(fm->tick().ticks()).arg(lm->endTick().ticks());
-    auto found = m_jimsFrameViews.find(rangeKey);
-    if (m_jimsFrameFrozen && found != m_jimsFrameViews.end() && !found->second.bands.empty()) {
+    auto found = m_meloFrameViews.find(rangeKey);
+    if (m_meloFrameFrozen && found != m_meloFrameViews.end() && !found->second.bands.empty()) {
         return found->second;
     }
-    const muse::String melody = jimsCollectSystemMelody(system, staffIdx, this);
-    const muse::String token = jimsTonicAmbit();
+    const muse::String melody = meloCollectSystemMelody(system, staffIdx, this);
+    const muse::String token = meloTonicAmbit();
     // Owner rule 2026-08-19 (7b): the change indicator drawn against this
     // staff type's frame is part of the derivation input (see the whole-
     // piece derivation); it only matters on the system that draws it.
@@ -1432,10 +1432,10 @@ const StaffType::MeloFrameView& StaffType::jimsFrameView(const Score* score, sta
                             .arg(a.to.ordinate).arg(a.to.periodOffset);
         }
     }
-    const muse::String key = jimsStateJson() + u"|" + token + u"|" + melody
-                             + (m_jimsExtentIsEmptyDefault ? u"|empty:1" : u"|empty:0")
-                             + u"|elide:1|min:1|ratio:" + m_jimsRatioLineExtentJson + u"|ind:" + indicatorKey;
-    if (found != m_jimsFrameViews.end() && found->second.key == key) {
+    const muse::String key = meloStateJson() + u"|" + token + u"|" + melody
+                             + (m_meloExtentIsEmptyDefault ? u"|empty:1" : u"|empty:0")
+                             + u"|elide:1|min:1|ratio:" + m_meloRatioLineExtentJson + u"|ind:" + indicatorKey;
+    if (found != m_meloFrameViews.end() && found->second.key == key) {
         return found->second;
     }
     MeloFrameView view;
@@ -1447,8 +1447,8 @@ const StaffType::MeloFrameView& StaffType::jimsFrameView(const Score* score, sta
     view.gapLd = ld > 0.0 ? score->style().styleS(Sid::staffDistance).val() / ld : 0.0;
     auto deriveBands = [&](const std::vector<double>& extra, MeloFrameView& into) -> bool {
         melo::FrameBands bands;
-        if (!melo::frameBandsForMelody(jimsStateJson(), melody, token, true, 1, bands, extra,
-                                       m_jimsRatioLineExtentJson, !m_jimsExtentIsEmptyDefault)) {
+        if (!melo::frameBandsForMelody(meloStateJson(), melody, token, true, 1, bands, extra,
+                                       m_meloRatioLineExtentJson, !m_meloExtentIsEmptyDefault)) {
             return false;
         }
         into.bands.clear();
@@ -1479,11 +1479,11 @@ const StaffType::MeloFrameView& StaffType::jimsFrameView(const Score* score, sta
     if (token.isEmpty()) {
         LOGE() << "JiMStaff: no declared tonic-ambit token; banded frame unavailable for staff " << staffIdx;
     } else if (deriveBands({}, view)) {
-        if (hasIndicator && jimsPeriodCents() > 0.0) {
+        if (hasIndicator && meloPeriodCents() > 0.0) {
             melo::PeriodicOrigins origins;
-            const std::vector<double> extra = melo::periodicOrigins(jimsStateJson(), origins)
+            const std::vector<double> extra = melo::periodicOrigins(meloStateJson(), origins)
                                               ? melo::changeIndicatorOverflowCents(
-                view, intoThis, jimsPeriodCents(), origins.doCentsAboveExtentLower)
+                view, intoThis, meloPeriodCents(), origins.doCentsAboveExtentLower)
                                               : std::vector<double>();
             if (!extra.empty()) {
                 deriveBands(extra, view);
@@ -1493,7 +1493,7 @@ const StaffType::MeloFrameView& StaffType::jimsFrameView(const Score* score, sta
         LOGE() << "JiMStaff: Kernel banded frame derivation failed for staff " << staffIdx
                << " (state/melody rejected); banded view cleared";
     }
-    MeloFrameView& stored = m_jimsFrameViews[rangeKey];
+    MeloFrameView& stored = m_meloFrameViews[rangeKey];
     stored = view;
     return stored;
 }
@@ -1908,14 +1908,14 @@ void StaffType::initStaffTypes(const Color& defaultColor)
     // 1200-cent period across 13 staff locations (100 cents = one line
     // distance). Clef, key signatures, and ledger lines are suppressed;
     // Kernel-selected ratio-lines are drawn by the JiMS StaffLines branch.
-    // Keep in sync with StaffTypes::JIMS_12TET.
+    // Keep in sync with StaffTypes::MELO_12TET.
     StaffType melo(StaffGroup::STANDARD, u"jims12tet", melo::presetName(),
                    13, 0, 1, false, true, false, true, false, false, false, defaultColor);
-    melo.setJiMS(true);
-    melo.setJimsJiLines(true);
+    melo.setMelo(true);
+    melo.setMeloJiLines(true);
     // Kernel-owned default section state: White collection, Do-mode,
     // 12-TET, one Do-bounded period from register 4 (JiMStaffStateV1).
-    melo.setJimsStateJson(String::fromUtf8(
+    melo.setMeloStateJson(String::fromUtf8(
                               "{\"scale\":[\"M2\",\"m2\",\"M2\",\"M2\",\"M2\",\"m2\",\"M2\"],"
                               "\"collection_rotation\":0,\"mode_rotation\":0,"
                               "\"generator_cents\":700.0,\"period_cents\":1200.0,"

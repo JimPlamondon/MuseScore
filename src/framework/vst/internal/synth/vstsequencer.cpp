@@ -173,7 +173,7 @@ void VstSequencer::addNoteEvent(EventSequenceMap& destination, const mpe::NoteEv
                                                                             tuning, noteId));
         // Lattice identity travels only to a plug-in that advertises BOTH
         // frozen custom types, once, at the Note On offset, under the same id.
-        if (exact.has_value() && exact->hasLattice && m_capabilities.jimsLattice) {
+        if (exact.has_value() && exact->hasLattice && m_capabilities.meloLattice) {
             addLatticeIdentity(destination, arrangementCtx.actualTimestamp, *exact, noteId);
         }
     }
@@ -406,8 +406,8 @@ void VstSequencer::addLatticeIdentity(EventSequenceMap& destination, const mpe::
         || !encode(exact.nGen, m_capabilities.nGenMin, m_capabilities.nGenStepCount, nGen)) {
         return;
     }
-    destination[timestamp].push_back(buildNoteExpressionEvent(JIMS_NOTE_EXPRESSION_NPER, noteId, nPer));
-    destination[timestamp].push_back(buildNoteExpressionEvent(JIMS_NOTE_EXPRESSION_NGEN, noteId, nGen));
+    destination[timestamp].push_back(buildNoteExpressionEvent(MELO_NOTE_EXPRESSION_NPER, noteId, nPer));
+    destination[timestamp].push_back(buildNoteExpressionEvent(MELO_NOTE_EXPRESSION_NGEN, noteId, nGen));
 }
 
 void VstSequencer::addSostenutoEvents(EventSequenceMap& destination, const SostenutoTimeAndDurations& sostenutoTimeAndDurations)

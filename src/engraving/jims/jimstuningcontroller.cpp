@@ -47,9 +47,9 @@ class MeloChangeStaffStates : public UndoCommand
         previous.reserve(m_ticks.size());
         for (size_t i = 0; i < m_ticks.size(); ++i) {
             StaffType* st = m_staves[i]->staffType(m_ticks[i]);
-            previous.push_back(st ? st->jimsStateJson() : String());
+            previous.push_back(st ? st->meloStateJson() : String());
             if (st) {
-                st->setJimsStateJson(m_states[i]);
+                st->setMeloStateJson(m_states[i]);
             }
         }
         m_states = previous;
@@ -88,17 +88,17 @@ bool TuningController::collectSpans(std::vector<Span>& spans) const
     }
     Staff* selected = m_score->staff(m_staffIdx);
     const StaffType* selectedBase = selected ? selected->staffType(Fraction(0, 1)) : nullptr;
-    if (!selectedBase || !selectedBase->isJiMS()) {
+    if (!selectedBase || !selectedBase->isMelo()) {
         return false;
     }
 
     for (staff_idx_t staffIdx = 0; staffIdx < m_score->nstaves(); ++staffIdx) {
         Staff* staff = m_score->staff(staffIdx);
         StaffType* base = staff ? staff->staffType(Fraction(0, 1)) : nullptr;
-        if (!base || !base->isJiMS()) {
+        if (!base || !base->isMelo()) {
             continue;
         }
-        spans.push_back({ staff, Fraction(0, 1), base->jimsStateJson() });
+        spans.push_back({ staff, Fraction(0, 1), base->meloStateJson() });
         for (MeasureBase* mb = m_score->first(); mb; mb = mb->next()) {
             if (!mb->isMeasure()) {
                 continue;
@@ -106,8 +106,8 @@ bool TuningController::collectSpans(std::vector<Span>& spans) const
             for (EngravingItem* el : mb->el()) {
                 if (el && el->isStaffTypeChange() && el->staffIdx() == staffIdx) {
                     StaffTypeChange* change = toStaffTypeChange(el);
-                    if (change->staffType() && change->staffType()->isJiMS()) {
-                        spans.push_back({ staff, change->tick(), change->staffType()->jimsStateJson() });
+                    if (change->staffType() && change->staffType()->isMelo()) {
+                        spans.push_back({ staff, change->tick(), change->staffType()->meloStateJson() });
                     }
                 }
             }
@@ -123,11 +123,11 @@ double TuningController::currentGeneratorCents() const
     }
     const Staff* staff = m_score->staff(m_staffIdx);
     const StaffType* type = staff ? staff->staffType(Fraction(0, 1)) : nullptr;
-    if (!type || !type->isJiMS()) {
+    if (!type || !type->isMelo()) {
         return 0.0;
     }
     double generatorCents = 0.0, periodCents = 0.0;
-    return staffMetrics(type->jimsStateJson(), generatorCents, periodCents) ? generatorCents : 0.0;
+    return staffMetrics(type->meloStateJson(), generatorCents, periodCents) ? generatorCents : 0.0;
 }
 
 bool TuningController::beginPreview()
@@ -151,16 +151,16 @@ bool TuningController::applyToSpans(double generatorCents)
     }
     for (const Span& span : before) {
         StaffType* type = span.staff ? span.staff->staffType(span.tick) : nullptr;
-        if (!type || !type->isJiMS()) {
+        if (!type || !type->isMelo()) {
             restoreSpans(before);
             return false;
         }
         String updated;
-        if (!retuneGenerator(type->jimsStateJson(), generatorCents, updated)) {
+        if (!retuneGenerator(type->meloStateJson(), generatorCents, updated)) {
             restoreSpans(before);
             return false;
         }
-        type->setJimsStateJson(updated);
+        type->setMeloStateJson(updated);
     }
     size_t repairs = 0;
     String error;
@@ -181,7 +181,7 @@ void TuningController::invalidateAndLayout()
     for (staff_idx_t staffIdx = 0; staffIdx < m_score->nstaves(); ++staffIdx) {
         const Staff* staff = m_score->staff(staffIdx);
         const StaffType* base = staff ? staff->staffType(Fraction(0, 1)) : nullptr;
-        if (!base || !base->isJiMS()) {
+        if (!base || !base->isMelo()) {
             continue;
         }
         for (Segment* seg = m_score->firstSegment(SegmentType::ChordRest); seg;
@@ -190,8 +190,8 @@ void TuningController::invalidateAndLayout()
                 EngravingItem* el = seg->element(track);
                 if (el && el->isChord()) {
                     for (Note* note : toChord(el)->notes()) {
-                        if (note->hasJimsPitch()) {
-                            note->setJimsPitch(note->jimsNPer(), note->jimsNGen());
+                        if (note->hasMeloPitch()) {
+                            note->setMeloPitch(note->meloNPer(), note->meloNGen());
                         }
                     }
                 }
@@ -238,7 +238,7 @@ void TuningController::restoreSpans(const std::vector<Span>& spans)
     for (const Span& span : spans) {
         StaffType* type = span.staff ? span.staff->staffType(span.tick) : nullptr;
         if (type) {
-            type->setJimsStateJson(span.stateJson);
+            type->setMeloStateJson(span.stateJson);
         }
     }
     size_t repairs = 0;

@@ -141,20 +141,20 @@ bool MeiImporter::read(const muse::io::path_t& path)
 
     bool success = true;
 
-    m_jimsNoteIds.clear();
-    m_jims.capture(root);
-    if (!m_jims.present()) {
-        bool hasJimsCarrier = false;
+    m_meloNoteIds.clear();
+    m_melo.capture(root);
+    if (!m_melo.present()) {
+        bool hasMeloCarrier = false;
         for (pugi::xpath_node node : root.select_nodes("//*[@type]")) {
             const String tokens = u" " + String(node.node().attribute("type").value()).simplified() + u" ";
             for (const char* token : { "jims-melody-part", "jims-provenance", "jims-tonal-state", "jims-chord-name", "jims-tonic-ambit",
                                        "jims-focused-review", "jims-adjudication" }) {
                 if (tokens.contains(u" " + String::fromUtf8(token) + u" ")) {
-                    hasJimsCarrier = true;
+                    hasMeloCarrier = true;
                 }
             }
         }
-        if (hasJimsCarrier) {
+        if (hasMeloCarrier) {
             Convert::logs.push_back(muse::mtrc("iex_mei",
                                                "JiMS data is incomplete: its required state record is missing. Import was stopped to avoid silently losing the notation. Use the original JiMS file."));
             return false;
@@ -185,16 +185,16 @@ bool MeiImporter::read(const muse::io::path_t& path)
 
     success = success && this->readScore(root);
 
-    if (success && m_jims.present()) {
-        success = m_jims.apply(m_score,
+    if (success && m_melo.present()) {
+        success = m_melo.apply(m_score,
                                [this](const std::string& id) -> Note* {
-            auto it = m_jimsNoteIds.find(id);
-            return it != m_jimsNoteIds.end() ? it->second : nullptr;
+            auto it = m_meloNoteIds.find(id);
+            return it != m_meloNoteIds.end() ? it->second : nullptr;
         },
                                [this](int staffN) { return this->getStaffIndex(staffN); });
         if (!success) {
-            Convert::logs.push_back(m_jims.error());
-            LOGE() << m_jims.error();
+            Convert::logs.push_back(m_melo.error());
+            LOGE() << m_melo.error();
         }
     }
 
@@ -2163,7 +2163,7 @@ bool MeiImporter::readNote(pugi::xml_node noteNode, Measure* measure, int track,
     Convert::colorFromMEI(note, meiNote);
     this->readXmlId(note, meiNote.m_xmlId);
     if (!meiNote.m_xmlId.empty()) {
-        m_jimsNoteIds[meiNote.m_xmlId] = note;
+        m_meloNoteIds[meiNote.m_xmlId] = note;
     }
 
     // If there is a reference to the note in the MEI, add it the maps (e.g., for ties)

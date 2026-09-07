@@ -126,7 +126,7 @@ const StaffType* typeAt(const Score* score, staff_idx_t staffIdx, const Measure*
 muse::String stateAt(const Score* score, staff_idx_t staffIdx, const Measure* m)
 {
     const StaffType* st = typeAt(score, staffIdx, m);
-    return st ? st->jimsStateJson() : muse::String();
+    return st ? st->meloStateJson() : muse::String();
 }
 
 // The four voices' states must agree in every field except the one the
@@ -219,7 +219,7 @@ std::vector<Note*> notesOn(Score* score, staff_idx_t staffIdx)
 // Template structure — MuseScore's own SATB conventions, on JiMS staves
 // ---------------------------------------------------------------------------
 
-TEST(Engraving_JiMStaffM9SATBTests, m9TemplateIsShippedAndOpensAsFourVocalPartsInOpenScore)
+TEST(Engraving_MeloStaffM9SATBTests, m9TemplateIsShippedAndOpensAsFourVocalPartsInOpenScore)
 {
     ASSERT_TRUE(fileExists(satbTemplatePath()))
         << "the SATB (JiMStaff) template is not shipped at " << satbTemplatePath().toStdString();
@@ -247,7 +247,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9TemplateIsShippedAndOpensAsFourVocalPartsI
     delete score;
 }
 
-TEST(Engraving_JiMStaffM9SATBTests, m9TemplateBracketsAndBarlinesFollowTheOctavoConvention)
+TEST(Engraving_MeloStaffM9SATBTests, m9TemplateBracketsAndBarlinesFollowTheOctavoConvention)
 {
     MasterScore* score = openShippedTemplate();
     ASSERT_TRUE(score);
@@ -282,7 +282,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9TemplateBracketsAndBarlinesFollowTheOctavo
     delete score;
 }
 
-TEST(Engraving_JiMStaffM9SATBTests, m9TemplateFileCarriesNoStyleBlockAndVoiceOneOnly)
+TEST(Engraving_MeloStaffM9SATBTests, m9TemplateFileCarriesNoStyleBlockAndVoiceOneOnly)
 {
     const std::string mscx = readFile(satbTemplatePath());
     ASSERT_FALSE(mscx.empty()) << "the shipped template could not be read";
@@ -309,7 +309,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9TemplateFileCarriesNoStyleBlockAndVoiceOne
     delete score;
 }
 
-TEST(Engraving_JiMStaffM9SATBTests, m9TemplateIsRegisteredInAllThreeRegistrationFilesWithItsPackageAssets)
+TEST(Engraving_MeloStaffM9SATBTests, m9TemplateIsRegisteredInAllThreeRegistrationFilesWithItsPackageAssets)
 {
     const muse::String rel(u"02-Choral/12-SATB_(JiMStaff)/12-SATB_(JiMStaff).mscx");
 
@@ -343,7 +343,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9TemplateIsRegisteredInAllThreeRegistration
 // The empty-staff singer-range defaults
 // ---------------------------------------------------------------------------
 
-TEST(Engraving_JiMStaffM9SATBTests, m9EveryStaffIsAJimsStaffCarryingItsRangeDerivedDefault)
+TEST(Engraving_MeloStaffM9SATBTests, m9EveryStaffIsAMeloStaffCarryingItsRangeDerivedDefault)
 {
     MasterScore* score = openShippedTemplate();
     ASSERT_TRUE(score);
@@ -353,30 +353,30 @@ TEST(Engraving_JiMStaffM9SATBTests, m9EveryStaffIsAJimsStaffCarryingItsRangeDeri
     for (staff_idx_t i = 0; i < 4; ++i) {
         const StaffType* st = score->staff(i)->staffType(Fraction(0, 1));
         ASSERT_TRUE(st) << "staff " << i;
-        EXPECT_TRUE(st->isJiMS()) << "staff " << i << " must be a JiMStaff";
+        EXPECT_TRUE(st->isMelo()) << "staff " << i << " must be a JiMStaff";
         EXPECT_EQ(st->xmlName(), muse::String(u"jims12tet")) << "staff " << i;
         // The modern key. The legacy `tonic_extent` spelling must not appear
         // in a template authored today.
-        EXPECT_TRUE(st->jimsStateJson().contains(u"\"tonic_ambit\":\"tonic-bounded\"")) << "staff " << i;
-        EXPECT_FALSE(st->jimsStateJson().contains(u"tonic_extent")) << "staff " << i;
+        EXPECT_TRUE(st->meloStateJson().contains(u"\"tonic_ambit\":\"tonic-bounded\"")) << "staff " << i;
+        EXPECT_FALSE(st->meloStateJson().contains(u"tonic_extent")) << "staff " << i;
     }
 
     // Identical in every field except the per-staff extent.
     // voice its own value of.
-    const muse::String s0 = score->staff(0)->staffType(Fraction(0, 1))->jimsStateJson();
+    const muse::String s0 = score->staff(0)->staffType(Fraction(0, 1))->meloStateJson();
     for (staff_idx_t i = 1; i < 4; ++i) {
-        const muse::String si = score->staff(i)->staffType(Fraction(0, 1))->jimsStateJson();
+        const muse::String si = score->staff(i)->staffType(Fraction(0, 1))->meloStateJson();
         EXPECT_EQ(withoutExtent(withoutAmbit(si)), withoutExtent(withoutAmbit(s0)))
             << "staff " << i << " differs from the Soprano outside its frame extent";
     }
-    EXPECT_NE(score->staff(0)->staffType(Fraction(0, 1))->jimsStateJson(),
-              score->staff(3)->staffType(Fraction(0, 1))->jimsStateJson())
+    EXPECT_NE(score->staff(0)->staffType(Fraction(0, 1))->meloStateJson(),
+              score->staff(3)->staffType(Fraction(0, 1))->meloStateJson())
         << "the Soprano and Bass frames must differ";
 
     delete score;
 }
 
-TEST(Engraving_JiMStaffM9SATBTests, m9EmptyFramesAreHalfPeriodAtTheirDeclaredCentreNotes)
+TEST(Engraving_MeloStaffM9SATBTests, m9EmptyFramesAreHalfPeriodAtTheirDeclaredCentreNotes)
 {
     MasterScore* score = openShippedTemplate();
     ASSERT_TRUE(score);
@@ -386,19 +386,19 @@ TEST(Engraving_JiMStaffM9SATBTests, m9EmptyFramesAreHalfPeriodAtTheirDeclaredCen
     const int centreNGen[4] = { 1, 2, 3, 0 };
     for (staff_idx_t i = 0; i < 4; ++i) {
         const StaffType* st = score->staff(i)->staffType(Fraction(0, 1));
-        ASSERT_TRUE(st && st->isJiMS());
+        ASSERT_TRUE(st && st->isMelo());
         double centre = 0.0;
-        ASSERT_TRUE(melo::noteCentsAboveExtentLower(st->jimsStateJson(), centreNPer[i], centreNGen[i], centre));
-        const StaffType::MeloFrameView& view = st->jimsWholeFrameView(score, i);
+        ASSERT_TRUE(melo::noteCentsAboveExtentLower(st->meloStateJson(), centreNPer[i], centreNGen[i], centre));
+        const StaffType::MeloFrameView& view = st->meloWholeFrameView(score, i);
         ASSERT_EQ(view.bands.size(), 1u);
-        EXPECT_NEAR(view.bands[0].lowerCents, centre - st->jimsPeriodCents() / 4.0, 1e-6);
-        EXPECT_NEAR(view.bands[0].upperCents, centre + st->jimsPeriodCents() / 4.0, 1e-6);
-        EXPECT_TRUE(st->jimsExtentIsEmptyDefault());
+        EXPECT_NEAR(view.bands[0].lowerCents, centre - st->meloPeriodCents() / 4.0, 1e-6);
+        EXPECT_NEAR(view.bands[0].upperCents, centre + st->meloPeriodCents() / 4.0, 1e-6);
+        EXPECT_TRUE(st->meloExtentIsEmptyDefault());
     }
     delete score;
 }
 
-TEST(Engraving_JiMStaffM9SATBTests, m9WrittenStavesUseTheirOwnMelodyFrameWhileUnwrittenStavesKeepTheDefault)
+TEST(Engraving_MeloStaffM9SATBTests, m9WrittenStavesUseTheirOwnMelodyFrameWhileUnwrittenStavesKeepTheDefault)
 {
     MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m9-satb-mixed.mscx");
     ASSERT_TRUE(score);
@@ -409,23 +409,23 @@ TEST(Engraving_JiMStaffM9SATBTests, m9WrittenStavesUseTheirOwnMelodyFrameWhileUn
     // frame; staves 1..3 are empty and keep their range-derived defaults.
     ASSERT_FALSE(notesOn(score, 0).empty());
     const StaffType* written = score->staff(0)->staffType(Fraction(0, 1));
-    const StaffType::MeloFrameView& wv = written->jimsWholeFrameView(score, 0);
+    const StaffType::MeloFrameView& wv = written->meloWholeFrameView(score, 0);
     EXPECT_GT(wv.bands.size() ? (wv.bands.back().upperCents - wv.bands.front().lowerCents) : 0.0, 1200.0)
         << "a written staff must use its melody-derived frame";
 
     for (staff_idx_t i = 1; i < 4; ++i) {
         EXPECT_TRUE(notesOn(score, i).empty()) << "staff " << i << " is meant to be unwritten";
         const StaffType* st = score->staff(i)->staffType(Fraction(0, 1));
-        const StaffType::MeloFrameView& v = st->jimsWholeFrameView(score, i);
+        const StaffType::MeloFrameView& v = st->meloWholeFrameView(score, i);
         ASSERT_EQ(v.bands.size(), 1u) << "staff " << i;
-        EXPECT_NEAR(v.bands[0].upperCents - v.bands[0].lowerCents, st->jimsPeriodCents() / 2.0, 1e-6)
+        EXPECT_NEAR(v.bands[0].upperCents - v.bands[0].lowerCents, st->meloPeriodCents() / 2.0, 1e-6)
             << "unwritten staff " << i << " must keep its half-period range default";
     }
 
     delete score;
 }
 
-TEST(Engraving_JiMStaffM9SATBTests, m9IntroducesNoDoAnchoredFramingLanguage)
+TEST(Engraving_MeloStaffM9SATBTests, m9IntroducesNoDoAnchoredFramingLanguage)
 {
     // Framing is tonic-relative. Do is only the Do-mode specialisation, and no
     // artifact this milestone introduces may say otherwise.
@@ -439,9 +439,9 @@ TEST(Engraving_JiMStaffM9SATBTests, m9IntroducesNoDoAnchoredFramingLanguage)
         forkRoot() + u"/src/inspector/qml/MuseScore/Inspector/jimsstaffsettingsmodel.cpp",
         forkRoot() + u"/src/inspector/qml/MuseScore/Inspector/jimsscoresettingsmodel.cpp",
         forkRoot() + u"/src/inspector/qml/MuseScore/Inspector/jimstuningmodel.cpp",
-        forkRoot() + u"/src/inspector/qml/MuseScore/Inspector/JimsStaffSettings.qml",
-        forkRoot() + u"/src/inspector/qml/MuseScore/Inspector/JimsScoreSettings.qml",
-        forkRoot() + u"/src/inspector/qml/MuseScore/Inspector/JimsTuningControl.qml",
+        forkRoot() + u"/src/inspector/qml/MuseScore/Inspector/MeloStaffSettings.qml",
+        forkRoot() + u"/src/inspector/qml/MuseScore/Inspector/MeloScoreSettings.qml",
+        forkRoot() + u"/src/inspector/qml/MuseScore/Inspector/MeloTuningControl.qml",
         satbTemplatePath(),
     };
     for (const muse::String& f : files) {
@@ -460,7 +460,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9IntroducesNoDoAnchoredFramingLanguage)
 // Owner decision 2a — one atomic, score-wide key/mode/scale change
 // ---------------------------------------------------------------------------
 
-TEST(Engraving_JiMStaffM9SATBTests, m9ModeChangeReachesEveryJimsPartAtTheSameMeasureInOneUndoStep)
+TEST(Engraving_MeloStaffM9SATBTests, m9ModeChangeReachesEveryMeloPartAtTheSameMeasureInOneUndoStep)
 {
     MasterScore* score = openShippedTemplate();
     ASSERT_TRUE(score);
@@ -476,14 +476,14 @@ TEST(Engraving_JiMStaffM9SATBTests, m9ModeChangeReachesEveryJimsPartAtTheSameMea
     const size_t depth = undoDepth(score);
 
     muse::String error;
-    ASSERT_TRUE(melo::applyChangeToAllJimsParts(score, m2, { u"mode:1" }, error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChangeToAllMeloParts(score, m2, { u"mode:1" }, error)) << error.toStdString();
     score->doLayout();
 
     for (staff_idx_t i = 0; i < 4; ++i) {
         EXPECT_TRUE(stateAt(score, i, m2).contains(u"\"mode_rotation\":5"))
             << "staff " << i << " did not receive the mode change";
         // The change is carried at the measure only; tick 0 keeps its mode.
-        EXPECT_TRUE(score->staff(i)->staffType(Fraction(0, 1))->jimsStateJson().contains(u"\"mode_rotation\":0"))
+        EXPECT_TRUE(score->staff(i)->staffType(Fraction(0, 1))->meloStateJson().contains(u"\"mode_rotation\":0"))
             << "staff " << i << " base state was changed";
     }
     EXPECT_EQ(undoDepth(score), depth + 1) << "the whole multi-part change must be exactly one undo step";
@@ -504,7 +504,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9ModeChangeReachesEveryJimsPartAtTheSameMea
     delete score;
 }
 
-TEST(Engraving_JiMStaffM9SATBTests, m9KeyChangeReachesEveryJimsPartAtTheSameMeasureInOneUndoStep)
+TEST(Engraving_MeloStaffM9SATBTests, m9KeyChangeReachesEveryMeloPartAtTheSameMeasureInOneUndoStep)
 {
     MasterScore* score = openShippedTemplate();
     ASSERT_TRUE(score);
@@ -521,7 +521,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9KeyChangeReachesEveryJimsPartAtTheSameMeas
     score->doLayout();
     const size_t depth = undoDepth(score);
 
-    ASSERT_TRUE(melo::applyChangeToAllJimsParts(score, m2, { u"key:-1:3" }, error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChangeToAllMeloParts(score, m2, { u"key:-1:3" }, error)) << error.toStdString();
     score->doLayout();
     for (staff_idx_t i = 0; i < 4; ++i) {
         EXPECT_TRUE(stateAt(score, i, m2).contains(u"\"key_number\":53"))
@@ -536,7 +536,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9KeyChangeReachesEveryJimsPartAtTheSameMeas
 // from a non-diatonic collection, "Parallel Minor" is the diatonic cycle plus
 // a rotation. Looping one-id applications made that two undo steps for one
 // user gesture; the list-valued seam makes it one.
-TEST(Engraving_JiMStaffM9SATBTests, m9MultiChoiceScaleChangeIsOneAtomicOperationAcrossEveryPart)
+TEST(Engraving_MeloStaffM9SATBTests, m9MultiChoiceScaleChangeIsOneAtomicOperationAcrossEveryPart)
 {
     MasterScore* score = openShippedTemplate();
     ASSERT_TRUE(score);
@@ -546,7 +546,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9MultiChoiceScaleChangeIsOneAtomicOperation
 
     // Step off the diatonic collection first, exactly as a user would.
     muse::String error;
-    ASSERT_TRUE(melo::applyChangeToAllJimsParts(score, m2, { u"scale:cycle:double-harmonic-minor" }, error))
+    ASSERT_TRUE(melo::applyChangeToAllMeloParts(score, m2, { u"scale:cycle:double-harmonic-minor" }, error))
         << error.toStdString();
     score->doLayout();
 
@@ -588,7 +588,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9MultiChoiceScaleChangeIsOneAtomicOperation
     }
 
     const size_t depth = undoDepth(score);
-    ASSERT_TRUE(melo::applyChangeToAllJimsParts(score, m2, steps, error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChangeToAllMeloParts(score, m2, steps, error)) << error.toStdString();
     score->doLayout();
 
     EXPECT_EQ(undoDepth(score), depth + 1)
@@ -610,7 +610,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9MultiChoiceScaleChangeIsOneAtomicOperation
     delete score;
 }
 
-TEST(Engraving_JiMStaffM9SATBTests, m9PropagationStartsFromAnyVoiceAndKeepsEachPartsOwnKernelState)
+TEST(Engraving_MeloStaffM9SATBTests, m9PropagationStartsFromAnyVoiceAndKeepsEachPartsOwnKernelState)
 {
     for (staff_idx_t origin = 0; origin < 4; ++origin) {
         MasterScore* score = openShippedTemplate();
@@ -633,7 +633,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9PropagationStartsFromAnyVoiceAndKeepsEachP
         }
 
         muse::String error;
-        ASSERT_TRUE(melo::applyChangeToAllJimsParts(score, m2, { u"mode:1" }, error)) << error.toStdString();
+        ASSERT_TRUE(melo::applyChangeToAllMeloParts(score, m2, { u"mode:1" }, error)) << error.toStdString();
         score->doLayout();
 
         for (staff_idx_t i = 0; i < 4; ++i) {
@@ -648,7 +648,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9PropagationStartsFromAnyVoiceAndKeepsEachP
     }
 }
 
-TEST(Engraving_JiMStaffM9SATBTests, m9ARefusedTargetLeavesTheWholeScoreUntouched)
+TEST(Engraving_MeloStaffM9SATBTests, m9ARefusedTargetLeavesTheWholeScoreUntouched)
 {
     MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m9-satb-blocked.mscx");
     ASSERT_TRUE(score);
@@ -668,7 +668,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9ARefusedTargetLeavesTheWholeScoreUntouched
     ASSERT_FALSE(melo::canInsertChange(score, 2, m2, why));
 
     muse::String error;
-    EXPECT_FALSE(melo::applyChangeToAllJimsParts(score, m2, { u"mode:1" }, error));
+    EXPECT_FALSE(melo::applyChangeToAllMeloParts(score, m2, { u"mode:1" }, error));
     EXPECT_FALSE(error.empty()) << "a refusal must name its reason";
     score->doLayout();
 
@@ -680,7 +680,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9ARefusedTargetLeavesTheWholeScoreUntouched
     delete score;
 }
 
-TEST(Engraving_JiMStaffM9SATBTests, m9StockPartsAreLeftUntouchedAndASinglePartScoreBehavesAsBefore)
+TEST(Engraving_MeloStaffM9SATBTests, m9StockPartsAreLeftUntouchedAndASinglePartScoreBehavesAsBefore)
 {
     MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m8-two-staves.mscx");
     ASSERT_TRUE(score);
@@ -689,13 +689,13 @@ TEST(Engraving_JiMStaffM9SATBTests, m9StockPartsAreLeftUntouchedAndASinglePartSc
     Measure* m2 = measureNo(score, 2);
     ASSERT_TRUE(m2);
 
-    std::vector<staff_idx_t> jimsStaves;
+    std::vector<staff_idx_t> meloStaves;
     std::vector<staff_idx_t> stockStaves;
     for (staff_idx_t i = 0; i < score->nstaves(); ++i) {
         const StaffType* st = score->staff(i)->staffType(m2->tick());
-        (st && st->isJiMS() ? jimsStaves : stockStaves).push_back(i);
+        (st && st->isMelo() ? meloStaves : stockStaves).push_back(i);
     }
-    ASSERT_FALSE(jimsStaves.empty());
+    ASSERT_FALSE(meloStaves.empty());
 
     std::vector<muse::String> stockBefore;
     for (staff_idx_t i : stockStaves) {
@@ -704,10 +704,10 @@ TEST(Engraving_JiMStaffM9SATBTests, m9StockPartsAreLeftUntouchedAndASinglePartSc
 
     const size_t depth = undoDepth(score);
     muse::String error;
-    ASSERT_TRUE(melo::applyChangeToAllJimsParts(score, m2, { u"mode:1" }, error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChangeToAllMeloParts(score, m2, { u"mode:1" }, error)) << error.toStdString();
     score->doLayout();
 
-    for (staff_idx_t i : jimsStaves) {
+    for (staff_idx_t i : meloStaves) {
         EXPECT_TRUE(stateAt(score, i, m2).contains(u"\"mode_rotation\":5")) << "JiMS staff " << i;
     }
     for (size_t k = 0; k < stockStaves.size(); ++k) {
@@ -719,7 +719,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9StockPartsAreLeftUntouchedAndASinglePartSc
     delete score;
 }
 
-TEST(Engraving_JiMStaffM9SATBTests, m9BindStaysStaffWideAndIsNeverPropagatedAcrossParts)
+TEST(Engraving_MeloStaffM9SATBTests, m9BindStaysStaffWideAndIsNeverPropagatedAcrossParts)
 {
     MasterScore* score = openShippedTemplate();
     ASSERT_TRUE(score);
@@ -729,7 +729,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9BindStaysStaffWideAndIsNeverPropagatedAcro
 
     muse::String othersBefore[4];
     for (staff_idx_t i = 0; i < 4; ++i) {
-        othersBefore[i] = score->staff(i)->staffType(Fraction(0, 1))->jimsStateJson();
+        othersBefore[i] = score->staff(i)->staffType(Fraction(0, 1))->meloStateJson();
         // The template states its KEY as well as its mode: Re0 pinned to D4,
         // so Do is C, and mode_rotation 0 makes Do the tonic. Nothing about
         // which pitch a JiMS note sounds is left to inference.
@@ -744,15 +744,15 @@ TEST(Engraving_JiMStaffM9SATBTests, m9BindStaysStaffWideAndIsNeverPropagatedAcro
     ASSERT_TRUE(melo::applyChange(score, 0, m2, u"bind:reference-pitch:64", error)) << error.toStdString();
     score->doLayout();
     for (staff_idx_t i = 0; i < 4; ++i) {
-        EXPECT_EQ(score->staff(i)->staffType(Fraction(0, 1))->jimsStateJson(), othersBefore[i])
+        EXPECT_EQ(score->staff(i)->staffType(Fraction(0, 1))->meloStateJson(), othersBefore[i])
             << "a binding applied to the Soprano changed part " << i;
     }
 
     // And the score-wide seam refuses a binding outright rather than widening it.
-    EXPECT_FALSE(melo::applyChangeToAllJimsParts(score, m2, { u"bind:reference-pitch:65" }, error));
+    EXPECT_FALSE(melo::applyChangeToAllMeloParts(score, m2, { u"bind:reference-pitch:65" }, error));
     EXPECT_FALSE(error.empty());
     for (staff_idx_t i = 1; i < 4; ++i) {
-        EXPECT_EQ(score->staff(i)->staffType(Fraction(0, 1))->jimsStateJson(), othersBefore[i])
+        EXPECT_EQ(score->staff(i)->staffType(Fraction(0, 1))->meloStateJson(), othersBefore[i])
             << "a refused binding must mutate nothing, part " << i;
     }
 
@@ -789,7 +789,7 @@ std::vector<Note*> collidingPair(Measure* measure)
 // unison may legitimately want different heads. When the shapes differ the
 // heads must not be merged: one is placed across the stem from the other, the
 // way MuseScore separates any unshareable unison.
-TEST(Engraving_JiMStaffM9SATBTests, m9CollidingHeadsOfDifferentShapesAreOffsetAcrossTheStemAndNeverShared)
+TEST(Engraving_MeloStaffM9SATBTests, m9CollidingHeadsOfDifferentShapesAreOffsetAcrossTheStemAndNeverShared)
 {
     MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m9-dense-voices.mscx");
     ASSERT_TRUE(score);
@@ -799,16 +799,16 @@ TEST(Engraving_JiMStaffM9SATBTests, m9CollidingHeadsOfDifferentShapesAreOffsetAc
     ASSERT_TRUE(m1);
     std::vector<Note*> heads = collidingPair(m1);
     ASSERT_EQ(heads.size(), 2u) << "the different-shape fixture must present exactly two colliding heads";
-    ASSERT_TRUE(heads[0]->hasJimsPitch() && heads[1]->hasJimsPitch());
+    ASSERT_TRUE(heads[0]->hasMeloPitch() && heads[1]->hasMeloPitch());
 
     const StaffType* st = score->staff(0)->staffType(m1->tick());
-    ASSERT_TRUE(st && st->isJiMS());
+    ASSERT_TRUE(st && st->isMelo());
     // They really do collide: the Kernel puts both at the same height.
-    EXPECT_NEAR(heads[0]->jimsCentsAboveDo(), heads[1]->jimsCentsAboveDo(), 1e-6);
+    EXPECT_NEAR(heads[0]->meloCentsAboveDo(), heads[1]->meloCentsAboveDo(), 1e-6);
     // ...and the Kernel really does give them different shapes.
     muse::String tokA, tokB;
-    ASSERT_TRUE(melo::noteheadToken(st->jimsStateJson(), heads[0]->jimsNGen(), tokA));
-    ASSERT_TRUE(melo::noteheadToken(st->jimsStateJson(), heads[1]->jimsNGen(), tokB));
+    ASSERT_TRUE(melo::noteheadToken(st->meloStateJson(), heads[0]->meloNGen(), tokA));
+    ASSERT_TRUE(melo::noteheadToken(st->meloStateJson(), heads[1]->meloNGen(), tokB));
     ASSERT_NE(tokA, tokB) << "the fixture must give the two heads different Kernel shapes";
 
     EXPECT_TRUE(heads[0]->visible() && heads[1]->visible()) << "neither head may be hidden away";
@@ -831,7 +831,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9CollidingHeadsOfDifferentShapesAreOffsetAc
 // space apart instead of exactly coinciding. That is a note-head metric seam
 // owned by the M1/M3 glyph work, not by this milestone's collision ruling; it
 // is recorded as an observed follow-up in the M9 final report.
-TEST(Engraving_JiMStaffM9SATBTests, m9CollidingHeadsOfIdenticalShapeMayShareOneHead)
+TEST(Engraving_MeloStaffM9SATBTests, m9CollidingHeadsOfIdenticalShapeMayShareOneHead)
 {
     MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m9-dense-voices.mscx");
     ASSERT_TRUE(score);
@@ -844,14 +844,14 @@ TEST(Engraving_JiMStaffM9SATBTests, m9CollidingHeadsOfIdenticalShapeMayShareOneH
         ASSERT_TRUE(m) << "bar " << bar;
         std::vector<Note*> heads = collidingPair(m);
         ASSERT_EQ(heads.size(), 2u) << "bar " << bar << " must present exactly two colliding heads";
-        ASSERT_EQ(heads[0]->jimsNPer(), heads[1]->jimsNPer()) << "bar " << bar;
-        ASSERT_EQ(heads[0]->jimsNGen(), heads[1]->jimsNGen()) << "bar " << bar;
+        ASSERT_EQ(heads[0]->meloNPer(), heads[1]->meloNPer()) << "bar " << bar;
+        ASSERT_EQ(heads[0]->meloNGen(), heads[1]->meloNGen()) << "bar " << bar;
 
         const StaffType* st = score->staff(0)->staffType(m->tick());
-        ASSERT_TRUE(st && st->isJiMS());
+        ASSERT_TRUE(st && st->isMelo());
         muse::String tokA, tokB;
-        ASSERT_TRUE(melo::noteheadToken(st->jimsStateJson(), heads[0]->jimsNGen(), tokA));
-        ASSERT_TRUE(melo::noteheadToken(st->jimsStateJson(), heads[1]->jimsNGen(), tokB));
+        ASSERT_TRUE(melo::noteheadToken(st->meloStateJson(), heads[0]->meloNGen(), tokA));
+        ASSERT_TRUE(melo::noteheadToken(st->meloStateJson(), heads[1]->meloNGen(), tokB));
         ASSERT_EQ(tokA, tokB) << "bar " << bar << ": the two heads must be the same Kernel shape";
 
         // The sharing decision itself: no separation offset, so the two chords
@@ -888,14 +888,14 @@ const char16_t* HYMN = u"jimstaff_data/m9-satb-hymn.mscx";
 // A JiMStaff draws no clef and no key signature, while the stock clef entries
 // stay in the Part definitions so a staff switched back to stdNormal renders
 // correctly again.
-TEST(Engraving_JiMStaffM9SATBTests, m9SweepNoClefIsDrawnWhileTheStockClefEntriesSurvive)
+TEST(Engraving_MeloStaffM9SATBTests, m9SweepNoClefIsDrawnWhileTheStockClefEntriesSurvive)
 {
     MasterScore* score = openShippedTemplate();
     ASSERT_TRUE(score);
     score->doLayout();
     for (staff_idx_t i = 0; i < 4; ++i) {
         const StaffType* st = score->staff(i)->staffType(Fraction(0, 1));
-        ASSERT_TRUE(st && st->isJiMS()) << "staff " << i;
+        ASSERT_TRUE(st && st->isMelo()) << "staff " << i;
         EXPECT_FALSE(st->genClef()) << "staff " << i << " must draw no clef";
         EXPECT_FALSE(st->genKeysig()) << "staff " << i << " must draw no key signature";
     }
@@ -910,7 +910,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9SweepNoClefIsDrawnWhileTheStockClefEntries
 // consequence of owner decision 3b — the lyric line sits below the whole-period
 // frame bottom, which can be far from the note heads until precise frames land
 // under the later plan — is accepted, and is recorded here rather than fixed.
-TEST(Engraving_JiMStaffM9SATBTests, m9SweepLyricsAttachToJimsNotesAndSitBelowTheStaff)
+TEST(Engraving_MeloStaffM9SATBTests, m9SweepLyricsAttachToMeloNotesAndSitBelowTheStaff)
 {
     MasterScore* score = ScoreRW::readScore(HYMN);
     ASSERT_TRUE(score);
@@ -927,7 +927,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9SweepLyricsAttachToJimsNotesAndSitBelowThe
             }
             Chord* c = toChord(e);
             for (Note* n : c->notes()) {
-                ASSERT_TRUE(n->hasJimsPitch()) << "the lyric carrier must be a JiMS note";
+                ASSERT_TRUE(n->hasMeloPitch()) << "the lyric carrier must be a JiMS note";
                 lowestNoteY = std::max(lowestNoteY, n->pagePos().y());
             }
             for (Lyrics* l : c->lyrics()) {
@@ -946,7 +946,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9SweepLyricsAttachToJimsNotesAndSitBelowThe
 // Dynamics, expression text and hairpins default ABOVE a vocal staff, and that
 // rule is what puts them clear of the JiMS header terrain and of the
 // mid-system change indicators, which live on and below the staff.
-TEST(Engraving_JiMStaffM9SATBTests, m9SweepDynamicsUseVocalAbovePlacementOnJimsStaves)
+TEST(Engraving_MeloStaffM9SATBTests, m9SweepDynamicsUseVocalAbovePlacementOnMeloStaves)
 {
     MasterScore* score = ScoreRW::readScore(HYMN);
     ASSERT_TRUE(score);
@@ -987,7 +987,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9SweepDynamicsUseVocalAbovePlacementOnJimsS
 // (ChordLayout draws it only when !isPrinting). This asserts the seam's inputs
 // at the three boundaries; the colouring itself never reaches a printed render,
 // which is why the M9 pixel evidence does not and cannot show it.
-TEST(Engraving_JiMStaffM9SATBTests, m9SweepRangeColouringInputsAreCorrectOnJimsVocalStaves)
+TEST(Engraving_MeloStaffM9SATBTests, m9SweepRangeColouringInputsAreCorrectOnMeloVocalStaves)
 {
     MasterScore* score = ScoreRW::readScore(HYMN);
     ASSERT_TRUE(score);
@@ -1003,7 +1003,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9SweepRangeColouringInputsAreCorrectOnJimsV
     std::vector<Note*> soprano_notes = notesOn(score, 0);
     ASSERT_EQ(soprano_notes.size(), 8u);
     for (Note* n : soprano_notes) {
-        ASSERT_TRUE(n->hasJimsPitch());
+        ASSERT_TRUE(n->hasMeloPitch());
         // The integer playback pitch is what the range test reads, and it is
         // the Kernel identity's own compatibility pitch — not a second opinion.
         EXPECT_EQ(n->ppitch(), n->pitch()) << "range colouring must read the note's own playback pitch";
@@ -1033,7 +1033,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9SweepRangeColouringInputsAreCorrectOnJimsV
 
 // Hide-empty-staves on a four-JiMStaff score with written and unwritten parts:
 // stock behaviour, unchanged by the JiMS staff type.
-TEST(Engraving_JiMStaffM9SATBTests, m9SweepHideEmptyStavesWorksOnAFourJimsStaffMixedScore)
+TEST(Engraving_MeloStaffM9SATBTests, m9SweepHideEmptyStavesWorksOnAFourMeloStaffMixedScore)
 {
     MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m9-satb-mixed.mscx");
     ASSERT_TRUE(score);
@@ -1072,7 +1072,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9SweepHideEmptyStavesWorksOnAFourJimsStaffM
 // A constant like "62 + cents/100" would hard-code Re0 to D4 and make every
 // score fixed-Do; JiMS is movable-Do, so the anchor is whatever that staff's
 // reference resolves to, and only the Kernel knows it.
-TEST(Engraving_JiMStaffM9SATBTests, m9EveryNotesPitchIsTheKernelsProjectionOfItsIdentity)
+TEST(Engraving_MeloStaffM9SATBTests, m9EveryNotesPitchIsTheKernelsProjectionOfItsIdentity)
 {
     const char16_t* fixtures[] = {
         u"jimstaff_data/m9-satb-hymn.mscx",
@@ -1088,7 +1088,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9EveryNotesPitchIsTheKernelsProjectionOfIts
         for (staff_idx_t s = 0; s < score->nstaves(); ++s) {
             for (Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
                 const StaffType* st = score->staff(s)->staffType(m->tick());
-                if (!st || !st->isJiMS()) {
+                if (!st || !st->isMelo()) {
                     continue;
                 }
                 for (Segment* seg = m->first(SegmentType::ChordRest); seg; seg = seg->next(SegmentType::ChordRest)) {
@@ -1098,18 +1098,18 @@ TEST(Engraving_JiMStaffM9SATBTests, m9EveryNotesPitchIsTheKernelsProjectionOfIts
                             continue;
                         }
                         for (Note* n : toChord(e)->notes()) {
-                            if (!n->hasJimsPitch()) {
+                            if (!n->hasMeloPitch()) {
                                 continue;
                             }
                             melo::SoundingPitch sounding;
                             muse::String err;
-                            ASSERT_TRUE(melo::noteSoundingPitch(st->jimsStateJson(), n->jimsNPer(), n->jimsNGen(),
+                            ASSERT_TRUE(melo::noteSoundingPitch(st->meloStateJson(), n->meloNPer(), n->meloNGen(),
                                                                 sounding, &err))
                                 << muse::String(f).toStdString() << ": " << err.toStdString();
                             EXPECT_EQ(n->pitch(), sounding.midiKey)
                                 << muse::String(f).toStdString() << " staff " << s
                                 << " measure " << m->no() + 1
-                                << ": identity (" << n->jimsNPer() << "," << n->jimsNGen()
+                                << ": identity (" << n->meloNPer() << "," << n->meloNGen()
                                 << ") sounds at MIDI " << sounding.midiKey
                                 << " under Re0=" << sounding.referenceKeyNumber
                                 << " (" << sounding.anchor.toStdString() << "), but the note carries pitch "
@@ -1148,7 +1148,7 @@ muse::String collectionOf(const muse::String& stateJson)
 //
 // If anyone ever "simplifies" a check by assuming Do is C, or by treating the
 // mode as decoration, this test is what fails.
-TEST(Engraving_JiMStaffM9SATBTests, m9RelativeMinorMovesTheTonicToLaAndLeavesDoWhereItIs)
+TEST(Engraving_MeloStaffM9SATBTests, m9RelativeMinorMovesTheTonicToLaAndLeavesDoWhereItIs)
 {
     MasterScore* score = openShippedTemplate();
     ASSERT_TRUE(score);
@@ -1175,7 +1175,7 @@ TEST(Engraving_JiMStaffM9SATBTests, m9RelativeMinorMovesTheTonicToLaAndLeavesDoW
 
     // Take every part to the relative minor at once.
     muse::String error;
-    ASSERT_TRUE(melo::applyChangeToAllJimsParts(score, m2, { before.tonics[5].id }, error)) << error.toStdString();
+    ASSERT_TRUE(melo::applyChangeToAllMeloParts(score, m2, { before.tonics[5].id }, error)) << error.toStdString();
     score->doLayout();
 
     for (staff_idx_t i = 0; i < 4; ++i) {

@@ -683,10 +683,10 @@ Note::Note(const Note& n, bool link)
     // cached cents are a derived value for the SOURCE state and are
     // deliberately not carried — the destination re-derives them from the
     // identity through the Kernel.
-    m_jimsNPer          = n.m_jimsNPer;
-    m_jimsNGen          = n.m_jimsNGen;
-    m_jimsCentsAboveDo  = 0.0;
-    m_jimsCentsValid    = false;
+    m_meloNPer          = n.m_meloNPer;
+    m_meloNGen          = n.m_meloNGen;
+    m_meloCentsAboveDo  = 0.0;
+    m_meloCentsValid    = false;
     m_dotsHidden        = n.m_dotsHidden;
     m_hidden            = n.m_hidden;
     m_play              = n.m_play;
@@ -1017,11 +1017,11 @@ SymId Note::noteHead() const
     // the platform default head; the four accidental classes map onto the
     // existing shape groups (triangle up/down; the vertex-up square is the
     // diamond orientation; the edge-up square is the shape-note La square).
-    if (st && chord() && hasJimsPitch()) {
-        const StaffType* jimsSt = st->staffTypeForElement(chord());
-        if (jimsSt && jimsSt->isJiMS()) {
+    if (st && chord() && hasMeloPitch()) {
+        const StaffType* meloSt = st->staffTypeForElement(chord());
+        if (meloSt && meloSt->isMelo()) {
             muse::String token;
-            if (melo::noteheadToken(jimsSt->jimsStateJson(), m_jimsNGen, token)) {
+            if (melo::noteheadToken(meloSt->meloStateJson(), m_meloNGen, token)) {
                 if (token == u"triangle-vertex-up") {
                     headGroup = NoteHeadGroup::HEAD_TRIANGLE_UP;
                 } else if (token == u"triangle-vertex-down") {
@@ -1738,10 +1738,10 @@ public:
     // JiMStaff: the note's cents at drag START — the anchor every drag
     // event measures from (M4 gate finding, 2026-08-16). Applying the
     // total offset to the CURRENT cents compounded on every event.
-    double jimsStartCents = 0.0;
-    int jimsStartNPer = 0;
-    int jimsStartNGen = 0;
-    bool jimsStartValid = false;
+    double meloStartCents = 0.0;
+    int meloStartNPer = 0;
+    int meloStartNGen = 0;
+    bool meloStartValid = false;
 
     virtual EditDataType type() override { return EditDataType::NoteEditData; }
 
@@ -2257,16 +2257,16 @@ void Note::updateAccidental(AccidentalState* as)
     // notehead shape and orientation. Never create one on a JiMS staff;
     // remove any that arrived through import. The accidental STATE and
     // the placement update still run, so layout stays consistent.
-    if (staff() && hasJimsPitch()) {
-        const StaffType* jimsSt = staff()->staffTypeForElement(this);
-        if (jimsSt && jimsSt->isJiMS()) {
+    if (staff() && hasMeloPitch()) {
+        const StaffType* meloSt = staff()->staffTypeForElement(this);
+        if (meloSt && meloSt->isMelo()) {
             if (m_accidental) {
                 score()->undoRemoveElement(m_accidental);
             }
-            int jimsAbsLine = absStep(tpc(), epitch());
-            as->setAccidentalVal(jimsAbsLine, tpc2alter(tpc()), m_tieBack != 0);
-            as->setForceRestateAccidental(jimsAbsLine, false);
-            updateRelLine(jimsAbsLine, true);
+            int meloAbsLine = absStep(tpc(), epitch());
+            as->setAccidentalVal(meloAbsLine, tpc2alter(tpc()), m_tieBack != 0);
+            as->setForceRestateAccidental(meloAbsLine, false);
+            updateRelLine(meloAbsLine, true);
             return;
         }
     }
@@ -2833,16 +2833,16 @@ void Note::startDrag(EditData& ed)
     // the drag's undo data (Cmd-Z must restore what the JiMStaff draws,
     // not only the stock pitch), anchor the drag at the start cents, and
     // freeze the stave stack for the drag.
-    if (const StaffType* jimsSt = staffType(); jimsSt && jimsSt->isJiMS()) {
-        ned->pushProperty(Pid::JIMS_NPER);
-        ned->pushProperty(Pid::JIMS_NGEN);
-        if (hasJimsPitch() && m_jimsCentsValid) {
-            ned->jimsStartCents = m_jimsCentsAboveDo;
-            ned->jimsStartNPer = m_jimsNPer;
-            ned->jimsStartNGen = m_jimsNGen;
-            ned->jimsStartValid = true;
+    if (const StaffType* meloSt = staffType(); meloSt && meloSt->isMelo()) {
+        ned->pushProperty(Pid::MELO_NPER);
+        ned->pushProperty(Pid::MELO_NGEN);
+        if (hasMeloPitch() && m_meloCentsValid) {
+            ned->meloStartCents = m_meloCentsAboveDo;
+            ned->meloStartNPer = m_meloNPer;
+            ned->meloStartNGen = m_meloNGen;
+            ned->meloStartValid = true;
         }
-        jimsSt->jimsSetFrameFrozen(true);
+        meloSt->meloSetFrameFrozen(true);
     }
 
     ed.addData(ned);
@@ -2900,8 +2900,8 @@ void Note::endDrag(EditData& ed)
 
     // JiMStaff M4 (gate finding 1): unfreeze and let the drop's layout
     // re-derive the stave stack exactly once.
-    if (const StaffType* jimsSt = staffType(); jimsSt && jimsSt->isJiMS()) {
-        jimsSt->jimsSetFrameFrozen(false);
+    if (const StaffType* meloSt = staffType(); meloSt && meloSt->isMelo()) {
+        meloSt->meloSetFrameFrozen(false);
         triggerLayout();
     }
 }
@@ -2951,23 +2951,23 @@ void Note::verticalDrag(EditData& ed)
     // the Kernel picks the pitch (retaining the current identity at
     // exact-midpoint ties) and supplies the compatibility spelling.
     {
-        const StaffType* jimsSt = staffType();
-        if (jimsSt && jimsSt->isJiMS() && hasJimsPitch() && ned && ned->jimsStartValid) {
-            const double centsPerSp = StaffType::JIMS_CENTS_PER_LINE_DISTANCE
-                                      / (spatium() * jimsSt->lineDistance().val());
+        const StaffType* meloSt = staffType();
+        if (meloSt && meloSt->isMelo() && hasMeloPitch() && ned && ned->meloStartValid) {
+            const double centsPerSp = StaffType::MELO_CENTS_PER_LINE_DISTANCE
+                                      / (spatium() * meloSt->lineDistance().val());
             // Anchor at the drag-START cents: the total pointer offset
             // maps to one target, however many events arrive.
-            const double targetCents = ned->jimsStartCents - ed.moveDelta.y() * centsPerSp;
+            const double targetCents = ned->meloStartCents - ed.moveDelta.y() * centsPerSp;
             melo::PitchHit hit;
-            if (melo::nearestPitch(jimsSt->jimsStateJson(), targetCents,
-                                   true, ned->jimsStartNPer, ned->jimsStartNGen, hit)) {
-                if (hit.nPer != m_jimsNPer || hit.nGen != m_jimsNGen) {
+            if (melo::nearestPitch(meloSt->meloStateJson(), targetCents,
+                                   true, ned->meloStartNPer, ned->meloStartNGen, hit)) {
+                if (hit.nPer != m_meloNPer || hit.nGen != m_meloNGen) {
                     melo::SoundingPitch projection;
-                    if (melo::noteSoundingPitch(jimsSt->jimsStateJson(), hit.nPer, hit.nGen, projection)) {
+                    if (melo::noteSoundingPitch(meloSt->meloStateJson(), hit.nPer, hit.nGen, projection)) {
                         const int newTpc = step2tpc(int(muse::String(u"CDEFGAB").indexOf(muse::Char(projection.step))),
                                                     AccidentalVal(projection.alter));
                         for (Note* nn : tiedNotes()) {
-                            nn->setJimsPitch(projection.nPer, projection.nGen);
+                            nn->setMeloPitch(projection.nPer, projection.nGen);
                             melo::widenExtentForNote(nn);
                             nn->setPitch(projection.midiKey, newTpc, newTpc);
                             nn->setTuning(projection.centsOffset);
@@ -3129,16 +3129,16 @@ void Note::updateRelLine(int absLine, bool undoable)
     // single StaffType seam — never by the diatonic step arithmetic
     // above. The cents value is the Kernel's (melo::noteCentsAboveExtentLower);
     // this branch only projects it to y.
-    if (st->isJiMS() && hasJimsPitch()) {
-        st->jimsEnsureFrame(score(), staffIdx());
-        if (!m_jimsCentsValid) {
+    if (st->isMelo() && hasMeloPitch()) {
+        st->meloEnsureFrame(score(), staffIdx());
+        if (!m_meloCentsValid) {
             double cents = 0.0;
-            if (melo::noteCentsAboveExtentLower(st->jimsStateJson(), m_jimsNPer, m_jimsNGen, cents)) {
-                setJimsCentsAboveDo(cents);
+            if (melo::noteCentsAboveExtentLower(st->meloStateJson(), m_meloNPer, m_meloNGen, cents)) {
+                setMeloCentsAboveDo(cents);
             }
         }
-        if (m_jimsCentsValid) {
-            mutldata()->setPosY(jimsPosY(st));
+        if (m_meloCentsValid) {
+            mutldata()->setPosY(meloPosY(st));
             return;
         }
     }
@@ -3158,11 +3158,11 @@ void Note::updateRelLine(int absLine, bool undoable)
 //    and ovals are symmetric and need none.
 //---------------------------------------------------------
 
-double Note::jimsPosY(const StaffType* st) const
+double Note::meloPosY(const StaffType* st) const
 {
-    double y = st->jimsYFromCents(m_jimsCentsAboveDo) * spatium();
+    double y = st->meloYFromCents(m_meloCentsAboveDo) * spatium();
     muse::String token;
-    if (melo::noteheadToken(st->jimsStateJson(), m_jimsNGen, token)) {
+    if (melo::noteheadToken(st->meloStateJson(), m_meloNGen, token)) {
         if (token == u"triangle-vertex-up") {
             y -= headHeight() / 6.0;
         } else if (token == u"triangle-vertex-down") {
@@ -3229,22 +3229,22 @@ void Note::setNval(const NoteVal& nval, Fraction tick)
     // one from the Kernel entry conversion, derived from the spelling
     // just established above. The spelling-to-letter mapping is
     // transport; the identity itself comes from the Kernel.
-    if (!hasJimsPitch() && staff() && chord()) {
+    if (!hasMeloPitch() && staff() && chord()) {
         // A newly-created note is not yet in the score tree, so
         // staffTypeForElement() can resolve the base type. The caller's
         // insertion tick is the authority for the effective section.
-        const StaffType* jimsSt = tick == Fraction(-1, 1) ? staff()->staffTypeForElement(this) : staff()->staffType(tick);
-        if (jimsSt && jimsSt->isJiMS()) {
+        const StaffType* meloSt = tick == Fraction(-1, 1) ? staff()->staffTypeForElement(this) : staff()->staffType(tick);
+        if (meloSt && meloSt->isMelo()) {
             const int tpcNow = m_tpc[0];
             if (tpcNow != Tpc::TPC_INVALID) {
                 const char letter = "CDEFGAB"[tpc2step(tpcNow)];
                 const int alter = int(tpc2alter(tpcNow));
                 const int octave = (m_pitch - alter) / 12 - 1;
                 melo::SoundingPitch projection;
-                if (melo::entryFromStandardPitch(jimsSt->jimsStateJson(), letter, alter, octave, projection)) {
+                if (melo::entryFromStandardPitch(meloSt->meloStateJson(), letter, alter, octave, projection)) {
                     const int step = int(String(u"CDEFGAB").indexOf(Char(projection.step)));
                     const int tpc = step2tpc(step, AccidentalVal(projection.alter));
-                    setJimsPitch(projection.nPer, projection.nGen);
+                    setMeloPitch(projection.nPer, projection.nGen);
                     melo::widenExtentForNote(this);
                     setPitch(projection.midiKey, tpc, tpc);
                     setTuning(projection.centsOffset);
@@ -3323,10 +3323,10 @@ PropertyValue Note::getProperty(Pid propertyId) const
         return fixed();
     case Pid::FIXED_LINE:
         return fixedLine();
-    case Pid::JIMS_NPER:
-        return m_jimsNPer;
-    case Pid::JIMS_NGEN:
-        return m_jimsNGen;
+    case Pid::MELO_NPER:
+        return m_meloNPer;
+    case Pid::MELO_NGEN:
+        return m_meloNGen;
     case Pid::HAS_PARENTHESES:
         return m_hasParens ? ParenthesesMode::BOTH : ParenthesesMode::NONE;
     case Pid::HIDE_GENERATED_PARENTHESES:
@@ -3440,13 +3440,13 @@ bool Note::setProperty(Pid propertyId, const PropertyValue& v)
     case Pid::FIXED_LINE:
         setFixedLine(v.toInt());
         break;
-    case Pid::JIMS_NPER:
-        m_jimsNPer = v.toInt();
-        m_jimsCentsValid = false;
+    case Pid::MELO_NPER:
+        m_meloNPer = v.toInt();
+        m_meloCentsValid = false;
         break;
-    case Pid::JIMS_NGEN:
-        m_jimsNGen = v.toInt();
-        m_jimsCentsValid = false;
+    case Pid::MELO_NGEN:
+        m_meloNGen = v.toInt();
+        m_meloCentsValid = false;
         break;
     case Pid::HAS_PARENTHESES:
         if (v.value<ParenthesesMode>() != ParenthesesMode::BOTH && v.value<ParenthesesMode>() != ParenthesesMode::NONE) {
@@ -3512,10 +3512,10 @@ PropertyValue Note::propertyDefault(Pid propertyId) const
         return false;
     case Pid::FIXED_LINE:
         return 0;
-    case Pid::JIMS_NPER:
-        return JIMS_UNSET;
-    case Pid::JIMS_NGEN:
-        return JIMS_UNSET;
+    case Pid::MELO_NPER:
+        return MELO_UNSET;
+    case Pid::MELO_NGEN:
+        return MELO_UNSET;
     case Pid::TPC2:
         return getProperty(Pid::TPC1);
     case Pid::PITCH:

@@ -956,7 +956,7 @@ bool ProjectActionsController::saveProjectAt(const SaveLocation& location, SaveM
         }
     }
 
-    warnJimsStockLossOnce(currentNotationProject());
+    warnMeloStockLossOnce(currentNotationProject());
 
     if (location.isLocal()) {
         return saveProjectLocally(location.localPath(), saveMode);
@@ -1493,16 +1493,16 @@ void ProjectActionsController::warnCloudIsNotAvailable()
     });
 }
 
-void ProjectActionsController::warnJimsStockLossOnce(const INotationProjectPtr& project)
+void ProjectActionsController::warnMeloStockLossOnce(const INotationProjectPtr& project)
 {
     // JiMStaff (M1 follow-up 7, owner 2026-08-19): the first time a score
     // that carries JiMS notation is saved in a session, say once that a stock
     // MuseScore build silently discards that data on resave — informational,
     // never blocking the save; "don't show again" is a preference.
-    if (!project || !configuration()->showJimsStockLossWarning()) {
+    if (!project || !configuration()->showMeloStockLossWarning()) {
         return;
     }
-    if (m_jimsStockLossWarned.count(project.get())) {
+    if (m_meloStockLossWarned.count(project.get())) {
         return;
     }
     IMasterNotationPtr master = project->masterNotation();
@@ -1510,18 +1510,18 @@ void ProjectActionsController::warnJimsStockLossOnce(const INotationProjectPtr& 
     if (!score) {
         return;
     }
-    bool hasJims = false;
+    bool hasMelo = false;
     for (const mu::engraving::Staff* staff : score->staves()) {
         const mu::engraving::StaffType* st = staff->staffType(mu::engraving::Fraction(0, 1));
-        if (st && st->isJiMS()) {
-            hasJims = true;
+        if (st && st->isMelo()) {
+            hasMelo = true;
             break;
         }
     }
-    if (!hasJims) {
+    if (!hasMelo) {
         return;
     }
-    m_jimsStockLossWarned.insert(project.get());
+    m_meloStockLossWarned.insert(project.get());
 
     std::string title = muse::trc("project/save", "This score uses JiMS notation");
     std::string msg = mu::engraving::melo::stockLossWarning().toStdString();
@@ -1532,7 +1532,7 @@ void ProjectActionsController::warnJimsStockLossOnce(const INotationProjectPtr& 
 
     result.onResolve(this, [this](const IInteractive::Result& res) {
         if (explicitlyDisabledStockLossWarning(res)) {
-            configuration()->setShowJimsStockLossWarning(false);
+            configuration()->setShowMeloStockLossWarning(false);
         }
     });
 }

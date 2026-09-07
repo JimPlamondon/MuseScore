@@ -2029,20 +2029,20 @@ void Score::upDown(bool up, UpDownMode mode)
             // as one undoable edit; the stock MIDI/tpc arithmetic below never
             // touches a JiMS note.
         {
-            const StaffType* jimsSt = staff->staffType(tick);
-            if (jimsSt && jimsSt->isJiMS() && oNote->hasJimsPitch()) {
+            const StaffType* meloSt = staff->staffType(tick);
+            if (meloSt && meloSt->isMelo() && oNote->hasMeloPitch()) {
                 const char* domain = mode == UpDownMode::CHROMATIC ? "lattice"
                                      : mode == UpDownMode::DIATONIC ? "collection" : "period";
                 melo::PitchHit hit;
-                if (melo::stepPitch(jimsSt->jimsStateJson(), oNote->jimsNPer(), oNote->jimsNGen(),
+                if (melo::stepPitch(meloSt->meloStateJson(), oNote->meloNPer(), oNote->meloNGen(),
                                     up, domain, hit)) {
                     melo::SoundingPitch projection;
-                    if (!melo::noteSoundingPitch(jimsSt->jimsStateJson(), hit.nPer, hit.nGen, projection)) {
+                    if (!melo::noteSoundingPitch(meloSt->meloStateJson(), hit.nPer, hit.nGen, projection)) {
                         continue;
                     }
                     static const String letters(u"CDEFGAB");
                     const int stepIndex = int(letters.indexOf(Char(projection.step)));
-                    const int jimsTpc = step2tpc(stepIndex, AccidentalVal(projection.alter));
+                    const int meloTpc = step2tpc(stepIndex, AccidentalVal(projection.alter));
                     for (Note* nn : oNote->tiedNotes()) {
                         for (EngravingObject* e : nn->linkList()) {
                             Note* ln = toNote(e);
@@ -2050,9 +2050,9 @@ void Score::upDown(bool up, UpDownMode mode)
                                 doUndoRemoveElement(ln->accidental());
                             }
                         }
-                        nn->undoChangeProperty(Pid::JIMS_NPER, projection.nPer);
-                        nn->undoChangeProperty(Pid::JIMS_NGEN, projection.nGen);
-                        undoChangePitch(nn, projection.midiKey, jimsTpc, jimsTpc);
+                        nn->undoChangeProperty(Pid::MELO_NPER, projection.nPer);
+                        nn->undoChangeProperty(Pid::MELO_NGEN, projection.nGen);
+                        undoChangePitch(nn, projection.midiKey, meloTpc, meloTpc);
                         nn->undoChangeProperty(Pid::TUNING, projection.centsOffset);
                     }
                     setPlayNote(true);
@@ -5233,22 +5233,22 @@ void Score::cmdAddPitch(int step, bool addFlag, bool insert)
     // modes keep the stock flow.
     if (!inputState().usingNoteEntryMethod(NoteEntryMethod::REPITCH) && !insert) {
         Chord* targetChord = nullptr;
-        staff_idx_t jimsStaffIdx = muse::nidx;
-        Fraction jimsTick;
+        staff_idx_t meloStaffIdx = muse::nidx;
+        Fraction meloTick;
         if (addFlag) {
             EngravingItem* el = selection().element();
             if (el && el->isNote()) {
                 targetChord = toNote(el)->chord();
-                jimsStaffIdx = targetChord->vStaffIdx();
-                jimsTick = targetChord->segment()->tick();
+                meloStaffIdx = targetChord->vStaffIdx();
+                meloTick = targetChord->segment()->tick();
             }
         } else if (inputState().segment()) {
-            jimsStaffIdx = inputState().track() / VOICES;
-            jimsTick = inputState().segment()->tick();
+            meloStaffIdx = inputState().track() / VOICES;
+            meloTick = inputState().segment()->tick();
         }
-        if (jimsStaffIdx != muse::nidx) {
-            const StaffType* jimsSt = staff(jimsStaffIdx)->staffType(jimsTick);
-            if (jimsSt && jimsSt->isJiMS()) {
+        if (meloStaffIdx != muse::nidx) {
+            const StaffType* meloSt = staff(meloStaffIdx)->staffType(meloTick);
+            if (meloSt && meloSt->isMelo()) {
                 const int letter = ((step % 7) + 7) % 7;
                 const int octave = (step - letter) / 7;
                 const AccidentalVal acci = Accidental::subtype2value(m_is.accidentalType());

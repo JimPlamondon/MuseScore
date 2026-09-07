@@ -42,7 +42,7 @@ enum class HarmonyType : unsigned char {
     STANDARD,
     ROMAN,
     NASHVILLE,
-    JIMS
+    MELO
 };
 
 enum class HarmonyRenderItemType : unsigned char {
@@ -279,8 +279,8 @@ public:
     int subtype() const override { return static_cast<int>(harmonyType()); }
 
     TranslatableString typeUserName() const override;
-    static bool isValidJimsName(const String& text);
-    String jimsNameError() const;
+    static bool isValidMeloName(const String& text);
+    String meloNameError() const;
     String accessibleInfo() const override;
     String generateScreenReaderInfo() const;
     String screenReaderInfo() const override;

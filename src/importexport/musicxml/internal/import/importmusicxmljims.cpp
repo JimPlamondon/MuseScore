@@ -44,11 +44,11 @@ using namespace muse;
 using namespace mu::engraving;
 
 namespace mu::iex::musicxml {
-static const char* JIMS_URI_STEM = "urn:jims:musicxml:";
+static const char* MELO_URI_STEM = "urn:jims:musicxml:";
 
 // Fatal JiMS import conditions go to the MusicXML logger (the import
 // dialog) AND the console log, so a refused import is never silent.
-static void jimsFatal(MusicXmlLogger* logger, const String& text, const XmlStreamReader* e = nullptr)
+static void meloFatal(MusicXmlLogger* logger, const String& text, const XmlStreamReader* e = nullptr)
 {
     LOGE() << "JiMS MusicXML import: " << text;
     if (logger) {
@@ -65,21 +65,21 @@ Err MeloImportContext::resolveFromRoot(const std::vector<XmlStreamReader::Attrib
 {
     for (const XmlStreamReader::Attribute& a : attributes) {
         const String name = String::fromAscii(a.name.ascii());
-        if (!a.value.startsWith(String::fromAscii(JIMS_URI_STEM))) {
+        if (!a.value.startsWith(String::fromAscii(MELO_URI_STEM))) {
             continue;
         }
-        const String versionText = a.value.mid(String::fromAscii(JIMS_URI_STEM).size());
+        const String versionText = a.value.mid(String::fromAscii(MELO_URI_STEM).size());
         bool ok = false;
         const int version = versionText.toInt(&ok);
         if (!ok || version < MIN_VERSION || version > MAX_VERSION) {
-            jimsFatal(logger,
+            meloFatal(logger,
                       String(
                           u"unsupported JiMS MusicXML namespace '%1' (this MuseScore understands urn:jims:musicxml:%2..%3); import refused so the document is not silently shown as a plain staff")
                       .arg(a.value).arg(MIN_VERSION).arg(MAX_VERSION), e);
             return Err::FileBadFormat;
         }
         if (name == u"xmlns") {
-            jimsFatal(logger, String(u"the JiMS namespace '%1' must be bound to a prefix, not used as the default namespace").arg(
+            meloFatal(logger, String(u"the JiMS namespace '%1' must be bound to a prefix, not used as the default namespace").arg(
                           a.value), e);
             return Err::FileBadFormat;
         }
@@ -90,9 +90,9 @@ Err MeloImportContext::resolveFromRoot(const std::vector<XmlStreamReader::Attrib
         if (prefix.empty()) {
             continue;
         }
-        if (hasJims()) {
+        if (hasMelo()) {
             if (version != m_version) {
-                jimsFatal(logger, String(u"two distinct JiMS profiles declared in one document (urn:jims:musicxml:%1 and %2)")
+                meloFatal(logger, String(u"two distinct JiMS profiles declared in one document (urn:jims:musicxml:%1 and %2)")
                           .arg(m_version).arg(version), e);
                 return Err::FileBadFormat;
             }
@@ -109,9 +109,9 @@ Err MeloImportContext::resolveFromRoot(const std::vector<XmlStreamReader::Attrib
 //   isJimsElement
 //---------------------------------------------------------
 
-bool MeloImportContext::isJimsElement(const AsciiStringView& qualifiedName, const char* local) const
+bool MeloImportContext::isMeloElement(const AsciiStringView& qualifiedName, const char* local) const
 {
-    if (!hasJims()) {
+    if (!hasMelo()) {
         return false;
     }
     const String name = String::fromAscii(qualifiedName.ascii());
@@ -324,14 +324,14 @@ const std::vector<MeloImportContext::BufferedState>* MeloImportContext::statesFo
 //   applyToPart
 //---------------------------------------------------------
 
-static StaffType jimsStaffTypeFor(const String& json)
+static StaffType meloStaffTypeFor(const String& json)
 {
     // The fork's JiMS preset (jims12tet: clef/key signature/ledger lines
     // suppressed, JI lines on) with THIS state and its presentation line count.
-    StaffType st = *StaffType::preset(StaffTypes::JIMS_12TET);
-    st.setJiMS(true);
-    st.setJimsJiLines(true);
-    st.setJimsStateJson(json);
+    StaffType st = *StaffType::preset(StaffTypes::MELO_12TET);
+    st.setMelo(true);
+    st.setMeloJiLines(true);
+    st.setMeloStateJson(json);
     return st;
 }
 
@@ -343,7 +343,7 @@ bool MeloImportContext::applyToPart(Score* score, Part* part, const String& part
         return true;
     }
     if (!melo::available()) {
-        jimsFatal(logger, u"JiMS Kernel bridge unavailable; cannot import a JiMS staff");
+        meloFatal(logger, u"JiMS Kernel bridge unavailable; cannot import a JiMS staff");
         return false;
     }
 
@@ -354,7 +354,7 @@ bool MeloImportContext::applyToPart(Score* score, Part* part, const String& part
         if (s.staffNumber > 0) {
             idx = staffIndexForNumber(s.staffNumber);
             if (idx < 0 || idx >= int(part->nstaves())) {
-                jimsFatal(logger, String(u"jims:staff-state number %1 names no staff of this part").arg(s.staffNumber));
+                meloFatal(logger, String(u"jims:staff-state number %1 names no staff of this part").arg(s.staffNumber));
                 return false;
             }
         }
@@ -370,29 +370,29 @@ bool MeloImportContext::applyToPart(Score* score, Part* part, const String& part
         for (const BufferedState* s : entry.second) {
             String kernelError;
             if (!melo::validateState(s->json, kernelError)) {
-                jimsFatal(logger, String(u"the JiMS Kernel rejected a jims:staff-state: %1").arg(kernelError));
+                meloFatal(logger, String(u"the JiMS Kernel rejected a jims:staff-state: %1").arg(kernelError));
                 return false;
             }
             if (first) {
                 if (!s->tick.isZero()) {
-                    jimsFatal(logger, u"the first jims:staff-state of a staff must be declared in the first measure");
+                    meloFatal(logger, u"the first jims:staff-state of a staff must be declared in the first measure");
                     return false;
                 }
-                staff->setStaffType(Fraction(0, 1), jimsStaffTypeFor(s->json));
+                staff->setStaffType(Fraction(0, 1), meloStaffTypeFor(s->json));
                 first = false;
             } else {
                 if (s->tick <= lastTick) {
-                    jimsFatal(logger, u"jims:staff-state declarations must be in strictly increasing score-time order");
+                    meloFatal(logger, u"jims:staff-state declarations must be in strictly increasing score-time order");
                     return false;
                 }
                 Measure* measure = score->tick2measure(s->tick);
                 if (!measure || s->tick < measure->tick() || s->tick >= measure->endTick()) {
-                    jimsFatal(logger, u"jims:staff-state does not sit inside a score measure");
+                    meloFatal(logger, u"jims:staff-state does not sit inside a score measure");
                     return false;
                 }
                 const Fraction rtick = s->tick - measure->tick();
                 if (!measure->canAddStaffTypeChange(staffIdx, rtick)) {
-                    jimsFatal(logger, u"cannot place a staff type change for this jims:staff-state at its exact tick");
+                    meloFatal(logger, u"cannot place a staff type change for this jims:staff-state at its exact tick");
                     return false;
                 }
                 // File-read style construction (TRead::read for StaffTypeChange):
@@ -401,7 +401,7 @@ bool MeloImportContext::applyToPart(Score* score, Part* part, const String& part
                 stc->setTrack(staffIdx * VOICES);
                 stc->setParent(measure);
                 stc->setRtick(rtick);
-                stc->setStaffType(new StaffType(jimsStaffTypeFor(s->json)), true);
+                stc->setStaffType(new StaffType(meloStaffTypeFor(s->json)), true);
                 if (rtick.isNotZero()
                     && !measure->findSegmentR(Segment::CHORD_REST_OR_TIME_TICK_TYPE, rtick)) {
                     measure->getSegmentR(SegmentType::TimeTick, rtick);
@@ -428,7 +428,7 @@ bool MeloImportContext::parseProvenance(XmlStreamReader& e, engraving::melo::Pro
     out = engraving::melo::Provenance();
     out.strictFallback = e.attribute("fallback-profile") == u"strict";
     while (e.readNextStartElement()) {
-        if (isJimsElement(e.name(), "resource")) {
+        if (isMeloElement(e.name(), "resource")) {
             engraving::melo::ProvenanceResource r;
             r.role = e.attribute("role");
             r.uri = e.attribute("uri");
@@ -459,7 +459,7 @@ bool MeloImportContext::parseTuningTrajectory(XmlStreamReader& e, const std::fun
 {
     out = engraving::melo::TuningTrajectory();
     while (e.readNextStartElement()) {
-        if (!isJimsElement(e.name(), "segment")) {
+        if (!isMeloElement(e.name(), "segment")) {
             error = String(u"unexpected element in jims:tuning-trajectory: %1").arg(String::fromAscii(e.name().ascii()));
             e.skipCurrentElement();
             return false;
@@ -483,7 +483,7 @@ bool MeloImportContext::parseTuningTrajectory(XmlStreamReader& e, const std::fun
             return false;
         }
         while (e.readNextStartElement()) {
-            if (!isJimsElement(e.name(), "control")) {
+            if (!isMeloElement(e.name(), "control")) {
                 error = String(u"unexpected element in jims:segment: %1").arg(String::fromAscii(e.name().ascii()));
                 e.skipCurrentElement();
                 return false;
@@ -533,7 +533,7 @@ bool MeloImportContext::checkSharedStatesAcrossParts(MusicXmlLogger* logger) con
     auto sharedForm = [&logger](const BufferedState& s, String& out) {
         String err;
         if (!melo::musicxmlSharedStateV3Xml(s.json, out, &err)) {
-            jimsFatal(logger, String(u"JiMS import: the Kernel could not derive the shared state form: %1").arg(err));
+            meloFatal(logger, String(u"JiMS import: the Kernel could not derive the shared state form: %1").arg(err));
             return false;
         }
         return true;
@@ -564,7 +564,7 @@ bool MeloImportContext::checkSharedStatesAcrossParts(MusicXmlLogger* logger) con
             same = sharedA == sharedB;
         }
         if (!same) {
-            jimsFatal(logger, String(u"JiMS parts %1 and %2 carry different jims:staff-state timelines; "
+            meloFatal(logger, String(u"JiMS parts %1 and %2 carry different jims:staff-state timelines; "
                                      u"every JiMS part of a document must share one state timeline")
                       .arg(referenceId, partId));
             return false;

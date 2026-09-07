@@ -70,13 +70,13 @@ static void appendDynamicTonalityProfile(const EngravingItem* item, PlaybackEven
 {
     const Staff* staff = item ? item->staff() : nullptr;
     const StaffType* staffType = staff ? staff->staffTypeForElement(item) : nullptr;
-    if (!staffType || !staffType->isJiMS() || staffType->jimsStateJson().isEmpty()) {
+    if (!staffType || !staffType->isMelo() || staffType->meloStateJson().isEmpty()) {
         return;
     }
 
     DynamicTonalityProfileEvent profile;
     String error;
-    if (melo::vst3ProfileTransaction(staffType->jimsStateJson(), 0, 0, 0, profile, &error)) {
+    if (melo::vst3ProfileTransaction(staffType->meloStateJson(), 0, 0, 0, profile, &error)) {
         events.emplace_back(std::move(profile));
     } else {
         LOGE() << "JiMS VST3 profile preparation failed: " << error;

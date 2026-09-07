@@ -13,7 +13,7 @@
 
 using namespace mu::engraving;
 
-TEST(Engraving_JimsNativeValidation, unsupportedStateIsExplainedEvenWithoutNotesOrJimsBase)
+TEST(Engraving_MeloNativeValidation, unsupportedStateIsExplainedEvenWithoutNotesOrMeloBase)
 {
     QFile fixture((ScoreRW::rootPath() + u"/jimstaff_data/mode-change.mscx").toQString());
     ASSERT_TRUE(fixture.open(QIODevice::ReadOnly));

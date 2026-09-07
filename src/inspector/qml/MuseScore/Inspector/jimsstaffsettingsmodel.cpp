@@ -18,7 +18,7 @@ MeloStaffSettingsModel::MeloStaffSettingsModel(QObject* parent, const muse::modu
                                                IElementRepositoryService* repository)
     : AbstractInspectorModel(parent, ctx, repository)
 {
-    setSectionType(InspectorSectionType::SECTION_JIMS_STAFF);
+    setSectionType(InspectorSectionType::SECTION_MELO_STAFF);
     setTitle(melo::staffUserName().toQString());
 }
 
@@ -30,7 +30,7 @@ void MeloStaffSettingsModel::requestElements()
 bool MeloStaffSettingsModel::target(Score*& score, Measure*& measure, Fraction& tick, staff_idx_t& staff) const
 {
     for (EngravingItem* item : m_repository->takeAllElements()) {
-        if (!item || !item->staff() || !item->staff()->staffType(item->tick())->isJiMS()) {
+        if (!item || !item->staff() || !item->staff()->staffType(item->tick())->isMelo()) {
             continue;
         }
         score = item->score();
@@ -86,7 +86,7 @@ void MeloStaffSettingsModel::loadProperties()
                 const StaffType* here = score->staff(staff)->staffType(tick);
                 melo::ChangeIndicator indicator;
                 muse::String why;
-                if (before && here && melo::changeIndicator(before->jimsStateJson(), here->jimsStateJson(), indicator, &why)) {
+                if (before && here && melo::changeIndicator(before->meloStateJson(), here->meloStateJson(), indicator, &why)) {
                     description = indicator.empty() ? muse::qtrc("inspector",
                                                                  "This position carries a metadata-only change, so no indicator is drawn.")
                                   : muse::qtrc("inspector", "A tonal change indicator is drawn at this position.");
@@ -98,8 +98,8 @@ void MeloStaffSettingsModel::loadProperties()
         }
 
         const StaffType* base = score->staff(staff)->staffType(Fraction(0, 1));
-        m_settings["elision"] = int(base->jimsElideOctaves());
-        m_settings["labels"] = int(base->jimsScaleDotLabelMode());
+        m_settings["elision"] = int(base->meloElideOctaves());
+        m_settings["labels"] = int(base->meloScaleDotLabelMode());
         auto choices = [this](const char* key, const std::vector<melo::StateChangeOption>& options) {
             QVariantList list;
             int current = -1;
@@ -220,7 +220,7 @@ void MeloStaffSettingsModel::applyOption(const QString& group, int index)
     };
     const auto before = states();
     muse::String error;
-    bool ok = melo::applyChangeToAllJimsParts(score, measure, tick, steps, error);
+    bool ok = melo::applyChangeToAllMeloParts(score, measure, tick, steps, error);
     const auto after = states();
     finish(ok, error,
            before == after ? muse::qtrc("inspector", "Already selected; no change was needed.") : muse::qtrc("inspector",
@@ -276,15 +276,15 @@ void MeloStaffSettingsModel::setStaffOption(const QString& name, int value)
     Staff* staff = score->staff(staffIndex);
     StaffType edited = *staff->staffType(Fraction(0, 1));
     if (name == "elision") {
-        if (int(edited.jimsElideOctaves()) == value) {
+        if (int(edited.meloElideOctaves()) == value) {
             return;
         }
-        edited.setJimsElideOctaves(MeloElideOctaves(value));
+        edited.setMeloElideOctaves(MeloElideOctaves(value));
     } else {
-        if (int(edited.jimsScaleDotLabelMode()) == value) {
+        if (int(edited.meloScaleDotLabelMode()) == value) {
             return;
         }
-        edited.setJimsScaleDotLabelMode(MeloScaleDotLabelMode(value));
+        edited.setMeloScaleDotLabelMode(MeloScaleDotLabelMode(value));
     }
     score->startCmd(name == "elision" ? muse::TranslatableString("undoableAction",
                                                                  "Octave-band elision override")

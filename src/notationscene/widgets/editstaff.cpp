@@ -194,9 +194,9 @@ void EditStaff::updateStaffType(const mu::engraving::StaffType& staffType)
     showTimesig->setChecked(staffType.genTimesig());
     showBarlines->setChecked(staffType.showBarlines());
     invisible->setChecked(staffType.invisible());
-    staffGroupName->setText(staffType.isJiMS() ? melo::presetName().toQString() : staffType.translatedGroupName().toQString());
+    staffGroupName->setText(staffType.isMelo() ? melo::presetName().toQString() : staffType.translatedGroupName().toQString());
     for (QWidget* control : std::initializer_list<QWidget*> { lines, lineDistance, showClef, labelLineDist, labelNumOfLines }) {
-        control->setVisible(!staffType.isJiMS());
+        control->setVisible(!staffType.isMelo());
     }
 }
 

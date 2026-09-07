@@ -8,8 +8,8 @@
  * indicator to reserve room for and paint here?". No musical fact is
  * computed here: the fork never diffs states, classifies, or chooses.
  */
-#ifndef MU_ENGRAVING_JIMSCHANGE_H
-#define MU_ENGRAVING_JIMSCHANGE_H
+#ifndef MU_ENGRAVING_MELOCHANGE_H
+#define MU_ENGRAVING_MELOCHANGE_H
 
 #include "jimsbridge.h"
 #include "../dom/stafftype.h"

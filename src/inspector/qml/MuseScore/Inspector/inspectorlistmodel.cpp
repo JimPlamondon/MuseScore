@@ -187,8 +187,8 @@ void InspectorListModel::setInspectorVisible(bool visible)
     if (visible) {
         updateElementList();
         for (AbstractInspectorModel* model : m_modelList) {
-            if (model->sectionType() == InspectorSectionType::SECTION_JIMS_STAFF
-                || model->sectionType() == InspectorSectionType::SECTION_JIMS_SCORE) {
+            if (model->sectionType() == InspectorSectionType::SECTION_MELO_STAFF
+                || model->sectionType() == InspectorSectionType::SECTION_MELO_SCORE) {
                 model->loadProperties();
             }
         }
@@ -226,10 +226,10 @@ void InspectorListModel::createModelsBySectionType(const InspectorSectionTypeSet
         AbstractInspectorModel* newModel = nullptr;
 
         switch (sectionType) {
-        case InspectorSectionType::SECTION_JIMS_STAFF:
+        case InspectorSectionType::SECTION_MELO_STAFF:
             newModel = new MeloStaffSettingsModel(this, iocContext(), m_repository.get());
             break;
-        case InspectorSectionType::SECTION_JIMS_SCORE:
+        case InspectorSectionType::SECTION_MELO_SCORE:
             newModel = new MeloScoreSettingsModel(this, iocContext(), m_repository.get());
             break;
         case InspectorSectionType::SECTION_GENERAL:

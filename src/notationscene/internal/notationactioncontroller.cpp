@@ -307,7 +307,7 @@ void NotationActionController::init()
     registerAction("append-textframe", [this]() { addBoxes(BoxType::Text, 1, AddBoxesTarget::AtEndOfScore); });
     registerAction("append-fretframe", [this]() { addBoxes(BoxType::Fret, 1, AddBoxesTarget::AtEndOfScore); });
 
-    registerAction("jims-change", &Controller::openJimsProperties);
+    registerAction("jims-change", &Controller::openMeloProperties);
     registerAction("edit-style", &Controller::openEditStyleDialog);
     registerAction("page-settings", &Controller::openPageSettingsDialog);
     registerAction("staff-properties", &Controller::openStaffProperties);
@@ -357,7 +357,7 @@ void NotationActionController::init()
     registerAction("fingering-text", [this]() { addText(TextStyleType::FINGERING); });
     registerAction("sticking-text", [this]() { addText(TextStyleType::STICKING); });
     registerAction("chord-text", [this]() { addText(TextStyleType::HARMONY_A); });
-    registerAction("jims-chord-name-text", [this]() { addHarmony(engraving::HarmonyType::JIMS); });
+    registerAction("jims-chord-name-text", [this]() { addHarmony(engraving::HarmonyType::MELO); });
     registerAction("roman-numeral-text", [this]() { addText(TextStyleType::HARMONY_ROMAN); });
     registerAction("nashville-number-text", [this]() { addText(TextStyleType::HARMONY_NASHVILLE); });
     registerAction("lyrics", [this]() { addText(TextStyleType::LYRICS_ODD); });
@@ -1801,7 +1801,7 @@ void NotationActionController::resetBeamMode()
     }
 }
 
-void NotationActionController::openJimsProperties()
+void NotationActionController::openMeloProperties()
 {
     dispatcher()->dispatch("dock-set-open", ActionData::make_arg2<QString, bool>("inspectorPanel", true));
 }

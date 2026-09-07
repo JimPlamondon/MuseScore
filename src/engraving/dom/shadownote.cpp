@@ -113,7 +113,7 @@ bool ShadowNote::ledgerLinesVisible() const
     // instead. Suppressed here, at the source, so neither layout nor
     // paint ever schedules a preview ledger.
     const StaffType* st = staffType();
-    if (st && st->isJiMS()) {
+    if (st && st->isMelo()) {
         return false;
     }
     return !m_isRest && m_lineIndex < 100 && m_lineIndex > -100;

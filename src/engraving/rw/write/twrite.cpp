@@ -2378,7 +2378,7 @@ void TWrite::write(const Note* item, XmlWriter& xml, WriteContext& ctx)
     for (Pid id : { Pid::PITCH, Pid::CENT_OFFSET, Pid::TPC1, Pid::TPC2, Pid::SMALL, Pid::MIRROR_HEAD, Pid::DOT_POSITION,
                     Pid::HEAD_SCHEME, Pid::HEAD_GROUP, Pid::USER_VELOCITY, Pid::PLAY, Pid::TUNING, Pid::FRET, Pid::STRING,
                     Pid::GHOST, Pid::DEAD, Pid::HEAD_TYPE, Pid::FIXED, Pid::FIXED_LINE,
-                    Pid::JIMS_NPER, Pid::JIMS_NGEN }) {
+                    Pid::MELO_NPER, Pid::MELO_NGEN }) {
         writeProperty(item, xml, id);
     }
 
@@ -2783,7 +2783,7 @@ void TWrite::write(const Staff* item, XmlWriter& xml, WriteContext& ctx)
     }
 
     // JiMS MusicXML interchange carriers, transported verbatim (jims/jimsinterchange.h).
-    for (const melo::TuningTrajectory& t : item->jimsTuningTrajectories()) {
+    for (const melo::TuningTrajectory& t : item->meloTuningTrajectories()) {
         XmlWriter::Attributes tattrs = { { "tick", t.tick.toString() } };
         if (!t.placement.isEmpty()) {
             tattrs.push_back({ "placement", t.placement });
@@ -2949,36 +2949,36 @@ void TWrite::write(const StaffType* item, XmlWriter& xml, WriteContext& ctx)
     if (item->group() == StaffGroup::STANDARD) {
         xml.tag("noteheadScheme", TConv::toXml(item->noteHeadScheme()), TConv::toXml(NoteHeadScheme::HEAD_NORMAL));
     }
-    if (item->isJiMS()) {
+    if (item->isMelo()) {
         // JiMStaff authoritative state only: marker, Kernel-owned
         // section state, tonic-ambit token. Projected geometry,
         // notehead classes, and memberships are derived, never stored.
-        xml.tag("jims", item->isJiMS());
-        if (!item->jimsStateJson().isEmpty()) {
-            xml.tag("jimsStateJson", item->jimsStateJson());
+        xml.tag("jims", item->isMelo());
+        if (!item->meloStateJson().isEmpty()) {
+            xml.tag("jimsStateJson", item->meloStateJson());
         }
         // V2: the token lives inside the state JSON; the side tag is
         // written only for a legacy token with no V2 home to ride in.
-        if (!item->jimsTonicAmbit().isEmpty()
-            && !item->jimsStateJson().contains(u"\"tonic_ambit\"")) {
-            xml.tag("jimsTonicAmbit", item->jimsTonicAmbit());
+        if (!item->meloTonicAmbit().isEmpty()
+            && !item->meloStateJson().contains(u"\"tonic_ambit\"")) {
+            xml.tag("jimsTonicAmbit", item->meloTonicAmbit());
         }
-        if (item->jimsJiLines()) {
-            xml.tag("jimsJiLines", item->jimsJiLines());
+        if (item->meloJiLines()) {
+            xml.tag("jimsJiLines", item->meloJiLines());
         }
-        if (item->jimsScaleDotLabelMode() != MeloScaleDotLabelMode::Auto) {
-            const char* mode = item->jimsScaleDotLabelMode() == MeloScaleDotLabelMode::None ? "none"
-                               : item->jimsScaleDotLabelMode() == MeloScaleDotLabelMode::Left ? "left"
+        if (item->meloScaleDotLabelMode() != MeloScaleDotLabelMode::Auto) {
+            const char* mode = item->meloScaleDotLabelMode() == MeloScaleDotLabelMode::None ? "none"
+                               : item->meloScaleDotLabelMode() == MeloScaleDotLabelMode::Left ? "left"
                                : "split";
             xml.tag("jimsScaleDotLabels", String::fromUtf8(mode));
         }
         // Milestone 8: the per-staff-type octave-band elision override
         // (presentation only; Auto is the absent default).
-        if (item->jimsElideOctaves() != MeloElideOctaves::Auto) {
-            xml.tag("jimsElideOctaves", String::fromAscii(item->jimsElideOctaves() == MeloElideOctaves::On ? "on" : "off"));
+        if (item->meloElideOctaves() != MeloElideOctaves::Auto) {
+            xml.tag("jimsElideOctaves", String::fromAscii(item->meloElideOctaves() == MeloElideOctaves::On ? "on" : "off"));
         }
-        if (!item->jimsRatioLineExtentJson().isEmpty()) {
-            xml.tag("jimsRatioLineExtent", item->jimsRatioLineExtentJson());
+        if (!item->meloRatioLineExtentJson().isEmpty()) {
+            xml.tag("jimsRatioLineExtent", item->meloRatioLineExtentJson());
         }
     }
     if (item->group() == StaffGroup::STANDARD || item->group() == StaffGroup::PERCUSSION) {

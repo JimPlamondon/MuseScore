@@ -108,7 +108,7 @@ using namespace mu::engraving::rendering::score;
 //    here.
 //---------------------------------------------------------
 
-static void applyJimsBandOffsets(System* system, LayoutContext& ctx)
+static void applyMeloBandOffsets(System* system, LayoutContext& ctx)
 {
     const Score* score = system->score();
     for (staff_idx_t staffIdx = 0; staffIdx < ctx.dom().nstaves(); ++staffIdx) {
@@ -122,14 +122,14 @@ static void applyJimsBandOffsets(System* system, LayoutContext& ctx)
             }
             Measure* m = toMeasure(mb);
             const StaffType* st = staff->staffType(m->tick());
-            if (!st || !st->isJiMS()) {
+            if (!st || !st->isMelo()) {
                 continue;
             }
-            const StaffType::MeloFrameView& view = st->jimsFrameView(score, staffIdx, system);
+            const StaffType::MeloFrameView& view = st->meloFrameView(score, staffIdx, system);
             if (!view.banded || view.bands.size() <= 1) {
                 continue;
             }
-            const StaffType::MeloFrameView& whole = st->jimsWholeFrameView(score, staffIdx);
+            const StaffType::MeloFrameView& whole = st->meloWholeFrameView(score, staffIdx);
             const double wholeTop = whole.topCents();
             const double ld = st->lineDistance().val();
             // The header time signature (tick 0) was centred on the whole-piece
@@ -141,7 +141,7 @@ static void applyJimsBandOffsets(System* system, LayoutContext& ctx)
                 if (Segment* tsSeg = m->findSegmentR(SegmentType::TimeSig, Fraction(0, 1))) {
                     if (EngravingItem* ts = tsSeg->element(staffIdx * VOICES); ts && ts->isTimeSig()) {
                         const double wholeMidLd = (whole.topCents() - whole.bottomCents()) / 2.0
-                                                  / StaffType::JIMS_CENTS_PER_LINE_DISTANCE;
+                                                  / StaffType::MELO_CENTS_PER_LINE_DISTANCE;
                         const double midLd = view.heightLd() / 2.0;
                         const StaffType::MeloFrameBand* target = nullptr;
                         const StaffType::MeloFrameBand* above = nullptr;
@@ -181,8 +181,8 @@ static void applyJimsBandOffsets(System* system, LayoutContext& ctx)
                     // band; the first identified note decides).
                     const StaffType::MeloFrameBand* band = nullptr;
                     for (const Note* note : chord->notes()) {
-                        if (note->hasJimsPitch() && note->jimsCentsValid()) {
-                            band = view.bandForCents(note->jimsCentsAboveDo());
+                        if (note->hasMeloPitch() && note->meloCentsValid()) {
+                            band = view.bandForCents(note->meloCentsAboveDo());
                             if (band) {
                                 break;
                             }
@@ -194,7 +194,7 @@ static void applyJimsBandOffsets(System* system, LayoutContext& ctx)
                     // Rigid shift from the whole-piece affine placement to the
                     // band's place in this system's view (line distances ->
                     // absolute through this chord's spatium).
-                    const double deltaLd = band->yTopLd + (band->upperCents - wholeTop) / StaffType::JIMS_CENTS_PER_LINE_DISTANCE;
+                    const double deltaLd = band->yTopLd + (band->upperCents - wholeTop) / StaffType::MELO_CENTS_PER_LINE_DISTANCE;
                     const double delta = deltaLd * ld * chord->spatium();
                     chord->mutldata()->setPosY(delta);
                     for (Chord* grace : chord->graceNotes()) {
@@ -221,13 +221,13 @@ static void applyJimsBandOffsets(System* system, LayoutContext& ctx)
 //    / staffDistance. Non-JiMS staves keep Staff::staffHeight.
 //---------------------------------------------------------
 
-static double jimsSystemStaffHeight(const Staff* staff, staff_idx_t staffIdx, const System* system, const Fraction& tick)
+static double meloSystemStaffHeight(const Staff* staff, staff_idx_t staffIdx, const System* system, const Fraction& tick)
 {
     const StaffType* st = staff->staffType(tick);
-    if (!st || !st->isJiMS() || !system) {
+    if (!st || !st->isMelo() || !system) {
         return staff->staffHeight(tick);
     }
-    const StaffType::MeloFrameView& view = st->jimsFrameView(staff->score(), staffIdx, system);
+    const StaffType::MeloFrameView& view = st->meloFrameView(staff->score(), staffIdx, system);
     if (view.empty()) {
         return staff->staffHeight(tick);
     }
@@ -554,7 +554,7 @@ System* SystemLayout::collectSystem(LayoutContext& ctx)
     // JiMStaff Milestone 8: now that the system's measure list is final,
     // shift every JiMS chord to its octave band for THIS system (elision
     // off: nothing to do) before spacing, skylines, and staff distances.
-    applyJimsBandOffsets(system, ctx);
+    applyMeloBandOffsets(system, ctx);
 
     // Recompute spacing to account for the last changes (barlines, hidden staves, etc)
     curSysWidth = HorizontalSpacing::computeSpacingForFullSystem(system);
@@ -1201,12 +1201,12 @@ static void autoplaceHarmony(EngravingItem* harmony)
     Autoplace::autoplaceSegmentElement(harmony, harmony->mutldata());
 }
 
-static void staggerDenseJimsHarmonies(const std::vector<Harmony*>& harmonies, System* system, LayoutContext& ctx)
+static void staggerDenseMeloHarmonies(const std::vector<Harmony*>& harmonies, System* system, LayoutContext& ctx)
 {
     using GroupKey = std::pair<staff_idx_t, bool>;
     std::map<GroupKey, std::vector<Harmony*> > groups;
     for (Harmony* harmony : harmonies) {
-        if (harmony->harmonyType() == HarmonyType::JIMS) {
+        if (harmony->harmonyType() == HarmonyType::MELO) {
             groups[{ harmony->staffIdx(), harmony->placeAbove() }].push_back(harmony);
         }
     }
@@ -1255,7 +1255,7 @@ void SystemLayout::layoutHarmonies(const std::vector<Harmony*> harmonies, System
         for (Harmony* harmony : harmonies) {
             autoplaceHarmony(harmony);
         }
-        staggerDenseJimsHarmonies(harmonies, system, ctx);
+        staggerDenseMeloHarmonies(harmonies, system, ctx);
         return;
     }
 
@@ -1281,7 +1281,7 @@ void SystemLayout::layoutHarmonies(const std::vector<Harmony*> harmonies, System
     for (EngravingItem* harmony : harmonyItemsNoAlign) {
         autoplaceHarmony(harmony);
     }
-    staggerDenseJimsHarmonies(harmonies, system, ctx);
+    staggerDenseMeloHarmonies(harmonies, system, ctx);
 }
 
 void SystemLayout::layoutFretDiagrams(const ElementsToLayout& elements, System* system, LayoutContext& ctx)
@@ -2341,19 +2341,19 @@ void SystemLayout::layoutSystem(System* system, LayoutContext& ctx, double xo1, 
     // that width in every system's left margin so the header stays on
     // the page beyond system 1. Widths mirror TLayout::layoutForWidth.
     {
-        double jimsHeader = 0.0;
+        double meloHeader = 0.0;
         for (size_t staffIdx = 0; staffIdx < nstaves; ++staffIdx) {
             const Staff* jstaff = ctx.dom().staff(staffIdx);
             const StaffType* jst = jstaff ? jstaff->staffType(Fraction(0, 1)) : nullptr;
-            if (jst && jst->isJiMS()) {
+            if (jst && jst->isMelo()) {
                 const double sp = jstaff->spatium(Fraction(0, 1));
-                jimsHeader = std::max(jimsHeader,
-                                      jst->jimsHeaderGeometry(sp, jstaff->score()->style().defaultSpatium(),
-                                                              &jst->jimsFrameView(jstaff->score(), jstaff->idx(), system)).headerWidth);
+                meloHeader = std::max(meloHeader,
+                                      jst->meloHeaderGeometry(sp, jstaff->score()->style().defaultSpatium(),
+                                                              &jst->meloFrameView(jstaff->score(), jstaff->idx(), system)).headerWidth);
             }
         }
-        if (jimsHeader > 0.0) {
-            system->setLeftMargin(system->leftMargin() + jimsHeader);
+        if (meloHeader > 0.0) {
+            system->setLeftMargin(system->leftMargin() + meloHeader);
         }
     }
 
@@ -2737,7 +2737,7 @@ void SystemLayout::layout2(System* system, LayoutContext& ctx)
         // line count — see jimsSystemStaffHeight.
         const Measure* firstMeasure = system->firstMeasure();
         const Fraction sysTick = firstMeasure ? firstMeasure->tick() : Fraction(0, 1);
-        double dist = jimsSystemStaffHeight(staff, si1, system, sysTick);
+        double dist = meloSystemStaffHeight(staff, si1, system, sysTick);
         double yOffset;
         double h;
         if (staff->lines(Fraction(0, 1)) == 1) {
@@ -2745,7 +2745,7 @@ void SystemLayout::layout2(System* system, LayoutContext& ctx)
             h = _spatium * (BARLINE_SPAN_1LINESTAFF_TO - BARLINE_SPAN_1LINESTAFF_FROM) * 0.5;
         } else {
             yOffset = 0.0;
-            h = jimsSystemStaffHeight(staff, si1, system, sysTick);
+            h = meloSystemStaffHeight(staff, si1, system, sysTick);
         }
         if (ni == visibleStaves.end()) {
             ss->setYOff(yOffset);
@@ -2774,16 +2774,16 @@ void SystemLayout::layout2(System* system, LayoutContext& ctx)
             Spacer* sp = m->vspacerDown(si1);
             if (sp) {
                 if (sp->spacerType() == SpacerType::FIXED) {
-                    dist = jimsSystemStaffHeight(staff, si1, system, m->tick()) + sp->absoluteGap();
+                    dist = meloSystemStaffHeight(staff, si1, system, m->tick()) + sp->absoluteGap();
                     fixedSpace = true;
                     break;
                 } else {
-                    dist = std::max(dist, jimsSystemStaffHeight(staff, si1, system, m->tick()) + sp->absoluteGap());
+                    dist = std::max(dist, meloSystemStaffHeight(staff, si1, system, m->tick()) + sp->absoluteGap());
                 }
             }
             sp = m->vspacerUp(si2);
             if (sp) {
-                dist = std::max(dist, jimsSystemStaffHeight(staff, si1, system, m->tick()) + sp->absoluteGap());
+                dist = std::max(dist, meloSystemStaffHeight(staff, si1, system, m->tick()) + sp->absoluteGap());
             }
         }
         if (!fixedSpace) {

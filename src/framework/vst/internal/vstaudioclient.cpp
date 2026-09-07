@@ -477,7 +477,7 @@ VstNoteExpressionCapabilities VstAudioClient::noteExpressionCapabilities() const
         }
         if (info.typeId == Steinberg::Vst::kTuningTypeID) {
             caps.tuning = true;
-        } else if (info.typeId == JIMS_NOTE_EXPRESSION_NPER || info.typeId == JIMS_NOTE_EXPRESSION_NGEN) {
+        } else if (info.typeId == MELO_NOTE_EXPRESSION_NPER || info.typeId == MELO_NOTE_EXPRESSION_NGEN) {
             // The plug-in declares the discrete-step domain: stepCount and
             // the encoding of coordinate 0 (its default) give min.
             const int32_t steps = info.valueDesc.stepCount;
@@ -485,7 +485,7 @@ VstNoteExpressionCapabilities VstAudioClient::noteExpressionCapabilities() const
                 continue;
             }
             const int32_t min = -static_cast<int32_t>(std::lround(info.valueDesc.defaultValue * steps));
-            if (info.typeId == JIMS_NOTE_EXPRESSION_NPER) {
+            if (info.typeId == MELO_NOTE_EXPRESSION_NPER) {
                 hasNPer = true;
                 nPerMin = min;
                 nPerSteps = steps;
@@ -497,7 +497,7 @@ VstNoteExpressionCapabilities VstAudioClient::noteExpressionCapabilities() const
         }
     }
     if (hasNPer && hasNGen) {
-        caps.jimsLattice = true;
+        caps.meloLattice = true;
         caps.nPerMin = nPerMin;
         caps.nPerStepCount = nPerSteps;
         caps.nGenMin = nGenMin;

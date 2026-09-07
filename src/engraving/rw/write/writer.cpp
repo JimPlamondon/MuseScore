@@ -38,7 +38,7 @@
 using namespace muse;
 using namespace mu::engraving;
 
-static void writeJimsReviewValue(XmlWriter& xml, const melo::ReviewValue& v)
+static void writeMeloReviewValue(XmlWriter& xml, const melo::ReviewValue& v)
 {
     using Kind = melo::ReviewValue::Kind;
     XmlWriter::Attributes attrs;
@@ -50,7 +50,7 @@ static void writeJimsReviewValue(XmlWriter& xml, const melo::ReviewValue& v)
     case Kind::Array:
         xml.startElement(v.kind == Kind::Object ? "o" : "a", attrs);
         for (const melo::ReviewValue& c : v.children) {
-            writeJimsReviewValue(xml, c);
+            writeMeloReviewValue(xml, c);
         }
         xml.endElement();
         break;
@@ -67,12 +67,12 @@ static void writeJimsReviewValue(XmlWriter& xml, const melo::ReviewValue& v)
 
 /// The JiMS evidentiary review record (jims/jimsreview.h): typed, never an
 /// opaque string, with every adjudication carrying its exact tick anchor.
-static void writeJimsReview(XmlWriter& xml, const melo::ReviewRecord& review)
+static void writeMeloReview(XmlWriter& xml, const melo::ReviewRecord& review)
 {
     xml.startElement("jimsReview", { { "schema", review.schema } });
     if (!review.work.children.empty()) {
         xml.startElement("work");
-        writeJimsReviewValue(xml, review.work);
+        writeMeloReviewValue(xml, review.work);
         xml.endElement();
     }
     for (const muse::String& reason : review.focusedReviewReasons) {
@@ -81,7 +81,7 @@ static void writeJimsReview(XmlWriter& xml, const melo::ReviewRecord& review)
     for (const melo::ReviewAudit& a : review.audits) {
         xml.startElement("audit", { { "id", a.changeId }, { "date", a.date }, { "phase", a.phase } });
         xml.tag("reason", a.reason);
-        writeJimsReviewValue(xml, a.record);
+        writeMeloReviewValue(xml, a.record);
         xml.endElement();
     }
     for (const melo::ReviewAdjudication& adj : review.adjudications) {
@@ -98,7 +98,7 @@ static void writeJimsReview(XmlWriter& xml, const melo::ReviewRecord& review)
         if (!adj.sourceAnalysis.isEmpty()) {
             xml.tag("sourceAnalysis", adj.sourceAnalysis);
         }
-        writeJimsReviewValue(xml, adj.record);
+        writeMeloReviewValue(xml, adj.record);
         xml.endElement();
     }
     xml.endElement();
@@ -246,13 +246,13 @@ void Writer::write(Score* score, XmlWriter& xml, WriteContext& ctx, compat::Writ
     }
 
 // JiMS MusicXML interchange carrier, transported verbatim (jims/jimsinterchange.h).
-    if (!score->m_jimsProvenance.empty()) {
+    if (!score->m_meloProvenance.empty()) {
         XmlWriter::Attributes attrs;
-        if (score->m_jimsProvenance.strictFallback) {
+        if (score->m_meloProvenance.strictFallback) {
             attrs.push_back({ "strict", 1 });
         }
         xml.startElement("jimsProvenance", attrs);
-        for (const melo::ProvenanceResource& r : score->m_jimsProvenance.resources) {
+        for (const melo::ProvenanceResource& r : score->m_meloProvenance.resources) {
             XmlWriter::Attributes rattrs = { { "role", r.role }, { "uri", r.uri }, { "mediaType", r.mediaType } };
             if (!r.sha256.isEmpty()) {
                 rattrs.push_back({ "sha256", r.sha256 });
@@ -265,11 +265,11 @@ void Writer::write(Score* score, XmlWriter& xml, WriteContext& ctx, compat::Writ
         }
         xml.endElement();
     }
-    if (score->m_jimsMelodyPart != melo::MelodyPart::Soprano) {
-        xml.tag("jimsMelodyPart", melo::melodyPartToken(score->m_jimsMelodyPart));
+    if (score->m_meloMelodyPart != melo::MelodyPart::Soprano) {
+        xml.tag("jimsMelodyPart", melo::melodyPartToken(score->m_meloMelodyPart));
     }
-    if (!score->m_jimsReview.empty()) {
-        writeJimsReview(xml, score->m_jimsReview);
+    if (!score->m_meloReview.empty()) {
+        writeMeloReview(xml, score->m_meloReview);
     }
 
     if (score->m_scoreOrder.isValid()) {

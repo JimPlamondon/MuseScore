@@ -63,7 +63,7 @@ static const Settings::Key HAS_ASKED_AUDIO_GENERATION_SETTINGS(module_name, "pro
 static const Settings::Key GENERATE_AUDIO_TIME_PERIOD_TYPE_KEY(module_name, "project/generateAudioTimePeriodType");
 static const Settings::Key NUMBER_OF_SAVES_TO_GENERATE_AUDIO_KEY(module_name, "project/numberOfSavesToGenerateAudio");
 static const Settings::Key SHOW_CLOUD_IS_NOT_AVAILABLE_WARNING(module_name, "project/showCloudIsNotAvailableWarning");
-static const Settings::Key SHOW_JIMS_STOCK_LOSS_WARNING(module_name, "project/showJimsStockLossWarning");
+static const Settings::Key SHOW_MELO_STOCK_LOSS_WARNING(module_name, "project/showJimsStockLossWarning");
 static const Settings::Key DISABLE_VERSION_CHECKING(module_name, "project/disableVersionChecking");
 static const Settings::Key CREATE_BACKUP_BEFORE_SAVING(module_name, "project/createBackupBeforeSaving");
 
@@ -129,7 +129,7 @@ void ProjectConfiguration::init()
         m_numberOfSavesToGenerateAudioChanged.send(val.toInt());
     });
     settings()->setDefaultValue(SHOW_CLOUD_IS_NOT_AVAILABLE_WARNING, Val(true));
-    settings()->setDefaultValue(SHOW_JIMS_STOCK_LOSS_WARNING, Val(true));
+    settings()->setDefaultValue(SHOW_MELO_STOCK_LOSS_WARNING, Val(true));
 
     settings()->setDefaultValue(DISABLE_VERSION_CHECKING, Val(false));
 
@@ -748,14 +748,14 @@ void ProjectConfiguration::setShowCloudIsNotAvailableWarning(bool show)
     settings()->setSharedValue(SHOW_CLOUD_IS_NOT_AVAILABLE_WARNING, Val(show));
 }
 
-bool ProjectConfiguration::showJimsStockLossWarning() const
+bool ProjectConfiguration::showMeloStockLossWarning() const
 {
-    return settings()->value(SHOW_JIMS_STOCK_LOSS_WARNING).toBool();
+    return settings()->value(SHOW_MELO_STOCK_LOSS_WARNING).toBool();
 }
 
-void ProjectConfiguration::setShowJimsStockLossWarning(bool show)
+void ProjectConfiguration::setShowMeloStockLossWarning(bool show)
 {
-    settings()->setSharedValue(SHOW_JIMS_STOCK_LOSS_WARNING, Val(show));
+    settings()->setSharedValue(SHOW_MELO_STOCK_LOSS_WARNING, Val(show));
 }
 
 bool ProjectConfiguration::createBackupBeforeSaving() const

@@ -119,11 +119,11 @@ Note* Chord::upNote() const
     // not the highest diatonic line — the enharmonic dyad inverts its
     // visual order away from 12-TET while its line order never changes,
     // and the stem must anchor at the visually-top head.
-    if (st->isJiMS()) {
+    if (st->isMelo()) {
         for (Note* n : m_notes) {
-            if (n->hasJimsPitch() && result->hasJimsPitch()
-                && n->jimsCentsValid() && result->jimsCentsValid()) {
-                if (n->jimsCentsAboveDo() > result->jimsCentsAboveDo()) {
+            if (n->hasMeloPitch() && result->hasMeloPitch()
+                && n->meloCentsValid() && result->meloCentsValid()) {
+                if (n->meloCentsAboveDo() > result->meloCentsAboveDo()) {
                     result = n;
                 }
             }
@@ -171,11 +171,11 @@ Note* Chord::downNote() const
 
     const StaffType* st  = stf->staffTypeForElement(this);
     // JiMStaff: "down" is the lowest cents (see upNote).
-    if (st->isJiMS()) {
+    if (st->isMelo()) {
         for (Note* n : m_notes) {
-            if (n->hasJimsPitch() && result->hasJimsPitch()
-                && n->jimsCentsValid() && result->jimsCentsValid()) {
-                if (n->jimsCentsAboveDo() < result->jimsCentsAboveDo()) {
+            if (n->hasMeloPitch() && result->hasMeloPitch()
+                && n->meloCentsValid() && result->meloCentsValid()) {
+                if (n->meloCentsAboveDo() < result->meloCentsAboveDo()) {
                     result = n;
                 }
             }
