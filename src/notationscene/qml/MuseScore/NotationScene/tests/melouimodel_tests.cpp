@@ -15,6 +15,7 @@
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/chord.h"
 #include "engraving/dom/note.h"
+#include "engraving/dom/harmony.h"
 #include "engraving/dom/measure.h"
 #include "engraving/dom/segment.h"
 #include "engraving/dom/staff.h"
@@ -25,6 +26,8 @@
 #include "inspector/qml/MuseScore/Inspector/melostaffsettingsmodel.h"
 #include "inspector/qml/MuseScore/Inspector/meloscoresettingsmodel.h"
 #include "inspector/qml/MuseScore/Inspector/melotuningmodel.h"
+#include "inspector/qml/MuseScore/Inspector/notation/chordsymbols/chordsymbolsettingsmodel.h"
+#include "notation/tests/mocks/notationinteractionmock.h"
 #include "playback/tests/mocks/playbackcontrollermock.h"
 #include "notationscene/qml/MuseScore/NotationScene/noteinputbarmodel.h"
 #include "ui/qml/Muse/Ui/navigationpanel.h"
@@ -85,7 +88,8 @@ public:
     notation::INotationPaintingPtr painting() const override { return nullptr; }
     notation::INotationViewStatePtr viewState() const override { return nullptr; }
     notation::INotationSoloMuteStatePtr soloMuteState() const override { return nullptr; }
-    notation::INotationInteractionPtr interaction() const override { return nullptr; }
+    notation::INotationInteractionPtr interaction() const override { return testInteraction; }
+    notation::INotationInteractionPtr testInteraction;
     notation::INotationMidiInputPtr midiInput() const override { return nullptr; }
     notation::INotationUndoStackPtr undoStack() const override { return nullptr; }
     notation::INotationStylePtr style() const override { return nullptr; }
@@ -131,6 +135,41 @@ protected:
     std::shared_ptr<testing::NiceMock<playback::PlaybackControllerMock> > playback;
     ElementRepositoryService repository;
 };
+TEST_F(MeloUiModelTests, MeloChordCursorControlsUseExactDurationsWithoutEditingNotes) {
+    selectMeasure(0);
+    auto* segment = score->firstMeasure()->first(SegmentType::ChordRest);
+    auto* harmony = new Harmony(segment);
+    harmony->setTrack(0);
+    harmony->setHarmonyType(HarmonyType::MELO);
+    harmony->setHarmony(u"Do5");
+    segment->add(harmony);
+    repository.updateElementList({ harmony }, SelState::LIST);
+    auto interaction = std::make_shared<testing::NiceMock<notation::NotationInteractionMock> >();
+    notation->testInteraction = interaction;
+    class CursorModel : public ChordSymbolSettingsModel
+    {
+    public:
+        using ChordSymbolSettingsModel::ChordSymbolSettingsModel;
+        void useHarmony(Harmony* item) { m_elementList = { item }; }
+    };
+    CursorModel model(nullptr, muse::modularity::globalCtx(), &repository);
+    model.context.set(global);
+    model.useHarmony(harmony);
+    ASSERT_TRUE(model.hasMeloSelection());
+    QQmlEngine engine;
+    engine.addImportPath("qrc:/qt/qml");
+    QQmlComponent component(&engine, QUrl("qrc:/qt/qml/MuseScore/Inspector/notation/chordsymbols/ChordSymbolSettings.qml"));
+    ASSERT_TRUE(component.isReady()) << component.errorString().toStdString();
+    ASSERT_GE(model.metaObject()->indexOfMethod("advanceMeloChordCursor(int)"), 0);
+    ON_CALL(*interaction, isTextEditingStarted()).WillByDefault(testing::Return(false));
+    EXPECT_CALL(*interaction, startEditText(harmony, testing::_)).Times(2);
+    EXPECT_CALL(*interaction, navigateToHarmony(Fraction(1, 4))).Times(1);
+    EXPECT_CALL(*interaction, navigateToHarmony(Fraction(1, 8))).Times(1);
+    ASSERT_TRUE(QMetaObject::invokeMethod(&model, "advanceMeloChordCursor", Q_ARG(int, 4)));
+    ASSERT_TRUE(QMetaObject::invokeMethod(&model, "advanceMeloChordCursor", Q_ARG(int, 8)));
+    ASSERT_TRUE(QMetaObject::invokeMethod(&model, "advanceMeloChordCursor", Q_ARG(int, 0)));
+    ASSERT_TRUE(QMetaObject::invokeMethod(&model, "advanceMeloChordCursor", Q_ARG(int, 3)));
+}
 TEST_F(MeloUiModelTests, MeloAccidentalPickersUseTheMatchingNoteheads) {
     selectMeasure(0);
     const auto presentation = notation::NoteInputBarModel::accidentalPresentationForScore(score.get(), score->engravingFont());
