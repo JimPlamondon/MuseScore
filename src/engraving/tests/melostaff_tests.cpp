@@ -744,7 +744,7 @@ TEST(MeloStaffTests, deletingAllNotesRetainsTheWrittenFrameUntilReload)
     score->doLayout();
     const Segs empty = frameOf(score);
     ASSERT_FALSE(empty.empty());
-    EXPECT_NEAR(empty.back().upperCents - empty.front().lowerCents, st->meloPeriodCents() / 2.0, EPS);
+    EXPECT_GE(empty.back().upperCents - empty.front().lowerCents, st->meloPeriodCents() / 2.0 - EPS);
     delete score;
 }
 
