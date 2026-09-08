@@ -32,10 +32,11 @@ To restore the upstream promotion behavior, configure with -DMELO_SCORE_SUPPRESS
 | Home sound store and Learn catalog | Menu entries and restored/deep-linked section routing are gated; remote catalog requests are suppressed because their feeds mix tutorials with product offers |
 | Mixer acquisition links | Get more sounds/effects entries and their direct action handlers are gated; installed resources remain listed and usable |
 | Save-destination invitation | Ordinary saving defaults locally without showing the free-cloud-storage invitation; explicit Save to cloud remains available |
+| Post-publication Audio.com invitation | The invitation, retained automatic cross-sharing preference, follow-up handler and direct dialog route are gated; explicit audio sharing remains available |
 
 Normal score operations, installed sample libraries, soundfonts and effects, account access, explicit cloud saving, ordinary help and required installed-sampler maintenance remain intact. MuseSampler maintenance notices concern an installed playback dependency and are not product-acquisition offers. No preference store is reset. Future upstream offer surfaces must use the same policy; the audit for this source revision covers the paths above rather than promising coverage of unknown future code.
 
-Native musesounds_test verifies that suppressed startup, campaign and storefront entry points return before consulting services or creating network requests, including direct/manual and cached-offer paths. Hosted checks compile the enabled, suppressed and upstream-fallback policy configurations. Final installed-app checks verify absence of the welcome promotion and catalog/mixer links while confirming that local save and playback remain usable.
+Native project_test verifies that retained Audio.com sharing preferences cannot enable the cross-promotion or automatic follow-up; its temporary test settings are rolled back without persistence. Native musesounds_test verifies that suppressed startup, campaign and storefront entry points return before consulting services or creating network requests, including direct/manual and cached-offer paths. Hosted checks compile the enabled, suppressed and upstream-fallback policy configurations. Final installed-app checks verify absence of the welcome promotion and catalog/mixer links while confirming that local save and playback remain usable.
 
 ## Local build and packaging
 

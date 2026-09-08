@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "projectconfiguration.h"
+#include "global/productpolicy.h"
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -599,6 +600,10 @@ muse::async::Channel<int> ProjectConfiguration::autoSaveIntervalChanged() const
 
 bool ProjectConfiguration::alsoShareAudioCom() const
 {
+    if (!muse::productPromotionsEnabled()) {
+        return false;
+    }
+
     return settings()->value(ALSO_SHARE_AUDIO_COM_AFTER_PUBLISH).toBool();
 }
 
@@ -614,6 +619,10 @@ muse::async::Channel<bool> ProjectConfiguration::alsoShareAudioComChanged() cons
 
 bool ProjectConfiguration::showAlsoShareAudioComDialog() const
 {
+    if (!muse::productPromotionsEnabled()) {
+        return false;
+    }
+
     return settings()->value(SHOW_ALSO_SHARE_AUDIO_COM_DIALOG).toBool();
 }
 

@@ -22,6 +22,7 @@
 #include <QGuiApplication>
 
 #include "projectactionscontroller.h"
+#include "global/productpolicy.h"
 #include "melostocklosswarning.h"
 
 #include <QBuffer>
@@ -1139,6 +1140,10 @@ bool ProjectActionsController::saveProjectToCloud(CloudProjectInfo info, SaveMod
 
 void ProjectActionsController::alsoShareAudioCom(const AudioFile& audio)
 {
+    if (!muse::productPromotionsEnabled()) {
+        return;
+    }
+
     if (!configuration()->showAlsoShareAudioComDialog()) {
         shareAudio(audio);
         return;
