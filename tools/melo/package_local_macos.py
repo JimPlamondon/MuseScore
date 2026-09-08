@@ -32,9 +32,7 @@ def seal(output):
         run('codesign', '--force', '--sign', '-', '--timestamp=none', '--entitlements', ROOT / 'src/macos_integration/entitlements.plist', preview)
     run('codesign', '--force', '--sign', '-', '--timestamp=none', output)
     run('codesign', '--verify', '--deep', '--strict', output)
-    check = [sys.executable, ROOT / 'tools/melo/check_score_identity.py', '--app', output]
-    if preview.exists():
-        check.append('--require-preview')
+    check = [sys.executable, ROOT / 'tools/melo/check_score_identity.py', '--app', output, '--require-preview']
     run(*check)
 
 def main():
@@ -42,7 +40,6 @@ def main():
     p.add_argument('--build', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True, help='New .app path; existing destinations are refused')
     p.add_argument('--macdeployqt', type=Path, required=True)
-    p.add_argument('--include-preview', action='store_true', help='Experimental: include the preview helper only after host validation')
     a = p.parse_args()
     if sys.platform != 'darwin':
         p.error('macOS is required')
@@ -63,15 +60,16 @@ def main():
         p.error('the built app does not have the MeloPresto Score identity')
     if cache.get('MUE_RUN_LRELEASE') == 'ON':
         run('cmake', '--build', build, '--target', 'translations', '-j', '8')
+    # Keep the preview engine synchronized with the configured application build.
+    run('cmake', '--build', build, '--target', 'MuseScoreQuickLookPreviewExtension', '-j', '8')
     run('cmake', '--install', build)
     output.parent.mkdir(parents=True, exist_ok=True)
     run('ditto', prefix / 'mscore.app', output)
     preview = output / 'Contents/PlugIns/MuseScoreQuickLookPreviewExtension.appex'
-    if preview.exists() and not a.include_preview:
-        shutil.rmtree(preview)
+    if not preview.exists():
+        p.error('the staged Quick Look helper is missing; refusing an incomplete package')
     deploy = [a.macdeployqt, output, '-always-overwrite', '-verbose=1', '-qmldir=' + str(ROOT)]
-    if preview.exists():
-        deploy.append('-executable=' + str(preview / 'Contents/MacOS/MuseScoreQuickLookPreviewExtension'))
+    deploy.append('-executable=' + str(preview / 'Contents/MacOS/MuseScoreQuickLookPreviewExtension'))
     run(*deploy)
     # Preserve upstream QML isolation from Qt-based VST plugins.
     qml = output / 'Contents/Resources/qml'
