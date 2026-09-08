@@ -2732,7 +2732,7 @@ void TDraw::draw(const Spacer* item, Painter* painter, const PaintOptions& opt)
 
     auto conf = item->configuration();
 
-    Pen pen(item->selected() ? conf->selectionColor() : conf->formattingColor(), item->spatium() * 0.3);
+    Pen pen(item->selected() ? conf->selectionColor() : conf->formattingColor(), item->spatium()* 0.3);
 
     painter->setPen(pen);
     painter->setBrush(BrushStyle::NoBrush);
