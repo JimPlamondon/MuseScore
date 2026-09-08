@@ -1148,6 +1148,75 @@ TEST(MeloStaffTests, m6LetterEntryEstablishesTheKernelIdentityOfTheNamedNote)
     delete score;
 }
 
+TEST(MeloStaffTests, accidentalEditingKeepsKernelIdentityAndPlaybackTogether)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/jims-template.mscx");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    InputState& input = score->inputState();
+    input.setTrack(0);
+    input.setSegment(score->tick2segment(Fraction(0, 1), false, SegmentType::ChordRest));
+    input.setDuration(DurationType::V_QUARTER);
+    input.setNoteEntryMode(true);
+    score->startCmd(TranslatableString::untranslatable("enter G4"));
+    score->cmdAddPitch(5 * 7 + 4, false, false);
+    score->endCmd();
+    input.setNoteEntryMode(false);
+    score->doLayout();
+    auto notes = meloNotes(score);
+    ASSERT_EQ(notes.size(), 1u);
+    Note* note = notes.front();
+    for (auto accidental : { AccidentalType::SHARP, AccidentalType::NATURAL, AccidentalType::FLAT }) {
+        melo::SoundingPitch expected;
+        ASSERT_TRUE(melo::entryFromStandardPitch(meloStaffType(score)->meloStateJson(), 'G',
+                                                 int(Accidental::subtype2value(accidental)), 4, expected));
+        const auto before = std::make_tuple(note->meloNPer(), note->meloNGen(), note->pitch(), note->tuning());
+        score->startCmd(TranslatableString::untranslatable("edit accidental"));
+        score->changeAccidental(note, accidental);
+        score->endCmd();
+        EXPECT_EQ(note->meloNPer(), expected.nPer);
+        EXPECT_EQ(note->meloNGen(), expected.nGen);
+        EXPECT_EQ(note->pitch(), expected.midiKey);
+        EXPECT_NEAR(note->tuning(), expected.centsOffset, 1e-9);
+        score->undoRedo(true, nullptr);
+        EXPECT_EQ(std::make_tuple(note->meloNPer(), note->meloNGen(), note->pitch(), note->tuning()), before);
+        score->undoRedo(false, nullptr);
+        EXPECT_EQ(note->meloNPer(), expected.nPer);
+        EXPECT_EQ(note->meloNGen(), expected.nGen);
+        EXPECT_EQ(note->pitch(), expected.midiKey);
+    }
+    delete score;
+}
+
+TEST(MeloStaffTests, explicitNaturalEntryOverridesEarlierSharpInTheMeasure)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/jims-template.mscx");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    InputState& input = score->inputState();
+    input.setTrack(0);
+    input.setSegment(score->tick2segment(Fraction(0, 1), false, SegmentType::ChordRest));
+    input.setDuration(DurationType::V_QUARTER);
+    input.setNoteEntryMode(true);
+    for (int i = 0; i < 4; ++i) {
+        score->startCmd(TranslatableString::untranslatable("enter accidental sequence"));
+        input.setAccidentalType(i % 2 ? AccidentalType::NATURAL : AccidentalType::SHARP);
+        score->cmdAddPitch(4 * 7 + (i < 2 ? 4 : 3), false, false);
+        score->endCmd();
+    }
+    auto notes = meloNotes(score);
+    ASSERT_EQ(notes.size(), 4u);
+    for (size_t i = 0; i < notes.size(); ++i) {
+        melo::SoundingPitch expected;
+        ASSERT_TRUE(melo::entryFromStandardPitch(meloStaffType(score)->meloStateJson(), i < 2 ? 'G' : 'F',
+                                                 i % 2 ? 0 : 1, 3, expected));
+        EXPECT_EQ(notes[i]->pitch(), expected.midiKey) << i;
+        EXPECT_EQ(notes[i]->meloNPer(), expected.nPer) << i;
+        EXPECT_EQ(notes[i]->meloNGen(), expected.nGen) << i;
+    }
+    delete score;
+}
+
 TEST(MeloStaffTests, conventionalEntryUsesTheEffectivePostChangeState)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/jims-template.mscx");

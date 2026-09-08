@@ -719,7 +719,7 @@ bool Harmony::isEditAllowed(EditData& ed) const
         return false;
     }
 
-    if (ed.key == Key_Semicolon || ed.key == Key_Colon) {
+    if (ed.key == Key_Semicolon || (ed.key == Key_Colon && harmonyType() != HarmonyType::MELO)) {
         return false;
     }
 

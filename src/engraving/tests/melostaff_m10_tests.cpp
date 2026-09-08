@@ -377,6 +377,52 @@ TEST(Engraving_MeloStaffM10SATBTests, firstNoteReplacesEmptyCentreAndUndoRestore
     delete score;
 }
 
+TEST(Engraving_MeloStaffM10SATBTests, pointerEntryKeepsEarlierNotesAtTheirPitchWhenTheFrameGrows)
+{
+    MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
+    ASSERT_TRUE(score);
+    score->doLayout();
+    StaffType* type = score->staff(0)->staffType(Fraction(0, 1));
+    InputState& input = score->inputState();
+    input.setTrack(0);
+    input.setSegment(score->tick2segment(Fraction(0, 1), false, SegmentType::ChordRest));
+    input.setDuration(DurationType::V_QUARTER);
+    input.setNoteEntryMode(true);
+    // The first two soprano notes of Bach 057: Mi1 followed by Do1.
+    // Go through the same height-to-note seam as a pointer click.
+    for (const auto& identity : { std::make_pair(0, 2), std::make_pair(2, -2) }) {
+        double cents = 0.0;
+        ASSERT_TRUE(melo::noteCentsAboveExtentLower(type->meloStateJson(), identity.first, identity.second, cents));
+        type->meloEnsureFrame(score, 0);
+        Position position;
+        position.segment = input.segment();
+        position.staffIdx = 0;
+        position.line = int(std::lround(2.0 * (type->meloFrameTopCents() - cents)
+                                        / StaffType::MELO_CENTS_PER_LINE_DISTANCE));
+        position.fret = INVALID_FRET_INDEX;
+        bool error = false;
+        NoteVal value = score->noteValForPosition(position, AccidentalType::NONE, error);
+        ASSERT_FALSE(error);
+        score->startCmd(TranslatableString::untranslatable("Place note by height"));
+        score->addPitch(value, false);
+        score->endCmd();
+        score->doLayout();
+        auto notes = notesOn(score, 0);
+        ASSERT_FALSE(notes.empty());
+        EXPECT_EQ(notes.back()->meloNPer(), identity.first);
+        EXPECT_EQ(notes.back()->meloNGen(), identity.second);
+        for (Note* note : notes) {
+            double expected = 0.0;
+            ASSERT_TRUE(melo::noteCentsAboveExtentLower(type->meloStateJson(), note->meloNPer(), note->meloNGen(), expected));
+            EXPECT_NEAR(note->meloCentsAboveDo(), expected, 1e-6);
+        }
+    }
+    const auto notes = notesOn(score, 0);
+    ASSERT_EQ(notes.size(), 2u);
+    EXPECT_LT(notes[0]->ldata()->pos().y(), notes[1]->ldata()->pos().y());
+    delete score;
+}
+
 TEST(Engraving_MeloStaffM10SATBTests, everyEmptyVocalStaffUsesItsKernelRangeCentre)
 {
     MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
