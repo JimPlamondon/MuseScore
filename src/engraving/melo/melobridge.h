@@ -275,7 +275,8 @@ struct PitchHit {
 
 /// Quantize a drag target (owner rulings 2026-08-14): nearest realizable
 /// pitch; current identity retained at exact-midpoint ties when eligible.
-bool nearestPitch(const muse::String& stateJson, double targetCents, bool hasCurrent, int currentNPer, int currentNGen, PitchHit& hit);
+bool nearestPitch(const muse::String& stateJson, double targetCents, bool hasCurrent, int currentNPer, int currentNGen, PitchHit& hit,
+                  const muse::String& noteheadClass = {});
 
 /// Milestone 6 (editing workflow): one keyboard step from a JiMS note —
 /// `domain` is "lattice" (nearest realizable pitch strictly up/down),

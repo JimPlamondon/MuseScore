@@ -633,13 +633,14 @@ bool frameBandsForMelody(const String& stateJson, const String& melodyJson,
 }
 
 bool nearestPitch(const String& stateJson, double targetCents,
-                  bool hasCurrent, int currentNPer, int currentNGen, PitchHit& hit)
+                  bool hasCurrent, int currentNPer, int currentNGen, PitchHit& hit, const String& noteheadClass)
 {
     String current = hasCurrent
                      ? String(u"{\"nPer\":%1,\"nGen\":%2}").arg(currentNPer).arg(currentNGen)
                      : String(u"null");
-    String envelope = String(u"{\"abi\":2,\"op\":\"nearest_pitch\",\"state\":%1,\"target_cents\":%2,\"current\":%3}")
-                      .arg(stateJson).arg(String::number(targetCents, 6)).arg(current);
+    const String shape = noteheadClass.isEmpty() ? String(u"null") : String(u"\"%1\"").arg(noteheadClass);
+    String envelope = String(u"{\"abi\":2,\"op\":\"nearest_pitch\",\"state\":%1,\"target_cents\":%2,\"current\":%3,\"notehead_class\":%4}")
+                      .arg(stateJson).arg(String::number(targetCents, 6)).arg(current).arg(shape);
     JsonValue result;
     if (!okResult(callBridge(envelope), result)) {
         return false;

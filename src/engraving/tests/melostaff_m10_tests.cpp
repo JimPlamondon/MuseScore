@@ -423,6 +423,52 @@ TEST(Engraving_MeloStaffM10SATBTests, pointerEntryKeepsEarlierNotesAtTheirPitchW
     delete score;
 }
 
+TEST(Engraving_MeloStaffM10SATBTests, pointerEntryHonorsTheSelectedNoteheadAtCoincidentHeights)
+{
+    struct Choice {
+        AccidentalType picker;
+        int nPer;
+        int nGen;
+    };
+    const Choice choices[] = {
+        { AccidentalType::SHARP, -3, 6 }, { AccidentalType::FLAT, 4, -6 },
+        { AccidentalType::SHARP2, -6, 12 }, { AccidentalType::FLAT2, 8, -12 },
+        { AccidentalType::NATURAL, 1, 0 }
+    };
+    for (const auto& choice : choices) {
+        MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);
+        ASSERT_TRUE(score);
+        score->doLayout();
+        StaffType* type = score->staff(0)->staffType(Fraction(0, 1));
+        InputState& input = score->inputState();
+        input.setTrack(0);
+        input.setSegment(score->tick2segment(Fraction(0, 1), false, SegmentType::ChordRest));
+        input.setDuration(DurationType::V_QUARTER);
+        input.setNoteEntryMode(true);
+        input.setAccidentalType(choice.picker);
+        double cents = 0.0;
+        ASSERT_TRUE(melo::noteCentsAboveExtentLower(type->meloStateJson(), choice.nPer, choice.nGen, cents));
+        type->meloEnsureFrame(score, 0);
+        Position position;
+        position.segment = input.segment();
+        position.staffIdx = 0;
+        position.line = int(std::lround(2.0 * (type->meloFrameTopCents() - cents)
+                                        / StaffType::MELO_CENTS_PER_LINE_DISTANCE));
+        position.fret = INVALID_FRET_INDEX;
+        bool error = false;
+        NoteVal value = score->noteValForPosition(position, choice.picker, error);
+        ASSERT_FALSE(error);
+        score->startCmd(TranslatableString::untranslatable("Place selected shape by height"));
+        score->addPitch(value, false);
+        score->endCmd();
+        const auto notes = notesOn(score, 0);
+        ASSERT_EQ(notes.size(), 1u);
+        EXPECT_EQ(notes[0]->meloNPer(), choice.nPer);
+        EXPECT_EQ(notes[0]->meloNGen(), choice.nGen);
+        delete score;
+    }
+}
+
 TEST(Engraving_MeloStaffM10SATBTests, everyEmptyVocalStaffUsesItsKernelRangeCentre)
 {
     MasterScore* score = ScoreRW::readScore(satbTemplatePath(), true);

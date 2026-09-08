@@ -166,8 +166,24 @@ NoteVal Score::noteValForPosition(Position pos, AccidentalType at, bool& error)
                                      - double(line) * StaffType::MELO_CENTS_PER_LINE_DISTANCE / 2.0
                                      : view.centsFromYLd(double(line) / 2.0);
                 mu::engraving::melo::PitchHit hit;
+                // The toolbar shape limits pointer entry to that Kernel
+                // notehead class; it does not displace the clicked height.
+                String noteheadClass;
+                switch (at) {
+                case AccidentalType::SHARP: noteheadClass = u"triangle-vertex-up";
+                    break;
+                case AccidentalType::FLAT: noteheadClass = u"triangle-vertex-down";
+                    break;
+                case AccidentalType::SHARP2: noteheadClass = u"square-vertex-up";
+                    break;
+                case AccidentalType::FLAT2: noteheadClass = u"square-edge-up";
+                    break;
+                case AccidentalType::NATURAL: noteheadClass = u"conventional";
+                    break;
+                default: break;
+                }
                 if (mu::engraving::melo::nearestPitch(meloSt->meloStateJson(), cents,
-                                                      false, 0, 0, hit)) {
+                                                      false, 0, 0, hit, noteheadClass)) {
                     mu::engraving::melo::SoundingPitch projection;
                     if (mu::engraving::melo::noteSoundingPitch(meloSt->meloStateJson(), hit.nPer, hit.nGen, projection)) {
                         const int stepIndex = int(muse::String(u"CDEFGAB").indexOf(muse::Char(projection.step)));
