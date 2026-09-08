@@ -59,6 +59,9 @@ DockPage {
     }
 
     function setCurrentCentral(name) {
+        if (!api.productPromotionsEnabled && (name === "musesounds" || name === "learn")) {
+            name = "scores"
+        }
         if (section === name || !Boolean(name)) {
             return
         }

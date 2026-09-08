@@ -1,3 +1,4 @@
+#include "global/productpolicy.h"
 #include "outputresourceitem.h"
 
 #include <QList>
@@ -77,10 +78,12 @@ void OutputResourceItem::requestAvailableResources()
                                     /*isFilterCategory*/ true);
         }
 
-        result << buildSeparator();
-        QVariantMap getMore = buildExternalLinkMenuItem(GET_MORE_EFFECTS, muse::qtrc("playback", "Get more effects"));
-        getMore["alwaysAppend"] = true; // Always add this to the end of our lists, ignoring filters
-        result << getMore;
+        if (muse::productPromotionsEnabled()) {
+            result << buildSeparator();
+            QVariantMap getMore = buildExternalLinkMenuItem(GET_MORE_EFFECTS, muse::qtrc("playback", "Get more effects"));
+            getMore["alwaysAppend"] = true; // Always add this to the end of our lists, ignoring filters
+            result << getMore;
+        }
 
         emit availableResourceListResolved(result);
     })
@@ -97,6 +100,9 @@ void OutputResourceItem::handleMenuItem(const QString& menuItemId)
         updateCurrentFxParams(AudioResourceMeta());
         return;
     } else if (menuItemId == GET_MORE_EFFECTS) {
+        if (!muse::productPromotionsEnabled()) {
+            return;
+        }
         const QString url = QString::fromStdString(globalConfiguration()->museHubWebUrl());
         const QString urlParams("plugins?utm_source=mss-mixer-fx&utm_medium=mh-fx&utm_campaign=mss-mixer-fx-mainpage");
         interactive()->openUrl(url + urlParams);

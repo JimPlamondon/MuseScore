@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "global/productpolicy.h"
 #include <QGuiApplication>
 
 #include "opensaveprojectscenario.h"
@@ -137,6 +138,10 @@ RetVal<muse::io::path_t> OpenSaveProjectScenario::askLocalPath(INotationProjectP
 
 RetVal<SaveLocationType> OpenSaveProjectScenario::saveLocationType() const
 {
+    if (!muse::productPromotionsEnabled()) {
+        return RetVal<SaveLocationType>::make_ok(SaveLocationType::Local);
+    }
+
     bool shouldAsk = configuration()->shouldAskSaveLocationType();
     SaveLocationType lastUsed = configuration()->lastUsedSaveLocationType();
     if (!shouldAsk && lastUsed != SaveLocationType::Undefined) {

@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "global/productpolicy.h"
 #include "musesoundsrepository.h"
 
 #include "serialization/json.h"
@@ -91,7 +92,8 @@ static QByteArray soundsRequestJson()
               }
             }
           }
-        })").arg(localeStr);
+        })")
+                   .arg(localeStr);
 
     JsonObject json;
     json["query"] = query;
@@ -101,6 +103,10 @@ static QByteArray soundsRequestJson()
 
 void MuseSoundsRepository::init()
 {
+    if (!muse::productPromotionsEnabled()) {
+        return;
+    }
+
     TRACEFUNC;
 
     QUrl url = QUrl(QString::fromStdString(configuration()->soundsUri().toString()));

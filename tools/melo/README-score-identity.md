@@ -18,6 +18,25 @@ The macOS bundle exports `com.melopresto.score.document` and `com.melopresto.sco
 
 Run `python3 tools/melo/generate_app_icons.py --check` to verify the SVG masters. On macOS, regenerate raster and ICNS resources with `python3 tools/melo/generate_app_icons.py --render --node <node> --sharp-module <sharp-module>`. The renderer requires Node, sharp and iconutil; Python itself uses the standard library. Do not hand-edit the generated masters.
 
+## Reversible upstream promotion policy
+
+MeloPresto Score sets MELO_SCORE_SUPPRESS_UPSTREAM_PROMOTIONS=ON in buildscripts/melopresto_identity.cmake. All gates read muse::productPromotionsEnabled(); QML (Qt's interface description language) reads the same value through api.productPromotionsEnabled. The option is a build policy, so saved user preferences or a remotely downloaded campaign cannot override it. The original offer content, actions, URLs and assets remain in the source tree.
+
+To restore the upstream promotion behavior, configure with -DMELO_SCORE_SUPPRESS_UPSTREAM_PROMOTIONS=OFF and rebuild/package. Removing the downstream identity configuration also restores the enabled fallback. This does not change the independent application identity or re-enable upstream application updates; those are separate product decisions. Run python tools/melo/check_product_policy.py to compile-check all three configurations without rebuilding the main application.
+
+| Surface | Suppressed behavior |
+|---|---|
+| Welcome carousel | Startup eligibility, direct dialog registration and model population are gated, including the version-triggered welcome reset |
+| MuseHub campaigns | Automatic/manual checks, cached-result presentation and direct release-dialog registration are gated; this includes remotely supplied offers such as Vienna Video Pro |
+| First-launch setup | Sound-library acquisition, tutorial/catalog promotion and the early-exit MuseHub invitation are bypassed; theme selection remains |
+| Home sound store and Learn catalog | Menu entries and restored/deep-linked section routing are gated; remote catalog requests are suppressed because their feeds mix tutorials with product offers |
+| Mixer acquisition links | Get more sounds/effects entries and their direct action handlers are gated; installed resources remain listed and usable |
+| Save-destination invitation | Ordinary saving defaults locally without showing the free-cloud-storage invitation; explicit Save to cloud remains available |
+
+Normal score operations, installed sample libraries, soundfonts and effects, account access, explicit cloud saving, ordinary help and required installed-sampler maintenance remain intact. MuseSampler maintenance notices concern an installed playback dependency and are not product-acquisition offers. No preference store is reset. Future upstream offer surfaces must use the same policy; the audit for this source revision covers the paths above rather than promising coverage of unknown future code.
+
+Native musesounds_test verifies that suppressed startup, campaign and storefront entry points return before consulting services or creating network requests, including direct/manual and cached-offer paths. Hosted checks compile the enabled, suppressed and upstream-fallback policy configurations. Final installed-app checks verify absence of the welcome promotion and catalog/mixer links while confirming that local save and playback remain usable.
+
 ## Local build and packaging
 
 Reuse the configured native build and its dependency cache. Configure `CMAKE_INSTALL_PREFIX` to a staging directory inside the source checkout, such as `package-local`, and set `MUSESCORE_REVISION` to the source commit being built. Build `MuseScoreStudio`, `MuseScoreQuickLookPreviewExtension`, `engraving_tests`, `project_test` and `muse_update_test`. The internal executable remains `mscore`; the installed outer bundle is `MeloPresto Score.app`.

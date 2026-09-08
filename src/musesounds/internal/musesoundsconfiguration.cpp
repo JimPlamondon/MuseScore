@@ -19,6 +19,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "global/productpolicy.h"
 #include "musesoundsconfiguration.h"
 
 #include "settings.h"
@@ -55,7 +56,7 @@ static QString osCode()
 void MuseSoundsConfiguration::init()
 {
     settings()->setDefaultValue(CHECK_FOR_MUSESOUNDS_UPDATE_KEY, Val(true));
-    settings()->setCanBeManuallyEdited(CHECK_FOR_MUSESOUNDS_UPDATE_KEY, true);
+    settings()->setCanBeManuallyEdited(CHECK_FOR_MUSESOUNDS_UPDATE_KEY, muse::productPromotionsEnabled());
     settings()->setDescription(CHECK_FOR_MUSESOUNDS_UPDATE_KEY, muse::trc("musesounds", "Show occasional MuseHub promotions"));
     settings()->setDefaultValue(GET_SOUNDS_TEST_MODE_KEY, Val(false));
     settings()->setDefaultValue(MUSESOUNDS_CHECK_FOR_UPDATE_TEST_MODE, Val(false));
@@ -63,6 +64,10 @@ void MuseSoundsConfiguration::init()
 
 bool MuseSoundsConfiguration::needCheckForMuseSoundsUpdate() const
 {
+    if (!muse::productPromotionsEnabled()) {
+        return false;
+    }
+
     return settings()->value(CHECK_FOR_MUSESOUNDS_UPDATE_KEY).toBool();
 }
 

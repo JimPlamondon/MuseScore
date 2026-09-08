@@ -19,6 +19,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "global/productpolicy.h"
 #include "musesoundsmodule.h"
 
 #include "modularity/ioc.h"
@@ -63,7 +64,7 @@ void MuseSoundsModule::registerExports()
 void MuseSoundsModule::resolveImports()
 {
     auto ir = ioc()->resolve<ui::IInteractiveUriRegister>(moduleName());
-    if (ir) {
+    if (ir && muse::productPromotionsEnabled()) {
         ir->registerQmlUri(Uri("musescore://musesounds/musesoundsreleaseinfo"), "MuseScore.MuseSounds", "MuseSoundsReleaseInfoDialog");
     }
 }

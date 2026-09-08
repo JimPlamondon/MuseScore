@@ -11,3 +11,6 @@ set(MUSE_APP_NAME_MACHINE_READABLE "MeloPrestoScore")
 set(MUSE_APP_GUI_IDENTIFIER "${MELO_SCORE_APP_ID}")
 set(MUSE_APP_TITLE "${MELO_SCORE_APP_NAME}")
 set(MUSE_APP_TITLE_VERSION "${MELO_SCORE_APP_NAME} (Development)")
+
+# Turn OFF to restore retained upstream offers when integrating with MuseScore.
+option(MELO_SCORE_SUPPRESS_UPSTREAM_PROMOTIONS "Suppress upstream product offers in MeloPresto Score" ON)

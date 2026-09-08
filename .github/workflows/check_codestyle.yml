@@ -54,5 +54,6 @@ jobs:
       run: |
         python3 tools/melo/generate_app_icons.py --check
         python3 tools/melo/check_melo_strings.py
+        python3 tools/melo/check_product_policy.py
         python3 -m unittest discover -s tools/melo/tests
         python3 tools/melo/test_enriched_to_melo_mscx.py
