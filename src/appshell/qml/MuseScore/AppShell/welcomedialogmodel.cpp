@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "global/productpolicy.h"
 #include "welcomedialogmodel.h"
 
 #include "translation.h"
@@ -84,6 +85,10 @@ WelcomeDialogModel::WelcomeDialogModel()
 
 void WelcomeDialogModel::init()
 {
+    if (!muse::productPromotionsEnabled()) {
+        return;
+    }
+
     IF_ASSERT_FAILED(configuration()) {
         return;
     }

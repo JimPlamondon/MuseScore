@@ -6,6 +6,8 @@
 
 #include <QGuiApplication>
 
+#include "muse_framework_config.h"
+
 #include "draw/drawmodule.h"
 #include "engraving/engravingmodule.h"
 #include "global/globalmodule.h"
@@ -38,6 +40,10 @@ public:
         std::vector<char*> argv;
 
         m_qapp = std::make_unique<QGuiApplication>(argc, argv.data());
+
+        QCoreApplication::setApplicationName(MELO_SCORE_SETTINGS_NAME "Preview");
+        QCoreApplication::setOrganizationName(MELO_SCORE_ORGANIZATION);
+        QCoreApplication::setOrganizationDomain(MELO_SCORE_DOMAIN);
 
         m_globalModule.registerResources();
         m_globalModule.registerExports();
@@ -124,13 +130,17 @@ std::vector<uint8_t> PreviewProviderCxx::getPdfPreviewData(const std::string& fi
     openParams.disablePlayback = true;
     openParams.forceMode = true;
     openParams.forcePageMode = true;
-    project->load(filePath, openParams);
+    if (!project->load(filePath, openParams)) {
+        return {};
+    }
 
     muse::io::Buffer buffer;
     buffer.open(muse::io::IODevice::WriteOnly);
 
     mu::iex::imagesexport::PdfWriter pdfWriter { nullptr };
-    pdfWriter.write(project->masterNotation()->notation(), buffer);
+    if (!pdfWriter.write(project->masterNotation()->notation(), buffer)) {
+        return {};
+    }
 
     muse::ByteArray byteArray = buffer.data();
     std::vector<uint8_t> data = byteArray.vdata();

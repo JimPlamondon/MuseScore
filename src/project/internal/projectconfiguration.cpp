@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "projectconfiguration.h"
+#include "global/productpolicy.h"
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -67,8 +68,8 @@ static const Settings::Key SHOW_MELO_STOCK_LOSS_WARNING(module_name, "project/sh
 static const Settings::Key DISABLE_VERSION_CHECKING(module_name, "project/disableVersionChecking");
 static const Settings::Key CREATE_BACKUP_BEFORE_SAVING(module_name, "project/createBackupBeforeSaving");
 
-static const std::string DEFAULT_FILE_SUFFIX(".mscz");
-static const std::string DEFAULT_FILE_FILTER("*.mscz");
+static const std::string DEFAULT_FILE_SUFFIX(".meloscore");
+static const std::string DEFAULT_FILE_FILTER("*.meloscore");
 
 ProjectConfiguration::ProjectConfiguration(const muse::modularity::ContextPtr& iocCtx)
     : muse::Contextable(iocCtx)
@@ -599,6 +600,10 @@ muse::async::Channel<int> ProjectConfiguration::autoSaveIntervalChanged() const
 
 bool ProjectConfiguration::alsoShareAudioCom() const
 {
+    if (!muse::productPromotionsEnabled()) {
+        return false;
+    }
+
     return settings()->value(ALSO_SHARE_AUDIO_COM_AFTER_PUBLISH).toBool();
 }
 
@@ -614,6 +619,10 @@ muse::async::Channel<bool> ProjectConfiguration::alsoShareAudioComChanged() cons
 
 bool ProjectConfiguration::showAlsoShareAudioComDialog() const
 {
+    if (!muse::productPromotionsEnabled()) {
+        return false;
+    }
+
     return settings()->value(SHOW_ALSO_SHARE_AUDIO_COM_DIALOG).toBool();
 }
 
@@ -735,7 +744,7 @@ muse::io::path_t ProjectConfiguration::projectBackupPath(const muse::io::path_t&
     muse::io::path_t projectDir = io::absoluteDirpath(projectPath);
     muse::io::path_t projectName = io::filename(projectPath);
 
-    return projectDir + "/.mscbackup/." + projectName + "~";
+    return projectDir + "/.melopresto-backup/." + projectName + "~";
 }
 
 bool ProjectConfiguration::showCloudIsNotAvailableWarning() const

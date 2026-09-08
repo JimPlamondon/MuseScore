@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "global/productpolicy.h"
 #include "learnservice.h"
 
 #include <QJsonArray>
@@ -65,6 +66,10 @@ static Playlist parsePlaylist(const QJsonDocument& playlistDoc)
 
 void LearnService::refreshPlaylists()
 {
+    if (!muse::productPromotionsEnabled()) {
+        return;
+    }
+
     auto startedPlaylistCallBack = [this](const RetVal<Playlist>& result) {
         if (!result.ret) {
             LOGE() << "Unable to get started playlist: " << result.ret.toString();

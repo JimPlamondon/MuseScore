@@ -19,6 +19,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "global/productpolicy.h"
 #include "appshellconfiguration.h"
 
 #include <QJsonArray>
@@ -110,6 +111,10 @@ void AppShellConfiguration::setHasCompletedFirstLaunchSetup(bool has)
 
 bool AppShellConfiguration::welcomeDialogShowOnStartup() const
 {
+    if (!muse::productPromotionsEnabled()) {
+        return false;
+    }
+
     return settings()->value(WELCOME_DIALOG_SHOW_ON_STARTUP_KEY).toBool();
 }
 

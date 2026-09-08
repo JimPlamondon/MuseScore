@@ -50,7 +50,7 @@ using namespace mu::engraving;
 //!    scorePath = scoreDir/v3/score.mscz
 //! -> jsonPath = outDir/v3/score.json (now just outDir/score.json)
 
-static const std::vector<std::string> FILES_FILTER = { "*.mscz", "*.mscx", "*.gp", "*.gpx", "*.gp4", "*.gp5" };
+static const std::vector<std::string> FILES_FILTER = { "*.meloscore", "*.mscz", "*.mscx", "*.gp", "*.gpx", "*.gp4", "*.gp5" };
 
 DrawDataGenerator::DrawDataGenerator(const muse::modularity::ContextPtr& iocCtx)
     : muse::Contextable(iocCtx)

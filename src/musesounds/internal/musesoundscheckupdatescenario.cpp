@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "global/productpolicy.h"
 #include "musesoundscheckupdatescenario.h"
 
 #include "musesoundserrors.h"
@@ -36,11 +37,19 @@ using namespace muse::update;
 
 bool MuseSoundsCheckUpdateScenario::needCheckForUpdate() const
 {
+    if (!muse::productPromotionsEnabled()) {
+        return false;
+    }
+
     return configuration()->needCheckForMuseSoundsUpdate();
 }
 
 void MuseSoundsCheckUpdateScenario::checkForUpdate(bool manual)
 {
+    if (!muse::productPromotionsEnabled()) {
+        return;
+    }
+
     if (m_checkInProgress) {
         return;
     }
@@ -79,6 +88,10 @@ async::Notification MuseSoundsCheckUpdateScenario::checkInProgressChanged() cons
 
 bool MuseSoundsCheckUpdateScenario::hasUpdate() const
 {
+    if (!muse::productPromotionsEnabled()) {
+        return false;
+    }
+
     if (m_checkInProgress || !service()->needCheckForUpdate()) {
         return false;
     }
@@ -97,6 +110,10 @@ bool MuseSoundsCheckUpdateScenario::hasUpdate() const
 
 muse::Ret MuseSoundsCheckUpdateScenario::showUpdate()
 {
+    if (!muse::productPromotionsEnabled()) {
+        return make_ret(Err::NoUpdate);
+    }
+
     const RetVal<ReleaseInfo>& lastCheckResult = service()->lastCheckResult();
     if (!lastCheckResult.ret) {
         return lastCheckResult.ret;
@@ -117,6 +134,10 @@ void MuseSoundsCheckUpdateScenario::setIgnoredUpdate(const std::string& version)
 
 muse::Ret MuseSoundsCheckUpdateScenario::showReleaseInfo(const ReleaseInfo& info)
 {
+    if (!muse::productPromotionsEnabled()) {
+        return make_ret(Err::NoUpdate);
+    }
+
     Ret ret = make_ok();
 
     DEFER {

@@ -61,7 +61,8 @@ void UpdateConfiguration::init()
 
 bool UpdateConfiguration::isAppUpdatable() const
 {
-    return true;
+    // Local MeloPresto development builds must never install an upstream app update.
+    return false;
 }
 
 bool UpdateConfiguration::allowUpdateOnPreRelease() const
@@ -76,7 +77,7 @@ void UpdateConfiguration::setAllowUpdateOnPreRelease(bool allow)
 
 bool UpdateConfiguration::needCheckForUpdate() const
 {
-    return settings()->value(CHECK_FOR_UPDATE_KEY).toBool();
+    return isAppUpdatable() && settings()->value(CHECK_FOR_UPDATE_KEY).toBool();
 }
 
 void UpdateConfiguration::setNeedCheckForUpdate(bool needCheck)

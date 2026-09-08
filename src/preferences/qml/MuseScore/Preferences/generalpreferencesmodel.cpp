@@ -19,6 +19,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include <QGuiApplication>
+
 #include "generalpreferencesmodel.h"
 
 #include "languages/languageserrors.h"
@@ -245,7 +247,8 @@ void GeneralPreferencesModel::setStartupScorePath(const QString& scorePath)
 
 QStringList GeneralPreferencesModel::scorePathFilter() const
 {
-    return { muse::qtrc("preferences", "MuseScore file") + " (*.mscz)",
+    return { muse::qtrc("preferences", "%1 document").arg(QGuiApplication::applicationDisplayName()) + " (*.meloscore)",
+             muse::qtrc("preferences", "MuseScore file") + " (*.mscz)",
              muse::qtrc("preferences", "All") + " (*)" };
 }
 

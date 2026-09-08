@@ -20,7 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "mainwindowtitleprovider.h"
-#include "translation.h"
+#include <QGuiApplication>
 
 using namespace mu::appshell;
 
@@ -100,7 +100,7 @@ void MainWindowTitleProvider::update()
     project::INotationProjectPtr project = context()->currentProject();
 
     if (!project) {
-        setTitle(muse::qtrc("appshell", "MuseScore Studio"));
+        setTitle(QGuiApplication::applicationDisplayName());
         setFilePath("");
         setFileModified(false);
         return;

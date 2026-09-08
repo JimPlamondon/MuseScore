@@ -28,6 +28,11 @@ void UpdateActionController::init()
     dispatcher()->reg(this, "check-update", this, &UpdateActionController::checkForAppUpdate);
 }
 
+bool UpdateActionController::canReceiveAction(const muse::actions::ActionCode&) const
+{
+    return configuration()->isAppUpdatable();
+}
+
 void UpdateActionController::checkForAppUpdate()
 {
     appUpdateScenario()->checkForUpdate(/*manual*/ true);

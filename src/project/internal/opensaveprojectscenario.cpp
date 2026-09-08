@@ -20,6 +20,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "global/productpolicy.h"
+#include <QGuiApplication>
+
 #include "opensaveprojectscenario.h"
 
 #include "cloud/clouderrors.h"
@@ -101,9 +104,10 @@ RetVal<muse::io::path_t> OpenSaveProjectScenario::askLocalPath(INotationProjectP
         filenameAddition = " - " + muse::trc("project/save", "selection");
     }
 
-    muse::io::path_t defaultPath = configuration()->defaultSavingFilePath(project, filenameAddition);
+    muse::io::path_t defaultPath = configuration()->defaultSavingFilePath(project, filenameAddition, engraving::MELOSCORE);
 
     std::vector<std::string> filter {
+        muse::qtrc("project", "%1 document").arg(QGuiApplication::applicationDisplayName()).toStdString() + " (*.meloscore)",
         muse::trc("project", "MuseScore file") + " (*.mscz)",
         muse::trc("project", "Uncompressed MuseScore folder (experimental)")
 #ifdef Q_OS_MAC
@@ -134,6 +138,10 @@ RetVal<muse::io::path_t> OpenSaveProjectScenario::askLocalPath(INotationProjectP
 
 RetVal<SaveLocationType> OpenSaveProjectScenario::saveLocationType() const
 {
+    if (!muse::productPromotionsEnabled()) {
+        return RetVal<SaveLocationType>::make_ok(SaveLocationType::Local);
+    }
+
     bool shouldAsk = configuration()->shouldAskSaveLocationType();
     SaveLocationType lastUsed = configuration()->lastUsedSaveLocationType();
     if (!shouldAsk && lastUsed != SaveLocationType::Undefined) {
@@ -497,8 +505,9 @@ void OpenSaveProjectScenario::showCloudOpenError(const Ret& ret) const
                                              "Please activate your account via the link in the activation email.");
         break;
     case int(cloud::Err::Status403_NotOwner):
-        message = muse::trc("project/cloud", "This score does not belong to this account. To access this score, make sure you are logged in "
-                                             "to the desktop app with the account to which this score belongs.");
+        message = muse::trc("project/cloud",
+                            "This score does not belong to this account. To access this score, make sure you are logged in "
+                            "to the desktop app with the account to which this score belongs.");
         break;
     case int(cloud::Err::Status404_NotFound):
         message = muse::trc("project/cloud", "The score could not be found, or cannot be accessed by your account.");

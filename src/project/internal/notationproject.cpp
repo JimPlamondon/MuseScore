@@ -131,7 +131,8 @@ Ret NotationProject::load(const muse::io::path_t& path, const OpenParams& openPa
         return ret;
     }
 
-    bool treatAsImported = (m_masterNotation->mscVersion() < 400 && !isCloudProject()) || format == MSCZ_BACKUP;
+    bool treatAsImported = (m_masterNotation->mscVersion() < 400 && !isCloudProject()) || format == MSCZ_BACKUP
+                           || format == MELOSCORE_BACKUP;
 
     listenIfNeedSaveChanges();
     setNeedSave(treatAsImported);
@@ -449,7 +450,7 @@ QString NotationProject::displayName() const
         return m_cloudInfo.name;
     }
 
-    bool isSuffixInteresting = io::suffix(m_path) != engraving::MSCZ;
+    bool isSuffixInteresting = io::suffix(m_path) != engraving::MSCZ && io::suffix(m_path) != engraving::MELOSCORE;
     return io::filename(m_path, isSuffixInteresting).toQString();
 }
 
@@ -805,8 +806,8 @@ Ret NotationProject::makeBackup(muse::io::path_t filePath)
 {
     TRACEFUNC;
 
-    if (io::suffix(filePath) != engraving::MSCZ) {
-        LOGW() << "backup allowed only for MSCZ, currently: " << filePath;
+    if (io::suffix(filePath) != engraving::MSCZ && io::suffix(filePath) != engraving::MELOSCORE) {
+        LOGW() << "backup allowed only for native score archives, currently: " << filePath;
         return make_ret(Ret::Code::Ok);
     }
 

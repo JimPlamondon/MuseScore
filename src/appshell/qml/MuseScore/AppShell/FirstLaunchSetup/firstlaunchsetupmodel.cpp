@@ -19,6 +19,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "global/productpolicy.h"
 #include "firstlaunchsetupmodel.h"
 
 #include "translation.h"
@@ -31,6 +32,11 @@ using namespace mu::appshell;
 FirstLaunchSetupModel::FirstLaunchSetupModel(QObject* parent)
     : QObject(parent), muse::Contextable(muse::iocCtxForQmlObject(this))
 {
+    if (!muse::productPromotionsEnabled()) {
+        m_pages = { Page { "ThemesPage.qml", "musescore://home?section=scores" } };
+        return;
+    }
+
     m_pages = {
         Page { "ThemesPage.qml", "musescore://notation" },
         Page { "PlaybackPage.qml", "musescore://notation" },
@@ -100,6 +106,10 @@ void FirstLaunchSetupModel::setCurrentPageIndex(int index)
 
 bool FirstLaunchSetupModel::askAboutClosingEarly()
 {
+    if (!muse::productPromotionsEnabled()) {
+        return true;
+    }
+
     const std::string title = muse::trc("appshell/gettingstarted", "Are you sure you want to cancel?");
     const std::string body = muse::qtrc("appshell/gettingstarted",
                                         "If you choose to cancel, then be sure to check out our free "

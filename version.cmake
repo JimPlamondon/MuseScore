@@ -63,3 +63,5 @@ endif()
 # Print variables which are needed by CI build scripts.
 message(STATUS "MUSE_APP_RELEASE_CHANNEL ${MUSE_APP_RELEASE_CHANNEL}")
 message(STATUS "MUSE_APP_VERSION ${MUSE_APP_VERSION}")
+
+include(${CMAKE_CURRENT_LIST_DIR}/buildscripts/melopresto_identity.cmake)

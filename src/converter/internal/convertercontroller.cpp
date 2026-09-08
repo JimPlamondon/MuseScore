@@ -217,7 +217,8 @@ Ret ConverterController::convertFile(const muse::io::path_t& in, const muse::io:
         const bool pageNumIsSet = target.has_value() && std::holds_alternative<page_num_t>(target.value());
         const bool regionIsSet = target.has_value() && std::holds_alternative<ConvertRegionJson>(target.value());
 
-        if (suffix == engraving::MSCZ || suffix == engraving::MSCX || suffix == engraving::MSCS) {
+        if (suffix == engraving::MSCZ || suffix == engraving::MSCX || suffix == engraving::MSCS
+            || suffix == engraving::MELOSCORE) {
             if (pageNumIsSet) {
                 return notationProject->savePage(out, std::get<page_num_t>(target.value()));
             } else if (regionIsSet) {

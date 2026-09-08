@@ -19,6 +19,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "global/productpolicy.h"
 #include "inputresourceitem.h"
 
 #include <optional>
@@ -113,10 +114,12 @@ void InputResourceItem::requestAvailableResources()
             result << buildSoundFontsMenuItem(sfResourcesSearch->second);
         }
 
-        result << buildSeparator();
-        QVariantMap getMore =  buildExternalLinkMenuItem(GET_MORE_SOUNDS_ID, muse::qtrc("playback", "Get more sounds"));
-        getMore["alwaysAppend"] = true; // Always add this to the end of our lists, ignoring filters
-        result << getMore;
+        if (muse::productPromotionsEnabled()) {
+            result << buildSeparator();
+            QVariantMap getMore =  buildExternalLinkMenuItem(GET_MORE_SOUNDS_ID, muse::qtrc("playback", "Get more sounds"));
+            getMore["alwaysAppend"] = true; // Always add this to the end of our lists, ignoring filters
+            result << getMore;
+        }
 
         emit availableResourceListResolved(result);
     })
@@ -130,6 +133,9 @@ void InputResourceItem::requestAvailableResources()
 void InputResourceItem::handleMenuItem(const QString& menuItemId)
 {
     if (menuItemId == GET_MORE_SOUNDS_ID) {
+        if (!muse::productPromotionsEnabled()) {
+            return;
+        }
         const QString url = QString::fromStdString(globalConfiguration()->museHubWebUrl());
         const QString urlParams("muse-sounds?utm_source=mss-mixer&utm_medium=mh&utm_campaign=mss-mixer-ms-mainpage");
         interactive()->openUrl(url + urlParams);

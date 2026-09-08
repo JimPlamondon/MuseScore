@@ -31,7 +31,7 @@ import MuseScore.AppShell
 StyledDialogView {
     id: root
 
-    title: qsTrc("appshell/about", "About MuseScore Studio")
+    title: qsTrc("appshell/about", "About %1").arg(Qt.application.displayName)
 
     contentHeight: 424
     contentWidth: 480
@@ -59,7 +59,7 @@ StyledDialogView {
                 id: logo
                 Layout.alignment: Qt.AlignHCenter
 
-                source: "resources/mu_logo.svg"
+                source: "qrc:/melo/icons/score.svg"
                 sourceSize: Qt.size(100, 100)
 
                 MouseArea {
@@ -83,7 +83,8 @@ StyledDialogView {
 
                 StyledTextLabel {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: qsTrc("appshell/about", "Version:") + " " + aboutModel.museScoreVersion()
+                    text: Qt.application.displayName + " " + Qt.application.version + " (Development)"
+                    + "\n" + qsTrc("appshell/about", "MuseScore engine:") + " " + aboutModel.museScoreVersion()
                     font: ui.theme.bodyBoldFont
                 }
 
@@ -110,17 +111,9 @@ StyledDialogView {
             StyledTextLabel {
                 Layout.fillWidth: true
                 text: {
-                    let museScoreUrl = aboutModel.museScoreUrl()
-
-                    //: %1 will be a link to the MuseScore website
-                    let line1 = qsTrc("appshell/about", "Visit %1 for new versions and more information.")
-                                .arg(`<a href="${museScoreUrl.url}">${museScoreUrl.displayName}</a>`)
-
-                    let line2 = qsTrc("appshell/about", "Get <a href=\"%1\">help</a> with the program or <a href=\"%2\">contribute</a> to its development.")
-                                .arg(aboutModel.museScoreForumUrl().url)
-                                .arg(aboutModel.museScoreContributionUrl().url)
-
-                    return line1 + "<br>" + line2
+                    return qsTrc("appshell/about", "Published by %1 · <a href=\"https://%2\">%2</a>")
+                           .arg(Qt.application.organization).arg(Qt.application.domain)
+                           + "<br>" + qsTrc("appshell/about", "Based on <a href=\"https://musescore.org\">MuseScore Studio</a>.")
                 }
                 wrapMode: Text.WordWrap
                 maximumLineCount: 3
@@ -129,7 +122,7 @@ StyledDialogView {
             StyledTextLabel {
                 Layout.fillWidth: true
 
-                text: qsTrc("appshell/about", "For privacy information, see our <a href=\"%1\">privacy policy</a>.")
+                text: qsTrc("appshell/about", "For upstream service privacy information, see the MuseScore <a href=\"%1\">privacy policy</a>.")
                       .arg(aboutModel.museScorePrivacyPolicyUrl().url)
 
                 wrapMode: Text.WordWrap

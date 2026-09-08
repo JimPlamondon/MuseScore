@@ -66,7 +66,7 @@ elseif(OS_IS_MAC)
     set(MACOSX_BUNDLE_GUI_IDENTIFIER ${MUSE_APP_GUI_IDENTIFIER})
     set(MACOSX_BUNDLE_BUNDLE_NAME ${MUSE_APP_TITLE})
     set(MACOSX_BUNDLE_LONG_VERSION_STRING ${MUSE_APP_VERSION})
-    set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${MUSE_APP_VERSION})
+    set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${MELO_SCORE_APP_VERSION})
     set(MACOSX_BUNDLE_BUNDLE_VERSION ${CMAKE_BUILD_NUMBER})
     set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 1999-2026 MuseScore Limited. Published under the GNU General Public License version 3.")
 
@@ -250,9 +250,24 @@ if (MUSE_ENABLE_UNIT_TESTS_CODE_COVERAGE)
     target_link_options(MuseScoreStudio PRIVATE ${COVERAGE_LINK_FLAGS})
 endif()
 
+set_source_files_properties("${PROJECT_SOURCE_DIR}/share/icons/melopresto/MeloPrestoScore.svg"
+    PROPERTIES QT_RESOURCE_ALIAS "score.svg")
+qt_add_resources(MuseScoreStudio "melopresto_identity"
+    PREFIX "/melo/icons"
+    BASE "${PROJECT_SOURCE_DIR}/share/icons/melopresto"
+    FILES "${PROJECT_SOURCE_DIR}/share/icons/melopresto/MeloPrestoScore.svg"
+)
+
 if (OS_IS_MAC)
-    include(${PROJECT_SOURCE_DIR}/share/icons/SetupIconComposerIcon.cmake)
-    target_setup_iconcomposer_icon(MuseScoreStudio "${PROJECT_SOURCE_DIR}/share/icons/AppIcon/AppIcon.icon")
+    set(MACOSX_BUNDLE_ICON_FILE "MeloPrestoScore.icns")
+    set(melo_icon_resources
+        "${PROJECT_SOURCE_DIR}/share/icons/melopresto/MeloPrestoScore.icns"
+        "${PROJECT_SOURCE_DIR}/share/icons/melopresto/MeloPrestoScoreDocument.icns"
+        "${PROJECT_SOURCE_DIR}/share/icons/MsczIcon/MS4_MsczIcon.icns"
+        "${PROJECT_SOURCE_DIR}/share/icons/MscxIcon/MS4_MscxIcon.icns"
+    )
+    target_sources(MuseScoreStudio PRIVATE ${melo_icon_resources})
+    set_source_files_properties(${melo_icon_resources} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
     set_target_properties(MuseScoreStudio PROPERTIES
         MACOSX_BUNDLE_INFO_PLIST ${PROJECT_SOURCE_DIR}/buildscripts/packaging/macOS/Info.plist.in

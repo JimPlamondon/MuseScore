@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "qmlapi.h"
+#include "global/productpolicy.h"
 
 using namespace muse::ui;
 
@@ -32,4 +33,9 @@ QmlApi::QmlApi(QObject* parent, const modularity::ContextPtr& iocCtx)
 QmlLauncher* QmlApi::launcher() const
 {
     return m_launcher;
+}
+
+bool QmlApi::productPromotionsEnabled() const
+{
+    return muse::productPromotionsEnabled();
 }

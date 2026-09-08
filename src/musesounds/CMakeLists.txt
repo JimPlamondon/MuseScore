@@ -50,3 +50,7 @@ target_sources(musesounds PRIVATE
 target_link_libraries(musesounds PRIVATE Qt::Concurrent)
 
 add_subdirectory(qml/MuseScore/MuseSounds)
+
+if (MUSE_ENABLE_UNIT_TESTS)
+    add_subdirectory(tests)
+endif()

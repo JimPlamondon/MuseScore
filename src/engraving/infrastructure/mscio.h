@@ -30,6 +30,15 @@ namespace mu::engraving {
 //! NOTE The main format is MuseScore, is a zip archive with a specific structure
 static const std::string MSCZ = "mscz";
 
+// MeloPresto Score uses the existing archive layout under its own document suffix.
+static const std::string MELOSCORE = "meloscore";
+static const std::string MELOSCORE_BACKUP = "meloscore~";
+
+inline bool isMeloScoreFile(const std::string& suffix)
+{
+    return suffix == MELOSCORE || suffix == MELOSCORE_BACKUP;
+}
+
 //! NOTE This is the automatically generated backup file.
 static const std::string MSCZ_BACKUP = "mscz~";
 
@@ -49,7 +58,7 @@ static const std::string MSCS = "mscs";
 
 inline bool isMuseScoreFile(const std::string& suffix)
 {
-    return suffix == MSCZ || suffix == MSCX || suffix == MSCS || suffix == MSCZ_BACKUP;
+    return suffix == MSCZ || suffix == MSCX || suffix == MSCS || suffix == MSCZ_BACKUP || isMeloScoreFile(suffix);
 }
 
 enum class MscIoMode : unsigned char {
@@ -61,7 +70,7 @@ enum class MscIoMode : unsigned char {
 
 inline MscIoMode mscIoModeBySuffix(const std::string& suffix)
 {
-    if (suffix == MSCZ || suffix == MSCZ_BACKUP) {
+    if (suffix == MSCZ || suffix == MSCZ_BACKUP || isMeloScoreFile(suffix)) {
         return MscIoMode::Zip;
     } else if (suffix == MSCX) {
         return MscIoMode::Dir;

@@ -19,7 +19,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include <QGuiApplication>
+
 #include "projectactionscontroller.h"
+#include "global/productpolicy.h"
 #include "melostocklosswarning.h"
 
 #include <QBuffer>
@@ -1137,6 +1140,10 @@ bool ProjectActionsController::saveProjectToCloud(CloudProjectInfo info, SaveMod
 
 void ProjectActionsController::alsoShareAudioCom(const AudioFile& audio)
 {
+    if (!muse::productPromotionsEnabled()) {
+        return;
+    }
+
     if (!configuration()->showAlsoShareAudioComDialog()) {
         shareAudio(audio);
         return;
@@ -1950,10 +1957,13 @@ void ProjectActionsController::printScore()
 
 async::Promise<io::path_t> ProjectActionsController::selectScoreOpeningFile() const
 {
-    std::string allExt = "*.mscz *.mxl *.musicxml *.xml *.mid *.midi *.kar *.md *.mgu *.sgu *.cap *.capx "
+    std::string allExt = "*.meloscore *.meloscore~ *.mscz *.mxl *.musicxml *.xml *.mid *.midi *.kar *.md *.mgu *.sgu *.cap *.capx "
                          "*.ove *.scw *.bmw *.bww *.gtp *.gp3 *.gp4 *.gp5 *.gpx *.gp *.ptb *.mei *.mnx *.json *.tef *.mscx *.mscs *.mscz~";
 
     std::vector<std::string> filter { muse::trc("project", "All supported files") + " (" + allExt + ")",
+                                      muse::qtrc("project",
+                                                 "%1 documents").arg(QGuiApplication::applicationDisplayName()).toStdString()
+                                      + " (*.meloscore *.meloscore~)",
                                       muse::trc("project", "MuseScore files") + " (*.mscz)",
                                       muse::trc("project", "MusicXML files") + " (*.mxl *.musicxml *.xml)",
                                       muse::trc("project", "MIDI files") + " (*.mid *.midi *.kar)",

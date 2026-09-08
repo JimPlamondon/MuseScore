@@ -32,11 +32,13 @@ class QmlApi : public QObject
     Q_OBJECT
 
     Q_PROPERTY(QmlLauncher * launcher READ launcher CONSTANT)
+    Q_PROPERTY(bool productPromotionsEnabled READ productPromotionsEnabled CONSTANT)
 
 public:
     explicit QmlApi(QObject* parent, const modularity::ContextPtr& iocCtx);
 
     QmlLauncher* launcher() const;
+    bool productPromotionsEnabled() const;
 
 private:
     const modularity::ContextPtr m_iocContext;

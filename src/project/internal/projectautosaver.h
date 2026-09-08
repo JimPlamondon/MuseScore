@@ -29,7 +29,7 @@
 #include "modularity/ioc.h"
 #include "context/iglobalcontext.h"
 #include "io/ifilesystem.h"
-#include "iprojectconfiguration.h"
+#include "project/iprojectconfiguration.h"
 
 #include "../iprojectautosaver.h"
 

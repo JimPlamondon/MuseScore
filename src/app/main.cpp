@@ -113,16 +113,12 @@ int main(int argc, char** argv)
 
     QGuiApplication::styleHints()->setMousePressAndHoldInterval(250);
 
-// Can't use MUSE_APP_TITLE until next major release, because this "application name" is used to determine
-// where user settings are stored. Changing it would result in all user settings being lost.
-#ifdef MUSE_APP_UNSTABLE
-    QCoreApplication::setApplicationName("MuseScore4Development");
-#else
-    QCoreApplication::setApplicationName("MuseScore4");
-#endif
-    QCoreApplication::setOrganizationName("MuseScore");
-    QCoreApplication::setOrganizationDomain("musescore.org");
-    QCoreApplication::setApplicationVersion(MUSE_APP_VERSION);
+// Independent settings and user-data identity; never move MuseScore's existing data.
+    QCoreApplication::setApplicationName(MELO_SCORE_SETTINGS_NAME);
+    QGuiApplication::setApplicationDisplayName(MELO_SCORE_APP_NAME);
+    QCoreApplication::setOrganizationName(MELO_SCORE_ORGANIZATION);
+    QCoreApplication::setOrganizationDomain(MELO_SCORE_DOMAIN);
+    QCoreApplication::setApplicationVersion(MELO_SCORE_APP_VERSION);
 
 #if !defined(Q_OS_WIN) && !defined(Q_OS_DARWIN) && !defined(Q_OS_WASM)
     // Any OS that uses Freedesktop.org Desktop Entry Specification (e.g. Linux, BSD)
