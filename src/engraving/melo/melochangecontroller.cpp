@@ -649,6 +649,40 @@ bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fr
     return true;
 }
 
+bool validateInstrumentNotation(const Score* score, String& error)
+{
+    if (!score) {
+        error = mtrc("engraving", "No score is available.");
+        return false;
+    }
+    for (const Staff* staff : score->staves()) {
+        std::set<Fraction> boundaries { Fraction(0, 1) };
+        for (const auto& instrument : staff->part()->instruments()) {
+            boundaries.insert(Fraction::fromTicks(std::max(0, instrument.first)));
+        }
+        for (const Measure* measure = score->firstMeasure(); measure; measure = measure->nextMeasure()) {
+            for (const EngravingItem* element : measure->el()) {
+                if (element->isStaffTypeChange() && element->staffIdx() == staff->idx()) {
+                    boundaries.insert(element->tick());
+                }
+            }
+        }
+        for (const Fraction& tick : boundaries) {
+            if (!staff->part()->instrument(tick)->isMeloJammer()) {
+                continue;
+            }
+            const StaffType* type = staff->staffType(tick);
+            StateChangeOptions options;
+            if (!type || !type->isMelo()
+                || !stateChangeOptions(type->meloStateJson(), options) || options.concertC) {
+                error = mtrc("engraving", "staff %1: %2").arg(int(staff->idx()) + 1).arg(jammerReferenceRequired());
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 bool normalizeStoredPitchesAfterLoad(Score* score, size_t& repairs, String& error, bool undoable, bool commandOpen)
 {
     repairs = 0;

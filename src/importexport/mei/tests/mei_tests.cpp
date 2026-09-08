@@ -515,4 +515,37 @@ TEST_F(Mei_Tests, unrelatedTypeTokenDoesNotClaimTheFileUsesTheProfile)
     std::unique_ptr<MasterScore> score(ScoreRW::readScore(String::fromQString(output.fileName()), true, import));
     EXPECT_TRUE(score);
 }
+
+TEST_F(Mei_Tests, mei_shared_jammer_change_preserves_acoustic_mapping)
+{
+    std::unique_ptr<MasterScore> score(ScoreRW::readScore(u"../../../engraving/tests/jimstaff_data/m9-satb-hymn.mscx"));
+    ASSERT_TRUE(score);
+    score->parts().front()->instrument()->setId(u"melo-jammer");
+    String error;
+    for (staff_idx_t i = 1; i < score->nstaves(); ++i) {
+        ASSERT_TRUE(melo::applyChange(score.get(), i, score->firstMeasure(), u"notation:concert", error)) << error.toStdString();
+    }
+    Measure* change = score->firstMeasure()->nextMeasure();
+    ASSERT_TRUE(change);
+    const Fraction tick = change->tick();
+    ASSERT_TRUE(melo::applyChangeToAllMeloParts(score.get(), change, { u"key:-1:3" }, error)) << error.toStdString();
+    score->rebuildMidiMapping();
+    auto exportFunc = [](Score* source, const muse::io::path_t& path) -> Err {
+        MeiWriter writer;
+        return writer.writeScore(source, path);
+    };
+    ASSERT_TRUE(ScoreRW::saveScore(score.get(), u"shared-jammer-acoustic.test.mei", exportFunc));
+    auto importFunc = [](MasterScore* target, const muse::io::path_t& path) -> Err {
+        MeiReader reader(nullptr);
+        return reader.import(target, path);
+    };
+    std::unique_ptr<MasterScore> again(ScoreRW::readScore(u"shared-jammer-acoustic.test.mei", true, importFunc));
+    ASSERT_TRUE(again);
+    ASSERT_EQ(again->nstaves(), score->nstaves());
+    for (staff_idx_t i = 0; i < score->nstaves(); ++i) {
+        for (const Fraction at : { Fraction(0, 1), tick }) {
+            EXPECT_EQ(again->staff(i)->staffType(at)->meloStateJson(), score->staff(i)->staffType(at)->meloStateJson());
+        }
+    }
+}
 }

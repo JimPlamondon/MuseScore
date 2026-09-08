@@ -178,11 +178,48 @@ bool MeloImportContext::parseStaffState(XmlStreamReader& e, String& json, int& s
         return ok;
     };
 
+    auto readReference = [&](String& reference) {
+        int forms = 0;
+        while (e.readNextStartElement()) {
+            const String form = local(e.name());
+            ++forms;
+            if (form == u"none") {
+                reference = u"\"none\"";
+                e.skipCurrentElement();
+            } else if (form == u"reference-pitch") {
+                int keyNumber = 0;
+                if (integer(e.attribute("key-number"), "reference-pitch/key-number", keyNumber)) {
+                    reference = String(u"{\"reference-pitch\":{\"key_number\":%1}}").arg(keyNumber);
+                }
+                e.skipCurrentElement();
+            } else if (form == u"pitch-class") {
+                int pitchClass = 0;
+                if (integer(e.readText(), "pitch-class", pitchClass)) {
+                    reference = String(u"{\"pitch-class\":{\"pitch_class\":%1}}").arg(pitchClass);
+                }
+            } else if (form == u"frequency-hz" || form == u"concert-c") {
+                bool ok = false;
+                const String hertz = jsonNumber(e.readText(), ok);
+                if (ok) {
+                    reference = String(u"{\"%1\":{\"hertz\":%2}}").arg(form).arg(hertz);
+                } else {
+                    fail(String(u"jims:reference %1 is not a number").arg(form));
+                }
+            } else {
+                fail(String(u"unknown jims:reference form '%1'").arg(form));
+                e.skipCurrentElement();
+            }
+        }
+        if (forms != 1) {
+            fail(String(u"jims:reference must carry exactly one form, found %1").arg(forms));
+        }
+    };
+
     std::vector<String> steps;
     bool haveScale = false, haveColl = false, haveMode = false, haveGen = false, havePer = false, haveEmb = false, haveExt = false;
     int collectionRotation = 0, modeRotation = 0, largeSteps = 0, smallSteps = 0;
     int lowerNPer = 0, lowerNGen = 0, upperNPer = 0, upperNGen = 0;
-    String generatorCents, periodCents, tonicAmbit, reference;
+    String generatorCents, periodCents, tonicAmbit, reference, sharedContext;
 
     while (e.readNextStartElement()) {
         const String tag = local(e.name());
@@ -222,40 +259,26 @@ bool MeloImportContext::parseStaffState(XmlStreamReader& e, String& json, int& s
         } else if (tag == u"tonic-ambit" || tag == u"tonic-extent") {   // owner rename 2026-08-19; the legacy spelling is still read
             tonicAmbit = e.readText().trimmed();
         } else if (tag == u"reference") {
-            int forms = 0;
+            readReference(reference);
+        } else if (tag == u"shared-context") {
+            int collection = 0, mode = 0;
+            integer(e.attribute("collection-rotation"), "shared-context/collection-rotation", collection);
+            integer(e.attribute("mode-rotation"), "shared-context/mode-rotation", mode);
+            String contextReference;
             while (e.readNextStartElement()) {
-                const String form = local(e.name());
-                ++forms;
-                if (form == u"none") {
-                    reference = u"\"none\"";
-                    e.skipCurrentElement();
-                } else if (form == u"reference-pitch") {
-                    int keyNumber = 0;
-                    if (integer(e.attribute("key-number"), "reference-pitch/key-number", keyNumber)) {
-                        reference = String(u"{\"reference-pitch\":{\"key_number\":%1}}").arg(keyNumber);
-                    }
-                    e.skipCurrentElement();
-                } else if (form == u"pitch-class") {
-                    int pitchClass = 0;
-                    if (integer(e.readText(), "pitch-class", pitchClass)) {
-                        reference = String(u"{\"pitch-class\":{\"pitch_class\":%1}}").arg(pitchClass);
-                    }
-                } else if (form == u"frequency-hz" || form == u"concert-c") {
-                    bool ok = false;
-                    const String hertz = jsonNumber(e.readText(), ok);
-                    if (ok) {
-                        reference = String(u"{\"%1\":{\"hertz\":%2}}").arg(form).arg(hertz);
-                    } else {
-                        fail(String(u"jims:reference %1 is not a number").arg(form));
-                    }
+                if (local(e.name()) == u"reference" && contextReference.empty()) {
+                    readReference(contextReference);
                 } else {
-                    fail(String(u"unknown jims:reference form '%1'").arg(form));
+                    fail(u"shared-context must contain exactly one reference");
                     e.skipCurrentElement();
                 }
             }
-            if (forms != 1) {
-                fail(String(u"jims:reference must carry exactly one form, found %1").arg(forms));
+            if (contextReference.empty()) {
+                fail(u"shared-context is missing its reference");
             }
+            sharedContext = u"{\"collection_rotation\":" + String::number(collection)
+                            + u",\"mode_rotation\":" + String::number(mode)
+                            + u",\"reference\":" + contextReference + u"}";
         } else {
             // Unknown MeloPresto-namespaced child: skip, never abort (Binding Requirement 3).
             e.skipCurrentElement();
@@ -299,6 +322,9 @@ bool MeloImportContext::parseStaffState(XmlStreamReader& e, String& json, int& s
            + u",\"nGen\":" + String::number(lowerNGen) + u"},\"upper\":{\"nPer\":" + String::number(upperNPer)
            + u",\"nGen\":" + String::number(upperNGen) + u"}}"
            + u",\"reference\":" + reference;
+    if (!sharedContext.empty()) {
+        json += u",\"shared_context\":" + sharedContext;
+    }
     if (!tonicAmbit.empty()) {
         json += String(u",\"tonic_ambit\":\"%1\"").arg(tonicAmbit);
     }

@@ -85,6 +85,9 @@ bool applyChangeToAllMeloParts(Score* score, Measure* measure, const Fraction& t
 bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, muse::String& error);
 bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fraction& tick, muse::String& error);
 
+/// Jammer spans must use movable Melo notation, including empty and timed spans.
+bool validateInstrumentNotation(const Score* score, muse::String& error);
+
 /// Enforce the persisted MeloPresto authority contract after native load or import.
 /// Authoritative identity plus effective state replace contradictory ordinary
 /// pitch fields in one undoable repair command. `repairs` counts notes, while

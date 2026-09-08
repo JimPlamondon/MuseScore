@@ -50,6 +50,7 @@
 #include "dom/tremolotwochord.h"
 #include "dom/tuplet.h"
 #include "melo/melochange.h"
+#include "melo/melochangecontroller.h"
 
 #include "engravingerrors.h"
 
@@ -211,6 +212,11 @@ muse::Ret Read460::readScoreFile(Score* score, XmlReader& e, rw::ReadInOutData* 
                                 .arg(error));
             }
         }
+    }
+
+    String instrumentError;
+    if (!melo::validateInstrumentNotation(score, instrumentError)) {
+        return make_ret(Err::FileBadFormat, instrumentError);
     }
 
     // MeloPresto load transition: written notes become the exact per-staff extent;

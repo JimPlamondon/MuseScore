@@ -13,6 +13,7 @@
 #include "engraving/dom/staff.h"
 #include "engraving/dom/stafftype.h"
 #include "engraving/melo/melochangecontroller.h"
+#include "engraving/melo/melochange.h"
 #include "engraving/editing/editpart.h"
 #include "engraving/dom/measure.h"
 #include "engraving/editing/editdata.h"
@@ -328,4 +329,76 @@ TEST(Engraving_MeloTransposing, ConcertReferenceSurvivesSaveAndTransposeUndo)
     EXPECT_TRUE(options.concertC);
     EXPECT_EQ(firstNote(reopened.get())->meloNGen(), nGen);
     EXPECT_EQ(firstNote(reopened.get())->pitch(), pitch);
+}
+
+TEST(Engraving_MeloTransposing, EveryPartCarriesTheIndicatorButOnlyJammersChangeMapping)
+{
+    std::unique_ptr<MasterScore> score(ScoreRW::readScore(u"jimstaff_data/m9-satb-hymn.mscx"));
+    ASSERT_TRUE(score);
+    score->parts().front()->instrument()->setId(u"melo-jammer");
+    muse::String error;
+    for (staff_idx_t i = 1; i < score->nstaves(); ++i) {
+        ASSERT_TRUE(melo::applyChange(score.get(), i, score->firstMeasure(), u"notation:concert", error)) << error.toStdString();
+    }
+    Measure* measure = score->firstMeasure()->nextMeasure();
+    ASSERT_TRUE(measure);
+    std::vector<std::tuple<Note*, int, int, int> > notes;
+    for (Segment* segment = measure->first(SegmentType::ChordRest); segment;
+         segment = segment->next1(SegmentType::ChordRest)) {
+        for (staff_idx_t i = 0; i < score->nstaves(); ++i) {
+            EngravingItem* item = segment->element(i * VOICES);
+            if (item && item->isChord()) {
+                for (Note* note : toChord(item)->notes()) {
+                    notes.emplace_back(note, note->pitch(), note->meloNPer(), note->meloNGen());
+                }
+            }
+        }
+    }
+    ASSERT_TRUE(melo::applyChangeToAllMeloParts(score.get(), measure, { u"key:-1:3" }, error)) << error.toStdString();
+    score->doLayout();
+    for (staff_idx_t i = 0; i < score->nstaves(); ++i) {
+        ASSERT_TRUE(melo::changeCarrierAt(measure, i, measure->tick()));
+        melo::ChangeIndicator indicator;
+        const StaffType* oldType = score->staff(i)->staffType(Fraction(0, 1));
+        const StaffType* newType = score->staff(i)->staffType(measure->tick());
+        ASSERT_TRUE(melo::changeIndicator(oldType->meloStateJson(), newType->meloStateJson(), indicator));
+        EXPECT_FALSE(indicator.empty());
+        muse::String expectedShared, actualShared;
+        ASSERT_TRUE(melo::musicxmlSharedStateV3Xml(score->staff(0)->staffType(measure->tick())->meloStateJson(), expectedShared));
+        ASSERT_TRUE(melo::musicxmlSharedStateV3Xml(newType->meloStateJson(), actualShared));
+        EXPECT_EQ(actualShared, expectedShared);
+    }
+    for (const auto& saved : notes) {
+        Note* note = std::get<0>(saved);
+        EXPECT_EQ(note->meloNPer(), std::get<2>(saved));
+        EXPECT_EQ(note->meloNGen(), std::get<3>(saved));
+        if (note->staffIdx() == 0) {
+            EXPECT_NE(note->pitch(), std::get<1>(saved));
+        } else {
+            EXPECT_EQ(note->pitch(), std::get<1>(saved));
+        }
+    }
+    EditData undo;
+    score->undoStack()->undo(&undo);
+    for (const auto& saved : notes) {
+        EXPECT_EQ(std::get<0>(saved)->pitch(), std::get<1>(saved));
+    }
+}
+
+TEST(Engraving_MeloTransposing, RejectsJammerWithConventionalOrFixedNotationOnLoad)
+{
+    for (bool conventional : { true, false }) {
+        std::unique_ptr<MasterScore> score(ScoreRW::readScore(u"jimstaff_data/collision.mscx"));
+        ASSERT_TRUE(score);
+        muse::String error;
+        if (conventional) {
+            score->staff(0)->setStaffType(Fraction(0, 1), *StaffType::preset(StaffTypes::STANDARD));
+        } else {
+            ASSERT_TRUE(melo::applyChange(score.get(), 0, score->firstMeasure(), u"notation:concert", error));
+        }
+        score->parts().front()->instrument()->setId(u"melo-jammer");
+        ASSERT_TRUE(ScoreRW::saveScore(score.get(), u"invalid-jammer-notation.mscx"));
+        std::unique_ptr<MasterScore> reopened(ScoreRW::readScore(u"invalid-jammer-notation.mscx", true));
+        EXPECT_FALSE(reopened);
+    }
 }

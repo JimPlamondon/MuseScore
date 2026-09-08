@@ -1028,22 +1028,32 @@ bool MeloMeiImporter::stateJsonFromXml(pugi::xml_node staffStateNode, String& js
         m_error = u"jims:staff-state cents fields are not numbers";
         return false;
     }
-    std::string referenceJson = "\"none\"";
-    if (reference) {
-        pugi::xml_node form = reference.first_child();
-        const std::string kind = localName(form);
-        if (kind == "none") {
-            referenceJson = "\"none\"";
-        } else if (kind == "reference-pitch") {
-            referenceJson = "{\"reference-pitch\":{\"key_number\":" + std::string(form.attribute("key-number").value()) + "}}";
-        } else if (kind == "pitch-class") {
-            referenceJson = "{\"pitch-class\":{\"pitch_class\":" + std::string(form.text().as_string()) + "}}";
-        } else if (kind == "frequency-hz" || kind == "concert-c") {
-            referenceJson = "{\"" + kind + "\":{\"hertz\":" + std::string(form.text().as_string()) + "}}";
-        } else {
-            m_error = String(u"unknown jims:reference form '%1'").arg(String::fromStdString(kind));
-            return false;
+    auto readReference = [&](pugi::xml_node reference, std::string& referenceJson) {
+        if (reference) {
+            pugi::xml_node form = reference.first_child();
+            if (!form || form.next_sibling()) {
+                m_error = u"jims:reference must carry exactly one form";
+                return false;
+            }
+            const std::string kind = localName(form);
+            if (kind == "none") {
+                referenceJson = "\"none\"";
+            } else if (kind == "reference-pitch") {
+                referenceJson = "{\"reference-pitch\":{\"key_number\":" + std::string(form.attribute("key-number").value()) + "}}";
+            } else if (kind == "pitch-class") {
+                referenceJson = "{\"pitch-class\":{\"pitch_class\":" + std::string(form.text().as_string()) + "}}";
+            } else if (kind == "frequency-hz" || kind == "concert-c") {
+                referenceJson = "{\"" + kind + "\":{\"hertz\":" + std::string(form.text().as_string()) + "}}";
+            } else {
+                m_error = String(u"unknown jims:reference form '%1'").arg(String::fromStdString(kind));
+                return false;
+            }
         }
+        return true;
+    };
+    std::string referenceJson = "\"none\"";
+    if (!readReference(reference, referenceJson)) {
+        return false;
     }
     std::string scaleJson = "[";
     for (size_t i = 0; i < steps.size(); ++i) {
@@ -1065,6 +1075,18 @@ bool MeloMeiImporter::stateJsonFromXml(pugi::xml_node staffStateNode, String& js
                       + "},\"upper\":{\"nPer\":" + std::string(extent.attribute("upper-n-per").value())
                       + ",\"nGen\":" + std::string(extent.attribute("upper-n-gen").value()) + "}}"
                       + ",\"reference\":" + referenceJson;
+    const pugi::xml_node context = childByLocal(staffStateNode, "shared-context");
+    if (context) {
+        std::string contextReference;
+        const pugi::xml_node binding = childByLocal(context, "reference");
+        if (!binding || !readReference(binding, contextReference)) {
+            m_error = u"shared-context requires a valid reference";
+            return false;
+        }
+        out += ",\"shared_context\":{\"collection_rotation\":" + std::string(context.attribute("collection-rotation").value())
+               + ",\"mode_rotation\":" + std::string(context.attribute("mode-rotation").value())
+               + ",\"reference\":" + contextReference + "}";
+    }
     if (ambit) {
         out += ",\"tonic_ambit\":\"" + std::string(ambit.text().as_string()) + "\"";
     }

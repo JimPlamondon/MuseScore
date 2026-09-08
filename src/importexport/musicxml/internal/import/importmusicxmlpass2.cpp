@@ -2105,6 +2105,12 @@ Err MusicXmlParserPass2::parse()
         return Err::FileBadFormat;
     }
 
+    String instrumentError;
+    if (!melo::validateInstrumentNotation(m_score, instrumentError)) {
+        m_logger->logError(instrumentError, &m_e);
+        return Err::FileBadFormat;
+    }
+
     return Err::NoError;
 }
 

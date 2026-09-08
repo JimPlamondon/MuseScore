@@ -1788,3 +1788,31 @@ TEST_F(MusicXml_Melo_Tests, concertDoExportUsesInheritedWrittenPitchInBothViews)
         }
     }
 }
+
+TEST_F(MusicXml_Melo_Tests, sharedJammerChangeRoundTripsWithFixedAcousticMapping)
+{
+    std::unique_ptr<MasterScore> score(ScoreRW::readScore(u"../../../engraving/tests/jimstaff_data/m9-satb-hymn.mscx"));
+    ASSERT_TRUE(score);
+    score->parts().front()->instrument()->setId(u"melo-jammer");
+    String error;
+    for (staff_idx_t i = 1; i < score->nstaves(); ++i) {
+        ASSERT_TRUE(melo::applyChange(score.get(), i, score->firstMeasure(), u"notation:concert", error)) << error.toStdString();
+    }
+    Measure* change = score->firstMeasure()->nextMeasure();
+    ASSERT_TRUE(change);
+    ASSERT_TRUE(melo::applyChangeToAllMeloParts(score.get(), change, { u"key:-1:3" }, error)) << error.toStdString();
+    const MeloSnapshot before = snapshotOf(score.get());
+    const String path = exportToScratch(score.get(), "shared-jammer-acoustic.musicxml");
+    const String xml = readAll(path);
+    EXPECT_EQ(xml.count(u"<jims:key-change"), 4);
+    EXPECT_TRUE(xml.contains(u"<jims:shared-context"));
+    auto importXml = [](MasterScore* target, const muse::io::path_t& path) {
+        return importMusicXml(target, path.toQString(), false);
+    };
+    std::unique_ptr<MasterScore> again(ScoreRW::readScore(path, true, importXml));
+    ASSERT_TRUE(again);
+    const MeloSnapshot after = snapshotOf(again.get());
+    EXPECT_EQ(after.baseStates, before.baseStates);
+    EXPECT_EQ(after.carriers, before.carriers);
+    EXPECT_EQ(after.identities, before.identities);
+}

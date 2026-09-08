@@ -122,7 +122,7 @@ void MeloStaffSettingsModel::loadProperties()
                     current = int(list.size());
                 }
                 QString label = option.label.toQString();
-                if (QString::fromLatin1(key) == "keys" && !m_options.concertC) {
+                if (QString::fromLatin1(key) == "keys") {
                     label = muse::qtrc("inspector", "%1 (period shift: %2)").arg(label).arg(option.nPer);
                 }
                 list << QVariantMap { { "text", label }, { "value", int(list.size()) } };
@@ -131,7 +131,7 @@ void MeloStaffSettingsModel::loadProperties()
             m_settings[QString::fromLatin1(key) + "Index"] = current;
         };
         choices("tonics", m_options.tonics);
-        choices("keys", m_options.concertC ? m_options.rotations : m_options.keyTargets);
+        choices("keys", m_options.keyTargets);
         const melo::StateChangeOption* diatonic = nullptr;
         const melo::StateChangeOption* harmonic = nullptr;
         const melo::StateChangeOption* zero = nullptr;
@@ -213,7 +213,7 @@ void MeloStaffSettingsModel::applyOption(const QString& group, int index)
         return;
     }
     std::vector<muse::String> steps;
-    const auto& options = group == "tonics" ? m_options.tonics : m_options.concertC ? m_options.rotations : m_options.keyTargets;
+    const auto& options = group == "tonics" ? m_options.tonics : m_options.keyTargets;
     if (group == "scales" && index >= 0 && size_t(index) < m_scaleSteps.size()) {
         steps = m_scaleSteps[index];
     } else if ((group == "tonics" || group == "keys") && index >= 0 && size_t(index) < options.size()) {

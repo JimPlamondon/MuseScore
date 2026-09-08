@@ -22,7 +22,7 @@ InspectorSectionView {
         }
         StyledTextLabel {
             width: parent.width
-            text: qsTrc("inspector", "Mode, key, and scale changes apply to all compatible parts at this position.")
+            text: qsTrc("inspector", "Every part shows the state-change indicator. Only Jammers respond by electronically transposing.")
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignLeft
         }
@@ -67,7 +67,7 @@ InspectorSectionView {
         Repeater {
             model: [
                 { key: "tonics", label: qsTrc("inspector", "Tonic (mode centre)") },
-                { key: "keys", label: root.model.settings.concertC ? qsTrc("inspector", "Concert key (scale placement)") : qsTrc("inspector", "Key shift (changes the pitch of Do0)") },
+                { key: "keys", label: qsTrc("inspector", "Key shift (Jammer transposition)") },
                 { key: "scales", label: qsTrc("inspector", "Scale") }
             ]
             Column {

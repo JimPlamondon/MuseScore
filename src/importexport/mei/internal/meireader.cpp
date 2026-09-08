@@ -20,6 +20,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "engraving/melo/melochangecontroller.h"
 #include "meireader.h"
 
 #include "translation.h"
@@ -53,6 +54,12 @@ Err MeiReader::import(MasterScore* score, const muse::io::path_t& path, const Op
     MeiImporter importer(score);
     if (!importer.read(path)) {
         return Err::FileCriticallyCorrupted;
+    }
+
+    String instrumentError;
+    if (!melo::validateInstrumentNotation(score, instrumentError)) {
+        Convert::logs.append(instrumentError);
+        return Err::FileBadFormat;
     }
 
     bool forceMode = false;
