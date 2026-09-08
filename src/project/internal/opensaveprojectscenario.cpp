@@ -103,7 +103,7 @@ RetVal<muse::io::path_t> OpenSaveProjectScenario::askLocalPath(INotationProjectP
         filenameAddition = " - " + muse::trc("project/save", "selection");
     }
 
-    muse::io::path_t defaultPath = configuration()->defaultSavingFilePath(project, filenameAddition);
+    muse::io::path_t defaultPath = configuration()->defaultSavingFilePath(project, filenameAddition, engraving::MELOSCORE);
 
     std::vector<std::string> filter {
         muse::qtrc("project", "%1 document").arg(QGuiApplication::applicationDisplayName()).toStdString() + " (*.meloscore)",
