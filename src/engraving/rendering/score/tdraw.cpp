@@ -2732,7 +2732,7 @@ void TDraw::draw(const Spacer* item, Painter* painter, const PaintOptions& opt)
 
     auto conf = item->configuration();
 
-    Pen pen(item->selected() ? conf->selectionColor() : conf->formattingColor(), item->spatium()* 0.3);
+    Pen pen(item->selected() ? conf->selectionColor() : conf->formattingColor(), item->spatium() * 0.3);
 
     painter->setPen(pen);
     painter->setBrush(BrushStyle::NoBrush);
@@ -2947,9 +2947,9 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                             }
                             if (haveTonic) {
                                 double cents = period + tonicCents;
-                                if (cents >= segment.lowerCents - epsilon
-                                    && cents <= segment.upperCents + epsilon
-                                    && std::none_of(drawnTonics.begin(), drawnTonics.end(), [&](double c) {
+                                if (std::any_of(drawnStacks.begin(), drawnStacks.end(), [&](double c) {
+                                    return std::abs(c - cents) < epsilon;
+                                }) && std::none_of(drawnTonics.begin(), drawnTonics.end(), [&](double c) {
                                     return std::abs(c - cents) < epsilon;
                                 })) {
                                     drawnTonics.push_back(cents);
@@ -3050,8 +3050,6 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                         }
                                     }
                                     if (haveKeyLabel && std::abs(stack.cents - tonicCents) < epsilon
-                                        && period + tonicCents >= segment.lowerCents - epsilon
-                                        && period + tonicCents <= segment.upperCents + epsilon
                                         && std::abs(cents - lowestTonicRow) < epsilon) {
                                         // Do's pitch label fits inside the crescent. Other
                                         // tonics keep their pitch label left of the dot.

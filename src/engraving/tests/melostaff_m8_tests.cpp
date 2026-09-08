@@ -1931,17 +1931,17 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, emptyHalfStaffFixtureCoversEveryMo
             EXPECT_GE(view.topCents() - view.bottomCents(), 600.0 - 1e-6);
             melo::PeriodicOrigins origins;
             ASSERT_TRUE(melo::periodicOrigins(type->meloStateJson(), origins));
-            double tonic = origins.tonicCentsAboveExtentLower;
-            while (tonic < view.bottomCents() - 1e-6) {
-                tonic += type->meloPeriodCents();
+            double minimumLower = -300.0;
+            double minimumUpper = 300.0;
+            if (i % 2) {
+                const double tonicRatios[] = { 4.0 / 3.0, 1.0, 3.0 / 2.0, 9.0 / 8.0, 5.0 / 3.0, 5.0 / 4.0, 15.0 / 8.0 };
+                const double origin = origins.doCentsAboveExtentLower + 1200.0 * std::log2(tonicRatios[i / 2]);
+                minimumLower = origin + std::round((-300.0 - origin) / 1200.0) * 1200.0;
+                minimumUpper = minimumLower + 600.0;
+                EXPECT_NEAR(view.bottomCents(), minimumLower, 1e-6) << "tonic must bound staff " << i;
             }
-            while (tonic > view.topCents() + 1e-6) {
-                tonic -= type->meloPeriodCents();
-            }
-            // Extent is the stored centre anchor. Both cuts enclose its
-            // half-period minimum and land on the nearest visible ratio-lines.
-            EXPECT_LE(view.bottomCents(), -300.0 + 1e-6);
-            EXPECT_GE(view.topCents(), 300.0 - 1e-6);
+            EXPECT_LE(view.bottomCents(), minimumLower + 1e-6);
+            EXPECT_GE(view.topCents(), minimumUpper - 1e-6);
             std::vector<melo::JiLine> ratios;
             ASSERT_TRUE(melo::jiLines(type->meloStateJson(), ratios));
             std::vector<double> candidates;
@@ -1964,8 +1964,8 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, emptyHalfStaffFixtureCoversEveryMo
                 })) << "staff " << i << " edge " << edge;
             }
             for (double c : candidates) {
-                EXPECT_FALSE(c > view.bottomCents() + 1e-6 && c <= -300.0 + 1e-6);
-                EXPECT_FALSE(c < view.topCents() - 1e-6 && c >= 300.0 - 1e-6);
+                EXPECT_FALSE(c > view.bottomCents() + 1e-6 && c <= minimumLower + 1e-6);
+                EXPECT_FALSE(c < view.topCents() - 1e-6 && c >= minimumUpper - 1e-6);
             }
             for (const Segment* segment = score->firstSegment(SegmentType::ChordRest); segment;
                  segment = segment->next1(SegmentType::ChordRest)) {
@@ -1983,8 +1983,8 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, emptyHalfStaffHeadersUseTonicSpeci
                                             + u"/jimstaff_data/empty-half-staves-14.mscx", true);
     ASSERT_TRUE(score);
     System* system = measureSystems(score).front();
-    const String lowerLabels[] = { u"Do", u"Fa", u"La", u"Do", u"Mi", u"Fa", u"Ti", u"Do", u"Fa", u"La", u"Do", u"Mi", u"So", u"Ti" };
-    const String upperLabels[] = { u"La", u"Do", u"Mi", u"So", u"Ti", u"Re", u"So", u"La", u"Do", u"Mi", u"So", u"Ti", u"Re", u"So" };
+    const String lowerLabels[] = { u"Do", u"Fa", u"La", u"Do", u"Mi", u"So", u"Ti", u"Re", u"Fa", u"La", u"Do", u"Mi", u"So", u"Ti" };
+    const String upperLabels[] = { u"La", u"Do", u"Mi", u"So", u"Ti", u"Re", u"So", u"La", u"Do", u"Mi", u"So", u"Ti", u"Re", u"Fa" };
     int labelsSeen = 0;
     for (staff_idx_t i = 0; i < score->nstaves(); ++i) {
         const StaffType* type = st(score, i);

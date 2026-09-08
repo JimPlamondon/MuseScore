@@ -542,7 +542,9 @@ static String meloExtraCentsJson(const std::vector<double>& extraCents)
         if (i) {
             out += u",";
         }
-        out += String::number(extraCents[i], 6);
+        // Frame edges may be exact ratios; decimal truncation must not
+        // turn an existing boundary into apparent extra coverage.
+        out += String::number(extraCents[i], 17);
     }
     return out + u"]";
 }
@@ -624,7 +626,7 @@ bool frameBandsForMelody(const String& stateJson, const String& melodyJson,
     }
     options += String(u",\"retain_written_extent\":%1").arg(String(retainWrittenExtent ? u"true" : u"false"));
     String envelope = String(
-        u"{\"abi\":2,\"op\":\"frame_for_melody\",\"state\":%1,\"melody\":%2,\"declared_extent\":\"%3\","
+        u"{\"abi\":2,\"op\":\"frame_bands_for_melody\",\"state\":%1,\"melody\":%2,\"declared_extent\":\"%3\","
         u"\"options\":{%4}}")
                       .arg(stateJson).arg(melodyJson).arg(extentToken).arg(options);
     JsonValue result;
