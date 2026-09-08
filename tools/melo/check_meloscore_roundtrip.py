@@ -21,7 +21,7 @@ def main():
     results = []
     def convert(source, name, expected=0):
         output = a.output / name
-        cmd = [str(a.executable.resolve()), '-F', '-t', '-o', str(output.resolve()), str(source.resolve())]
+        cmd = [str(a.executable.resolve()), '-t', '-o', str(output.resolve()), str(source.resolve())]
         done = subprocess.run(cmd, env={**os.environ, 'QT_QPA_PLATFORM': a.platform}, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=120)
         (a.output / (name + '.log')).write_bytes(done.stdout)
         results.append({'source': str(source), 'output': name, 'exit': done.returncode})
