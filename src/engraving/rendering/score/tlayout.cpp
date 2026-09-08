@@ -5115,35 +5115,41 @@ void TLayout::layoutForWidth(StaffLines* item, double w, LayoutContext& ctx)
         // that same row; excluding the scaffold at the edge leaves an
         // isolated closure and makes the staff appear to lack its boundary.
         const double epsilon = 1e-6;
+        // Visibility concerns painted ink, not only the line centre. For
+        // example, tempered So can end a frame at 700 cents while the fixed
+        // 3/2 scaffold is at 701.955 cents. Keep the fixed ordinate and frame;
+        // include the line when its stroke intersects the frame edge.
+        const double strokeReach = item->lw() * 0.5 / dist * StaffType::MELO_CENTS_PER_LINE_DISTANCE;
+        const double visibleReach = strokeReach + epsilon;
         // Per band, per segment (one band when elision is off).
         for (const StaffType::MeloFrameBand& band : view.bands) {
             for (const StaffType::MeloSegment& segment : band.segments) {
                 double firstBoundary = origins.doCentsAboveExtentLower
-                                       + std::ceil((segment.lowerCents - origins.doCentsAboveExtentLower - epsilon)
+                                       + std::ceil((segment.lowerCents - origins.doCentsAboveExtentLower - visibleReach)
                                                    / periodCents) * periodCents;
-                for (double boundary = firstBoundary; boundary <= segment.upperCents + epsilon;
+                for (double boundary = firstBoundary; boundary <= segment.upperCents + visibleReach;
                      boundary += periodCents) {
                     guide(boundary, false, Sid::meloDoLineColor);
                 }
                 const double basePeriod = origins.doCentsAboveExtentLower
-                                          + std::floor((segment.lowerCents - origins.doCentsAboveExtentLower)
+                                          + std::floor((segment.lowerCents - strokeReach - origins.doCentsAboveExtentLower)
                                                        / periodCents) * periodCents;
-                for (double period = basePeriod; period < segment.upperCents; period += periodCents) {
+                for (double period = basePeriod; period <= segment.upperCents + visibleReach; period += periodCents) {
                     if (haveJi) {
                         for (const melo::JiLine& ji : jiLines) {
                             const double cents = period + ji.cents;
                             const bool isFixedEdge = std::abs(cents - segment.lowerCents) <= epsilon
                                                      || std::abs(cents - segment.upperCents) <= epsilon;
                             if ((isFixedEdge || (meloSt->meloJiLines() && ji.visible))
-                                && cents >= segment.lowerCents - epsilon
-                                && cents <= segment.upperCents + epsilon) {
+                                && cents >= segment.lowerCents - visibleReach
+                                && cents <= segment.upperCents + visibleReach) {
                                 guide(cents, true, limitColor(ji.limit), ji.limit);
                             }
                         }
                     } else if (!meloSt->meloJiLines()) {
                         const double cents = period + periodCents / 2.0; // mid-frame line
-                        if (cents >= segment.lowerCents - epsilon
-                            && cents <= segment.upperCents + epsilon) {
+                        if (cents >= segment.lowerCents - visibleReach
+                            && cents <= segment.upperCents + visibleReach) {
                             guide(cents, true, Sid::meloMidFrameLineColor);
                         }
                     }
