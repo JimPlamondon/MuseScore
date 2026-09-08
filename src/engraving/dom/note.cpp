@@ -2902,6 +2902,12 @@ void Note::endDrag(EditData& ed)
     // re-derive the stave stack exactly once.
     if (const StaffType* meloSt = staffType(); meloSt && meloSt->isMelo()) {
         meloSt->meloSetFrameFrozen(false);
+        // The drag-start cents use the original lower extent as their
+        // origin. Widen only on drop, so later pointer events cannot
+        // reinterpret that ordinate against a moving lower endpoint.
+        for (Note* nn : tiedNotes()) {
+            melo::widenExtentForNote(nn);
+        }
         triggerLayout();
     }
 }
@@ -2968,7 +2974,6 @@ void Note::verticalDrag(EditData& ed)
                                                     AccidentalVal(projection.alter));
                         for (Note* nn : tiedNotes()) {
                             nn->setMeloPitch(projection.nPer, projection.nGen);
-                            melo::widenExtentForNote(nn);
                             nn->setPitch(projection.midiKey, newTpc, newTpc);
                             nn->setTuning(projection.centsOffset);
                             nn->triggerLayout();
