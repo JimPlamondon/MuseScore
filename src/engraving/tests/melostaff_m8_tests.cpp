@@ -1937,3 +1937,54 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, emptyHalfStaffFixtureCoversEveryMo
     }
     delete score;
 }
+
+TEST_F(Engraving_MeloStaffM8BandElisionTests, emptyHalfStaffHeadersUseTonicSpecificLabelSidesWithoutRatioLegend)
+{
+    MasterScore* score = ScoreRW::readScore(String::fromUtf8(engraving_tests_DATA_ROOT)
+                                            + u"/jimstaff_data/empty-half-staves-14.mscx", true);
+    ASSERT_TRUE(score);
+    System* system = measureSystems(score).front();
+    int labelsSeen = 0;
+    for (staff_idx_t i = 0; i < score->nstaves(); ++i) {
+        const StaffType* type = st(score, i);
+        const auto& view = viewOn(score, system, i);
+        const StaffLines* lines = system->firstMeasure()->staffLines(i);
+        const auto geometry = type->meloHeaderGeometry(lines->spatium(), score->style().defaultSpatium(), &view);
+        const double clefLeft = lines->pos().x() - 0.3 * lines->spatium() - geometry.clefRx;
+        const double dotCenterX = clefLeft - geometry.rightLabelBand - geometry.indicatorW;
+        auto provider = std::make_shared<BufferedPaintProvider>();
+        Painter painter(provider, "fourteen-staff-headers");
+        painter.setViewport(RectF(0, 0, 4000, 4000));
+        PaintOptions options;
+        lines->renderer()->drawItem(lines, &painter, options);
+        painter.endDraw();
+        const DrawDataPtr data = provider->drawData();
+        int staffLabels = 0;
+        std::function<void(const DrawData::Item&)> walk = [&](const DrawData::Item& item) {
+            for (const DrawData::Data& d : item.datas) {
+                for (const DrawText& text : d.texts) {
+                    if (text.text.startsWith(u"M5=")) {
+                        EXPECT_FALSE(text.text.contains(u"3:"));
+                        EXPECT_FALSE(text.text.contains(u"5:"));
+                    } else if (text.text.contains(u":")) {
+                        ++staffLabels;
+                        if (i == 2 || i == 3) {
+                            EXPECT_GT(text.rect.left(), dotCenterX) << "Do staff " << i;
+                        } else {
+                            EXPECT_LT(text.rect.right(), dotCenterX) << "non-Do staff " << i;
+                            EXPECT_GT(geometry.leftLabelBand, geometry.keyLabelAdvance);
+                        }
+                    }
+                }
+            }
+            for (const DrawData::Item& child : item.chilren) {
+                walk(child);
+            }
+        };
+        walk(data->item);
+        EXPECT_EQ(staffLabels, 1) << "staff " << i;
+        labelsSeen += staffLabels;
+    }
+    EXPECT_EQ(labelsSeen, 14);
+    delete score;
+}

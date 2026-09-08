@@ -2,6 +2,8 @@
 <museScore version="4.70">
   <Score>
     <Division>480</Division>
+    <showInvisible>0</showInvisible>
+    <showUnprintable>0</showUnprintable>
     <Style>
       <pageWidth>11.69</pageWidth>
       <pageHeight>16.54</pageHeight>
