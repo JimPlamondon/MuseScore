@@ -141,6 +141,8 @@ Item {
 
             readonly property MenuItem item: Boolean(itemModel) ? itemModel.item : null
             readonly property bool hasMenu: Boolean(item) && item.subitems.length !== 0
+            readonly property var meloAccidental: Boolean(item)
+                ? noteInputModel.accidentalPresentation[item.code] : null
 
             width: gridView.cellWidth
             height: gridView.cellWidth
@@ -150,10 +152,10 @@ Item {
             accentButton: (Boolean(item) && item.checked) || menuLoader.isMenuOpened
             transparent: !accentButton
 
-            icon: Boolean(item) ? item.icon : IconCode.NONE
-            iconFont: ui.theme.toolbarIconsFont
+            icon: meloAccidental ? meloAccidental.icon : (Boolean(item) ? item.icon : IconCode.NONE)
+            iconFont: meloAccidental ? noteInputModel.accidentalPresentation.font : ui.theme.toolbarIconsFont
 
-            toolTipTitle: Boolean(item) ? item.title : ""
+            toolTipTitle: meloAccidental ? meloAccidental.title : (Boolean(item) ? item.title : "")
             toolTipDescription: Boolean(item) ? item.description : ""
             toolTipShortcut: Boolean(item) ? item.shortcuts : ""
 

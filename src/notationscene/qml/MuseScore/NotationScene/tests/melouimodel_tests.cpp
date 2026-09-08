@@ -26,6 +26,7 @@
 #include "inspector/qml/MuseScore/Inspector/meloscoresettingsmodel.h"
 #include "inspector/qml/MuseScore/Inspector/melotuningmodel.h"
 #include "playback/tests/mocks/playbackcontrollermock.h"
+#include "notationscene/qml/MuseScore/NotationScene/noteinputbarmodel.h"
 #include "ui/qml/Muse/Ui/navigationpanel.h"
 using namespace mu;
 using namespace mu::engraving;
@@ -130,6 +131,48 @@ protected:
     std::shared_ptr<testing::NiceMock<playback::PlaybackControllerMock> > playback;
     ElementRepositoryService repository;
 };
+TEST_F(MeloUiModelTests, MeloAccidentalPickersUseTheMatchingNoteheads) {
+    selectMeasure(0);
+    const auto presentation = notation::NoteInputBarModel::accidentalPresentationForScore(score.get(), score->engravingFont());
+    const std::pair<const char*, NoteHeadGroup> cases[] = {
+        { "sharp", NoteHeadGroup::HEAD_TRIANGLE_UP },
+        { "flat", NoteHeadGroup::HEAD_TRIANGLE_DOWN },
+        { "sharp2", NoteHeadGroup::HEAD_DIAMOND },
+        { "flat2", NoteHeadGroup::HEAD_LA },
+    };
+    auto font = score->engravingFont();
+    for (const auto& [action, group] : cases) {
+        const auto item = presentation.value(action).toMap();
+        EXPECT_EQ(item.value("icon").toUInt(), font->symCode(Note::noteHead(0, group, NoteHeadType::HEAD_QUARTER))) << action;
+        EXPECT_FALSE(item.value("title").toString().isEmpty()) << action;
+    }
+    EXPECT_FALSE(presentation.contains("nat"));
+    EXPECT_FALSE(presentation.contains("quarter"));
+}
+
+TEST_F(MeloUiModelTests, AccidentalPickersFollowSelectionAndInputStaffType) {
+    selectMeasure(0);
+    ASSERT_FALSE(notation::NoteInputBarModel::accidentalPresentationForScore(score.get(), score->engravingFont()).isEmpty());
+    StaffType* type = score->staff(0)->staffType(Fraction(0, 1));
+    const StaffType original = *type;
+    *type = *StaffType::preset(StaffTypes::STANDARD);
+    EXPECT_TRUE(notation::NoteInputBarModel::accidentalPresentationForScore(score.get(), score->engravingFont()).isEmpty());
+    Measure* second = score->firstMeasure()->nextMeasure();
+    ASSERT_TRUE(second);
+    score->staff(0)->setStaffType(second->tick(), original);
+    auto& input = score->inputState();
+    input.setTrack(0);
+    input.setSegment(second->first(SegmentType::ChordRest));
+    input.setNoteEntryMode(true);
+    EXPECT_FALSE(notation::NoteInputBarModel::accidentalPresentationForScore(score.get(), score->engravingFont()).isEmpty());
+    input.setNoteEntryMode(false);
+    EXPECT_TRUE(notation::NoteInputBarModel::accidentalPresentationForScore(score.get(), score->engravingFont()).isEmpty());
+    *type = original;
+    score->deselectAll();
+    EXPECT_FALSE(notation::NoteInputBarModel::accidentalPresentationForScore(score.get(), score->engravingFont()).isEmpty());
+    EXPECT_TRUE(notation::NoteInputBarModel::accidentalPresentationForScore(nullptr, score->engravingFont()).isEmpty());
+}
+
 TEST_F(MeloUiModelTests, StaffSectionsAreRelevantOnlyForCompatibleSelection) {
     auto* selected = selectMeasure(0);
     ElementKeySet keys { AbstractInspectorModel::makeKey(selected) };

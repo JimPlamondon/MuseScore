@@ -25,6 +25,10 @@
 
 #include "context/shortcutcontext.h"
 #include "internal/notationuiactions.h"
+#include "engraving/dom/score.h"
+#include "engraving/dom/select.h"
+#include "translation.h"
+#include <QFont>
 
 using namespace mu;
 using namespace mu::notation;
@@ -52,6 +56,61 @@ static const std::unordered_map<ActionCode, NoteInputMethod> NOTE_INPUT_METHOD_A
 NoteInputBarModel::NoteInputBarModel(QObject* parent)
     : AbstractMenuModel(parent)
 {
+}
+
+QVariantMap NoteInputBarModel::accidentalPresentation() const
+{
+    const auto notation = context()->currentNotation();
+    const auto score = notation ? notation->elements()->msScore() : nullptr;
+    return accidentalPresentationForScore(score, engravingFonts()->fallbackFont());
+}
+
+QVariantMap NoteInputBarModel::accidentalPresentationForScore(const engraving::Score* score, const engraving::IEngravingFontPtr& font)
+{
+    if (!score || !font || score->staves().empty()) {
+        return {};
+    }
+
+    const engraving::StaffType* type = nullptr;
+    const auto& input = score->inputState();
+    const auto& selected = score->selection();
+    if (input.noteEntryMode() && input.segment() && input.staffIdx() < score->nstaves()) {
+        type = score->staff(input.staffIdx())->staffType(input.segment()->tick());
+    } else if (const auto element = selected.element(); element&& element->staff()) {
+        type = element->staff()->staffTypeForElement(element);
+    } else if (selected.isRange() && selected.startSegment() && selected.staffStart() < score->nstaves()) {
+        type = score->staff(selected.staffStart())->staffType(selected.startSegment()->tick());
+    } else {
+        // An unselected all-Melo score still presents Melo entry controls.
+        // Mixed scores wait for a staff selection to establish the context.
+        for (const auto staff : score->staves()) {
+            const auto candidate = staff->staffType(engraving::Fraction(0, 1));
+            if (!candidate->isMelo()) {
+                return {};
+            }
+            type = candidate;
+        }
+    }
+    if (!type || !type->isMelo()) {
+        return {};
+    }
+
+    QFont iconFont(QString::fromStdString(font->family()));
+    iconFont.setPixelSize(40);
+    QVariantMap presentation { { "font", iconFont } };
+    const auto add = [&](const char* action, engraving::NoteHeadGroup group, const QString& title) {
+        const auto symbol = engraving::Note::noteHead(0, group, engraving::NoteHeadType::HEAD_QUARTER);
+        presentation.insert(action, QVariantMap {
+            { "icon", uint(font->symCode(symbol)) },
+            { "title", title }
+        });
+    };
+    // These are the same platform notehead groups used by Melo score drawing.
+    add("sharp", engraving::NoteHeadGroup::HEAD_TRIANGLE_UP, muse::qtrc("notation", "Sharp — upward-pointing triangle"));
+    add("flat", engraving::NoteHeadGroup::HEAD_TRIANGLE_DOWN, muse::qtrc("notation", "Flat — downward-pointing triangle"));
+    add("sharp2", engraving::NoteHeadGroup::HEAD_DIAMOND, muse::qtrc("notation", "Double-sharp — vertex-up square"));
+    add("flat2", engraving::NoteHeadGroup::HEAD_LA, muse::qtrc("notation", "Double-flat — edge-up square"));
+    return presentation;
 }
 
 QVariant NoteInputBarModel::data(const QModelIndex& index, int role) const
@@ -215,6 +274,7 @@ void NoteInputBarModel::updateState()
     if (isInputAllowed()) {
         updateNoteInputState();
     }
+    emit accidentalPresentationChanged();
 }
 
 void NoteInputBarModel::updateNoteInputState()
