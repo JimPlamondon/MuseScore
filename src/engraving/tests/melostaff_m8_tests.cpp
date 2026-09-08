@@ -1858,3 +1858,81 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, tonicAmbitIsNeverDerivedAsALayoutS
         << "layout must never mutate the song-wide tonic-ambit carrier";
     delete score;
 }
+
+// A fixed 3/2 line lies 1.955 cents above tempered So. Its painted stroke
+// still intersects the automatic frame and must not disappear at that edge.
+TEST_F(Engraving_MeloStaffM8BandElisionTests, ratioStrokeIntersectingAutomaticEdgeRemainsVisible)
+{
+    MasterScore* score = ScoreRW::readScore(u"jimstaff_data/ode-to-joy.mscx");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    const StaffType* type = st(score);
+    System* system = measureSystems(score).front();
+    const auto& view = viewOn(score, system);
+    const StaffLines* lines = system->firstMeasure()->staffLines(0);
+    melo::PeriodicOrigins origins;
+    ASSERT_TRUE(melo::periodicOrigins(type->meloStateJson(), origins));
+    std::vector<melo::JiLine> ratios;
+    ASSERT_TRUE(melo::jiLines(type->meloStateJson(), ratios));
+    const double halfStroke = lines->lw() * 0.5;
+    int intersectingOutside = 0;
+    int excludedOutside = 0;
+    for (const auto& ratio : ratios) {
+        if (!ratio.visible) {
+            continue;
+        }
+        const double cents = origins.doCentsAboveExtentLower + ratio.cents;
+        const double y = type->meloYFromCents(cents, view) * lines->spatium();
+        const double top = type->meloYFromCents(view.topCents(), view) * lines->spatium();
+        const double bottom = type->meloYFromCents(view.bottomCents(), view) * lines->spatium();
+        const bool intersects = y + halfStroke >= top - EPS && y - halfStroke <= bottom + EPS;
+        const bool present = std::any_of(lines->meloGuideLines().begin(), lines->meloGuideLines().end(),
+                                         [&](const StaffLines::MeloGuideLine& guide) {
+            return std::abs(guide.line.y1() - lines->pos().y() - y) < EPS;
+        });
+        EXPECT_EQ(present, intersects) << "ratio at " << cents;
+        if (cents > view.topCents()) {
+            intersects ? ++intersectingOutside : ++excludedOutside;
+        }
+    }
+    EXPECT_GT(intersectingOutside, 0);
+    EXPECT_GT(excludedOutside, 0);
+    delete score;
+}
+
+TEST_F(Engraving_MeloStaffM8BandElisionTests, emptyHalfStaffFixtureCoversEveryModeAndAmbit)
+{
+    MasterScore* score = ScoreRW::readScore(String::fromUtf8(engraving_tests_DATA_ROOT)
+                                            + u"/jimstaff_data/empty-half-staves-14.mscx", true);
+    ASSERT_TRUE(score);
+    score->doLayout();
+    ASSERT_EQ(score->nstaves(), 14u);
+    const int rotations[] = { 3, 0, 4, 1, 5, 2, 6 };
+    System* system = measureSystems(score).front();
+    for (staff_idx_t i = 0; i < score->nstaves(); ++i) {
+        const StaffType* type = st(score, i);
+        ASSERT_TRUE(type->isMelo());
+        EXPECT_TRUE(type->meloStateJson().contains(String(u"\"mode_rotation\":%1").arg(rotations[i / 2])));
+        EXPECT_EQ(type->meloTonicAmbit(), i % 2 ? String(u"tonic-bounded") : String(u"tonic-centered"));
+        const auto& view = viewOn(score, system, i);
+        ASSERT_FALSE(view.empty());
+        EXPECT_NEAR(view.topCents() - view.bottomCents(), 600.0, 1e-6);
+        melo::PeriodicOrigins origins;
+        ASSERT_TRUE(melo::periodicOrigins(type->meloStateJson(), origins));
+        double tonic = origins.tonicCentsAboveExtentLower;
+        while (tonic < view.bottomCents() - 1e-6) {
+            tonic += type->meloPeriodCents();
+        }
+        while (tonic > view.topCents() + 1e-6) {
+            tonic -= type->meloPeriodCents();
+        }
+        const double expected = i % 2 ? view.bottomCents() : (view.bottomCents() + view.topCents()) / 2.0;
+        EXPECT_NEAR(tonic, expected, 1e-6) << "staff " << i;
+        for (const Segment* segment = score->firstSegment(SegmentType::ChordRest); segment;
+             segment = segment->next1(SegmentType::ChordRest)) {
+            const EngravingItem* element = segment->element(i * VOICES);
+            EXPECT_FALSE(element && element->isChord());
+        }
+    }
+    delete score;
+}
