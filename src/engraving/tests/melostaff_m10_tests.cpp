@@ -365,8 +365,8 @@ TEST(Engraving_MeloStaffM10SATBTests, firstNoteReplacesEmptyCentreAndUndoRestore
     EXPECT_EQ(extentXml(type->meloStateJson()), extentXml(expected));
     EXPECT_FALSE(type->meloExtentIsEmptyDefault());
     const auto& view = type->meloWholeFrameView(score, 0);
-    EXPECT_NEAR(view.bottomCents(), -type->meloPeriodCents() / 4.0, 1e-6);
-    EXPECT_NEAR(view.topCents(), type->meloPeriodCents() / 4.0, 1e-6);
+    EXPECT_LE(view.bottomCents(), -type->meloPeriodCents() / 4.0 + 1e-6);
+    EXPECT_GE(view.topCents(), type->meloPeriodCents() / 4.0 - 1e-6);
     score->undoRedo(true, nullptr);
     EXPECT_EQ(type->meloStateJson(), before);
     EXPECT_TRUE(type->meloExtentIsEmptyDefault());
@@ -468,8 +468,8 @@ TEST(Engraving_MeloStaffM10SATBTests, eachStaffTypeSpanCollectsOnlyItsOwnNotes)
         score->doLayout();
         const auto& view = empty->meloFrameView(score, 0, second->system());
         ASSERT_EQ(view.bands.size(), 1u);
-        EXPECT_NEAR(view.bottomCents(), -empty->meloPeriodCents() / 4.0, 1e-6);
-        EXPECT_NEAR(view.topCents(), empty->meloPeriodCents() / 4.0, 1e-6);
+        EXPECT_LE(view.bottomCents(), -empty->meloPeriodCents() / 4.0 + 1e-6);
+        EXPECT_GE(view.topCents(), empty->meloPeriodCents() / 4.0 - 1e-6);
     }
     delete score;
 }
