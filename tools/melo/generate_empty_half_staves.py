@@ -29,6 +29,8 @@ def generate(bridge, output):
     root = ET.Element("museScore", version="4.70")
     score = add(root, "Score")
     add(score, "Division", 480)
+    add(score, "showInvisible", 0)
+    add(score, "showUnprintable", 0)
     style = add(score, "Style")
     for tag, value in {"pageWidth":11.69, "pageHeight":16.54, "Spatium":1.2,
                        "staffDistance":4, "akkoladeDistance":4,

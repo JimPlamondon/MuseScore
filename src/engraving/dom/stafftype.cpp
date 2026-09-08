@@ -849,12 +849,16 @@ StaffType::MeloHeaderGeometry StaffType::meloHeaderGeometry(double spatium, doub
     const double gap = 0.25 * spatium;
     std::vector<melo::LabeledDotStack> stacks;
     const bool haveLabels = melo::scaleDotLabels(m_meloStateJson, stacks);
-    // Current-key label "[PitchN]:" to the right of Do's scale dot (owner
-    // corrections 2026-08-30): its established home is inside the open
-    // curve of the crescent clef. It contributes to change-terrain width,
-    // but MUST NOT reserve a header label band or move the scale-dot stack.
+    // Only Do's tonic pitch label nests inside the crescent; other tonic
+    // labels reserve space to the left of their scale dot.
     melo::TonicPitchLabel key;
-    double keyAdvance = melo::tonicPitchLabel(m_meloStateJson, key)
+    const bool haveKey = melo::tonicPitchLabel(m_meloStateJson, key);
+    const bool tonicIsDo = haveKey && std::any_of(stacks.begin(), stacks.end(), [&](const auto& stack) {
+        return std::any_of(stack.members.begin(), stack.members.end(), [&](const auto& member) {
+            return member.nGen == key.nGen && member.label == u"Do";
+        });
+    });
+    double keyAdvance = haveKey
                         ? melo::pitchLabelLayout(key.label + u": ", labelFont, engravingFont).advance : 0.0;
     if (view && keyAdvance > 0.0) {
         // Milestone 8: reserve for the widest band label of this system (the
@@ -903,7 +907,8 @@ StaffType::MeloHeaderGeometry StaffType::meloHeaderGeometry(double spatium, doub
 
     const MeloScaleDotLabelMode mode = meloResolvedScaleDotLabelMode();
     if (mode == MeloScaleDotLabelMode::None || !haveLabels) {
-        g.headerWidth += g.braceWidth;
+        g.leftLabelBand = haveKey && !tonicIsDo ? keyAdvance + gap : 0.0;
+        g.headerWidth += g.leftLabelBand + g.braceWidth;
         return g;
     }
     double maxLeft = 0.0;
@@ -919,9 +924,13 @@ StaffType::MeloHeaderGeometry StaffType::meloHeaderGeometry(double spatium, doub
             }
             side += member.label;
         }
-        if (!leftText.isEmpty()) {
-            maxLeft = std::max(maxLeft, fm.horizontalAdvance(leftText));
+        double leftWidth = fm.horizontalAdvance(leftText);
+        if (haveKey && !tonicIsDo && std::any_of(stack.members.begin(), stack.members.end(), [&](const auto& member) {
+            return member.nGen == key.nGen;
+        })) {
+            leftWidth += keyAdvance;
         }
+        maxLeft = std::max(maxLeft, leftWidth);
         if (!rightText.isEmpty()) {
             maxRight = std::max(maxRight, fm.horizontalAdvance(rightText));
         }
