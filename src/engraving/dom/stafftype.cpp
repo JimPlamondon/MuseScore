@@ -1278,30 +1278,18 @@ const StaffType::MeloFrameView& StaffType::meloWholeFrameView(const Score* score
         band.segments = m_meloFrameSegments;
         band.lowerCents = m_meloFrameSegments.front().lowerCents;
         band.upperCents = m_meloFrameSegments.back().upperCents;
-        const double periodCents = meloPeriodCents();
-        if (periodCents > 0.0) {
-            band.lowestPeriodIndex = int(std::floor((band.lowerCents + 1e-6) / periodCents));
-            band.highestPeriodIndex = int(std::floor((band.upperCents + 1e-6) / periodCents));
-            // Milestone 8 (owner finding 2): the whole-piece frame's "[PitchN]:"
-            // sits on the frame's lowest DRAWN tonic row and names THAT row's
-            // octave — the same rule the Kernel applies to every band. Both
-            // the row and the label come from the Kernel (tonic_cents_above_do,
-            // tonic_pitch_label with period_index); nothing is inferred here.
-            band.labelPeriodIndex = band.lowestPeriodIndex;
-            melo::PeriodicOrigins origins;
-            if (melo::periodicOrigins(meloStateJson(), origins)) {
-                for (int k = band.lowestPeriodIndex; k <= band.highestPeriodIndex; ++k) {
-                    const double row = double(k) * periodCents + origins.tonicCentsAboveExtentLower;
-                    if (row >= band.lowerCents - 1e-6 && row <= band.upperCents + 1e-6) {
-                        band.labelPeriodIndex = k;
-                        break;
-                    }
-                }
-            }
-            melo::TonicPitchLabel label;
-            if (melo::tonicPitchLabelInPeriod(meloStateJson(), band.labelPeriodIndex, label)) {
-                band.tonicLabel = label.label;
-            }
+        // Ask the Kernel for the metadata of this already-derived frame.
+        // A tuned tonic dot may sit just outside its fixed ratio boundary;
+        // selecting an interior row here would incorrectly pick the next octave.
+        melo::FrameBands metadata;
+        if (melo::frameBandsForMelody(meloStateJson(), u"{\"notes\":[]}", meloTonicAmbit(), false, 1,
+                                      metadata, { band.lowerCents, band.upperCents }, m_meloRatioLineExtentJson,
+                                      !m_meloExtentIsEmptyDefault) && metadata.bands.size() == 1) {
+            const auto& kernelBand = metadata.bands.front();
+            band.lowestPeriodIndex = kernelBand.lowestPeriodIndex;
+            band.highestPeriodIndex = kernelBand.highestPeriodIndex;
+            band.labelPeriodIndex = kernelBand.labelPeriodIndex;
+            band.tonicLabel = kernelBand.tonicLabel.label;
         }
         band.yTopLd = 0.0;
         view.bands.push_back(band);

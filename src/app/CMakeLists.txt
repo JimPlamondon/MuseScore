@@ -252,10 +252,13 @@ endif()
 
 set_source_files_properties("${PROJECT_SOURCE_DIR}/share/icons/melopresto/MeloPrestoScore.svg"
     PROPERTIES QT_RESOURCE_ALIAS "score.svg")
+set_source_files_properties("${PROJECT_SOURCE_DIR}/share/icons/melopresto/MeloPrestoScoreDocument.svg"
+    PROPERTIES QT_RESOURCE_ALIAS "document.svg")
 qt_add_resources(MuseScoreStudio "melopresto_identity"
     PREFIX "/melo/icons"
     BASE "${PROJECT_SOURCE_DIR}/share/icons/melopresto"
     FILES "${PROJECT_SOURCE_DIR}/share/icons/melopresto/MeloPrestoScore.svg"
+          "${PROJECT_SOURCE_DIR}/share/icons/melopresto/MeloPrestoScoreDocument.svg"
 )
 
 if (OS_IS_MAC)

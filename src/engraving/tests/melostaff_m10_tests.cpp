@@ -468,8 +468,11 @@ TEST(Engraving_MeloStaffM10SATBTests, eachStaffTypeSpanCollectsOnlyItsOwnNotes)
         score->doLayout();
         const auto& view = empty->meloFrameView(score, 0, second->system());
         ASSERT_EQ(view.bands.size(), 1u);
-        EXPECT_LE(view.bottomCents(), -empty->meloPeriodCents() / 4.0 + 1e-6);
-        EXPECT_GE(view.topCents(), empty->meloPeriodCents() / 4.0 - 1e-6);
+        EXPECT_GE(view.topCents() - view.bottomCents(), empty->meloPeriodCents() / 2.0 - 1e-6);
+        std::vector<melo::StaveSegment> expected;
+        ASSERT_TRUE(melo::frameForMelody(empty->meloStateJson(), u"{\"notes\":[]}", empty->meloTonicAmbit(), expected));
+        EXPECT_NEAR(view.bottomCents(), expected.front().lowerCents, 1e-6);
+        EXPECT_NEAR(view.topCents(), expected.back().upperCents, 1e-6);
     }
     delete score;
 }
