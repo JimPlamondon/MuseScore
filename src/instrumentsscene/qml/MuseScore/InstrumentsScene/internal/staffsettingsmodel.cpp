@@ -34,6 +34,8 @@ StaffSettingsModel::StaffSettingsModel(QObject* parent)
 
 void StaffSettingsModel::load(const QString& staffId)
 {
+    m_notationError.clear();
+    emit notationErrorChanged();
     if (!notationParts()) {
         return;
     }
@@ -101,7 +103,11 @@ QVariantList StaffSettingsModel::allStaffTypes() const
         isPercussion = instrument->useDrumset();
     }
 
-    auto isTypeAllowed = [maxLines, isPercussion](const mu::engraving::StaffType& type) {
+    const bool jammer = part->instrument() && part->instrument()->isMeloJammer();
+    auto isTypeAllowed = [maxLines, isPercussion, jammer](const mu::engraving::StaffType& type) {
+        if (jammer) {
+            return type.isMelo();
+        }
         switch (type.group()) {
         case mu::engraving::StaffGroup::PERCUSSION: return isPercussion;
         case mu::engraving::StaffGroup::TAB: return type.lines() <= maxLines;
@@ -145,7 +151,9 @@ void StaffSettingsModel::setStaffType(int type)
 
     bool wasSmall = m_config.staffType.isSmall();
 
-    notationParts()->setStaffType(m_staffId, type_);
+    const muse::Ret result = notationParts()->setStaffType(m_staffId, type_);
+    m_notationError = result ? QString() : QString::fromStdString(result.text());
+    emit notationErrorChanged();
     m_config = notationParts()->staffConfig(m_staffId);
 
     if (wasSmall != m_config.staffType.isSmall()) {

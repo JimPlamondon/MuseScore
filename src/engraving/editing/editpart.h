@@ -225,7 +225,7 @@ public:
     static void setPartSharpFlat(Score* score, Part* part, PreferSharpFlat sharpFlat);
     static void setInstrumentName(Score* score, Part* part, const Fraction& tick, const String& name);
     static void setInstrumentAbbreviature(Score* score, Part* part, const Fraction& tick, const String& abbreviature);
-    static void setStaffType(Score* score, Staff* staff, StaffTypes typeId);
+    static bool setStaffType(Score* score, Staff* staff, StaffTypes typeId, String* error = nullptr);
 
     static void removeParts(Score* score, const std::vector<Part*>& parts);
     static void removeStaves(Score* score, const std::vector<Staff*>& staves);

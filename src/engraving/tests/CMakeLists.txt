@@ -61,6 +61,7 @@ set(MODULE_TEST_SRC
     ${CMAKE_CURRENT_LIST_DIR}/implodeexplode_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/instrumentchange_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/melostaff_tests.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/melotransposing_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/melostaff_m6_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/melostaff_m8_tests.cpp
     ${CMAKE_CURRENT_LIST_DIR}/melostaff_m9_tests.cpp

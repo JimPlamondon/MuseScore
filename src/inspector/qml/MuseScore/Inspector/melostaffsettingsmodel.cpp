@@ -7,7 +7,10 @@
 #include "engraving/dom/stafftype.h"
 #include "engraving/dom/measure.h"
 #include "engraving/dom/segment.h"
+#include "engraving/dom/part.h"
 #include "engraving/editing/editstaff.h"
+#include "engraving/editing/transpose.h"
+#include "engraving/dom/pitchspelling.h"
 #include "engraving/melo/melochange.h"
 #include "engraving/melo/melostrings.h"
 #include <QLocale>
@@ -78,6 +81,17 @@ void MeloStaffSettingsModel::loadProperties()
                                                                                                      - measure->tick()).ticks()).arg(staff
                                                                                                                                      + 1);
         m_settings["referenceBound"] = m_options.referenceBound;
+        m_settings["concertC"] = m_options.concertC;
+        m_settings["jammer"] = score->staff(staff)->part()->instrument(tick)->isMeloJammer();
+        m_settings["jammerReferenceExplanation"] = melo::jammerReferenceRequired().toQString();
+        m_settings["referenceIndex"] = m_options.concertC ? 0 : 1;
+        const Instrument* instrument = score->staff(staff)->part()->instrument(tick);
+        Interval writtenInterval = instrument->transpose();
+        writtenInterval.flip();
+        const int writtenC = Transpose::transposeTpc(Tpc::TPC_C, writtenInterval, true);
+        m_settings["instrumentReference"] = muse::qtrc("inspector", "Concert C4 is written %1 for %2.")
+                                            .arg(engraving::tpcUserName(writtenC, 60 - instrument->transpose().chromatic).toQString())
+                                            .arg(instrument->trackName().toQString());
         m_settings["hasChange"] = melo::changeCarrierAt(measure, staff, tick) != nullptr;
         if (m_settings["hasChange"].toBool()) {
             QString description = muse::qtrc("inspector", "This position carries a change.");
@@ -108,7 +122,7 @@ void MeloStaffSettingsModel::loadProperties()
                     current = int(list.size());
                 }
                 QString label = option.label.toQString();
-                if (QString::fromLatin1(key) == "keys") {
+                if (QString::fromLatin1(key) == "keys" && !m_options.concertC) {
                     label = muse::qtrc("inspector", "%1 (period shift: %2)").arg(label).arg(option.nPer);
                 }
                 list << QVariantMap { { "text", label }, { "value", int(list.size()) } };
@@ -117,7 +131,7 @@ void MeloStaffSettingsModel::loadProperties()
             m_settings[QString::fromLatin1(key) + "Index"] = current;
         };
         choices("tonics", m_options.tonics);
-        choices("keys", m_options.keyTargets);
+        choices("keys", m_options.concertC ? m_options.rotations : m_options.keyTargets);
         const melo::StateChangeOption* diatonic = nullptr;
         const melo::StateChangeOption* harmonic = nullptr;
         const melo::StateChangeOption* zero = nullptr;
@@ -199,7 +213,7 @@ void MeloStaffSettingsModel::applyOption(const QString& group, int index)
         return;
     }
     std::vector<muse::String> steps;
-    const auto& options = group == "tonics" ? m_options.tonics : m_options.keyTargets;
+    const auto& options = group == "tonics" ? m_options.tonics : m_options.concertC ? m_options.rotations : m_options.keyTargets;
     if (group == "scales" && index >= 0 && size_t(index) < m_scaleSteps.size()) {
         steps = m_scaleSteps[index];
     } else if ((group == "tonics" || group == "keys") && index >= 0 && size_t(index) < options.size()) {
@@ -245,6 +259,23 @@ void MeloStaffSettingsModel::bindReference(const QString& pitch)
     }
     bool ok = melo::applyChange(score, staff, measure, tick, muse::String(u"bind:reference-pitch:%1").arg(value), error);
     finish(ok, error, muse::qtrc("inspector", "Reference pitch bound for this staff."));
+}
+
+void MeloStaffSettingsModel::setNotationReference(int index)
+{
+    if (index != 0 && index != 1) {
+        return;
+    }
+    Score* score = nullptr;
+    Measure* measure = nullptr;
+    Fraction tick;
+    staff_idx_t staff = 0;
+    if (!target(score, measure, tick, staff)) {
+        return;
+    }
+    muse::String error;
+    const bool ok = melo::applyChange(score, staff, measure, tick, index == 0 ? u"notation:concert" : u"notation:movable", error);
+    finish(ok, error, muse::qtrc("inspector", "Notation reference changed; sounding music preserved."));
 }
 
 void MeloStaffSettingsModel::removeChange()

@@ -58,7 +58,7 @@ public:
     void setPartSharpFlat(const muse::ID& partId, const SharpFlat& sharpFlat) override;
     void setInstrumentName(const InstrumentKey& instrumentKey, const QString& name) override;
     void setInstrumentAbbreviature(const InstrumentKey& instrumentKey, const QString& abbreviature) override;
-    void setStaffType(const muse::ID& staffId, StaffTypeId type) override;
+    muse::Ret setStaffType(const muse::ID& staffId, StaffTypeId type) override;
     void setStaffConfig(const muse::ID& staffId, const StaffConfig& config) override;
 
     void removeParts(const muse::IDList& partsIds) override;

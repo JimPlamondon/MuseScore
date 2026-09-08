@@ -1703,25 +1703,28 @@ static void pitch2xml(const Note* note, String& s, int& alter, int& octave)
     const Staff* st = note->staff();
     const Fraction tick = note->tick();
     const StaffType* staffType = st ? st->staffTypeForElement(note) : nullptr;
+    int soundingPitch = note->pitch();
+    int displayTpc = note->tpc();
     if (staffType && staffType->isMelo() && note->hasMeloPitch()) {
         melo::SoundingPitch projection;
         String error;
         if (melo::noteSoundingPitch(staffType->meloStateJson(), note->meloNPer(), note->meloNGen(), projection, &error)) {
-            s = String(Char(projection.step));
-            alter = projection.alter;
-            octave = projection.octave;
-            return;
+            soundingPitch = projection.midiKey;
+            const int step = int(String(u"CDEFGAB").indexOf(Char(projection.step)));
+            const int concertTpc = step2tpc(step, AccidentalVal(projection.alter));
+            displayTpc = note->concertPitch() ? concertTpc : note->writtenTpcForConcert(concertTpc);
+        } else {
+            LOGE() << mu::engraving::melo::diagnostic::exportProjectionFailed << error;
         }
-        LOGE() << mu::engraving::melo::diagnostic::exportProjectionFailed << error;
     }
     const Instrument* instr = st->part()->instrument(tick);
     const Interval intval = note->concertPitch() ? 0 : instr->transpose();
 
-    s      = tpc2stepName(note->tpc());
-    alter  = tpc2alterByKey(note->tpc(), Key::C);
+    s      = tpc2stepName(displayTpc);
+    alter  = tpc2alterByKey(displayTpc, Key::C);
     // note that pitch must be converted to concert pitch
     // in order to calculate the correct octave
-    octave = (note->pitch() - intval.chromatic - alter) / 12 - 1;
+    octave = (soundingPitch - intval.chromatic - alter) / 12 - 1;
 
     //
     // HACK:

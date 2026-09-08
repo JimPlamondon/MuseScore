@@ -300,6 +300,7 @@ struct StateChangeOptions {
     std::vector<StateChangeOption> tonics;      // "mode:<nGen>"
     std::vector<StateChangeOption> keyTargets;  // "key:<nPer>:<nGen>" (need a bound reference)
     bool referenceBound = false;
+    bool concertC = false;
     std::vector<muse::String> bindForms;        // "bind:<form>:<value>"
     std::vector<StateChangeOption> rotations;   // "scale:rotation:<r>"
     std::vector<StateChangeOption> cycles;      // "scale:cycle:<name>"
@@ -320,6 +321,10 @@ bool entryFromStandardPitch(const muse::String& stateJson, char step, int alter,
 /// Reinterpret an established full-tie frequency under a new effective state.
 /// The Kernel returns an exact identity/projection or a typed failure.
 bool noteContinuation(const muse::String& stateJson, double frequencyHz, SoundingPitch& out, muse::String* error = nullptr);
+bool reanchorNote(const muse::String& stateJson, const muse::String& oldStateJson, int nPer, int nGen, SoundingPitch& out,
+                  muse::String* error = nullptr);
+bool transposeNote(const muse::String& stateJson, int nPer, int nGen, int steps, int keys, SoundingPitch& out,
+                   muse::String* error = nullptr);
 }
 
 #endif

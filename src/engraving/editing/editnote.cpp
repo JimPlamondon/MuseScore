@@ -50,7 +50,11 @@ void ChangePitch::flip(EditData*)
         return;
     }
 
-    note->setPitch(pitch, tpc1, tpc2);
+    // Restore the recorded spelling exactly. During undo an instrument
+    // replacement can still be in force until its earlier command flips.
+    note->setTpc1(tpc1);
+    note->setTpc2(tpc2);
+    note->setPitch(pitch);
     pitch = f_pitch;
     tpc1  = f_tpc1;
     tpc2  = f_tpc2;

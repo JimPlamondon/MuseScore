@@ -34,6 +34,7 @@ class StaffSettingsModel : public QObject, public muse::Contextable
 {
     Q_OBJECT
 
+    Q_PROPERTY(QString notationError READ notationError NOTIFY notationErrorChanged)
     Q_PROPERTY(int staffType READ staffType WRITE setStaffType NOTIFY staffTypeChanged)
     Q_PROPERTY(bool isSmallStaff READ isSmallStaff WRITE setIsSmallStaff NOTIFY isSmallStaffChanged)
     Q_PROPERTY(bool cutawayEnabled READ cutawayEnabled WRITE setCutawayEnabled NOTIFY cutawayEnabledChanged)
@@ -53,6 +54,7 @@ class StaffSettingsModel : public QObject, public muse::Contextable
 public:
     explicit StaffSettingsModel(QObject* parent = nullptr);
 
+    QString notationError() const { return m_notationError; }
     int staffType() const;
     bool isSmallStaff() const;
     bool cutawayEnabled() const;
@@ -77,6 +79,7 @@ public slots:
     void setShowIfEntireSystemEmpty(bool value);
 
 signals:
+    void notationErrorChanged();
     void staffTypeChanged();
     void voicesChanged();
     void voiceVisibilityChanged(int voiceIndex, bool visible);
@@ -94,6 +97,7 @@ private:
     notation::INotationPartsPtr notationParts() const;
     notation::INotationPartsPtr masterNotationParts() const;
 
+    QString m_notationError;
     muse::ID m_staffId;
     QList<bool> m_voicesVisibility;
     notation::StaffConfig m_config;

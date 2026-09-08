@@ -35,6 +35,8 @@
 #include <functional>
 #include <QTemporaryDir>
 #include <QFile>
+#include <QRegularExpression>
+#include "engraving/dom/instrtemplate.h"
 
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/fret.h"
@@ -1746,4 +1748,43 @@ TEST_F(MusicXml_Melo_Tests, MelodyPartTenorOverrideRoundTripsAndInvalidValueIsRe
     MasterScore* refused = ScoreRW::readScore(invalid, true, importXml);
     EXPECT_FALSE(refused);
     delete refused;
+}
+
+TEST_F(MusicXml_Melo_Tests, concertDoExportUsesInheritedWrittenPitchInBothViews)
+{
+    auto pitchBlocks = [](const String& xml) {
+        QStringList result;
+        QRegularExpression expression("<pitch>[\\s\\S]*?</pitch>");
+        auto matches = expression.globalMatch(xml.toQString());
+        while (matches.hasNext()) {
+            result << matches.next().captured().simplified();
+        }
+        return result;
+    };
+    for (const char16_t* id : { u"flute", u"bb-clarinet", u"a-clarinet", u"alto-saxophone", u"tenor-saxophone",
+                                u"baritone-saxophone", u"horn", u"alto-flute", u"piccolo", u"double-bass" }) {
+        SCOPED_TRACE(String(id).toStdString());
+        for (bool concertView : { false, true }) {
+            std::unique_ptr<MasterScore> score(readMelo("jims-reference-pitch.musicxml"));
+            ASSERT_TRUE(score);
+            score->parts().front()->setInstrument(Instrument::fromTemplate(searchTemplate(id)));
+            String error;
+            ASSERT_TRUE(melo::applyChange(score.get(), 0, score->firstMeasure(), u"notation:concert", error)) << error.toStdString();
+            score->style().set(Sid::concertPitch, concertView);
+            const String native = readAll(exportToScratch(score.get(), "concert-transposing.musicxml"));
+            EXPECT_TRUE(native.contains(u"<jims:concert-c>"));
+            score->staff(0)->setStaffType(Fraction(0, 1), *StaffType::preset(StaffTypes::STANDARD));
+            const String inherited = readAll(exportToScratch(score.get(), "traditional-transposing.musicxml"));
+            EXPECT_EQ(pitchBlocks(native), pitchBlocks(inherited));
+            EXPECT_FALSE(pitchBlocks(native).empty());
+            auto importXml = [](MasterScore* target, const muse::io::path_t& path) {
+                return importMusicXml(target, path.toQString(), false);
+            };
+            std::unique_ptr<MasterScore> reopened(ScoreRW::readScore(u"jims-export-scratch/concert-transposing.musicxml", true, importXml));
+            ASSERT_TRUE(reopened);
+            melo::StateChangeOptions options;
+            ASSERT_TRUE(melo::stateChangeOptions(reopened->staff(0)->staffType(Fraction(0, 1))->meloStateJson(), options));
+            EXPECT_TRUE(options.concertC);
+        }
+    }
 }

@@ -55,6 +55,14 @@ inline muse::String emptyStaffCentreUnavailable()
 }
 
 inline muse::TranslatableString bindReferenceAction() { return muse::TranslatableString("undoableAction", "Bind MeloPresto reference"); }
+inline muse::TranslatableString changeNotationReferenceAction()
+{
+    return muse::TranslatableString("undoableAction", "Change MeloPresto notation reference");
+}
+inline muse::String jammerReferenceRequired()
+{
+    return muse::mtrc("engraving", "Jammer parts always use a MeloPresto staff with movable Do.");
+}
 inline muse::TranslatableString insertChangeAction() { return muse::TranslatableString("undoableAction", "Insert MeloPresto change"); }
 inline muse::String measureHasOtherStaffChange()
 {

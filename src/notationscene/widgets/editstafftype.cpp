@@ -191,6 +191,10 @@ void EditStaffType::setInstrument(const Instrument& instrument)
     bool bTab = (instrument.stringData()->frettedStrings() > 0);
     int idx           = 0;
     for (const mu::engraving::StaffType& t : mu::engraving::StaffType::presets()) {
+        if (instrument.isMeloJammer() && !t.isMelo()) {
+            ++idx;
+            continue;
+        }
         if ((t.group() == mu::engraving::StaffGroup::STANDARD && bStandard)
             || (t.group() == mu::engraving::StaffGroup::PERCUSSION && bPerc)
             || (t.group() == mu::engraving::StaffGroup::TAB && bTab && t.lines() <= instrument.stringData()->frettedStrings())) {

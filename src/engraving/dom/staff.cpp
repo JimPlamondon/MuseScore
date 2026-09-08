@@ -49,6 +49,7 @@
 #include "utils.h"
 #include "capo.h"
 #include "editing/editcapo.h"
+#include "melo/melobridge.h"
 
 // #define DEBUG_CLEFS
 
@@ -1349,8 +1350,19 @@ void Staff::init(const InstrumentTemplate* t, const StaffType* staffType, int ci
     if (!pst) {
         pst = StaffType::getDefaultPreset(t->staffGroup);
     }
+    const bool jammer = Instrument::fromTemplate(t).isMeloJammer();
+    if (jammer) {
+        pst = StaffType::preset(StaffTypes::MELO_12TET);
+    }
 
     StaffType* stt = setStaffType(Fraction(0, 1), *pst);
+    if (stt->isMelo()) {
+        String state;
+        String error;
+        if (melo::applyStateChange(stt->meloStateJson(), jammer ? u"notation:movable" : u"notation:concert", state, error)) {
+            stt->setMeloStateJson(state);
+        }
+    }
     if (cidx >= MAX_STAVES) {
         stt->setSmall(false);
     } else {

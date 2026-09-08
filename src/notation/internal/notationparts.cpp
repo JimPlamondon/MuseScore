@@ -531,7 +531,7 @@ void NotationParts::setStaffVisible(const ID& staffId, bool visible)
     notifyAboutStaffChanged(staff);
 }
 
-void NotationParts::setStaffType(const ID& staffId, StaffTypeId type)
+Ret NotationParts::setStaffType(const ID& staffId, StaffTypeId type)
 {
     TRACEFUNC;
 
@@ -539,20 +539,25 @@ void NotationParts::setStaffType(const ID& staffId, StaffTypeId type)
     const mu::engraving::StaffType* staffType = mu::engraving::StaffType::preset(type);
 
     if (!staff || !staffType) {
-        return;
+        return make_ret(Ret::Code::UnknownError);
     }
 
     if (staff->staffType(DEFAULT_TICK) == staffType) {
-        return;
+        return make_ok();
     }
 
     startEdit(TranslatableString("undoableAction", "Set staff type"));
 
-    mu::engraving::EditPart::setStaffType(score(), staff, type);
+    String error;
+    if (!mu::engraving::EditPart::setStaffType(score(), staff, type, &error)) {
+        rollback();
+        return make_ret(Ret::Code::UnknownError, error);
+    }
 
     apply();
 
     notifyAboutStaffChanged(staff);
+    return make_ok();
 }
 
 void NotationParts::setStaffConfig(const ID& staffId, const StaffConfig& config)
@@ -922,6 +927,9 @@ void NotationParts::doAppendStaff(Staff* staff, Part* destinationPart, bool crea
 
 void NotationParts::doSetStaffConfig(Staff* staff, const StaffConfig& config)
 {
+    if (staff->part()->instrument()->isMeloJammer() && !config.staffType.isMelo()) {
+        return;
+    }
     mu::engraving::StaffType* staffType = staff->staffType(DEFAULT_TICK);
     if (!staffType) {
         return;

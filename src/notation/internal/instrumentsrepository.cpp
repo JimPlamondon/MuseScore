@@ -151,6 +151,7 @@ void InstrumentsRepository::load()
     if (!mu::engraving::loadInstrumentTemplates(instrumentsXmlPath)) {
         LOGE() << "Could not load instruments from " << instrumentsXmlPath;
     }
+    mu::engraving::loadInstrumentTemplates(":/engraving/instruments/melo-instruments.xml");
 
     const path_t scoreOrdersXmlPath = configuration()->scoreOrdersXmlPath();
     if (!mu::engraving::loadInstrumentTemplates(scoreOrdersXmlPath)) {

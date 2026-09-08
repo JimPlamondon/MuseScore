@@ -1038,8 +1038,8 @@ bool MeloMeiImporter::stateJsonFromXml(pugi::xml_node staffStateNode, String& js
             referenceJson = "{\"reference-pitch\":{\"key_number\":" + std::string(form.attribute("key-number").value()) + "}}";
         } else if (kind == "pitch-class") {
             referenceJson = "{\"pitch-class\":{\"pitch_class\":" + std::string(form.text().as_string()) + "}}";
-        } else if (kind == "frequency-hz") {
-            referenceJson = "{\"frequency-hz\":{\"hertz\":" + std::string(form.text().as_string()) + "}}";
+        } else if (kind == "frequency-hz" || kind == "concert-c") {
+            referenceJson = "{\"" + kind + "\":{\"hertz\":" + std::string(form.text().as_string()) + "}}";
         } else {
             m_error = String(u"unknown jims:reference form '%1'").arg(String::fromStdString(kind));
             return false;

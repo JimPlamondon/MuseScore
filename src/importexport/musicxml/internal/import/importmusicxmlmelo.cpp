@@ -240,13 +240,13 @@ bool MeloImportContext::parseStaffState(XmlStreamReader& e, String& json, int& s
                     if (integer(e.readText(), "pitch-class", pitchClass)) {
                         reference = String(u"{\"pitch-class\":{\"pitch_class\":%1}}").arg(pitchClass);
                     }
-                } else if (form == u"frequency-hz") {
+                } else if (form == u"frequency-hz" || form == u"concert-c") {
                     bool ok = false;
                     const String hertz = jsonNumber(e.readText(), ok);
                     if (ok) {
-                        reference = String(u"{\"frequency-hz\":{\"hertz\":%1}}").arg(hertz);
+                        reference = String(u"{\"%1\":{\"hertz\":%2}}").arg(form).arg(hertz);
                     } else {
-                        fail(u"jims:reference frequency-hz is not a number");
+                        fail(String(u"jims:reference %1 is not a number").arg(form));
                     }
                 } else {
                     fail(String(u"unknown jims:reference form '%1'").arg(form));

@@ -18,6 +18,7 @@
 #include "engraving/dom/measure.h"
 #include "engraving/dom/segment.h"
 #include "engraving/dom/staff.h"
+#include "engraving/dom/part.h"
 #include "engraving/dom/stafftype.h"
 #include "engraving/editing/undo.h"
 #include "engraving/melo/melochangecontroller.h"
@@ -477,4 +478,27 @@ TEST_F(MeloUiModelTests, ScorePresentationDoesNotChangeMusicalStateAndUndoes) {
     score->undoRedo(true, nullptr);
     model.loadProperties();
     EXPECT_EQ(model.settings()["elide"].toBool(), original);
+}
+
+TEST_F(MeloUiModelTests, FixedConcertReferenceIsVisibleAndJammerCannotSelectIt) {
+    selectMeasure(0);
+    MeloStaffSettingsModel model(nullptr, muse::modularity::globalCtx(), &repository);
+    model.context.set(global);
+    model.loadProperties();
+    model.setNotationReference(0);
+    ASSERT_FALSE(model.hasError()) << model.status().toStdString();
+    EXPECT_TRUE(model.settings()["concertC"].toBool());
+    EXPECT_EQ(model.settings()["referenceIndex"].toInt(), 0);
+    const int count = score->undoStack()->size();
+    model.setNotationReference(0);
+    EXPECT_EQ(score->undoStack()->size(), count);
+    model.setNotationReference(1);
+    ASSERT_FALSE(model.hasError());
+    score->staff(0)->part()->instrument()->setId(u"melo-jammer");
+    model.loadProperties();
+    EXPECT_TRUE(model.settings()["jammer"].toBool());
+    model.setNotationReference(0);
+    EXPECT_TRUE(model.hasError());
+    EXPECT_FALSE(model.settings()["concertC"].toBool());
+    EXPECT_FALSE(model.settings()["jammerReferenceExplanation"].toString().isEmpty());
 }

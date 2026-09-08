@@ -805,8 +805,19 @@ void Note::setPitch(int pitch, int tpc1, int tpc2)
     assert(tpcIsValid(tpc1));
     assert(tpcIsValid(tpc2));
     m_tpc[0] = tpc1;
-    m_tpc[1] = tpc2;
+    const StaffType* type = staff() ? staff()->staffTypeForElement(this) : nullptr;
+    m_tpc[1] = hasMeloPitch() && type && type->isMelo() ? writtenTpcForConcert(tpc1) : tpc2;
     setPitch(pitch);
+}
+
+int Note::writtenTpcForConcert(int concertTpc) const
+{
+    Interval interval = staff() ? staff()->transpose(chord() ? chord()->tick() : Fraction(-1, 1)) : Interval();
+    if (interval.isZero()) {
+        return concertTpc;
+    }
+    interval.flip();
+    return Transpose::transposeTpc(concertTpc, interval, true);
 }
 
 //---------------------------------------------------------
@@ -937,6 +948,15 @@ String Note::tpcUserName(const bool explicitAccidental, bool full) const
         pitchOffset = String::fromAscii(buffer);
     }
 
+    const StaffType* type = staff()->staffTypeForElement(this);
+    if (hasMeloPitch() && type && type->isMelo()) {
+        const String concert = engraving::tpcUserName(tpc1(), pitch(), explicitAccidental, full) + pitchOffset;
+        if (transposition()) {
+            const String written = engraving::tpcUserName(tpc2(), pitch() - transposition(), explicitAccidental, full);
+            return muse::mtrc("engraving", "%1 concert (written %2)").arg(concert, written);
+        }
+        return concert;
+    }
     if (!concertPitch() && transposition()) {
         String soundingPitch = engraving::tpcUserName(tpc1(), ppitch(), explicitAccidental);
         soundingPitch = muse::mtrc("global/pitchName", soundingPitch);
@@ -4444,6 +4464,13 @@ bool Note::transposeDiatonic(int interval, bool keepAlterations, bool useDoubleA
         newTpc2 = clampEnharmonic(newTpc, useDoubleAccidentals);
     }
 
+    const StaffType* type = staff() ? staff()->staffTypeForElement(this) : nullptr;
+    if (hasMeloPitch() && type && type->isMelo()) {
+        // Keep the inherited diatonic/key/alteration decision, then let the
+        // Kernel apply that interval to the canonical structural note.
+        return transpose(Interval(interval, newPitch - pitch()), useDoubleAccidentals);
+    }
+
     // check pitch is in range
     newPitch = clampPitch(newPitch, true);
 
@@ -4454,6 +4481,23 @@ bool Note::transposeDiatonic(int interval, bool keepAlterations, bool useDoubleA
 
 bool Note::transpose(Interval interval, bool useDoubleSharpsFlats)
 {
+    const StaffType* type = staff() ? staff()->staffTypeForElement(this) : nullptr;
+    if (hasMeloPitch() && type && type->isMelo()) {
+        melo::SoundingPitch projection;
+        String error;
+        if (!melo::transposeNote(type->meloStateJson(), meloNPer(), meloNGen(), interval.diatonic, interval.chromatic, projection,
+                                 &error)) {
+            return false;
+        }
+        const int step = int(String(u"CDEFGAB").indexOf(Char(projection.step)));
+        const int concertTpc = step2tpc(step, AccidentalVal(projection.alter));
+        undoChangeProperty(Pid::MELO_NPER, projection.nPer);
+        undoChangeProperty(Pid::MELO_NGEN, projection.nGen);
+        score()->undoChangePitch(this, projection.midiKey, concertTpc, writtenTpcForConcert(concertTpc));
+        undoChangeProperty(Pid::TUNING, projection.centsOffset);
+        melo::widenExtentForNote(this);
+        return true;
+    }
     int npitch = pitch() + interval.chromatic;
     if (!pitchIsValid(npitch)) {
         return false;

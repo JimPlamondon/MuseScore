@@ -724,6 +724,7 @@ bool stateChangeOptions(const String& stateJson, StateChangeOptions& options)
     readList("rotations", options.rotations);
     readList("cycles", options.cycles);
     options.referenceBound = o.value("reference_bound").toBool();
+    options.concertC = o.value("concert_c").toBool();
     if (o.contains("bind_forms") && o.value("bind_forms").isArray()) {
         JsonArray forms = o.value("bind_forms").toArray();
         for (size_t i = 0; i < forms.size(); ++i) {
@@ -774,6 +775,20 @@ bool noteContinuation(const String& stateJson, double frequencyHz, SoundingPitch
 {
     String envelope = String(u"{\"abi\":2,\"op\":\"note_continuation\",\"state\":%1,\"frequency_hz\":%2}")
                       .arg(stateJson).arg(String::number(frequencyHz, 17));
+    return readSoundingPitch(callBridge(envelope), out, error);
+}
+
+bool reanchorNote(const String& stateJson, const String& oldStateJson, int nPer, int nGen, SoundingPitch& out, String* error)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"reanchor_note\",\"state\":%1,\"old_state\":%2,\"nPer\":%3,\"nGen\":%4}")
+                      .arg(stateJson).arg(oldStateJson).arg(nPer).arg(nGen);
+    return readSoundingPitch(callBridge(envelope), out, error);
+}
+
+bool transposeNote(const String& stateJson, int nPer, int nGen, int steps, int keys, SoundingPitch& out, String* error)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"transpose_note\",\"state\":%1,\"nPer\":%2,\"nGen\":%3,\"steps\":%4,\"keys\":%5}")
+                      .arg(stateJson).arg(nPer).arg(nGen).arg(steps).arg(keys);
     return readSoundingPitch(callBridge(envelope), out, error);
 }
 

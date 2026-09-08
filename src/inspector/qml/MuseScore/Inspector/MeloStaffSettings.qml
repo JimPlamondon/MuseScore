@@ -26,6 +26,30 @@ InspectorSectionView {
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignLeft
         }
+        StyledTextLabel { text: qsTrc("inspector", "Notation reference") }
+        StyledDropdown {
+            width: parent.width
+            model: [
+                { text: qsTrc("inspector", "Fixed Do — concert C"), value: 0 },
+                { text: qsTrc("inspector", "Movable Do"), value: 1 }
+            ]
+            currentIndex: root.model.settings.referenceIndex ?? -1
+            enabled: !!root.model.settings.available && !root.model.settings.jammer
+            navigation.panel: root.navigationPanel
+            navigation.row: root.navigationRow(0)
+            navigation.accessible.name: qsTrc("inspector", "Notation reference for this staff")
+            onActivated: function(index, value) { root.model.setNotationReference(value) }
+        }
+        StyledTextLabel {
+            width: parent.width
+            text: root.model.settings.jammer
+                  ? root.model.settings.jammerReferenceExplanation
+                  : root.model.settings.concertC
+                    ? qsTrc("inspector", "Do = concert C for every instrument. Changing notation reference preserves the sounding music.")
+                    : qsTrc("inspector", "Do can move with electronic transposition. Changing notation reference preserves the sounding music.")
+            wrapMode: Text.WordWrap
+            horizontalAlignment: Text.AlignLeft
+        }
         StyledTextLabel {
             width: parent.width
             visible: text.length > 0
@@ -33,10 +57,17 @@ InspectorSectionView {
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignLeft
         }
+        StyledTextLabel {
+            width: parent.width
+            visible: !!root.model.settings.concertC
+            text: root.model.settings.instrumentReference ?? ""
+            wrapMode: Text.WordWrap
+            horizontalAlignment: Text.AlignLeft
+        }
         Repeater {
             model: [
                 { key: "tonics", label: qsTrc("inspector", "Tonic (mode centre)") },
-                { key: "keys", label: qsTrc("inspector", "Key shift (changes the pitch of Do0)") },
+                { key: "keys", label: root.model.settings.concertC ? qsTrc("inspector", "Concert key (scale placement)") : qsTrc("inspector", "Key shift (changes the pitch of Do0)") },
                 { key: "scales", label: qsTrc("inspector", "Scale") }
             ]
             Column {

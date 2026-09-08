@@ -96,6 +96,14 @@ StyledPopupView {
             }
         }
 
+        StyledTextLabel {
+            width: parent.width
+            visible: settingsModel.notationError.length > 0
+            text: settingsModel.notationError
+            wrapMode: Text.WordWrap
+            horizontalAlignment: Text.AlignLeft
+        }
+
         SeparatorLine {
             visible: !settingsModel.isMainScore
         }

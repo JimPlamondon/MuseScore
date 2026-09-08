@@ -13,6 +13,7 @@
 #include "../dom/chord.h"
 #include "../dom/measure.h"
 #include "../dom/note.h"
+#include "../dom/part.h"
 #include "../dom/score.h"
 #include "../dom/segment.h"
 #include "../dom/staff.h"
@@ -39,6 +40,7 @@ struct StateEdit {
     Fraction tick;
     Fraction stop { -1, 1 };
     String state;
+    bool preserveSound = false;
 };
 
 struct NoteEdit {
@@ -63,7 +65,7 @@ Fraction nextCarrierTick(const Score* score, staff_idx_t staffIdx, const Fractio
 const StateEdit* stateEditFor(const std::vector<StateEdit>& edits, const Note* note)
 {
     for (const StateEdit& edit : edits) {
-        if (note->staffIdx() != edit.staffIdx || note->tick() < edit.tick) {
+        if (note->staff() != edit.staff || note->tick() < edit.tick) {
             continue;
         }
         if (edit.stop.negative() || note->tick() < edit.stop) {
@@ -81,6 +83,9 @@ bool projectionFor(const std::vector<StateEdit>& edits, Note* note, SoundingPitc
     if (state.isEmpty()) {
         error = mu::engraving::melo::linkedNoteMissingState();
         return false;
+    }
+    if (edit && edit->preserveSound) {
+        return reanchorNote(state, current->meloStateJson(), note->meloNPer(), note->meloNGen(), projection, &error);
     }
 
     Note* first = note;
@@ -120,7 +125,7 @@ bool prepareNoteEdits(Score* score, const std::vector<StateEdit>& stateEdits,
 {
     std::set<Note*> seen;
     for (const StateEdit& edit : stateEdits) {
-        Measure* start = score->tick2measure(edit.tick);
+        Measure* start = edit.staff->score()->tick2measure(edit.tick);
         for (Measure* measure = start; measure; measure = measure->nextMeasure()) {
             if (!edit.stop.negative() && measure->tick() > edit.stop) {
                 break;
@@ -132,39 +137,48 @@ bool prepareNoteEdits(Score* score, const std::vector<StateEdit>& stateEdits,
                     if (!item || !item->isChord()) {
                         continue;
                     }
-                    for (Note* note : toChord(item)->notes()) {
-                        if (note->tick() < edit.tick || (!edit.stop.negative() && note->tick() >= edit.stop)) {
-                            continue;
-                        }
-                        if (!note->hasMeloPitch() || seen.count(note)) {
-                            continue;
-                        }
-                        if (note->incomingPartialTie() || note->outgoingPartialTie()) {
-                            error = mu::engraving::melo::partialTieCrossesState();
-                            return false;
-                        }
-                        SoundingPitch projection;
-                        if (!projectionFor(stateEdits, note, projection, error)) {
-                            return false;
-                        }
-                        for (EngravingObject* linkedObject : note->linkList()) {
-                            Note* linked = toNote(linkedObject);
-                            if (!linked->hasMeloPitch()) {
-                                error = mu::engraving::melo::linkedNoteIdentityMismatch();
+                    std::vector<Chord*> chords = toChord(item)->graceNotes();
+                    chords.push_back(toChord(item));
+                    for (Chord* chord : chords) {
+                        for (Note* note : chord->notes()) {
+                            if (note->tick() < edit.tick || (!edit.stop.negative() && note->tick() >= edit.stop)) {
+                                continue;
+                            }
+                            if (!note->hasMeloPitch() || seen.count(note)) {
+                                continue;
+                            }
+                            if (note->incomingPartialTie() || note->outgoingPartialTie()) {
+                                error = mu::engraving::melo::partialTieCrossesState();
                                 return false;
                             }
-                            SoundingPitch linkedProjection;
-                            if (!projectionFor(stateEdits, linked, linkedProjection, error)) {
+                            SoundingPitch projection;
+                            if (!projectionFor(stateEdits, note, projection, error)) {
                                 return false;
                             }
-                            if (!sameProjection(projection, linkedProjection)) {
-                                error = mu::engraving::melo::conflictingLinkedProjections();
-                                return false;
+                            for (EngravingObject* linkedObject : note->linkList()) {
+                                Note* linked = toNote(linkedObject);
+                                const StaffType* linkedType = linked->staff() ? linked->staff()->staffTypeForElement(linked) : nullptr;
+                                if (linkedType && !linkedType->isMelo()) {
+                                    seen.insert(linked);
+                                    continue;
+                                }
+                                if (!linked->hasMeloPitch()) {
+                                    error = mu::engraving::melo::linkedNoteIdentityMismatch();
+                                    return false;
+                                }
+                                SoundingPitch linkedProjection;
+                                if (!projectionFor(stateEdits, linked, linkedProjection, error)) {
+                                    return false;
+                                }
+                                if (!sameProjection(projection, linkedProjection)) {
+                                    error = mu::engraving::melo::conflictingLinkedProjections();
+                                    return false;
+                                }
+                                seen.insert(linked);
                             }
-                            seen.insert(linked);
+                            const int step = int(String(u"CDEFGAB").indexOf(Char(projection.step)));
+                            noteEdits.push_back({ note, projection, step2tpc(step, AccidentalVal(projection.alter)) });
                         }
-                        const int step = int(String(u"CDEFGAB").indexOf(Char(projection.step)));
-                        noteEdits.push_back({ note, projection, step2tpc(step, AccidentalVal(projection.alter)) });
                     }
                 }
             }
@@ -178,7 +192,7 @@ void commitNoteEdits(Score* score, const std::vector<NoteEdit>& edits)
     for (const NoteEdit& edit : edits) {
         edit.note->undoChangeProperty(Pid::MELO_NPER, edit.projection.nPer);
         edit.note->undoChangeProperty(Pid::MELO_NGEN, edit.projection.nGen);
-        score->undoChangePitch(edit.note, edit.projection.midiKey, edit.tpc, edit.tpc);
+        score->undoChangePitch(edit.note, edit.projection.midiKey, edit.tpc, edit.note->writtenTpcForConcert(edit.tpc));
         edit.note->undoChangeProperty(Pid::TUNING, edit.projection.centsOffset);
     }
 }
@@ -309,6 +323,55 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Str
 bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fraction& tick,
                  const String& choiceId, String& error)
 {
+    if (choiceId.startsWith(u"notation:")) {
+        if (!score || staffIdx >= score->nstaves()) {
+            return false;
+        }
+        std::vector<StateEdit> edits;
+        for (Staff* linked : score->staff(staffIdx)->staffList()) {
+            if (choiceId == u"notation:concert" && linked->part()->instrument()->isMeloJammer()) {
+                error = jammerReferenceRequired();
+                return false;
+            }
+            auto consider = [&](const StaffType* type, const Fraction& at) {
+                if (!type || !type->isMelo()) {
+                    return true;
+                }
+                String next;
+                if (!applyStateChange(type->meloStateJson(), choiceId, next, error)) {
+                    return false;
+                }
+                edits.push_back({ linked, linked->idx(), at, nextCarrierTick(linked->score(), linked->idx(), at), next, true });
+                return true;
+            };
+            if (!consider(linked->staffType(Fraction(0, 1)), Fraction(0, 1))) {
+                return false;
+            }
+            for (Measure* m = linked->score()->firstMeasure(); m; m = m->nextMeasure()) {
+                for (const StaffTypeChange* carrier : changeCarriers(m, linked->idx())) {
+                    if (!consider(carrier->staffType(), carrier->tick())) {
+                        return false;
+                    }
+                }
+            }
+        }
+        std::vector<NoteEdit> notes;
+        if (std::all_of(edits.begin(), edits.end(), [](const StateEdit& edit) {
+            return edit.state == edit.staff->staffType(edit.tick)->meloStateJson();
+        })) {
+            return true;
+        }
+        if (!prepareNoteEdits(score, edits, notes, error)) {
+            return false;
+        }
+        score->startCmd(changeNotationReferenceAction());
+        for (const StateEdit& edit : edits) {
+            score->undo(new MeloChangeStateAt(edit.staff, edit.tick, edit.state));
+        }
+        commitNoteEdits(score, notes);
+        score->endCmd();
+        return true;
+    }
     String reason;
     if (!canInsertChange(score, staffIdx, measure, tick, reason)) {
         error = reason;
@@ -622,7 +685,7 @@ bool normalizeStoredPitchesAfterLoad(Score* score, size_t& repairs, String& erro
         if (edit.note->meloNPer() != edit.projection.nPer
             || edit.note->meloNGen() != edit.projection.nGen
             || edit.note->pitch() != edit.projection.midiKey
-            || edit.note->tpc1() != edit.tpc || edit.note->tpc2() != edit.tpc
+            || edit.note->tpc1() != edit.tpc || edit.note->tpc2() != edit.note->writtenTpcForConcert(edit.tpc)
             || std::abs(edit.note->tuning() - edit.projection.centsOffset) >= 1e-9) {
             repairsNeeded.push_back(edit);
         }
@@ -645,7 +708,7 @@ bool normalizeStoredPitchesAfterLoad(Score* score, size_t& repairs, String& erro
                 Note* linked = toNote(linkedObject);
                 linked->setMeloPitch(edit.projection.nPer, edit.projection.nGen);
                 widenExtentForNote(linked);
-                linked->setPitch(edit.projection.midiKey, edit.tpc, edit.tpc);
+                linked->setPitch(edit.projection.midiKey, edit.tpc, linked->writtenTpcForConcert(edit.tpc));
                 linked->setTuning(edit.projection.centsOffset);
             }
         }

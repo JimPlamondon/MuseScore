@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<!-- MuseScore-Studio-CLA-applies -->
+<museScore>
+    <InstrumentGroup id="electronic-instruments">
+        <name>Electronic</name>
+        <Instrument id="melo-jammer">
+            <longName>Jammer</longName>
+            <shortName>Jam.</shortName>
+            <trackName>Jammer</trackName>
+            <description>Jammer</description>
+            <musicXMLid>keyboard.jammer</musicXMLid>
+            <family>synths</family>
+            <stafftype staffTypePreset="jims12tet">standard</stafftype>
+            <clef>G</clef>
+            <aPitchRange>0-127</aPitchRange>
+            <pPitchRange>0-127</pPitchRange>
+            <Channel>
+                <program value="80"/>
+            </Channel>
+            <genre>common</genre>
+            <genre>electronic</genre>
+        </Instrument>
+    </InstrumentGroup>
+</museScore>

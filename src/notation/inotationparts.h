@@ -23,6 +23,7 @@
 #pragma once
 
 #include "async/notification.h"
+#include "types/ret.h"
 
 #include "notationtypes.h"
 
@@ -59,7 +60,7 @@ public:
     virtual void setPartSharpFlat(const muse::ID& partId, const SharpFlat& sharpFlat) = 0;
     virtual void setInstrumentName(const InstrumentKey& instrumentKey, const QString& name) = 0;
     virtual void setInstrumentAbbreviature(const InstrumentKey& instrumentKey, const QString& abbreviature) = 0;
-    virtual void setStaffType(const muse::ID& staffId, StaffTypeId type) = 0;
+    virtual muse::Ret setStaffType(const muse::ID& staffId, StaffTypeId type) = 0;
     virtual void setStaffConfig(const muse::ID& staffId, const StaffConfig& config) = 0;
 
     virtual void removeParts(const muse::IDList& partsIds) = 0;

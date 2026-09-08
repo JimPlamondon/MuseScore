@@ -39,6 +39,12 @@
 #include "../dom/stafftype.h"
 #include "../dom/stringtunings.h"
 #include "../dom/utils.h"
+#include "../dom/chord.h"
+#include "../dom/note.h"
+#include "../dom/measure.h"
+#include "../melo/melobridge.h"
+#include "../melo/melochange.h"
+#include "../melo/melostrings.h"
 
 using namespace mu::engraving;
 
@@ -339,9 +345,28 @@ void EditPart::replacePartInstrument(Score* score, Part* part, const Instrument&
                                         hideSystemBarLine, mergeMatchingRests, reflectTransposition));
         }
 
-        // Apply new staff type if provided
-        if (newStaffType) {
-            score->undo(new ChangeStaffType(staff, *newStaffType));
+        if (newInstrument.isMeloJammer()) {
+            if (!staff->staffType(Fraction(0, 1))->isMelo()) {
+                setStaffType(score, staff, StaffTypes::MELO_12TET);
+            } else {
+                StaffType next(*staff->staffType(Fraction(0, 1)));
+                String state;
+                String error;
+                if (melo::applyStateChange(next.meloStateJson(), u"notation:movable", state, error)) {
+                    next.setMeloStateJson(state);
+                    score->undo(new ChangeStaffType(staff, next));
+                }
+            }
+        } else if (newStaffType) {
+            if (newStaffType->isMelo() && !staff->staffType(Fraction(0, 1))->isMelo()) {
+                setStaffType(score, staff, newStaffType->type());
+            } else {
+                StaffType next(*newStaffType);
+                if (next.isMelo() && staff->staffType(Fraction(0, 1))->isMelo()) {
+                    next.setMeloStateJson(staff->staffType(Fraction(0, 1))->meloStateJson());
+                }
+                score->undo(new ChangeStaffType(staff, next));
+            }
         }
     }
 }
@@ -411,18 +436,85 @@ void EditPart::setInstrumentAbbreviature(Score* score, Part* part, const Fractio
     score->undo(new ChangeInstrumentShort(tick, part, { StaffName(abbreviature, 0) }));
 }
 
-void EditPart::setStaffType(Score* score, Staff* staff, StaffTypes typeId)
+bool EditPart::setStaffType(Score* score, Staff* staff, StaffTypes typeId, String* error)
 {
+    auto refuse = [&](const String& reason) {
+        if (error) {
+            *error = reason;
+        }
+        return false;
+    };
     if (!score || !staff) {
-        return;
+        return refuse(muse::mtrc("engraving", "No staff is selected."));
     }
 
     const StaffType* staffType = StaffType::preset(typeId);
     if (!staffType) {
-        return;
+        return refuse(muse::mtrc("engraving", "This staff type is unavailable."));
     }
-
-    score->undo(new ChangeStaffType(staff, *staffType));
+    if (!staffType->isMelo() && staff->part()->instrument()->isMeloJammer()) {
+        return refuse(melo::jammerReferenceRequired());
+    }
+    StaffType next(*staffType);
+    const StaffType* previous = staff->staffType(Fraction(0, 1));
+    if (next.isMelo() && previous->isMelo()) {
+        next.setMeloStateJson(previous->meloStateJson());
+    }
+    struct ConvertedNote {
+        Note* note;
+        melo::SoundingPitch pitch;
+    };
+    std::vector<ConvertedNote> converted;
+    if (next.isMelo() && !previous->isMelo()) {
+        String state;
+        String error;
+        if (!melo::applyStateChange(next.meloStateJson(), staff->part()->instrument()->isMeloJammer()
+                                    ? u"notation:movable" : u"notation:concert", state, error)) {
+            return refuse(error);
+        }
+        next.setMeloStateJson(state);
+        for (Segment* segment = score->firstSegment(SegmentType::ChordRest); segment;
+             segment = segment->next1(SegmentType::ChordRest)) {
+            if (staff->staffType(segment->tick()) != previous) {
+                continue;
+            }
+            for (voice_idx_t voice = 0; voice < VOICES; ++voice) {
+                EngravingItem* item = segment->element(staff->idx() * VOICES + voice);
+                if (!item || !item->isChord()) {
+                    continue;
+                }
+                std::vector<Chord*> chords = toChord(item)->graceNotes();
+                chords.push_back(toChord(item));
+                for (Chord* chord : chords) {
+                    for (Note* note : chord->notes()) {
+                        if (std::abs(note->tuning()) > 1e-9) {
+                            return refuse(muse::mtrc("engraving",
+                                                     "This passage has individually tuned notes. Its sound cannot be preserved by this notation conversion."));
+                        }
+                        const int alter = tpc2alterByKey(note->tpc1(), Key::C);
+                        const String step = tpc2stepName(note->tpc1());
+                        melo::SoundingPitch projection;
+                        if (!melo::entryFromStandardPitch(state, step.at(0).toAscii(), alter,
+                                                          (note->pitch() - alter) / 12 - 1, projection, &error)) {
+                            return refuse(error);
+                        }
+                        converted.push_back({ note, projection });
+                    }
+                }
+            }
+        }
+    }
+    score->undo(new ChangeStaffType(staff, next));
+    for (const ConvertedNote& edit : converted) {
+        edit.note->undoChangeProperty(Pid::MELO_NPER, edit.pitch.nPer);
+        edit.note->undoChangeProperty(Pid::MELO_NGEN, edit.pitch.nGen);
+        const int step = int(String(u"CDEFGAB").indexOf(Char(edit.pitch.step)));
+        const int concertTpc = step2tpc(step, AccidentalVal(edit.pitch.alter));
+        score->undoChangePitch(edit.note, edit.pitch.midiKey, concertTpc, edit.note->writtenTpcForConcert(concertTpc));
+        edit.note->undoChangeProperty(Pid::TUNING, edit.pitch.centsOffset);
+        melo::widenExtentForNote(edit.note);
+    }
+    return true;
 }
 
 void EditPart::removeParts(Score* score, const std::vector<Part*>& parts)

@@ -34,6 +34,9 @@
 #include "engraving/dom/note.h"
 #include "engraving/dom/segment.h"
 #include "engraving/dom/staff.h"
+#include "engraving/melo/melochangecontroller.h"
+#include "engraving/dom/part.h"
+#include "engraving/dom/instrtemplate.h"
 #include "engraving/dom/stafftype.h"
 
 #include "modularity/ioc.h"
@@ -98,6 +101,45 @@ void Mei_Tests::meiReadTest(const char* file)
 
 // MeloPresto MEI (mei-jims profile) focused round trip: typed state import,
 // native carriers, and extMeta regeneration on export.
+TEST_F(Mei_Tests, mei_melo_concert_do_roundtrip) {
+    auto importFunc = [](MasterScore* score, const muse::io::path_t& path) -> Err {
+        MeiReader reader(nullptr);
+        return reader.import(score, path);
+    };
+    auto exportFunc = [](Score* score, const muse::io::path_t& path) -> Err {
+        MeiWriter writer;
+        return writer.writeScore(score, path);
+    };
+    // Reuse the exact default-reference native passage. The synthetic MEI
+    // fixture intentionally has a rounded 261.63 Hz reference, which cannot
+    // be converted losslessly to concert C and must remain a refusal case.
+    std::unique_ptr<MasterScore> score(ScoreRW::readScore(u"../../../engraving/tests/jimstaff_data/collision.mscx"));
+    ASSERT_TRUE(score);
+    score->parts().front()->setInstrument(Instrument::fromTemplate(searchTemplate(u"bb-clarinet")));
+    String error;
+    ASSERT_TRUE(melo::applyChange(score.get(), 0, score->firstMeasure(), u"notation:concert", error)) << error.toStdString();
+    score->rebuildMidiMapping();
+    ASSERT_TRUE(ScoreRW::saveScore(score.get(), u"concert-do.test.mei", exportFunc));
+    std::unique_ptr<MasterScore> reopened(ScoreRW::readScore(u"concert-do.test.mei", true, importFunc));
+    ASSERT_TRUE(reopened);
+    melo::StateChangeOptions options;
+    ASSERT_TRUE(melo::stateChangeOptions(reopened->staff(0)->staffType(Fraction(0, 1))->meloStateJson(), options));
+    EXPECT_TRUE(options.concertC);
+    auto notes = [](Score* s) {
+        std::vector<std::tuple<int, int, int, int> > result;
+        for (const Segment* seg = s->firstSegment(SegmentType::ChordRest); seg; seg = seg->next1(SegmentType::ChordRest)) {
+            const EngravingItem* item = seg->element(0);
+            if (item && item->isChord()) {
+                for (const Note* note : toChord(item)->notes()) {
+                    result.emplace_back(note->pitch(), note->tpc2(), note->meloNPer(), note->meloNGen());
+                }
+            }
+        }
+        return result;
+    };
+    EXPECT_EQ(notes(reopened.get()), notes(score.get()));
+}
+
 TEST_F(Mei_Tests, mei_melo_roundtrip_01) {
     auto importFunc = [](MasterScore* score, const muse::io::path_t& path) -> Err {
         MeiReader meiReader(nullptr);

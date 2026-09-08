@@ -35,6 +35,7 @@
 #include "../dom/fret.h"
 #include "editing/editfretboarddiagram.h"
 #include "editing/editkeysig.h"
+#include "editing/editproperty.h"
 
 using namespace mu::engraving;
 
@@ -423,6 +424,22 @@ void Transpose::transpositionChanged(Score* score, Part* part, Interval oldV, Fr
     }
 
     // now transpose notes and chord symbols
+    auto updateWrittenSpelling = [&](Note* note, const Interval& interval) {
+        const StaffType* type = note->staff()->staffTypeForElement(note);
+        if (note->hasMeloPitch() && type && type->isMelo()) {
+            // Linked staves may use different instruments. Only their own
+            // inherited transposition determines each written spelling.
+            for (EngravingObject* object : note->linkList()) {
+                Note* linked = toNote(object);
+                const int tpc = linked->writtenTpcForConcert(linked->tpc1());
+                if (linked->tpc2() != tpc) {
+                    score->undo(new ChangeProperty(linked, Pid::TPC2, tpc));
+                }
+            }
+        } else {
+            note->undoChangeProperty(Pid::TPC2, transposeTpc(note->tpc1(), interval, true));
+        }
+    };
     for (Segment* s = score->firstSegment(Segment::CHORD_REST_OR_TIME_TICK_TYPE); s; s = s->next1(Segment::CHORD_REST_OR_TIME_TICK_TYPE)) {
         if (s->tick() < tickStart) {
             continue;
@@ -445,13 +462,11 @@ void Transpose::transpositionChanged(Score* score, Part* part, Interval oldV, Fr
                     Chord* c = toChord(e);
                     for (Chord* gc : c->graceNotes()) {
                         for (Note* n : gc->notes()) {
-                            int tpc = transposeTpc(n->tpc1(), v, true);
-                            n->undoChangeProperty(Pid::TPC2, tpc);
+                            updateWrittenSpelling(n, v);
                         }
                     }
                     for (Note* n : c->notes()) {
-                        int tpc = transposeTpc(n->tpc1(), v, true);
-                        n->undoChangeProperty(Pid::TPC2, tpc);
+                        updateWrittenSpelling(n, v);
                     }
                 }
                 // find chord symbols
