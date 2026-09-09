@@ -80,6 +80,16 @@ Column {
             navigation.row: root.navigationRowStart + 2
             onClicked: root.model.advanceMeloChordCursor(8)
         }
+
+        FlatButton {
+            objectName: "meloChordAdvanceSixteenth"
+            width: parent.width
+            text: qsTrc("inspector", "Next sixteenth note")
+            toolTipDescription: qsTrc("inspector", "Advance by one sixteenth note, including within a held note.")
+            navigation.panel: root.navigationPanel
+            navigation.row: root.navigationRowStart + 3
+            onClicked: root.model.advanceMeloChordCursor(16)
+        }
     }
 
     FlatRadioButtonGroupPropertyView {
@@ -90,7 +100,7 @@ Column {
         visible: root.model ? !root.model.insideFretBox : true
 
         navigationPanel: root.navigationPanel
-        navigationRowStart: root.navigationRowStart + 3
+        navigationRowStart: root.navigationRowStart + 4
 
         model: [
             { text: qsTrc("inspector", "Literal"), value: true },

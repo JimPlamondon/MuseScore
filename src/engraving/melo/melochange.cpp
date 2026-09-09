@@ -465,7 +465,7 @@ int deriveTonicAmbits(Score* score)
     }
     const staff_idx_t melodyStaffIdx = melodyStaff->idx();
     int changed = 0;
-    // Section starts come from the explicitly designated melody staff.
+    // Tonal carriers are timeline spans, not separate melodies.
     std::vector<Fraction> starts = { Fraction(0, 1) };
     for (const Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
         for (const StaffTypeChange* carrier : changeCarriers(m, melodyStaffIdx)) {
@@ -474,21 +474,28 @@ int deriveTonicAmbits(Score* score)
             }
         }
     }
+    if (!score->lastMeasure()) {
+        return 0;
+    }
+    String spans = u"[";
     for (size_t i = 0; i < starts.size(); ++i) {
-        StaffType* authority = melodyStaff->staffType(starts[i]);
+        const StaffType* authority = melodyStaff->staffType(starts[i]);
         if (!authority || !authority->isMelo() || authority->meloStateJson().isEmpty()) {
-            continue;
+            return 0;
         }
-        const bool bounded = i + 1 < starts.size();
-        const Fraction end = bounded ? starts[i + 1] : Fraction(0, 1);
-        String melody = u"{\"notes\":[";
+        const Fraction end = i + 1 < starts.size() ? starts[i + 1] : score->lastMeasure()->endTick();
+        if (i > 0) {
+            spans += u",";
+        }
+        spans += String(u"{\"state\":%1,\"duration\":%2,\"melody\":{\"notes\":[")
+                 .arg(authority->meloStateJson()).arg((end - starts[i]).ticks());
         bool first = true;
         for (const Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
              seg = seg->next1(SegmentType::ChordRest)) {
             if (seg->tick() < starts[i]) {
                 continue;
             }
-            if (bounded && seg->tick() >= end) {
+            if (seg->tick() >= end) {
                 break;
             }
             for (track_idx_t track = melodyStaffIdx * VOICES; track < (melodyStaffIdx + 1) * VOICES; ++track) {
@@ -501,22 +508,21 @@ int deriveTonicAmbits(Score* score)
                         continue;
                     }
                     if (!first) {
-                        melody += u",";
+                        spans += u",";
                     }
-                    melody += String(u"{\"nPer\":%1,\"nGen\":%2}").arg(note->meloNPer()).arg(note->meloNGen());
                     first = false;
+                    spans += String(u"{\"nPer\":%1,\"nGen\":%2}").arg(note->meloNPer()).arg(note->meloNGen());
                 }
             }
         }
-        melody += u"]}";
-        if (first) {
-            continue;
-        }
-        String token;
-        String error;
-        if (!tonicAmbitForMelody(authority->meloStateJson(), melody, token, &error)) {
-            continue;
-        }
+        spans += u"]}}";
+    }
+    spans += u"]";
+    String token;
+    if (!songwideTonicAmbit(spans, token)) {
+        return 0;
+    }
+    for (size_t i = 0; i < starts.size(); ++i) {
         // The identical Kernel token is repeated through every staff carrier;
         // repetition is transport, never a second authority.
         for (staff_idx_t staffIdx = 0; staffIdx < score->nstaves(); ++staffIdx) {

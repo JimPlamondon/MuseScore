@@ -69,6 +69,7 @@ bool tonicCentsAboveDo(const muse::String& stateJson, double& cents);
 /// `tonic-centered` (plagal). False — with `error` set — for an empty melody
 /// or one wider than the classifier's two-tonic-octave window; the caller
 /// then keeps the declared token (never a third value).
+bool songwideTonicAmbit(const muse::String& spansJson, muse::String& token, muse::String* error = nullptr);
 bool tonicAmbitForMelody(const muse::String& stateJson, const muse::String& melodyJson, muse::String& token, muse::String* error = nullptr);
 
 /// The staff's tuning metrics (generator and period widths in cents),

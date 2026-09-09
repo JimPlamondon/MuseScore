@@ -332,6 +332,15 @@ bool tonicAmbitForMelody(const String& stateJson, const String& melodyJson, Stri
     return true;
 }
 
+bool songwideTonicAmbit(const String& spansJson, String& token, String* error)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"songwide_tonic_ambit\",\"spans\":%1}").arg(spansJson);
+    if (!stringResult(callBridge(envelope), token, error)) {
+        return false;
+    }
+    return token == u"tonic-bounded" || token == u"tonic-centered";
+}
+
 bool musicxmlStaffStateV3Xml(const String& stateJson, int staffNumber, String& out, String* error)
 {
     String envelope = staffNumber > 0

@@ -162,11 +162,13 @@ TEST_F(MeloUiModelTests, MeloChordCursorControlsUseExactDurationsWithoutEditingN
     ASSERT_TRUE(component.isReady()) << component.errorString().toStdString();
     ASSERT_GE(model.metaObject()->indexOfMethod("advanceMeloChordCursor(int)"), 0);
     ON_CALL(*interaction, isTextEditingStarted()).WillByDefault(testing::Return(false));
-    EXPECT_CALL(*interaction, startEditText(harmony, testing::_)).Times(2);
+    EXPECT_CALL(*interaction, startEditText(harmony, testing::_)).Times(3);
     EXPECT_CALL(*interaction, navigateToHarmony(Fraction(1, 4))).Times(1);
     EXPECT_CALL(*interaction, navigateToHarmony(Fraction(1, 8))).Times(1);
+    EXPECT_CALL(*interaction, navigateToHarmony(Fraction(1, 16))).Times(1);
     ASSERT_TRUE(QMetaObject::invokeMethod(&model, "advanceMeloChordCursor", Q_ARG(int, 4)));
     ASSERT_TRUE(QMetaObject::invokeMethod(&model, "advanceMeloChordCursor", Q_ARG(int, 8)));
+    ASSERT_TRUE(QMetaObject::invokeMethod(&model, "advanceMeloChordCursor", Q_ARG(int, 16)));
     ASSERT_TRUE(QMetaObject::invokeMethod(&model, "advanceMeloChordCursor", Q_ARG(int, 0)));
     ASSERT_TRUE(QMetaObject::invokeMethod(&model, "advanceMeloChordCursor", Q_ARG(int, 3)));
 }

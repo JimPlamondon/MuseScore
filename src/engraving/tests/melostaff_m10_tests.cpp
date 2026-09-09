@@ -861,3 +861,50 @@ TEST(Engraving_MeloStaffM10SATBTests, melodyDesignationDefaultsOverridesAndUndoR
     EXPECT_EQ(reloaded->meloMelodyPart(), melo::MelodyPart::Tenor);
     delete reloaded;
 }
+
+TEST(Engraving_MeloStaffM10SATBTests, tonalChangesDoNotTruncateTheDesignatedMelodyForAmbit)
+{
+    MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m9-satb-hymn.mscx");
+    ASSERT_TRUE(score);
+    Measure* second = score->firstMeasure()->nextMeasure();
+    ASSERT_TRUE(second);
+    String error;
+    ASSERT_TRUE(melo::applyChangeToAllMeloParts(score, second, { u"mode:1" }, error));
+    auto notes = notesOn(score, 0);
+    ASSERT_GE(notes.size(), 3u);
+    for (Note* note : notes) {
+        note->setMeloPitch(note->tick() < second->tick() ? -1 : 1, note->tick() < second->tick() ? -1 : -3);
+    }
+    String expected;
+    ASSERT_TRUE(melo::tonicAmbitForMelody(score->staff(0)->staffType(second->tick())->meloStateJson(),
+                                          melodyJson(notes), expected));
+    melo::deriveTonicAmbits(score);
+    for (staff_idx_t i = 0; i < score->nstaves(); ++i) {
+        EXPECT_EQ(score->staff(i)->staffType(Fraction(0, 1))->meloTonicAmbit(), expected);
+        EXPECT_EQ(score->staff(i)->staffType(second->tick())->meloTonicAmbit(), expected);
+    }
+    delete score;
+}
+
+TEST(Engraving_MeloStaffM10SATBTests, optionalNativeUiPilotMelodyAmbits)
+{
+    const char* path = std::getenv("MELO_AMBIT_PILOT");
+    const char* expected = std::getenv("MELO_AMBIT_EXPECTED");
+    if (!path || !expected) {
+        GTEST_SKIP() << "Set MELO_AMBIT_PILOT and MELO_AMBIT_EXPECTED for a read-only UI pilot check";
+    }
+    MasterScore* score = ScoreRW::readScore(String::fromUtf8(path), true);
+    ASSERT_TRUE(score);
+    melo::deriveTonicAmbits(score);
+    for (staff_idx_t i = 0; i < score->nstaves(); ++i) {
+        for (Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
+            EXPECT_EQ(score->staff(i)->staffType(m->tick())->meloTonicAmbit().toStdString(), expected)
+                << "staff " << i << " measure " << m->no();
+            for (const StaffTypeChange* change : melo::changeCarriers(m, i)) {
+                EXPECT_EQ(score->staff(i)->staffType(change->tick())->meloTonicAmbit().toStdString(), expected)
+                    << "staff " << i << " change at " << change->tick().ticks();
+            }
+        }
+    }
+    delete score;
+}

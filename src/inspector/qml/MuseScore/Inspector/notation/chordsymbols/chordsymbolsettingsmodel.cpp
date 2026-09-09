@@ -106,7 +106,7 @@ void ChordSymbolSettingsModel::addFretboardDiagram()
 
 void ChordSymbolSettingsModel::advanceMeloChordCursor(int denominator)
 {
-    if ((denominator != 4 && denominator != 8) || m_elementList.size() != 1 || !hasMeloSelection()) {
+    if ((denominator != 4 && denominator != 8 && denominator != 16) || m_elementList.size() != 1 || !hasMeloSelection()) {
         return;
     }
     auto notation = currentNotation();
