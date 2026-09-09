@@ -8,6 +8,8 @@
 #include <gtest/gtest.h>
 
 #include <functional>
+#include <cstdlib>
+#include <iostream>
 
 #include "engraving/dom/chord.h"
 #include "engraving/dom/factory.h"
@@ -31,6 +33,7 @@
 #include "engraving/melo/melotuningcontroller.h"
 #include "draw/bufferedpaintprovider.h"
 #include "draw/painter.h"
+#include "draw/utils/drawdatarw.h"
 #include "io/dir.h"
 
 #include "utils/scorerw.h"
@@ -131,6 +134,145 @@ size_t tuningLabelCount(const StaffLines* lines)
     }
     return count;
 }
+}
+
+TEST(Engraving_MeloStaffM10SATBTests, stateChangesKeepDoLinesOnTheSystemHeaderReference)
+{
+    for (bool elide : { false, true }) {
+        MasterScore* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+        ASSERT_TRUE(score);
+        score->style().set(Sid::meloElideEmptyOctaves, elide);
+        score->style().set(Sid::meloShowAllOctavesInFirstSystem, false);
+        Measure* first = score->firstMeasure();
+        Measure* second = first->nextMeasure();
+        ASSERT_TRUE(second);
+        String error;
+        ASSERT_TRUE(melo::applyChange(score, 0, first, u"bind:reference-pitch:62", error));
+        ASSERT_TRUE(melo::applyChange(score, 0, second, u"key:-1:1", error)) << error.toStdString();
+        StaffType* base = score->staff(0)->staffType(first->tick());
+        String widened;
+        ASSERT_TRUE(melo::widenExtent(base->meloStateJson(), 3, 0, widened));
+        base->setMeloStateJson(widened);
+        score->doLayout();
+        ASSERT_EQ(first->system(), second->system());
+        std::vector<double> headDo;
+        for (const auto& line : first->staffLines(0)->meloGuideLines()) {
+            if (line.colorStyle == Sid::meloDoLineColor) {
+                headDo.push_back(line.line.y1());
+            }
+        }
+        ASSERT_FALSE(headDo.empty());
+        for (const auto& line : second->staffLines(0)->meloGuideLines()) {
+            if (line.colorStyle == Sid::meloDoLineColor) {
+                double nearest = 1e9;
+                for (double y : headDo) {
+                    nearest = std::min(nearest, std::abs(y - line.line.y1()));
+                }
+                EXPECT_NEAR(nearest, 0.0, 1e-6) << "a key change must not move the Do-line away from the clef";
+            }
+        }
+        delete score;
+    }
+}
+
+TEST(Engraving_MeloStaffM10SATBTests, keyIndicatorFitsWhenItsPeriodZeroIsBelowTheStaff)
+{
+    StaffType::MeloFrameView view;
+    StaffType::MeloFrameBand band;
+    band.lowerCents = 0.0;
+    band.upperCents = 1000.0;
+    band.segments.push_back({ 0.0, 1000.0, false });
+    view.bands.push_back(band);
+    melo::ChangeIndicator indicator;
+    indicator.kinds.push_back(u"key");
+    melo::ChangeArrow arrow;
+    arrow.kind = u"key";
+    arrow.from.periodOffset = 1;
+    arrow.to.ordinate = 5.0 / 12.0;
+    arrow.up = false;
+    indicator.arrows.push_back(arrow);
+    EXPECT_DOUBLE_EQ(melo::changeAnchorPeriodCents(view, indicator, 1200.0, 1000.0), -200.0);
+    EXPECT_TRUE(melo::changeIndicatorOverflowCents(view, indicator, 1200.0, 1000.0).empty());
+}
+
+TEST(Engraving_MeloStaffM10SATBTests, externalPilotFixedDoDrawingEvidence)
+{
+    const char* path = std::getenv("MELO_FIXED_DO_PILOT");
+    if (!path) {
+        GTEST_SKIP() << "optional read-only evidence from a native UI-created pilot";
+    }
+    MasterScore* score = ScoreRW::readScore(String::fromUtf8(path), true);
+    ASSERT_TRUE(score);
+    score->setLayoutMode(LayoutMode::LINE);
+    score->doLayout();
+    int measureNo = 0;
+    for (Measure* measure = score->firstMeasure(); measure; measure = measure->nextMeasure()) {
+        ++measureNo;
+        for (staff_idx_t staffIdx = 0; staffIdx < score->nstaves(); ++staffIdx) {
+            const StaffType* type = score->staff(staffIdx)->staffType(measure->tick());
+            if (!type->isMelo()) {
+                continue;
+            }
+            const auto& view = type->meloFrameView(score, staffIdx, measure->system());
+            melo::PeriodicOrigins origins;
+            ASSERT_TRUE(melo::periodicOrigins(type->meloStateJson(), origins));
+            std::cout << "FRAME m=" << measureNo << " staff=" << staffIdx + 1
+                      << " bottom=" << view.bottomCents() << " top=" << view.topCents()
+                      << " do=" << origins.doCentsAboveExtentLower << " lines=";
+            for (const auto& line : measure->staffLines(staffIdx)->meloGuideLines()) {
+                if (line.colorStyle == Sid::meloDoLineColor) {
+                    std::cout << line.line.y1() << ",";
+                    const auto* headLines = measure->system()->firstMeasure()->staffLines(staffIdx);
+                    bool aligned = false;
+                    for (const auto& head : headLines->meloGuideLines()) {
+                        aligned |= head.colorStyle == Sid::meloDoLineColor
+                                   && std::abs(head.line.y1() - line.line.y1()) < 1e-6;
+                    }
+                    EXPECT_TRUE(aligned) << "measure " << measureNo << " staff " << staffIdx + 1;
+                }
+            }
+            std::cout << std::endl;
+            if (const char* out = std::getenv("MELO_FIXED_DO_DRAWING")) {
+                auto provider = std::make_shared<BufferedPaintProvider>();
+                Painter painter(provider, "fixed-do");
+                painter.setViewport(RectF(0, 0, 4000, 4000));
+                PaintOptions options;
+                const StaffLines* lines = measure->staffLines(staffIdx);
+                lines->renderer()->drawItem(lines, &painter, options);
+                painter.endDraw();
+                melo::ChangeIndicator indicator;
+                if (melo::midSystemChangeIndicator(measure, staffIdx, indicator)) {
+                    size_t shafts = 0;
+                    const auto data = provider->drawData();
+                    const double top = type->meloYFromCents(view.topCents(), view) * lines->spatium();
+                    const double bottom = type->meloYFromCents(view.bottomCents(), view) * lines->spatium();
+                    std::function<void(const DrawData::Item&)> inspect = [&](const DrawData::Item& item) {
+                        for (const auto& draw : item.datas) {
+                            const auto& pen = data->states.at(draw.state).pen;
+                            for (const auto& polygon : draw.polygons) {
+                                if (polygon.polygon.size() == 2 && pen.capStyle() == PenCapStyle::RoundCap
+                                    && std::abs(polygon.polygon[0].x() - polygon.polygon[1].x()) < 1e-6) {
+                                    ++shafts;
+                                    for (const auto& point : polygon.polygon) {
+                                        EXPECT_GE(point.y(), top - 1e-6) << "arrow above staff " << staffIdx + 1;
+                                        EXPECT_LE(point.y(), bottom + 1e-6) << "arrow below staff " << staffIdx + 1;
+                                    }
+                                }
+                            }
+                        }
+                        for (const auto& child : item.chilren) {
+                            inspect(child);
+                        }
+                    };
+                    inspect(data->item);
+                    EXPECT_EQ(shafts, indicator.arrows.size()) << "wrong indicator count on staff " << staffIdx + 1;
+                }
+                DrawDataRW::writeData(String::fromUtf8(out) + String(u"-m%1-s%2.json").arg(measureNo).arg(staffIdx + 1),
+                                      provider->drawData(), true);
+            }
+        }
+    }
+    delete score;
 }
 
 TEST(Engraving_MeloStaffM10SATBTests, tuningUpdatesMidMeasureCarriersAndCancelRestoresThem)
@@ -517,7 +659,8 @@ TEST(Engraving_MeloStaffM10SATBTests, everyEmptyVocalStaffUsesItsKernelRangeCent
     delete score;
 }
 
-// A later empty section must not acquire the written range of an earlier one.
+// A later empty section retains its own written extent, while its displayed
+// scaffold shares the preceding section's Do reference.
 TEST(Engraving_MeloStaffM10SATBTests, eachStaffTypeSpanCollectsOnlyItsOwnNotes)
 {
     MasterScore* score = ScoreRW::readScore(u"jimstaff_data/m9-satb-mixed.mscx");
@@ -553,15 +696,23 @@ TEST(Engraving_MeloStaffM10SATBTests, eachStaffTypeSpanCollectsOnlyItsOwnNotes)
     const StaffType* empty = staff->staffType(second->tick());
     ASSERT_NE(empty, staff->staffType(Fraction(0, 1)));
     ASSERT_TRUE(empty->meloExtentIsEmptyDefault());
+    const String emptyState = empty->meloStateJson();
     for (bool elide : { false, true }) {
         score->style().set(Sid::meloElideEmptyOctaves, elide);
         score->style().set(Sid::meloShowAllOctavesInFirstSystem, false);
         score->setLayoutAll();
         score->doLayout();
         const auto& view = empty->meloFrameView(score, 0, second->system());
-        ASSERT_EQ(view.bands.size(), 1u);
-        EXPECT_NEAR(view.bottomCents(), -empty->meloPeriodCents() / 4.0, 1e-6);
-        EXPECT_NEAR(view.topCents(), empty->meloPeriodCents() / 4.0, 1e-6);
+        const StaffType* base = staff->staffType(Fraction(0, 1));
+        const auto& baseView = base->meloFrameView(score, 0, second->system());
+        ASSERT_EQ(view.bands.size(), baseView.bands.size());
+        double emptyDo = 0.0;
+        double baseDo = 0.0;
+        ASSERT_TRUE(melo::noteCentsAboveExtentLower(empty->meloStateJson(), 1, -2, emptyDo));
+        ASSERT_TRUE(melo::noteCentsAboveExtentLower(base->meloStateJson(), 1, -2, baseDo));
+        EXPECT_NEAR(view.topCents() - emptyDo, baseView.topCents() - baseDo, 1e-6);
+        EXPECT_NEAR(view.bottomCents() - emptyDo, baseView.bottomCents() - baseDo, 1e-6);
+        EXPECT_EQ(empty->meloStateJson(), emptyState);
     }
     delete score;
 }

@@ -1435,8 +1435,8 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, changeIndicatorAnchorsOnTheDoLineT
     pb.lowerCents = 300.0;
     pb.upperCents = 900.0;
     partial.bands.push_back(pb);
-    // No Do-line inside the segment at all -> fallback (the stack's lowest period).
-    EXPECT_DOUBLE_EQ(melo::changeAnchorPeriodCents(partial, doToLa, P), 0.0);
+    // No Do-line is inside: the upper anchor minimizes overflow to 300 cents.
+    EXPECT_DOUBLE_EQ(melo::changeAnchorPeriodCents(partial, doToLa, P), 1200.0);
     // Banded (M8): [0,1200] and [3600,4800]; Do -> La fits in the low band at 1200
     // (La 900) — the lowest fitting anchor, not the top band's.
     StaffType::MeloFrameView banded = whole(0, 1200);
@@ -1806,21 +1806,22 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, changeIndicatorExtendsTheStaffWhen
     const StaffType* baseSt = st(score);
     const StaffType* changeSt = score->staff(0)->staffType(m2->tick());
     ASSERT_TRUE(changeSt && changeSt->isMelo() && changeSt != baseSt);
-    // The base section keeps the exact half-period minimum about the
-    // midpoint of its retained written extremes, without ratio-line snapping.
+    // Indicator coverage extends the common frame, including the base
+    // section: independent section tops would detach Do from the clef.
     const StaffType::MeloFrameView& baseView = baseSt->meloWholeFrameView(score, 0);
     ASSERT_FALSE(baseView.empty());
-    EXPECT_NEAR(baseView.bottomCents(), -250.0, 1e-6);
-    EXPECT_NEAR(baseView.topCents(), 350.0, 1e-6);
     // The change section (Do -> La): its frame is extended to cover the
     // indicator — La sits 300 cents below Do, one margin further down.
     melo::ChangeIndicator model;
     ASSERT_TRUE(melo::changeIndicatorIntoStaffType(score, 0, changeSt, model));
     const StaffType::MeloFrameView& changeView = changeSt->meloWholeFrameView(score, 0);
     ASSERT_FALSE(changeView.empty());
-    // Before extension the indicator overflowed the base-shaped window.
-    EXPECT_FALSE(melo::changeIndicatorOverflowCents(baseView, model, changeSt->meloPeriodCents()).empty())
-        << "the indicator does not fit the un-extended window";
+    double baseDo = 0.0;
+    double changedDo = 0.0;
+    ASSERT_TRUE(melo::noteCentsAboveExtentLower(baseSt->meloStateJson(), 1, -2, baseDo));
+    ASSERT_TRUE(melo::noteCentsAboveExtentLower(changeSt->meloStateJson(), 1, -2, changedDo));
+    EXPECT_NEAR(baseView.topCents() - baseDo, changeView.topCents() - changedDo, 1e-6);
+    EXPECT_NEAR(baseView.bottomCents() - baseDo, changeView.bottomCents() - changedDo, 1e-6);
     // After extension: the section's frame grew (here to the Do..Do octave)
     // and the whole indicator is on the staff.
     EXPECT_GE(changeView.topCents(), 1200.0 - 1e-6) << "the section's staff extends to the upper Do";

@@ -543,6 +543,10 @@ private:
     MeloElideOctaves m_meloElideOctaves = MeloElideOctaves::Auto;
     String m_meloRatioLineExtentJson;
     mutable muse::String m_meloFrameKey;
+    mutable muse::String m_meloSectionFrameKey;
+    mutable std::vector<MeloSegment> m_meloSectionFrameSegments;
+    void meloEnsureSectionFrame(const Score* score, staff_idx_t staffIdx) const;
+    const MeloFrameView& meloSectionFrameView(const Score* score, staff_idx_t staffIdx, const System* system) const;
     mutable bool m_meloFrameFrozen = false;
     mutable std::vector<MeloSegment> m_meloFrameSegments;
     // Milestone 8: explicit per-range frame views, keyed by the system

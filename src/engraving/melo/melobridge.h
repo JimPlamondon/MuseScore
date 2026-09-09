@@ -257,6 +257,12 @@ struct FrameBands {
     std::vector<FrameBand> bands;
     int omittedPeriodCount = 0;
 };
+struct FrameAlignmentSection {
+    muse::String stateJson;
+    std::vector<StaveSegment> segments;
+};
+bool alignSectionFrames(const muse::String& stateJson, const std::vector<FrameAlignmentSection>& sections, bool preserveGaps,
+                        FrameBands& out);
 bool frameBandsForMelody(const muse::String& stateJson, const muse::String& melodyJson, const muse::String& extentToken,
                          bool elideEmptyPeriods, int minBandPeriods, FrameBands& out, const std::vector<double>& extraCents = {},
                          const muse::String& ratioLineExtentJson = {}, bool retainWrittenExtent = false);

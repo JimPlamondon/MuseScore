@@ -250,13 +250,18 @@ double changeAnchorPeriodCents(const StaffType::MeloFrameView& view, const Chang
     if (offsets.empty()) {
         return fallback;
     }
-    // Candidate anchors: every Do-line inside a drawn segment, ascending.
+    // Period zero need not itself be visible: an arrow may start on Do in
+    // period one. Include anchors whose translated endpoints can fit, or
+    // extending a short frame can make the chosen anchor jump an octave.
     std::vector<double> candidates;
+    const auto offsetRange = std::minmax_element(offsets.begin(), offsets.end());
     for (const StaffType::MeloFrameBand& band : view.bands) {
         for (const StaffType::MeloSegment& seg : band.segments) {
             const double first = doCentsAboveExtentLower
-                                 + std::ceil((seg.lowerCents - doCentsAboveExtentLower - eps) / periodCents) * periodCents;
-            for (double b = first; b <= seg.upperCents + eps; b += periodCents) {
+                                 + std::floor((seg.lowerCents - doCentsAboveExtentLower) / periodCents
+                                              - *offsetRange.second) * periodCents;
+            const double last = seg.upperCents - *offsetRange.first * periodCents;
+            for (double b = first; b <= last + eps; b += periodCents) {
                 if (candidates.empty() || std::abs(candidates.back() - b) > eps) {
                     candidates.push_back(b);
                 }

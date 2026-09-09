@@ -580,6 +580,36 @@ bool frameForMelody(const String& stateJson, const String& melodyJson,
     return !segments.empty();
 }
 
+static bool readFrameBands(const JsonValue& result, FrameBands& out);
+
+bool alignSectionFrames(const String& stateJson, const std::vector<FrameAlignmentSection>& sections,
+                        bool preserveGaps, FrameBands& out)
+{
+    String json = u"[";
+    for (size_t i = 0; i < sections.size(); ++i) {
+        if (i) {
+            json += u",";
+        }
+        json += String(u"{\"state\":%1,\"segments\":[").arg(sections[i].stateJson);
+        for (size_t j = 0; j < sections[i].segments.size(); ++j) {
+            if (j) {
+                json += u",";
+            }
+            const StaveSegment& segment = sections[i].segments[j];
+            json += String(u"{\"lower_cents\":%1,\"upper_cents\":%2,\"whole\":%3}")
+                    .arg(String::number(segment.lowerCents, 17)).arg(String::number(segment.upperCents, 17))
+                    .arg(String(segment.whole ? u"true" : u"false"));
+        }
+        json += u"]}";
+    }
+    json += u"]";
+    JsonValue result;
+    return okResult(callBridge(String(u"{\"abi\":2,\"op\":\"align_section_frames\",\"state\":%1,"
+                                      u"\"sections\":%2,\"preserve_gaps\":%3}")
+                               .arg(stateJson).arg(json).arg(String(preserveGaps ? u"true" : u"false"))), result)
+           && readFrameBands(result, out);
+}
+
 bool frameBandsForMelody(const String& stateJson, const String& melodyJson,
                          const String& extentToken, bool elideEmptyPeriods, int minBandPeriods,
                          FrameBands& out, const std::vector<double>& extraCents, const String& ratioLineExtentJson,
@@ -605,6 +635,12 @@ bool frameBandsForMelody(const String& stateJson, const String& melodyJson,
     if (o.value("schema").toString() != u"jims.frame-bands.v1") {
         return false;
     }
+    return readFrameBands(result, out);
+}
+
+static bool readFrameBands(const JsonValue& result, FrameBands& out)
+{
+    JsonObject o = result.toObject();
     out = FrameBands();
     out.omittedPeriodCount = o.value("omitted_period_count").toInt();
     JsonArray bands = o.value("bands").toArray();
