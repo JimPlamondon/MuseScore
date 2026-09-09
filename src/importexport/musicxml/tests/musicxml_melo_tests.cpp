@@ -1573,14 +1573,19 @@ TEST_F(MusicXml_Melo_Tests, m9SATBTemplateRoundTripsPreservingEachVoicesOwnExten
     ASSERT_EQ(score->nstaves(), 4u);
 
     // Empty staves carry centre anchors, not a written-note range. Their
-    // geometry must preserve the owner-confirmed half-period frame on reload.
+    // geometry must preserve the tonic-bounded ratio frame on reload.
     auto expectEmptyFrames = [](MasterScore* checked) {
         for (staff_idx_t idx = 0; idx < checked->nstaves(); ++idx) {
             const StaffType* st = checked->staff(idx)->staffType(Fraction(0, 1));
             const auto& segments = st->meloFrameSegments();
             ASSERT_FALSE(segments.empty());
-            EXPECT_NEAR(segments.front().lowerCents, -300.0, 1e-9);
-            EXPECT_NEAR(segments.back().upperCents, 300.0, 1e-9);
+            melo::PeriodicOrigins origins;
+            ASSERT_TRUE(melo::periodicOrigins(st->meloStateJson(), origins));
+            const double period = st->meloPeriodCents();
+            EXPECT_NEAR(std::remainder(segments.front().lowerCents - origins.doCentsAboveExtentLower, period),
+                        0.0, 1e-9);
+            EXPECT_NEAR(segments.back().upperCents - segments.front().lowerCents,
+                        period * std::log2(3.0 / 2.0), 1e-9);
         }
     };
     expectEmptyFrames(score);
