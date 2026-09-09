@@ -214,6 +214,18 @@ TEST(Engraving_MeloStaffM10SATBTests, externalPilotFixedDoDrawingEvidence)
                 continue;
             }
             const auto& view = type->meloFrameView(score, staffIdx, measure->system());
+            for (const auto& band : view.bands) {
+                for (double edge : { band.lowerCents, band.upperCents }) {
+                    const auto* staffLines = measure->staffLines(staffIdx);
+                    const double y = type->meloYFromCents(edge, view) * staffLines->spatium();
+                    bool hasBoundary = false;
+                    for (const auto& guide : staffLines->meloGuideLines()) {
+                        hasBoundary |= std::abs(guide.line.y1() - y) < 1e-6;
+                    }
+                    EXPECT_TRUE(hasBoundary) << "missing boundary m=" << measureNo
+                                             << " staff=" << staffIdx + 1 << " cents=" << edge;
+                }
+            }
             melo::PeriodicOrigins origins;
             ASSERT_TRUE(melo::periodicOrigins(type->meloStateJson(), origins));
             std::cout << "FRAME m=" << measureNo << " staff=" << staffIdx + 1
