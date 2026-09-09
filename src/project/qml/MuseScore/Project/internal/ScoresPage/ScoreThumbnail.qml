@@ -104,7 +104,7 @@ Item {
                         case "mei":
                             return "images/Placeholder_MEI.png"
                         default:
-                            return "images/Placeholder_Other.png"
+                            return "qrc:/melo/icons/document.svg"
                         }
                     }
 

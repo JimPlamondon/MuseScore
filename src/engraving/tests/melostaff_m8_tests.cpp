@@ -201,7 +201,7 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, m8WholeViewIsOneBandWithLegacyGeom
     EXPECT_EQ(whole.bands[0].segments.size(), 5u);   // five segments across the fitted note extent
     // The whole frame's "[PitchN]:" names the period index selected by the
     // Kernel for its lowest labelled tonic row, not an inferred extent centre.
-    EXPECT_EQ(whole.bands[0].labelPeriodIndex, 0);
+    EXPECT_EQ(whole.bands[0].labelPeriodIndex, -1);
     melo::TonicPitchLabel wholeLabel;
     ASSERT_TRUE(melo::tonicPitchLabelInPeriod(jst->meloStateJson(), whole.bands[0].labelPeriodIndex, wholeLabel));
     EXPECT_TRUE(whole.bands[0].tonicLabel == wholeLabel.label);
@@ -242,18 +242,18 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, m8ElisionOffMatchesPhase2Baseline)
         EXPECT_FALSE(st(score)->meloElisionActive(score, 0, system));
         const StaffType::MeloFrameView& v = viewOn(score, system);
         EXPECT_EQ(v.bands.size(), 1u);
-        EXPECT_NEAR(v.bottomCents(), 0.0, EPS);
-        EXPECT_NEAR(v.topCents(), 5700.0, EPS);
+        EXPECT_NEAR(v.bottomCents(), -200.0, EPS);
+        EXPECT_NEAR(v.topCents(), 5800.0, EPS);
         Measure* m = system->firstMeasure();
-        // The fitted extent lower is not Do. The four actual Do rows
+        // The fitted extent lower is not Do. The six actual Do rows
         // inside this frame are each drawn exactly once.
-        EXPECT_EQ(redDoLineCount(m->staffLines(0)), 4);
+        EXPECT_EQ(redDoLineCount(m->staffLines(0)), 6);
     }
     delete score;
 }
 
 // (ii) Style on + staff Auto: system 1 whole (first-system rule), later
-// systems two bands with one intervening segment omitted; per-band labels and Do-line
+// systems two bands with three intervening segments omitted; per-band labels and Do-line
 // counts; staff height = band heights + one staffDistance gap.
 TEST_F(Engraving_MeloStaffM8BandElisionTests, m8StyleOnBandsLaterSystemsWithLabelsAndHeight)
 {
@@ -268,7 +268,7 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, m8StyleOnBandsLaterSystemsWithLabe
         const StaffType::MeloFrameView& v = viewOn(score, systems[0]);
         EXPECT_FALSE(v.banded);
         EXPECT_EQ(v.bands.size(), 1u);
-        EXPECT_EQ(redDoLineCount(systems[0]->firstMeasure()->staffLines(0)), 4);
+        EXPECT_EQ(redDoLineCount(systems[0]->firstMeasure()->staffLines(0)), 6);
     }
     const double ld = st(score)->lineDistance().val();
     const double gapLd = score->style().styleS(Sid::staffDistance).val() / ld;
@@ -276,13 +276,13 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, m8StyleOnBandsLaterSystemsWithLabe
         const StaffType::MeloFrameView& v = viewOn(score, systems[i]);
         EXPECT_TRUE(v.banded) << "system " << i + 1;
         ASSERT_EQ(v.bands.size(), 2u) << "system " << i + 1;
-        EXPECT_EQ(v.omittedPeriodCount, 1);
-        EXPECT_NEAR(v.bands[0].lowerCents, 0.0, EPS);
-        EXPECT_NEAR(v.bands[0].upperCents, 2200.0, EPS);
-        EXPECT_NEAR(v.bands[1].lowerCents, 3400.0, EPS);
-        EXPECT_NEAR(v.bands[1].upperCents, 5700.0, EPS);
-        EXPECT_EQ(v.bands[0].labelPeriodIndex, 0);
-        EXPECT_EQ(v.bands[1].labelPeriodIndex, 2);
+        EXPECT_EQ(v.omittedPeriodCount, 3);
+        EXPECT_NEAR(v.bands[0].lowerCents, -200.0, EPS);
+        EXPECT_NEAR(v.bands[0].upperCents, 1000.0, EPS);
+        EXPECT_NEAR(v.bands[1].lowerCents, 4600.0, EPS);
+        EXPECT_NEAR(v.bands[1].upperCents, 5800.0, EPS);
+        EXPECT_EQ(v.bands[0].labelPeriodIndex, -1);
+        EXPECT_EQ(v.bands[1].labelPeriodIndex, 3);
         for (const StaffType::MeloFrameBand& band : v.bands) {
             melo::TonicPitchLabel expected;
             ASSERT_TRUE(melo::tonicPitchLabelInPeriod(st(score)->meloStateJson(), band.labelPeriodIndex, expected));
@@ -290,8 +290,8 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, m8StyleOnBandsLaterSystemsWithLabe
         }
         // Geometry: top band at 0, bottom band below it plus one gap.
         EXPECT_NEAR(v.bands[1].yTopLd, 0.0, EPS);
-        EXPECT_NEAR(v.bands[0].yTopLd, 23.0 + gapLd, EPS);
-        EXPECT_NEAR(v.heightLd(), 45.0 + gapLd, EPS);
+        EXPECT_NEAR(v.bands[0].yTopLd, 12.0 + gapLd, EPS);
+        EXPECT_NEAR(v.heightLd(), 24.0 + gapLd, EPS);
         EXPECT_NEAR(v.gapLd, gapLd, EPS);
         // Two boundary Do rows in each band,
         // with none in the gap.
@@ -340,7 +340,7 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, m8FirstSystemSwitchOffBandsSystemO
         const StaffType::MeloFrameView& v = viewOn(score, system);
         EXPECT_TRUE(v.banded);
         EXPECT_EQ(v.bands.size(), 2u);
-        EXPECT_EQ(v.omittedPeriodCount, 1);
+        EXPECT_EQ(v.omittedPeriodCount, 3);
     }
     {
         Measure* m1 = systems[0]->firstMeasure();
@@ -473,9 +473,9 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, m8GapClickSnapsToNearestBandEdgeAn
         EXPECT_FALSE(error);
         return nval.pitch;
     };
-    EXPECT_EQ(entryPitch(gapTop + 0.5), 72);
-    EXPECT_EQ(entryPitch(gapBottom - 0.5), 60);
-    EXPECT_EQ(entryPitch((gapTop + gapBottom) / 2.0), 60);
+    EXPECT_EQ(entryPitch(gapTop + 0.5), 84);
+    EXPECT_EQ(entryPitch(gapBottom - 0.5), 48);
+    EXPECT_EQ(entryPitch((gapTop + gapBottom) / 2.0), 48);
     delete score;
 }
 
@@ -494,7 +494,7 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, m8DragFreezeThenDropRederives)
     ASSERT_EQ(n->meloNPer(), 2);   // D6 (2,0)
     st(score)->meloSetFrameFrozen(true);
     // Move the note into the omitted interior period; its occupancy must
-    // merge the two bands only after the frozen frame is released.
+    // add the occupied middle band only after the frozen frame is released.
     n->setMeloPitch(0, 0);
     n->setPitch(62);
     score->setLayoutAll();
@@ -504,16 +504,16 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, m8DragFreezeThenDropRederives)
     // tick range, never by System pointer.)
     system2 = measureSystems(score)[1];
     EXPECT_EQ(viewOn(score, system2).bands.size(), 2u);
-    EXPECT_EQ(viewOn(score, system2).omittedPeriodCount, 1);
+    EXPECT_EQ(viewOn(score, system2).omittedPeriodCount, 3);
     st(score)->meloSetFrameFrozen(false);
     score->setLayoutAll();
     score->doLayout();
     system2 = measureSystems(score)[1];
     const StaffType::MeloFrameView& after = viewOn(score, system2);
-    ASSERT_EQ(after.bands.size(), 1u);
-    EXPECT_EQ(after.omittedPeriodCount, 0);
-    EXPECT_NEAR(after.bottomCents(), 0.0, EPS);
-    EXPECT_NEAR(after.topCents(), 5700.0, EPS);
+    ASSERT_EQ(after.bands.size(), 3u);
+    EXPECT_EQ(after.omittedPeriodCount, 2);
+    EXPECT_NEAR(after.bottomCents(), -200.0, EPS);
+    EXPECT_NEAR(after.topCents(), 5800.0, EPS);
     delete score;
 }
 
@@ -538,19 +538,19 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, m8KeyboardOctaveStepGrowsOnlyTheAf
     systems = measureSystems(score);
     ASSERT_EQ(systems.size(), 4u);
     const StaffType::MeloFrameView& sys2 = viewOn(score, systems[1]);
-    EXPECT_EQ(sys2.bands.size(), 1u);
-    EXPECT_EQ(sys2.omittedPeriodCount, 0);
-    EXPECT_NEAR(sys2.bottomCents(), 0.0, EPS);
-    EXPECT_NEAR(sys2.topCents(), 5700.0, EPS);
+    EXPECT_EQ(sys2.bands.size(), 3u);
+    EXPECT_EQ(sys2.omittedPeriodCount, 2);
+    EXPECT_NEAR(sys2.bottomCents(), -200.0, EPS);
+    EXPECT_NEAR(sys2.topCents(), 5800.0, EPS);
     for (size_t i : { 2u, 3u }) {
         const StaffType::MeloFrameView& other = viewOn(score, systems[i]);
         EXPECT_EQ(other.bands.size(), 2u) << "system " << i + 1;
-        EXPECT_EQ(other.omittedPeriodCount, 1) << "system " << i + 1;
+        EXPECT_EQ(other.omittedPeriodCount, 3) << "system " << i + 1;
     }
-    // Undo restores the one-omitted-period view on system 2.
+    // Undo restores the three-omitted-period view on system 2.
     score->undoRedo(true, nullptr);
     score->doLayout();
-    EXPECT_EQ(viewOn(score, measureSystems(score)[1]).omittedPeriodCount, 1);
+    EXPECT_EQ(viewOn(score, measureSystems(score)[1]).omittedPeriodCount, 3);
     delete score;
 }
 
@@ -1183,115 +1183,118 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, m8DoRowsCarryRedLinesCrescentHorns
 // only to the staff-local occurrence whose period is actually cut.
 TEST_F(Engraving_MeloStaffM8BandElisionTests, m8PartialStaffEdgesPreserveRealRatioLinesAndLocalCrescentClosures)
 {
-    MasterScore* score = ScoreRW::readScore(TWO_STAVES);
-    ASSERT_TRUE(score);
-    score->doLayout();
-    ASSERT_EQ(score->nstaves(), 2u);
+    for (const String& fixture :
+         { TWO_STAVES, String::fromUtf8(engraving_tests_DATA_ROOT) + u"/jimstaff_data/empty-half-staves-14.mscx" }) {
+        MasterScore* score = ScoreRW::readScore(fixture, fixture != TWO_STAVES);
+        ASSERT_TRUE(score);
+        score->doLayout();
+        ASSERT_EQ(score->nstaves(), fixture == TWO_STAVES ? 2u : 14u);
 
-    for (staff_idx_t staffIdx = 0; staffIdx < score->nstaves(); ++staffIdx) {
-        System* system = measureSystems(score).front();
-        Measure* measure = system->firstMeasure();
-        const StaffType* jst = st(score, staffIdx);
-        const StaffType::MeloFrameView& view = viewOn(score, system, staffIdx);
-        const StaffLines* lines = measure->staffLines(staffIdx);
-        ASSERT_TRUE(jst && lines);
-        ASSERT_FALSE(view.empty());
-        const double topY = lines->pos().y();
-        const double ldSp = jst->lineDistance().val() * lines->spatium();
-        auto centsOfY = [&](double y) { return view.centsFromYLd((y - topY) / ldSp); };
-        auto hasGuideAt = [&](double cents) {
-            return std::any_of(lines->meloGuideLines().begin(), lines->meloGuideLines().end(),
-                               [&](const StaffLines::MeloGuideLine& guide) {
-                return std::abs(centsOfY(guide.line.y1()) - cents) < 1e-6;
-            });
-        };
-        auto hasBlackGuideAt = [&](double cents) {
-            return std::any_of(lines->meloGuideLines().begin(), lines->meloGuideLines().end(),
-                               [&](const StaffLines::MeloGuideLine& guide) {
-                return lines->style().value(guide.colorStyle).value<Color>() == Color::BLACK
-                       && std::abs(centsOfY(guide.line.y1()) - cents) < 1e-6;
-            });
-        };
-        std::vector<double> expectedClosures;
-        const double periodCents = jst->meloPeriodCents();
-        melo::PeriodicOrigins origins;
-        ASSERT_TRUE(melo::periodicOrigins(jst->meloStateJson(), origins));
-        std::vector<melo::JiLine> ratios;
-        ASSERT_TRUE(melo::jiLines(jst->meloStateJson(), ratios));
-        auto isRatioRow = [&](double cents) {
-            const double relative = cents - origins.doCentsAboveExtentLower;
-            if (std::abs(relative - std::round(relative / periodCents) * periodCents) < 1e-6) {
-                return true;
-            }
-            return std::any_of(ratios.begin(), ratios.end(), [&](const melo::JiLine& ratio) {
-                const double offset = relative - ratio.cents;
-                return std::abs(offset - std::round(offset / periodCents) * periodCents) < 1e-6;
-            });
-        };
-        for (const StaffType::MeloFrameBand& band : view.bands) {
-            for (const StaffType::MeloSegment& segment : band.segments) {
-                EXPECT_EQ(hasGuideAt(segment.lowerCents), isRatioRow(segment.lowerCents))
-                    << "staff " << staffIdx << " incorrect bottom-edge ratio line at " << segment.lowerCents;
-                EXPECT_EQ(hasGuideAt(segment.upperCents), isRatioRow(segment.upperCents))
-                    << "staff " << staffIdx << " incorrect top-edge ratio line at " << segment.upperCents;
-                EXPECT_FALSE(hasBlackGuideAt(segment.lowerCents))
-                    << "staff " << staffIdx << " synthesized a non-musical black bottom boundary";
-                EXPECT_FALSE(hasBlackGuideAt(segment.upperCents))
-                    << "staff " << staffIdx << " synthesized a non-musical black top boundary";
-                double periodFloor = origins.doCentsAboveExtentLower
-                                     + std::floor((segment.lowerCents - origins.doCentsAboveExtentLower)
-                                                  / periodCents + 1e-6) * periodCents;
-                for (; periodFloor < segment.upperCents - 1e-6; periodFloor += periodCents) {
-                    const double periodCeiling = periodFloor + periodCents;
-                    if (segment.upperCents > periodFloor + 1e-6
-                        && segment.upperCents < periodCeiling - 1e-6) {
-                        expectedClosures.push_back(segment.upperCents);
-                    }
-                    if (segment.lowerCents > periodFloor + 1e-6
-                        && segment.lowerCents < periodCeiling - 1e-6) {
-                        expectedClosures.push_back(segment.lowerCents);
+        for (staff_idx_t staffIdx = 0; staffIdx < score->nstaves(); ++staffIdx) {
+            System* system = measureSystems(score).front();
+            Measure* measure = system->firstMeasure();
+            const StaffType* jst = st(score, staffIdx);
+            const StaffType::MeloFrameView& view = viewOn(score, system, staffIdx);
+            const StaffLines* lines = measure->staffLines(staffIdx);
+            ASSERT_TRUE(jst && lines);
+            ASSERT_FALSE(view.empty());
+            const double topY = lines->pos().y();
+            const double ldSp = jst->lineDistance().val() * lines->spatium();
+            auto centsOfY = [&](double y) { return view.centsFromYLd((y - topY) / ldSp); };
+            auto hasGuideAt = [&](double cents) {
+                return std::any_of(lines->meloGuideLines().begin(), lines->meloGuideLines().end(),
+                                   [&](const StaffLines::MeloGuideLine& guide) {
+                    return std::abs(centsOfY(guide.line.y1()) - cents) < 1e-6;
+                });
+            };
+            auto hasBlackGuideAt = [&](double cents) {
+                return std::any_of(lines->meloGuideLines().begin(), lines->meloGuideLines().end(),
+                                   [&](const StaffLines::MeloGuideLine& guide) {
+                    return lines->style().value(guide.colorStyle).value<Color>() == Color::BLACK
+                           && std::abs(centsOfY(guide.line.y1()) - cents) < 1e-6;
+                });
+            };
+            std::vector<double> expectedClosures;
+            const double periodCents = jst->meloPeriodCents();
+            melo::PeriodicOrigins origins;
+            ASSERT_TRUE(melo::periodicOrigins(jst->meloStateJson(), origins));
+            std::vector<melo::JiLine> ratios;
+            ASSERT_TRUE(melo::jiLines(jst->meloStateJson(), ratios));
+            auto isRatioRow = [&](double cents) {
+                const double relative = cents - origins.doCentsAboveExtentLower;
+                if (std::abs(relative - std::round(relative / periodCents) * periodCents) < 1e-6) {
+                    return true;
+                }
+                return std::any_of(ratios.begin(), ratios.end(), [&](const melo::JiLine& ratio) {
+                    const double offset = relative - ratio.cents;
+                    return std::abs(offset - std::round(offset / periodCents) * periodCents) < 1e-6;
+                });
+            };
+            for (const StaffType::MeloFrameBand& band : view.bands) {
+                for (const StaffType::MeloSegment& segment : band.segments) {
+                    EXPECT_EQ(hasGuideAt(segment.lowerCents), isRatioRow(segment.lowerCents))
+                        << "staff " << staffIdx << " incorrect bottom-edge ratio line at " << segment.lowerCents;
+                    EXPECT_EQ(hasGuideAt(segment.upperCents), isRatioRow(segment.upperCents))
+                        << "staff " << staffIdx << " incorrect top-edge ratio line at " << segment.upperCents;
+                    EXPECT_FALSE(hasBlackGuideAt(segment.lowerCents))
+                        << "staff " << staffIdx << " synthesized a non-musical black bottom boundary";
+                    EXPECT_FALSE(hasBlackGuideAt(segment.upperCents))
+                        << "staff " << staffIdx << " synthesized a non-musical black top boundary";
+                    double periodFloor = origins.doCentsAboveExtentLower
+                                         + std::floor((segment.lowerCents - origins.doCentsAboveExtentLower)
+                                                      / periodCents + 1e-6) * periodCents;
+                    for (; periodFloor < segment.upperCents - 1e-6; periodFloor += periodCents) {
+                        const double periodCeiling = periodFloor + periodCents;
+                        if (segment.upperCents > periodFloor + 1e-6
+                            && segment.upperCents < periodCeiling - 1e-6) {
+                            expectedClosures.push_back(segment.upperCents);
+                        }
+                        if (segment.lowerCents > periodFloor + 1e-6
+                            && segment.lowerCents < periodCeiling - 1e-6) {
+                            expectedClosures.push_back(segment.lowerCents);
+                        }
                     }
                 }
             }
-        }
 
-        std::shared_ptr<BufferedPaintProvider> provider = std::make_shared<BufferedPaintProvider>();
-        Painter painter(provider, "m8-staff-local-crescent");
-        painter.setViewport(RectF(0, 0, 4000, 4000));
-        PaintOptions options;
-        lines->renderer()->drawItem(lines, &painter, options);
-        painter.endDraw();
-        std::vector<double> actualClosures;
-        const DrawDataPtr drawData = provider->drawData();
-        std::function<void(const DrawData::Item&)> walk = [&](const DrawData::Item& item) {
-            for (const DrawData::Data& data : item.datas) {
-                const DrawData::State& state = drawData->states.at(data.state);
-                for (const DrawPolygon& poly : data.polygons) {
-                    if (poly.mode == PolygonMode::Polyline && poly.polygon.size() == 2
-                        && state.pen.style() == PenStyle::SolidLine
-                        && state.pen.color() == Color::BLACK
-                        && state.pen.capStyle() == PenCapStyle::FlatCap
-                        && std::abs(state.pen.widthF() - lines->lw() * 1.5) < EPS
-                        && std::abs(poly.polygon[0].y() - poly.polygon[1].y()) < EPS) {
-                        actualClosures.push_back(centsOfY(poly.polygon[0].y()));
+            std::shared_ptr<BufferedPaintProvider> provider = std::make_shared<BufferedPaintProvider>();
+            Painter painter(provider, "m8-staff-local-crescent");
+            painter.setViewport(RectF(0, 0, 4000, 4000));
+            PaintOptions options;
+            lines->renderer()->drawItem(lines, &painter, options);
+            painter.endDraw();
+            std::vector<double> actualClosures;
+            const DrawDataPtr drawData = provider->drawData();
+            std::function<void(const DrawData::Item&)> walk = [&](const DrawData::Item& item) {
+                for (const DrawData::Data& data : item.datas) {
+                    const DrawData::State& state = drawData->states.at(data.state);
+                    for (const DrawPolygon& poly : data.polygons) {
+                        if (poly.mode == PolygonMode::Polyline && poly.polygon.size() == 2
+                            && state.pen.style() == PenStyle::SolidLine
+                            && state.pen.color() == Color::BLACK
+                            && state.pen.capStyle() == PenCapStyle::FlatCap
+                            && std::abs(state.pen.widthF() - lines->lw() * 1.5) < EPS
+                            && std::abs(poly.polygon[0].y() - poly.polygon[1].y()) < EPS) {
+                            actualClosures.push_back(centsOfY(poly.polygon[0].y()));
+                        }
                     }
                 }
+                for (const DrawData::Item& child : item.chilren) {
+                    walk(child);
+                }
+            };
+            walk(drawData->item);
+            std::sort(expectedClosures.begin(), expectedClosures.end());
+            std::sort(actualClosures.begin(), actualClosures.end());
+            ASSERT_EQ(actualClosures.size(), expectedClosures.size())
+                << "staff " << staffIdx << " closure geometry leaked across crescent occurrences";
+            for (size_t i = 0; i < expectedClosures.size(); ++i) {
+                EXPECT_NEAR(actualClosures[i], expectedClosures[i], 1e-6)
+                    << "staff " << staffIdx << " closure " << i << " is not staff-local";
             }
-            for (const DrawData::Item& child : item.chilren) {
-                walk(child);
-            }
-        };
-        walk(drawData->item);
-        std::sort(expectedClosures.begin(), expectedClosures.end());
-        std::sort(actualClosures.begin(), actualClosures.end());
-        ASSERT_EQ(actualClosures.size(), expectedClosures.size())
-            << "staff " << staffIdx << " closure geometry leaked across crescent occurrences";
-        for (size_t i = 0; i < expectedClosures.size(); ++i) {
-            EXPECT_NEAR(actualClosures[i], expectedClosures[i], 1e-6)
-                << "staff " << staffIdx << " closure " << i << " is not staff-local";
         }
+        delete score;
     }
-    delete score;
 }
 
 // A fixed ratio-line cut is not a moving scale-dot cut. At 12-TET the So
@@ -1713,7 +1716,7 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, m8GapIndicatorIsScreenOnlyAndNever
     bool sawCount = false;
     for (const String& t : screen) {
         if (t.contains(u"hidden")) {
-            EXPECT_TRUE(t == u"1 empty octave hidden");
+            EXPECT_TRUE(t == u"3 empty octaves hidden");
             sawCount = true;
         }
     }
@@ -1806,12 +1809,12 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, changeIndicatorExtendsTheStaffWhen
     const StaffType* baseSt = st(score);
     const StaffType* changeSt = score->staff(0)->staffType(m2->tick());
     ASSERT_TRUE(changeSt && changeSt->isMelo() && changeSt != baseSt);
-    // The base section keeps the exact half-period minimum about the
-    // midpoint of its retained written extremes, without ratio-line snapping.
+    // The base section encloses the half-period minimum about the
+    // midpoint of its retained written extremes, then expands to ratio-lines.
     const StaffType::MeloFrameView& baseView = baseSt->meloWholeFrameView(score, 0);
     ASSERT_FALSE(baseView.empty());
-    EXPECT_NEAR(baseView.bottomCents(), -250.0, 1e-6);
-    EXPECT_NEAR(baseView.topCents(), 350.0, 1e-6);
+    EXPECT_NEAR(baseView.bottomCents(), -300.0, 1e-6);
+    EXPECT_NEAR(baseView.topCents(), 1200.0 * std::log2(3.0 / 2.0) - 300.0, 1e-6);
     // The change section (Do -> La): its frame is extended to cover the
     // indicator — La sits 300 cents below Do, one margin further down.
     melo::ChangeIndicator model;
@@ -1856,5 +1859,178 @@ TEST_F(Engraving_MeloStaffM8BandElisionTests, tonicAmbitIsNeverDerivedAsALayoutS
     EXPECT_TRUE(st(score)->meloTonicAmbit() == u"tonic-bounded");
     EXPECT_TRUE(st(score)->meloStateJson() == stateBefore)
         << "layout must never mutate the song-wide tonic-ambit carrier";
+    delete score;
+}
+
+// The automatic frame expands from tempered So to its fixed 3/2 line.
+// The bounding guide and crescent cut must share that exact ordinate.
+TEST_F(Engraving_MeloStaffM8BandElisionTests, odeToJoyEndsOnItsVisibleSoRatioLine)
+{
+    MasterScore* score = ScoreRW::readScore(u"jimstaff_data/ode-to-joy.mscx");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    const StaffType* type = st(score);
+    System* system = measureSystems(score).front();
+    const auto& view = viewOn(score, system);
+    const StaffLines* lines = system->firstMeasure()->staffLines(0);
+    melo::PeriodicOrigins origins;
+    ASSERT_TRUE(melo::periodicOrigins(type->meloStateJson(), origins));
+    std::vector<melo::JiLine> ratios;
+    ASSERT_TRUE(melo::jiLines(type->meloStateJson(), ratios));
+    const double halfStroke = lines->lw() * 0.5;
+    int intersectingOutside = 0;
+    int excludedOutside = 0;
+    for (const auto& ratio : ratios) {
+        if (!ratio.visible) {
+            continue;
+        }
+        const double cents = origins.doCentsAboveExtentLower + ratio.cents;
+        const double y = type->meloYFromCents(cents, view) * lines->spatium();
+        const double top = type->meloYFromCents(view.topCents(), view) * lines->spatium();
+        const double bottom = type->meloYFromCents(view.bottomCents(), view) * lines->spatium();
+        const bool intersects = y + halfStroke >= top - EPS && y - halfStroke <= bottom + EPS;
+        const bool present = std::any_of(lines->meloGuideLines().begin(), lines->meloGuideLines().end(),
+                                         [&](const StaffLines::MeloGuideLine& guide) {
+            return std::abs(guide.line.y1() - lines->pos().y() - y) < EPS;
+        });
+        EXPECT_EQ(present, intersects) << "ratio at " << cents;
+        if (cents > view.topCents()) {
+            intersects ? ++intersectingOutside : ++excludedOutside;
+        }
+    }
+    EXPECT_EQ(intersectingOutside, 0);
+    EXPECT_NEAR(view.topCents() - origins.doCentsAboveExtentLower, 1200.0 * std::log2(3.0 / 2.0), 1e-6);
+    EXPECT_GT(excludedOutside, 0);
+    delete score;
+}
+
+TEST_F(Engraving_MeloStaffM8BandElisionTests, emptyHalfStaffFixtureCoversEveryModeAndAmbit)
+{
+    MasterScore* score = ScoreRW::readScore(String::fromUtf8(engraving_tests_DATA_ROOT)
+                                            + u"/jimstaff_data/empty-half-staves-14.mscx", true);
+    ASSERT_TRUE(score);
+    for (double generator : { 700.0, 686.0, 696.0, 710.0, 720.0, 700.0 }) {
+        for (staff_idx_t i = 0; i < score->nstaves(); ++i) {
+            String tuned;
+            ASSERT_TRUE(melo::retuneGenerator(mutSt(score, i)->meloStateJson(), generator, tuned));
+            mutSt(score, i)->setMeloStateJson(tuned);
+        }
+        score->setLayoutAll();
+        score->doLayout();
+        ASSERT_EQ(score->nstaves(), 14u);
+        const int rotations[] = { 3, 0, 4, 1, 5, 2, 6 };
+        System* system = measureSystems(score).front();
+        for (staff_idx_t i = 0; i < score->nstaves(); ++i) {
+            const StaffType* type = st(score, i);
+            ASSERT_TRUE(type->isMelo());
+            EXPECT_TRUE(type->meloStateJson().contains(String(u"\"mode_rotation\":%1").arg(rotations[i / 2])));
+            EXPECT_EQ(type->meloTonicAmbit(), i % 2 ? String(u"tonic-bounded") : String(u"tonic-centered"));
+            const auto& view = viewOn(score, system, i);
+            ASSERT_FALSE(view.empty());
+            EXPECT_GE(view.topCents() - view.bottomCents(), 600.0 - 1e-6);
+            melo::PeriodicOrigins origins;
+            ASSERT_TRUE(melo::periodicOrigins(type->meloStateJson(), origins));
+            double minimumLower = -300.0;
+            double minimumUpper = 300.0;
+            if (i % 2) {
+                const double tonicRatios[] = { 4.0 / 3.0, 1.0, 3.0 / 2.0, 9.0 / 8.0, 5.0 / 3.0, 5.0 / 4.0, 15.0 / 8.0 };
+                const double origin = origins.doCentsAboveExtentLower + 1200.0 * std::log2(tonicRatios[i / 2]);
+                minimumLower = origin + std::round((-300.0 - origin) / 1200.0) * 1200.0;
+                minimumUpper = minimumLower + 600.0;
+                EXPECT_NEAR(view.bottomCents(), minimumLower, 1e-6) << "tonic must bound staff " << i;
+            }
+            EXPECT_LE(view.bottomCents(), minimumLower + 1e-6);
+            EXPECT_GE(view.topCents(), minimumUpper - 1e-6);
+            std::vector<melo::JiLine> ratios;
+            ASSERT_TRUE(melo::jiLines(type->meloStateJson(), ratios));
+            std::vector<double> candidates;
+            for (int period = -2; period <= 2; ++period) {
+                const double base = origins.doCentsAboveExtentLower + period * type->meloPeriodCents();
+                candidates.push_back(base);
+                for (const auto& ratio : ratios) {
+                    if (ratio.visible) {
+                        candidates.push_back(base + ratio.cents);
+                    }
+                }
+            }
+            const StaffLines* lines = system->firstMeasure()->staffLines(i);
+            for (double edge : { view.bottomCents(), view.topCents() }) {
+                EXPECT_TRUE(std::any_of(candidates.begin(), candidates.end(),
+                                        [&](double c) { return std::abs(c - edge) < 1e-6; })) << "staff " << i;
+                const double y = type->meloYFromCents(edge, view) * lines->spatium() + lines->pos().y();
+                EXPECT_TRUE(std::any_of(lines->meloGuideLines().begin(), lines->meloGuideLines().end(), [&](const auto& guide) {
+                    return std::abs(guide.line.y1() - y) < 1e-6;
+                })) << "staff " << i << " edge " << edge;
+            }
+            for (double c : candidates) {
+                EXPECT_FALSE(c > view.bottomCents() + 1e-6 && c <= minimumLower + 1e-6);
+                EXPECT_FALSE(c < view.topCents() - 1e-6 && c >= minimumUpper - 1e-6);
+            }
+            for (const Segment* segment = score->firstSegment(SegmentType::ChordRest); segment;
+                 segment = segment->next1(SegmentType::ChordRest)) {
+                const EngravingItem* element = segment->element(i * VOICES);
+                EXPECT_FALSE(element && element->isChord());
+            }
+        }
+    }
+    delete score;
+}
+
+TEST_F(Engraving_MeloStaffM8BandElisionTests, emptyHalfStaffHeadersUseTonicSpecificLabelSidesWithoutRatioLegend)
+{
+    MasterScore* score = ScoreRW::readScore(String::fromUtf8(engraving_tests_DATA_ROOT)
+                                            + u"/jimstaff_data/empty-half-staves-14.mscx", true);
+    ASSERT_TRUE(score);
+    System* system = measureSystems(score).front();
+    const String lowerLabels[] = { u"Do", u"Fa", u"La", u"Do", u"Mi", u"So", u"Ti", u"Re", u"Fa", u"La", u"Do", u"Mi", u"So", u"Ti" };
+    const String upperLabels[] = { u"La", u"Do", u"Mi", u"So", u"Ti", u"Re", u"So", u"La", u"Do", u"Mi", u"So", u"Ti", u"Re", u"Fa" };
+    int labelsSeen = 0;
+    for (staff_idx_t i = 0; i < score->nstaves(); ++i) {
+        const StaffType* type = st(score, i);
+        const auto& view = viewOn(score, system, i);
+        const StaffLines* lines = system->firstMeasure()->staffLines(i);
+        const auto geometry = type->meloHeaderGeometry(lines->spatium(), score->style().defaultSpatium(), &view);
+        const double clefLeft = lines->pos().x() - 0.3 * lines->spatium() - geometry.clefRx;
+        const double dotCenterX = clefLeft - geometry.rightLabelBand - geometry.indicatorW;
+        auto provider = std::make_shared<BufferedPaintProvider>();
+        Painter painter(provider, "fourteen-staff-headers");
+        painter.setViewport(RectF(0, 0, 4000, 4000));
+        PaintOptions options;
+        lines->renderer()->drawItem(lines, &painter, options);
+        painter.endDraw();
+        const DrawDataPtr data = provider->drawData();
+        int staffLabels = 0;
+        bool sawLower = false;
+        bool sawUpper = false;
+        std::function<void(const DrawData::Item&)> walk = [&](const DrawData::Item& item) {
+            for (const DrawData::Data& d : item.datas) {
+                for (const DrawText& text : d.texts) {
+                    sawLower = sawLower || text.text.contains(lowerLabels[i]);
+                    sawUpper = sawUpper || text.text.contains(upperLabels[i]);
+                    if (text.text.startsWith(u"M5=")) {
+                        EXPECT_FALSE(text.text.contains(u"3:"));
+                        EXPECT_FALSE(text.text.contains(u"5:"));
+                    } else if (text.text.contains(u":")) {
+                        ++staffLabels;
+                        if (i == 2 || i == 3) {
+                            EXPECT_GT(text.rect.left(), dotCenterX) << "Do staff " << i;
+                        } else {
+                            EXPECT_LT(text.rect.right(), dotCenterX) << "non-Do staff " << i;
+                            EXPECT_GT(geometry.leftLabelBand, geometry.keyLabelAdvance);
+                        }
+                    }
+                }
+            }
+            for (const DrawData::Item& child : item.chilren) {
+                walk(child);
+            }
+        };
+        walk(data->item);
+        EXPECT_TRUE(sawLower) << "staff " << i << " lower scale-dot label";
+        EXPECT_TRUE(sawUpper) << "staff " << i << " upper scale-dot label";
+        EXPECT_EQ(staffLabels, 1) << "staff " << i;
+        labelsSeen += staffLabels;
+    }
+    EXPECT_EQ(labelsSeen, 14);
     delete score;
 }

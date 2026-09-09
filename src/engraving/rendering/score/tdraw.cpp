@@ -2844,16 +2844,6 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                 if (melo::staffMetrics(meloSt->meloStateJson(), generatorCents, periodCents)) {
                     muse::String label = muse::String(u"M5= %1¢")
                                          .arg(muse::String::number(generatorCents, 1));
-                    std::set<int> visibleLimits;
-                    for (const auto& guide : item->meloGuideLines()) {
-                        if (guide.primeLimit) {
-                            visibleLimits.insert(guide.primeLimit);
-                        }
-                    }
-                    for (int limit : visibleLimits) {
-                        const muse::String pattern = limit == 3 ? u"—" : limit == 5 ? u"··" : limit == 7 ? u"—·" : u"—··";
-                        label += muse::String(u"   %1: %2").arg(limit).arg(pattern);
-                    }
                     Font labelFont(u"Edwin", Font::Type::Text);
                     labelFont.setPointSizeF(10.0 * item->spatium() / item->defaultSpatium());
                     painter->setFont(labelFont);
@@ -2957,9 +2947,9 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                             }
                             if (haveTonic) {
                                 double cents = period + tonicCents;
-                                if (cents >= segment.lowerCents - epsilon
-                                    && cents <= segment.upperCents + epsilon
-                                    && std::none_of(drawnTonics.begin(), drawnTonics.end(), [&](double c) {
+                                if (std::any_of(drawnStacks.begin(), drawnStacks.end(), [&](double c) {
+                                    return std::abs(c - cents) < epsilon;
+                                }) && std::none_of(drawnTonics.begin(), drawnTonics.end(), [&](double c) {
                                     return std::abs(c - cents) < epsilon;
                                 })) {
                                     drawnTonics.push_back(cents);
@@ -3003,6 +2993,11 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                 const bool haveKeyLabel = haveTonic && melo::tonicPitchLabel(meloSt->meloStateJson(), keyLabel);
                 if ((labelMode != MeloScaleDotLabelMode::None || haveKeyLabel)
                     && melo::scaleDotLabels(meloSt->meloStateJson(), labelStacks)) {
+                    const bool tonicIsDo = std::any_of(labelStacks.begin(), labelStacks.end(), [&](const auto& stack) {
+                        return std::any_of(stack.members.begin(), stack.members.end(), [&](const auto& member) {
+                            return member.nGen == keyLabel.nGen && member.label == u"Do";
+                        });
+                    });
                     Font labelFont(u"Edwin", Font::Type::Text);
                     labelFont.setPointSizeF(9.0 * item->spatium() / item->defaultSpatium());
                     FontMetrics fm(labelFont);
@@ -3055,17 +3050,11 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                                         }
                                     }
                                     if (haveKeyLabel && std::abs(stack.cents - tonicCents) < epsilon
-                                        && period + tonicCents >= segment.lowerCents - epsilon
-                                        && period + tonicCents <= segment.upperCents + epsilon
                                         && std::abs(cents - lowestTonicRow) < epsilon) {
-                                        // Only the tonic indicator's own row (the
-                                        // lowest Do register carries the indicator).
-                                        // The pitch label occupies the open lane
-                                        // to the right of Do's dot; the solfa label
-                                        // remains on its resolved side.
-                                        rightText = rightText.isEmpty()
-                                                    ? keyText + u":"
-                                                    : keyText + u": " + rightText;
+                                        // Do's pitch label fits inside the crescent. Other
+                                        // tonics keep their pitch label left of the dot.
+                                        muse::String& side = tonicIsDo ? rightText : leftText;
+                                        side = side.isEmpty() ? keyText + u":" : keyText + u": " + side;
                                     }
                                     // Painter::drawText rescales the CURRENT
                                     // painter font by 1200/deviceDpi in place

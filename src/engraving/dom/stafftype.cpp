@@ -849,12 +849,16 @@ StaffType::MeloHeaderGeometry StaffType::meloHeaderGeometry(double spatium, doub
     const double gap = 0.25 * spatium;
     std::vector<melo::LabeledDotStack> stacks;
     const bool haveLabels = melo::scaleDotLabels(m_meloStateJson, stacks);
-    // Current-key label "[PitchN]:" to the right of Do's scale dot (owner
-    // corrections 2026-08-30): its established home is inside the open
-    // curve of the crescent clef. It contributes to change-terrain width,
-    // but MUST NOT reserve a header label band or move the scale-dot stack.
+    // Only Do's tonic pitch label nests inside the crescent; other tonic
+    // labels reserve space to the left of their scale dot.
     melo::TonicPitchLabel key;
-    double keyAdvance = melo::tonicPitchLabel(m_meloStateJson, key)
+    const bool haveKey = melo::tonicPitchLabel(m_meloStateJson, key);
+    const bool tonicIsDo = haveKey && std::any_of(stacks.begin(), stacks.end(), [&](const auto& stack) {
+        return std::any_of(stack.members.begin(), stack.members.end(), [&](const auto& member) {
+            return member.nGen == key.nGen && member.label == u"Do";
+        });
+    });
+    double keyAdvance = haveKey
                         ? melo::pitchLabelLayout(key.label + u": ", labelFont, engravingFont).advance : 0.0;
     if (view && keyAdvance > 0.0) {
         // Milestone 8: reserve for the widest band label of this system (the
@@ -903,7 +907,8 @@ StaffType::MeloHeaderGeometry StaffType::meloHeaderGeometry(double spatium, doub
 
     const MeloScaleDotLabelMode mode = meloResolvedScaleDotLabelMode();
     if (mode == MeloScaleDotLabelMode::None || !haveLabels) {
-        g.headerWidth += g.braceWidth;
+        g.leftLabelBand = haveKey && !tonicIsDo ? keyAdvance + gap : 0.0;
+        g.headerWidth += g.leftLabelBand + g.braceWidth;
         return g;
     }
     double maxLeft = 0.0;
@@ -919,9 +924,13 @@ StaffType::MeloHeaderGeometry StaffType::meloHeaderGeometry(double spatium, doub
             }
             side += member.label;
         }
-        if (!leftText.isEmpty()) {
-            maxLeft = std::max(maxLeft, fm.horizontalAdvance(leftText));
+        double leftWidth = fm.horizontalAdvance(leftText);
+        if (haveKey && !tonicIsDo && std::any_of(stack.members.begin(), stack.members.end(), [&](const auto& member) {
+            return member.nGen == key.nGen;
+        })) {
+            leftWidth += keyAdvance;
         }
+        maxLeft = std::max(maxLeft, leftWidth);
         if (!rightText.isEmpty()) {
             maxRight = std::max(maxRight, fm.horizontalAdvance(rightText));
         }
@@ -1269,30 +1278,18 @@ const StaffType::MeloFrameView& StaffType::meloWholeFrameView(const Score* score
         band.segments = m_meloFrameSegments;
         band.lowerCents = m_meloFrameSegments.front().lowerCents;
         band.upperCents = m_meloFrameSegments.back().upperCents;
-        const double periodCents = meloPeriodCents();
-        if (periodCents > 0.0) {
-            band.lowestPeriodIndex = int(std::floor((band.lowerCents + 1e-6) / periodCents));
-            band.highestPeriodIndex = int(std::floor((band.upperCents + 1e-6) / periodCents));
-            // Milestone 8 (owner finding 2): the whole-piece frame's "[PitchN]:"
-            // sits on the frame's lowest DRAWN tonic row and names THAT row's
-            // octave — the same rule the Kernel applies to every band. Both
-            // the row and the label come from the Kernel (tonic_cents_above_do,
-            // tonic_pitch_label with period_index); nothing is inferred here.
-            band.labelPeriodIndex = band.lowestPeriodIndex;
-            melo::PeriodicOrigins origins;
-            if (melo::periodicOrigins(meloStateJson(), origins)) {
-                for (int k = band.lowestPeriodIndex; k <= band.highestPeriodIndex; ++k) {
-                    const double row = double(k) * periodCents + origins.tonicCentsAboveExtentLower;
-                    if (row >= band.lowerCents - 1e-6 && row <= band.upperCents + 1e-6) {
-                        band.labelPeriodIndex = k;
-                        break;
-                    }
-                }
-            }
-            melo::TonicPitchLabel label;
-            if (melo::tonicPitchLabelInPeriod(meloStateJson(), band.labelPeriodIndex, label)) {
-                band.tonicLabel = label.label;
-            }
+        // Ask the Kernel for the metadata of this already-derived frame.
+        // A tuned tonic dot may sit just outside its fixed ratio boundary;
+        // selecting an interior row here would incorrectly pick the next octave.
+        melo::FrameBands metadata;
+        if (melo::frameBandsForMelody(meloStateJson(), u"{\"notes\":[]}", meloTonicAmbit(), false, 1,
+                                      metadata, { band.lowerCents, band.upperCents }, m_meloRatioLineExtentJson,
+                                      !m_meloExtentIsEmptyDefault) && metadata.bands.size() == 1) {
+            const auto& kernelBand = metadata.bands.front();
+            band.lowestPeriodIndex = kernelBand.lowestPeriodIndex;
+            band.highestPeriodIndex = kernelBand.highestPeriodIndex;
+            band.labelPeriodIndex = kernelBand.labelPeriodIndex;
+            band.tonicLabel = kernelBand.tonicLabel.label;
         }
         band.yTopLd = 0.0;
         view.bands.push_back(band);

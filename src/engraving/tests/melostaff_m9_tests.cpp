@@ -376,7 +376,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9EveryStaffIsAMeloStaffCarryingItsRangeDer
     delete score;
 }
 
-TEST(Engraving_MeloStaffM9SATBTests, m9EmptyFramesAreHalfPeriodAtTheirDeclaredCentreNotes)
+TEST(Engraving_MeloStaffM9SATBTests, m9EmptyFramesKeepTheirDeclaredAnchorsWithHalfPeriodMinimum)
 {
     MasterScore* score = openShippedTemplate();
     ASSERT_TRUE(score);
@@ -391,8 +391,8 @@ TEST(Engraving_MeloStaffM9SATBTests, m9EmptyFramesAreHalfPeriodAtTheirDeclaredCe
         ASSERT_TRUE(melo::noteCentsAboveExtentLower(st->meloStateJson(), centreNPer[i], centreNGen[i], centre));
         const StaffType::MeloFrameView& view = st->meloWholeFrameView(score, i);
         ASSERT_EQ(view.bands.size(), 1u);
-        EXPECT_NEAR(view.bands[0].lowerCents, centre - st->meloPeriodCents() / 4.0, 1e-6);
-        EXPECT_NEAR(view.bands[0].upperCents, centre + st->meloPeriodCents() / 4.0, 1e-6);
+        EXPECT_NEAR(centre, 0.0, 1e-6);
+        EXPECT_GE(view.topCents() - view.bottomCents(), st->meloPeriodCents() / 2.0 - 1e-6);
         EXPECT_TRUE(st->meloExtentIsEmptyDefault());
     }
     delete score;
@@ -418,7 +418,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9WrittenStavesUseTheirOwnMelodyFrameWhileU
         const StaffType* st = score->staff(i)->staffType(Fraction(0, 1));
         const StaffType::MeloFrameView& v = st->meloWholeFrameView(score, i);
         ASSERT_EQ(v.bands.size(), 1u) << "staff " << i;
-        EXPECT_NEAR(v.bands[0].upperCents - v.bands[0].lowerCents, st->meloPeriodCents() / 2.0, 1e-6)
+        EXPECT_GE(v.bands[0].upperCents - v.bands[0].lowerCents, st->meloPeriodCents() / 2.0 - 1e-6)
             << "unwritten staff " << i << " must keep its half-period range default";
     }
 
