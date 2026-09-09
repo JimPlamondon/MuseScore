@@ -3266,13 +3266,13 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                         return topY + displayedSt->meloYFromCents(cents, view) * _spatium;
                     };
                     const StaffType::MeloHeaderGeometry g
-                        = changeSt->meloHeaderGeometry(_spatium, item->score()->style().defaultSpatium());
+                        = melo::changeTerrainGeometry(changeSt, _spatium, item->score()->style().defaultSpatium(), model);
                     const double indicatorW = g.indicatorW;
                     // Terrain columns, left to right, from the measure's left edge.
                     const double labelRight = x0 + 0.3 * _spatium + g.changeLabelBand;
                     const double dotCenterX = labelRight + indicatorW;
                     const double rightLabelLeft = dotCenterX + indicatorW;                 // Grey labels start here
-                    const double arrowX = rightLabelLeft + g.changeRightLabelBand + g.changeArrowLane / 2.0;
+                    const double arrowLaneLeft = rightLabelLeft + g.changeRightLabelBand;
                     // Period 0 of the model = the anchor Do-line: the lowest Do-line
                     // of the stave stack that keeps the whole indicator inside the
                     // staff (owner ruling 2026-08-19; melo::changeAnchorPeriodCents).
@@ -3314,19 +3314,21 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     labelFont.setPointSizeF(9.0 * item->spatium() / item->defaultSpatium());
                     FontMetrics fm(labelFont);
                     const double gap = 0.25 * _spatium;
-                    // The new state's current-key label and which terrain
-                    // point is the NEW tonic: an arrow's `to` end when the
-                    // change moves the tonic, else the indicator whose class
-                    // the Kernel names.
+                    // Only the Kernel's new tonic class receives a pitch prefix.
+                    // A key arrow names a common pitch, not a tonic destination.
                     melo::TonicPitchLabel keyLabel;
                     const bool haveKeyLabel = melo::tonicPitchLabel(changeSt->meloStateJson(), keyLabel);
-                    // Owner finding 2 (2026-08-18): the terrain's "[PitchN]:" names
-                    // the octave of the ROW it is drawn on — the Kernel label for
-                    // the row's frame period (base period + the point's offset).
+                    // Locate that exact tonic lattice instance in the displayed
+                    // frame. Its first Do can belong to a different octave from
+                    // the incoming state's first Do after an extent change.
+                    double incomingTonicOrigin = 0.0;
+                    if (haveKeyLabel && !melo::noteCentsAboveExtentLower(displayedSt->meloStateJson(),
+                                                                         keyLabel.nPer, keyLabel.nGen, incomingTonicOrigin)) {
+                        return;
+                    }
                     std::map<int, muse::String> labelByPeriod;
-                    auto keyLabelForRow = [&](const melo::ChangePoint& tp) -> muse::String {
-                        const int k = int(std::lround((centsOf(tp) - origins.tonicCentsAboveExtentLower)
-                                                      / periodCents));
+                    auto keyLabelForRow = [&](double rowCents) -> muse::String {
+                        const int k = int(std::lround((rowCents - incomingTonicOrigin) / periodCents));
                         auto found = labelByPeriod.find(k);
                         if (found != labelByPeriod.end()) {
                             return found->second;
@@ -3338,18 +3340,15 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                         return text;
                     };
                     auto isNewTonic = [&](const melo::ChangePoint& tp) {
-                        if (!haveKeyLabel) {
+                        if (!haveKeyLabel || tp.nGen != keyLabel.nGen) {
                             return false;
                         }
                         for (const melo::ChangeArrow& a : model.arrows) {
-                            if (a.to.nGen == tp.nGen && a.to.periodOffset == tp.periodOffset) {
-                                return true;
+                            if (a.kind == u"mode" || a.trumps == u"mode") {
+                                return a.to.nGen == tp.nGen && a.to.periodOffset == tp.periodOffset;
                             }
                         }
-                        if (!model.arrows.empty()) {
-                            return false;
-                        }
-                        return tp.nGen == keyLabel.nGen;
+                        return true;
                     };
 
                     // Flanking strokes are continuous over the whole stack,
@@ -3422,7 +3421,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                             // The new tonic's row carries "[PitchN]:" first.
                             for (const melo::ChangePoint& member : stack.members) {
                                 if (isNewTonic(member) && !text.isEmpty()) {
-                                    text = keyLabelForRow(member) + u": " + text;
+                                    text = keyLabelForRow(stackCents) + u": " + text;
                                     break;
                                 }
                             }
@@ -3471,7 +3470,7 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                             if (!labelled) {
                                 muse::String text = tp.label;
                                 if (isNewTonic(tp)) {
-                                    text = keyLabelForRow(tp) + u": " + text;
+                                    text = keyLabelForRow(tpCents) + u": " + text;
                                 }
                                 const melo::PitchLabelLayout textLayout
                                     = melo::pitchLabelLayout(text, labelFont, font);
@@ -3495,7 +3494,10 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                         const Color arrowInk = opt.isPrinting ? Color::BLACK
                                                : item->curColor(item->visible(),
                                                                 item->style().value(Sid::meloChangeArrowColor).value<Color>(), opt);
+                        const double laneWidth = g.changeArrowLane / std::max(size_t(1), model.arrows.size());
+                        size_t arrowIndex = 0;
                         for (const melo::ChangeArrow& a : model.arrows) {
+                            const double arrowX = arrowLaneLeft + (arrowIndex++ + 0.5) * laneWidth;
                             const double yFrom = yOf(centsOf(a.from));
                             const double yTo = yOf(centsOf(a.to));
                             painter->setPen(Pen(arrowInk, pen, PenStyle::SolidLine, PenCapStyle::RoundCap));
@@ -3552,10 +3554,11 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
             if (melo::courtesyChangeIndicator(item->measure(), item->staffIdx(), courtesy, &courtesySt) && courtesySt) {
                 const Segment* endBar = item->measure()->findSegmentR(SegmentType::EndBarLine, item->measure()->ticks());
                 if (endBar) {
-                    const double g
-                        = courtesySt->meloHeaderGeometry(item->spatium(), item->score()->style().defaultSpatium()).changeTerrainWidth;
-                    paintChangeTerrain(courtesy, courtesySt, courtesySt, endBar->x() - g,
-                                       ChangePlacement::END_BAR_COURTESY);
+                    const StaffType* incoming = item->score()->staff(item->staffIdx())->staffType(
+                        item->measure()->nextMeasure()->tick());
+                    const double g = melo::changeTerrainGeometry(incoming, item->spatium(),
+                                                                 item->score()->style().defaultSpatium(), courtesy).changeTerrainWidth;
+                    paintChangeTerrain(courtesy, incoming, courtesySt, endBar->x() - g, ChangePlacement::END_BAR_COURTESY);
                 }
             }
         }

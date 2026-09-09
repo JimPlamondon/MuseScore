@@ -46,6 +46,11 @@ bool midSystemChangeIndicator(const Measure* measure, staff_idx_t staffIdx, Chan
 /// The Kernel model for an exact carrier strictly inside its measure.
 bool midBarChangeIndicator(const StaffTypeChange* carrier, ChangeIndicator& out, const StaffType** newStaffType = nullptr);
 
+/// Host label/glyph spacing shared by reservation and painting. Each Kernel
+/// arrow gets its own lane, wide enough for its head and a visible gap.
+StaffType::MeloHeaderGeometry changeTerrainGeometry(const StaffType* staffType, double spatium, double defaultSpatium,
+                                                    const ChangeIndicator& model);
+
 /// The terrain width to reserve at the start of `measure` (max over
 /// staves that carry a mid-system indicator), or 0.
 double changeTerrainWidth(const Measure* measure);

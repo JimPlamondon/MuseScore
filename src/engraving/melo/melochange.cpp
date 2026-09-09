@@ -145,6 +145,25 @@ bool midBarChangeIndicator(const StaffTypeChange* carrier, ChangeIndicator& out,
     return indicatorForCarrier(carrier, out, newStaffType);
 }
 
+StaffType::MeloHeaderGeometry changeTerrainGeometry(const StaffType* staffType, double spatium,
+                                                    double defaultSpatium, const ChangeIndicator& model)
+{
+    auto geometry = staffType->meloHeaderGeometry(spatium, defaultSpatium);
+    if (model.arrows.size() > 1) {
+        const double dist = staffType->lineDistance().val() * spatium;
+        ConnectorGlyph head;
+        double lane = geometry.changeArrowLane;
+        if (connectorGlyph(head)) {
+            lane = std::max(lane, 2.0 * head.headHalfWidthCents
+                            / StaffType::MELO_CENTS_PER_LINE_DISTANCE * dist + 0.5 * dist);
+        }
+        const double lanes = lane * model.arrows.size();
+        geometry.changeTerrainWidth += lanes - geometry.changeArrowLane;
+        geometry.changeArrowLane = lanes;
+    }
+    return geometry;
+}
+
 double changeTerrainWidth(const Measure* measure)
 {
     if (!measure || !measure->score()) {
@@ -157,7 +176,7 @@ double changeTerrainWidth(const Measure* measure)
         const StaffType* st = nullptr;
         if (midSystemChangeIndicator(measure, s, model, &st) && st) {
             const double sp = score->style().spatium();
-            width = std::max(width, st->meloHeaderGeometry(sp, score->style().defaultSpatium()).changeTerrainWidth);
+            width = std::max(width, changeTerrainGeometry(st, sp, score->style().defaultSpatium(), model).changeTerrainWidth);
         }
     }
     return width;
@@ -176,7 +195,7 @@ double changeTerrainWidthAt(const Measure* measure, const Fraction& tick)
         const StaffType* st = nullptr;
         if (midBarChangeIndicator(carrier, model, &st) && st) {
             const double sp = score->style().spatium();
-            width = std::max(width, st->meloHeaderGeometry(sp, score->style().defaultSpatium()).changeTerrainWidth);
+            width = std::max(width, changeTerrainGeometry(st, sp, score->style().defaultSpatium(), model).changeTerrainWidth);
         }
     }
     return width;
@@ -221,8 +240,9 @@ double courtesyTerrainWidth(const Measure* measure)
         ChangeIndicator model;
         const StaffType* st = nullptr;
         if (courtesyChangeIndicator(measure, s, model, &st) && st) {
+            st = score->staff(s)->staffType(measure->nextMeasure()->tick());
             const double sp = score->style().spatium();
-            width = std::max(width, st->meloHeaderGeometry(sp, score->style().defaultSpatium()).changeTerrainWidth);
+            width = std::max(width, changeTerrainGeometry(st, sp, score->style().defaultSpatium(), model).changeTerrainWidth);
         }
     }
     return width;
