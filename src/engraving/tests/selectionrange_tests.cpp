@@ -21,12 +21,17 @@
  */
 
 #include <gtest/gtest.h>
+#include <cstdlib>
 
 #include "engraving/dom/chord.h"
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/measure.h"
 #include "engraving/dom/note.h"
 #include "engraving/dom/segment.h"
+#include "engraving/dom/staff.h"
+#include "engraving/dom/system.h"
+#include "engraving/dom/page.h"
+#include "notation/utilities/scorerangeutilities.h"
 
 #include "utils/scorerw.h"
 #include "utils/scorecomp.h"
@@ -378,4 +383,37 @@ TEST_F(Engraving_SelectionRangeTests, deleteSelectionListElements)
     collectAndCheckCount(4, 2, 33);
 
     delete score;
+}
+
+TEST_F(Engraving_SelectionRangeTests, meloRangeEnclosesRenderedStaff)
+{
+    std::vector<const char*> fixtures { "jimstaff_data/m9-satb-mixed.mscx", "jimstaff_data/m8-two-staves.mscx",
+                                        "jimstaff_data/empty-half-staves-14.mscx", "selectionrange_data/selrangeandspanners.mscx" };
+    if (const char* pilot = std::getenv("MELO_SELECTION_PILOT")) {
+        fixtures.push_back(pilot);
+    }
+    for (const char* fixture : fixtures) {
+        std::unique_ptr<MasterScore> score(ScoreRW::readScore(String::fromUtf8(fixture), fixture[0] == '/'));
+        ASSERT_TRUE(score);
+        score->doLayout();
+        for (Measure* measure = score->firstMeasure(); measure; measure = measure->nextMeasure()) {
+            const Segment* start = measure->firstEnabled();
+            const Segment* end = measure->lastEnabled();
+            ASSERT_TRUE(start);
+            ASSERT_TRUE(end);
+            const System* system = measure->system();
+            for (staff_idx_t staff = 0; staff < score->nstaves(); ++staff) {
+                SCOPED_TRACE(fixture);
+                SCOPED_TRACE(staff);
+                const auto areas = mu::notation::ScoreRangeUtilities::boundingArea(score.get(), start, end, staff, staff + 1);
+                ASSERT_EQ(areas.size(), 1u);
+                const SysStaff* laidOutStaff = system->staff(staff);
+                const double top = laidOutStaff->y() + start->pagePos().y() + system->page()->pos().y();
+                const double bottom = top + laidOutStaff->bbox().height();
+                const int padding = 0.5 * score->staff(staff)->spatium(start->tick());
+                EXPECT_NEAR(areas.front().top(), top - padding, 0.001);
+                EXPECT_NEAR(areas.front().bottom(), bottom + padding, 0.001);
+            }
+        }
+    }
 }
