@@ -50,6 +50,16 @@ bool available()
     return melo_musescore_bridge_abi_version() == 2;
 }
 
+bool validateChordBassSuffix(const String& name)
+{
+    JsonObject envelope;
+    envelope.set("abi", 2);
+    envelope.set("op", "chord_bass_suffix_validate");
+    envelope.set("name", name);
+    JsonValue result;
+    return okResult(callBridge(String::fromUtf8(JsonDocument(envelope).toJson())), result);
+}
+
 bool validateState(const String& stateJson, String& error)
 {
     String envelope = String(u"{\"abi\":2,\"op\":\"validate\",\"state\":%1}").arg(stateJson);

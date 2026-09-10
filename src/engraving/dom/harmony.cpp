@@ -21,6 +21,7 @@
  */
 
 #include "engraving/melo/melostrings.h"
+#include "engraving/melo/melobridge.h"
 #include "harmony.h"
 
 #include "containers.h"
@@ -1337,21 +1338,14 @@ TranslatableString Harmony::typeUserName() const
 
 bool Harmony::isValidMeloName(const String& text)
 {
-    if (text.isEmpty() || text.contains(u'~')) {
-        return false;
-    }
-    for (size_t i = 0; i < text.size(); ++i) {
-        if (text.at(i).isSpace()) {
-            return false;
-        }
-    }
-    return true;
+    return melo::validateChordBassSuffix(text);
 }
 
 String Harmony::meloNameError() const
 {
     return m_harmonyType == HarmonyType::MELO && (cursor() && cursor()->editing() ? !isValidMeloName(plainText()) : m_isMisspelled)
-           ? muse::mtrc("engraving", "Chord name refused: use one nonempty name without spaces or ~. The previous name is preserved.")
+           ? muse::mtrc("engraving",
+                        "Chord name refused: use /1 through /7 for a modal bass, or /Xx for an exceptional bass. Spaces and ~ are not allowed. The previous name is preserved.")
            : String();
 }
 

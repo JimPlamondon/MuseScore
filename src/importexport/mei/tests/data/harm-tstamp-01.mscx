@@ -80,7 +80,7 @@
             </Harmony>
           <Harmony>
             <harmonyInfo>
-              <name>Ti5/Re</name>
+              <name>Ti5/3</name>
               </harmonyInfo>
             <eid>L_L</eid>
             </Harmony>
@@ -99,13 +99,13 @@
           <Harmony>
             <rootCase>1</rootCase>
             <harmonyInfo>
-              <name>!Ri:Ti5+9/La</name>
+              <name>!Ri:Ti5+9/5</name>
               </harmonyInfo>
             <eid>N_N</eid>
             </Harmony>
           <Harmony>
             <harmonyInfo>
-              <name>So7/Fa</name>
+              <name>So7/7</name>
               </harmonyInfo>
             <eid>O_O</eid>
             </Harmony>
@@ -136,7 +136,7 @@
           <Harmony>
             <rootCase>1</rootCase>
             <harmonyInfo>
-              <name>!So7/Ti</name>
+              <name>!So7/3</name>
               </harmonyInfo>
             <eid>S_S</eid>
             </Harmony>
@@ -145,7 +145,7 @@
             </location>
           <Harmony>
             <harmonyInfo>
-              <name>Re5/Fa</name>
+              <name>Re5/3</name>
               </harmonyInfo>
             <eid>T_T</eid>
             </Harmony>

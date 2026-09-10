@@ -529,14 +529,14 @@ TEST_F(MusicXml_Melo_Tests, ChordNameV4ImportsAsOpaquePerObjectHarmonyBesideStan
     ASSERT_EQ(meloHarmonies.size(), 2u);
     ASSERT_EQ(stockHarmonies.size(), 2u);
     EXPECT_EQ(meloHarmonies[0]->harmonyType(), HarmonyType::MELO);
-    EXPECT_EQ(meloHarmonies[0]->harmonyName(), u"!So7/Ti");
+    EXPECT_EQ(meloHarmonies[0]->harmonyName(), u"!So7/3");
     EXPECT_EQ(meloHarmonies[0]->tick(), Fraction(0, 1));
     EXPECT_EQ(meloHarmonies[0]->staffIdx(), 0u);
     EXPECT_EQ(meloHarmonies[0]->placement(), PlacementV::ABOVE);
     EXPECT_FALSE(meloHarmonies[0]->isPlayable());
     EXPECT_FALSE(meloHarmonies[0]->isRealizable());
     ASSERT_EQ(meloHarmonies[0]->chords().size(), 1u);
-    EXPECT_EQ(meloHarmonies[0]->chords().front()->textName(), u"!So7/Ti");
+    EXPECT_EQ(meloHarmonies[0]->chords().front()->textName(), u"!So7/3");
     EXPECT_EQ(meloHarmonies[0]->chords().front()->rootTpc(), Tpc::TPC_INVALID);
     EXPECT_GT(meloHarmonies[0]->ldata()->bbox().width(), 0.0);
     EXPECT_EQ(meloHarmonies[0]->ldata()->renderItemList().size(), 1u);
@@ -561,7 +561,7 @@ TEST_F(MusicXml_Melo_Tests, ChordNameEditingKeepsTheWholeOpaqueStringAndRefusesT
     const std::vector<Harmony*> harmonies = harmoniesOnStaff(score, 0);
     ASSERT_EQ(harmonies.size(), 2u);
     Harmony* melo = harmonies.front();
-    const String names[] = { u"Do5", u"Fa5", u"Do:La7", u"!So7/Ti", u"Do5|Fa5", u"Fi@Te:M3²+La,Ti/Re" };
+    const String names[] = { u"Do5", u"Fa5", u"Do:La7", u"!So7/3", u"Do5|Fa5", u"Fi@Te:M3²+La,Ti/Re" };
     for (const String& name : names) {
         melo->setHarmony(name);
         ASSERT_EQ(melo->chords().size(), 1u) << name.toStdString();
@@ -570,7 +570,7 @@ TEST_F(MusicXml_Melo_Tests, ChordNameEditingKeepsTheWholeOpaqueStringAndRefusesT
         EXPECT_EQ(melo->chords().front()->rootTpc(), Tpc::TPC_INVALID) << name.toStdString();
     }
     const String before = melo->harmonyName();
-    melo->setHarmony(u"~So7/Ti");
+    melo->setHarmony(u"~So7/3");
     EXPECT_EQ(melo->harmonyName(), before);
     delete score;
 }
@@ -642,7 +642,7 @@ TEST_F(MusicXml_Melo_Tests, ChordNameV4SurvivesNativeAndMusicXmlRoundTripsExactl
         ASSERT_EQ(harmoniesOnStaff(loaded, 0).size(), 2u) << extension.toStdString();
         ASSERT_EQ(harmoniesOnStaff(loaded, 1).size(), 2u) << extension.toStdString();
         EXPECT_EQ(harmoniesOnStaff(loaded, 0)[0]->harmonyType(), HarmonyType::MELO) << extension.toStdString();
-        EXPECT_EQ(harmoniesOnStaff(loaded, 0)[0]->harmonyName(), u"!So7/Ti") << extension.toStdString();
+        EXPECT_EQ(harmoniesOnStaff(loaded, 0)[0]->harmonyName(), u"!So7/3") << extension.toStdString();
         if (extension == u"mscz") {
             native = loaded;
         } else {
@@ -654,7 +654,7 @@ TEST_F(MusicXml_Melo_Tests, ChordNameV4SurvivesNativeAndMusicXmlRoundTripsExactl
     const String out = exportToScratch(native, "jims-chord-name-roundtrip.musicxml");
     const String xml = readAll(out);
     EXPECT_TRUE(xml.contains(u"xmlns:jims=\"urn:jims:musicxml:4\""));
-    EXPECT_EQ(xml.count(u"<jims:chord-name>!So7/Ti</jims:chord-name>"), 1);
+    EXPECT_EQ(xml.count(u"<jims:chord-name>!So7/3</jims:chord-name>"), 1);
     EXPECT_EQ(xml.count(u"<jims:chord-name>Re:So7</jims:chord-name>"), 1);
     auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
         return importMusicXml(s, path.toQString(), false);
@@ -670,7 +670,7 @@ TEST_F(MusicXml_Melo_Tests, ChordNameV4SurvivesNativeAndMusicXmlRoundTripsExactl
     ASSERT_EQ(againMelo.size(), 2u);
     ASSERT_EQ(againStock.size(), 2u);
     EXPECT_EQ(againMelo[0]->harmonyType(), HarmonyType::MELO);
-    EXPECT_EQ(againMelo[0]->harmonyName(), u"!So7/Ti");
+    EXPECT_EQ(againMelo[0]->harmonyName(), u"!So7/3");
     EXPECT_EQ(againMelo[1]->harmonyType(), HarmonyType::MELO);
     EXPECT_EQ(againMelo[1]->harmonyName(), u"Re:So7");
     EXPECT_EQ(againStock[0]->harmonyType(), HarmonyType::STANDARD);
@@ -818,7 +818,7 @@ TEST_F(MusicXml_Melo_Tests, ChordNameV4RefusesNestedFretDiagramCarrierOnExport)
     ASSERT_TRUE(segment);
     FretDiagram* fretDiagram = toFretDiagram(segment->findAnnotation(ElementType::FRET_DIAGRAM, 0, 0));
     ASSERT_TRUE(fretDiagram);
-    fretDiagram->setHarmony(u"!So7/Ti");
+    fretDiagram->setHarmony(u"!So7/3");
     ASSERT_TRUE(fretDiagram->harmony());
     fretDiagram->harmony()->setHarmonyType(HarmonyType::MELO);
 

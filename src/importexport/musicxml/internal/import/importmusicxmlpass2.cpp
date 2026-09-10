@@ -8059,9 +8059,10 @@ void MusicXmlParserPass2::harmony(const String& partId, Measure* measure, const 
                     break;
                 }
             }
-            if (!meloChordName.isEmpty() || name.isEmpty() || containsWhitespace || name.contains(u'~') || m_melo.version() < 4) {
+            if (!meloChordName.isEmpty() || name.isEmpty() || containsWhitespace || !Harmony::isValidMeloName(name)
+                || m_melo.version() < 4) {
                 m_logger->logError(
-                    u"invalid or duplicate jims:chord-name; V4 requires one nonempty whitespace-free canonical name and rejects the superseded '~' marker",
+                    u"invalid or duplicate jims:chord-name; use modal /1 through /7 or an exceptional /Xx bass in one whitespace-free name",
                     &m_e);
                 m_meloError = Err::FileBadFormat;
             } else {
