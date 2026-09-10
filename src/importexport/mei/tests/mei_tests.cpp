@@ -23,6 +23,11 @@
 #include <gtest/gtest.h>
 #include <QFile>
 #include <QTemporaryDir>
+#include <QXmlStreamReader>
+#include "engraving/dom/part.h"
+#include "engraving/dom/instrument.h"
+#include "engraving/dom/pitchspelling.h"
+#include "engraving/dom/measure.h"
 
 #include "io/file.h"
 
@@ -94,6 +99,54 @@ void Mei_Tests::meiReadTest(const char* file)
 
     // Compare the mei files
     EXPECT_TRUE(ScoreComp::compareFiles(fileName + u".test.mei", ScoreRW::rootPath() + u"/" + MEI_DIR + fileName + u".mei"));
+}
+
+TEST_F(Mei_Tests, timedConventionalInstrumentControlsWrittenOctave)
+{
+    std::unique_ptr<MasterScore> score(ScoreRW::readScore(u"data/accid-01.mscx"));
+    ASSERT_TRUE(score);
+    ASSERT_FALSE(score->staff(0)->staffType(Fraction(0, 1))->isMelo());
+    Measure* second = score->firstMeasure()->nextMeasure();
+    ASSERT_TRUE(second);
+    Instrument later(*score->parts().front()->instrument());
+    later.setTranspose(Interval(7, 12));
+    score->parts().front()->setInstrument(later, second->tick());
+    std::vector<int> expected;
+    for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg; seg = seg->next1(SegmentType::ChordRest)) {
+        EngravingItem* item = seg->element(0);
+        if (!item || !item->isChord()) {
+            continue;
+        }
+        for (Note* note : toChord(item)->notes()) {
+            note->setTpcFromPitch();
+            const int offset = seg->tick() < second->tick() ? 0 : 12;
+            expected.push_back((note->pitch() - offset - tpc2alterByKey(note->tpc2(), Key::C)) / 12 - 1);
+        }
+    }
+    ASSERT_FALSE(expected.empty());
+    QTemporaryDir directory;
+    const String path = String::fromQString(directory.filePath("timed.mei"));
+    auto write = [](Score* source, const muse::io::path_t& destination) -> Err {
+        MeiWriter writer;
+        return writer.writeScore(source, destination);
+    };
+    ASSERT_TRUE(ScoreRW::saveScore(score.get(), path, write));
+    QFile file(path.toQString());
+    ASSERT_TRUE(file.open(QIODevice::ReadOnly));
+    QXmlStreamReader xml(&file);
+    std::vector<int> actual;
+    bool firstVoice = false;
+    while (!xml.atEnd()) {
+        xml.readNext();
+        if (xml.isStartElement() && xml.name() == u"layer") {
+            firstVoice = xml.attributes().value(u"n") == u"1";
+        }
+        if (xml.isStartElement() && xml.name() == u"note" && firstVoice) {
+            actual.push_back(xml.attributes().value(u"oct").toInt());
+        }
+    }
+    ASSERT_FALSE(xml.hasError());
+    EXPECT_EQ(actual, expected);
 }
 
 // MeloPresto MEI (mei-jims profile) focused round trip: typed state import,

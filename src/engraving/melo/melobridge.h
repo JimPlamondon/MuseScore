@@ -317,6 +317,10 @@ bool applyStateChange(const muse::String& stateJson, const muse::String& choiceI
 bool entryFromStandardPitch(const muse::String& stateJson, char step, int alter, int octave, SoundingPitch& out,
                             muse::String* error = nullptr);
 
+/// Apply an inherited notation interval to the canonical structural note.
+bool transposeNote(const muse::String& stateJson, int nPer, int nGen, int steps, int keys, SoundingPitch& out,
+                   muse::String* error = nullptr);
+
 /// Reinterpret an established full-tie frequency under a new effective state.
 /// The Kernel returns an exact identity/projection or a typed failure.
 bool noteContinuation(const muse::String& stateJson, double frequencyHz, SoundingPitch& out, muse::String* error = nullptr);
