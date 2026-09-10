@@ -2729,7 +2729,10 @@ void TRead::read(Harmony* h, XmlReader& e, ReadContext& ctx)
     HarmonyInfo* info = new HarmonyInfo(ctx.score());
     while (e.readNextStartElement()) {
         const AsciiStringView tag(e.name());
-        if (tag == "base") {
+        if (tag == "meloChordEvidence") {
+            const bool manual = e.attribute("origin") == u"manual";
+            h->setMeloEvidence(e.readText(), manual);
+        } else if (tag == "base") {
             info->setBassTpc(e.readInt());
         } else if (tag == "baseCase") {
             h->setBassCase(static_cast<NoteCaseType>(e.readInt()));

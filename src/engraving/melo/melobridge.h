@@ -25,6 +25,9 @@ bool available();
 // `validate`); on rejection `error` carries the Kernel's message. The
 // importer computes no musical fact — the Kernel is the only gate.
 bool validateState(const muse::String& stateJson, muse::String& error);
+/// Validate generated evidence; optional live JSON includes exact intervals and Kernel frequencies.
+bool validateChordEvidence(const muse::String& evidence, const muse::String& name, muse::String& error,
+                           const muse::String& live = muse::String(), const muse::String& offset = muse::String());
 bool validateChordBassSuffix(const muse::String& name);
 
 /// A note's cents above the staff's explicit lower extent endpoint.

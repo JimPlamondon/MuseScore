@@ -37,6 +37,7 @@
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/excerpt.h"
 #include "engraving/dom/note.h"
+#include "engraving/dom/harmony.h"
 #include "engraving/dom/segment.h"
 #include "engraving/dom/staff.h"
 #include "engraving/dom/stafftype.h"
@@ -215,6 +216,48 @@ TEST_F(Mei_Tests, mei_melo_roundtrip_01) {
     EXPECT_TRUE(mei.contains(u"<ambitus>"));
     EXPECT_TRUE(mei.contains(u"jims:tuning-trajectory"));
     delete score;
+}
+
+TEST_F(Mei_Tests, generated_chord_evidence_roundtrip_and_stale_export)
+{
+    auto importFunc = [](MasterScore* score, const muse::io::path_t& path) -> Err {
+        MeiReader reader(nullptr);
+        return reader.import(score, path);
+    };
+    auto exportFunc = [](Score* score, const muse::io::path_t& path) -> Err {
+        MeiWriter writer;
+        return writer.writeScore(score, path);
+    };
+    std::unique_ptr<MasterScore> score(ScoreRW::readScore(MEI_DIR + u"jims/generated-chord-evidence.mei", false, importFunc));
+    ASSERT_TRUE(score);
+    Harmony* harmony = nullptr;
+    Note* note = nullptr;
+    for (Segment* seg = score->firstSegment(SegmentType::All); seg; seg = seg->next1()) {
+        for (EngravingItem* item : seg->annotations()) {
+            if (item->isHarmony()) {
+                harmony = toHarmony(item);
+            }
+        }
+        if (seg->isChordRestType() && seg->element(0) && seg->element(0)->isChord()) {
+            note = toChord(seg->element(0))->notes().front();
+        }
+    }
+    ASSERT_TRUE(harmony);
+    ASSERT_TRUE(note);
+    const String proof = harmony->meloEvidence();
+    EXPECT_FALSE(proof.empty());
+    EXPECT_EQ(harmony->meloEvidenceOrigin(), u"generated");
+    EXPECT_TRUE(harmony->meloEvidenceError().empty());
+    score->rebuildMidiMapping();
+    EXPECT_TRUE(ScoreRW::saveScore(score.get(), u"generated-evidence.test.mei", exportFunc));
+    std::unique_ptr<MasterScore> again(ScoreRW::readScore(u"generated-evidence.test.mei", true, importFunc));
+    ASSERT_TRUE(again);
+    muse::io::File file(muse::io::path_t(u"generated-evidence.test.mei"));
+    ASSERT_TRUE(file.open(muse::io::IODevice::ReadOnly));
+    EXPECT_TRUE(String::fromUtf8(file.readAll().constChar()).contains(proof));
+    note->setMeloPitch(note->meloNPer() + 1, note->meloNGen());
+    EXPECT_FALSE(harmony->meloEvidenceError().empty());
+    EXPECT_FALSE(ScoreRW::saveScore(score.get(), u"stale-evidence.test.mei", exportFunc));
 }
 
 TEST_F(Mei_Tests, mei_accid_01) {

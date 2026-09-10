@@ -2981,7 +2981,10 @@ void TRead::read(Harmony* h, XmlReader& e, ReadContext& ctx)
 {
     while (e.readNextStartElement()) {
         const AsciiStringView tag(e.name());
-        if (tag == "bassCase") {
+        if (tag == "meloChordEvidence") {
+            const bool manual = e.attribute("origin") == u"manual";
+            h->setMeloEvidence(e.readText(), manual);
+        } else if (tag == "bassCase") {
             h->setBassCase(static_cast<NoteCaseType>(e.readInt()));
         } else if (tag == "rootCase") {
             h->setRootCase(static_cast<NoteCaseType>(e.readInt()));

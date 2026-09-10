@@ -120,6 +120,7 @@ public:
     void capture(pugi::xml_node root);
 
     bool present() const { return !m_record.empty(); }
+    bool onHarm(const std::string& xmlId, engraving::Harmony* harmony);
 
     /// Apply the captured record to the fully-built score: staff states
     /// (StaffType at tick 0 + StaffTypeChange at exact ticks, Kernel-

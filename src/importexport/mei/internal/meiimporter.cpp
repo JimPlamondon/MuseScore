@@ -2170,9 +2170,11 @@ bool MeiImporter::readNote(pugi::xml_node noteNode, Measure* measure, int track,
     // If there is a reference to the note in the MEI, add it the maps (e.g., for ties)
     if (m_startIdChordRests.count(meiNote.m_xmlId)) {
         m_startIdNotes[meiNote.m_xmlId] = note;
+        m_startIdChordRests[meiNote.m_xmlId] = chord;
     }
     if (m_endIdChordRests.count(meiNote.m_xmlId)) {
         m_endIdNotes[meiNote.m_xmlId] = note;
+        m_endIdChordRests[meiNote.m_xmlId] = chord;
     }
 
     int tpc1 = Transpose::transposeTpc(pitchSt.tpc2, interval, true);
@@ -2886,7 +2888,7 @@ bool MeiImporter::readHarm(pugi::xml_node harmNode, Measure* measure)
 
     Convert::harmFromMEI(harmony, meiLines, meiHarm, warning);
 
-    return true;
+    return m_melo.onHarm(meiHarm.m_xmlId, harmony);
 }
 
 /**
