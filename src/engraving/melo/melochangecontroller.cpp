@@ -132,39 +132,43 @@ bool prepareNoteEdits(Score* score, const std::vector<StateEdit>& stateEdits,
                     if (!item || !item->isChord()) {
                         continue;
                     }
-                    for (Note* note : toChord(item)->notes()) {
-                        if (note->tick() < edit.tick || (!edit.stop.negative() && note->tick() >= edit.stop)) {
-                            continue;
-                        }
-                        if (!note->hasMeloPitch() || seen.count(note)) {
-                            continue;
-                        }
-                        if (note->incomingPartialTie() || note->outgoingPartialTie()) {
-                            error = mu::engraving::melo::partialTieCrossesState();
-                            return false;
-                        }
-                        SoundingPitch projection;
-                        if (!projectionFor(stateEdits, note, projection, error)) {
-                            return false;
-                        }
-                        for (EngravingObject* linkedObject : note->linkList()) {
-                            Note* linked = toNote(linkedObject);
-                            if (!linked->hasMeloPitch()) {
-                                error = mu::engraving::melo::linkedNoteIdentityMismatch();
+                    std::vector<Chord*> chords = toChord(item)->graceNotes();
+                    chords.push_back(toChord(item));
+                    for (Chord* chord : chords) {
+                        for (Note* note : chord->notes()) {
+                            if (note->tick() < edit.tick || (!edit.stop.negative() && note->tick() >= edit.stop)) {
+                                continue;
+                            }
+                            if (!note->hasMeloPitch() || seen.count(note)) {
+                                continue;
+                            }
+                            if (note->incomingPartialTie() || note->outgoingPartialTie()) {
+                                error = mu::engraving::melo::partialTieCrossesState();
                                 return false;
                             }
-                            SoundingPitch linkedProjection;
-                            if (!projectionFor(stateEdits, linked, linkedProjection, error)) {
+                            SoundingPitch projection;
+                            if (!projectionFor(stateEdits, note, projection, error)) {
                                 return false;
                             }
-                            if (!sameProjection(projection, linkedProjection)) {
-                                error = mu::engraving::melo::conflictingLinkedProjections();
-                                return false;
+                            for (EngravingObject* linkedObject : note->linkList()) {
+                                Note* linked = toNote(linkedObject);
+                                if (!linked->hasMeloPitch()) {
+                                    error = mu::engraving::melo::linkedNoteIdentityMismatch();
+                                    return false;
+                                }
+                                SoundingPitch linkedProjection;
+                                if (!projectionFor(stateEdits, linked, linkedProjection, error)) {
+                                    return false;
+                                }
+                                if (!sameProjection(projection, linkedProjection)) {
+                                    error = mu::engraving::melo::conflictingLinkedProjections();
+                                    return false;
+                                }
+                                seen.insert(linked);
                             }
-                            seen.insert(linked);
+                            const int step = int(String(u"CDEFGAB").indexOf(Char(projection.step)));
+                            noteEdits.push_back({ note, projection, step2tpc(step, AccidentalVal(projection.alter)) });
                         }
-                        const int step = int(String(u"CDEFGAB").indexOf(Char(projection.step)));
-                        noteEdits.push_back({ note, projection, step2tpc(step, AccidentalVal(projection.alter)) });
                     }
                 }
             }

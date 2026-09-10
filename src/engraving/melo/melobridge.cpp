@@ -779,6 +779,13 @@ bool noteContinuation(const String& stateJson, double frequencyHz, SoundingPitch
     return readSoundingPitch(callBridge(envelope), out, error);
 }
 
+bool transposeNote(const String& stateJson, int nPer, int nGen, int steps, int keys, SoundingPitch& out, String* error)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"transpose_note\",\"state\":%1,\"nPer\":%2,\"nGen\":%3,\"steps\":%4,\"keys\":%5}")
+                      .arg(stateJson).arg(nPer).arg(nGen).arg(steps).arg(keys);
+    return readSoundingPitch(callBridge(envelope), out, error);
+}
+
 bool scaleDots(const String& stateJson, std::vector<ScaleDotStack>& stacks)
 {
     String envelope = String(u"{\"abi\":2,\"op\":\"scale_dots\",\"state\":%1}").arg(stateJson);
