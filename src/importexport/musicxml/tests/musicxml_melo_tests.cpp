@@ -32,6 +32,7 @@
 
 #include <algorithm>
 #include <climits>
+#include <cstdlib>
 #include <functional>
 #include <QTemporaryDir>
 #include <QFile>
@@ -39,6 +40,7 @@
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/fret.h"
 #include "engraving/dom/harmony.h"
+#include "engraving/rendering/paintoptions.h"
 #include "engraving/dom/measure.h"
 #include "engraving/dom/note.h"
 #include "engraving/dom/part.h"
@@ -1751,4 +1753,85 @@ TEST_F(MusicXml_Melo_Tests, MelodyPartTenorOverrideRoundTripsAndInvalidValueIsRe
     MasterScore* refused = ScoreRW::readScore(invalid, true, importXml);
     EXPECT_FALSE(refused);
     delete refused;
+}
+
+TEST_F(MusicXml_Melo_Tests, GeneratedChordEvidenceSurvivesNativeAndXmlAndDetectsEdits)
+{
+    MasterScore* score = readMelo("melo-generated-chord-evidence.musicxml");
+    ASSERT_TRUE(score);
+    Harmony* harmony = harmoniesInOrder(score).front();
+    const String proof = harmony->meloEvidence();
+    ASSERT_FALSE(proof.empty());
+    EXPECT_EQ(harmony->meloEvidenceOrigin(), u"generated");
+    EXPECT_TRUE(harmony->meloEvidenceError().empty()) << harmony->meloEvidenceError().toStdString();
+    const String dir(u"jims-export-scratch");
+    muse::io::Dir::mkpath(dir);
+    const String nativePath = dir + u"/generated-chord-evidence.mscx";
+    ASSERT_TRUE(ScoreRW::saveScore(score, nativePath));
+    MasterScore* native = ScoreRW::readScore(nativePath, true);
+    ASSERT_TRUE(native);
+    EXPECT_EQ(harmoniesInOrder(native).front()->meloEvidence(), proof);
+    EXPECT_TRUE(harmoniesInOrder(native).front()->meloEvidenceError().empty());
+    const String output = exportToScratch(native, "generated-chord-evidence.musicxml");
+    auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
+        return importMusicXml(s, path.toQString(), false);
+    };
+    MasterScore* again = ScoreRW::readScore(output, true, importXml);
+    ASSERT_TRUE(again);
+    EXPECT_EQ(harmoniesInOrder(again).front()->meloEvidence(), proof);
+    EXPECT_TRUE(harmoniesInOrder(again).front()->meloEvidenceError().empty());
+
+    rendering::PaintOptions screen;
+    rendering::PaintOptions print;
+    print.isPrinting = true;
+    const auto validColor = harmony->curColor(screen);
+    Note* bass = const_cast<Note*>(notesInOrder(score, 0).front());
+    score->startCmd(TranslatableString::untranslatable("Change supporting chord note"));
+    bass->undoChangeProperty(Pid::MELO_NPER, bass->meloNPer() + 1);
+    score->endCmd();
+    EXPECT_FALSE(harmony->meloNameError().empty());
+    EXPECT_NE(harmony->curColor(screen), validColor);
+    EXPECT_EQ(harmony->curColor(print), harmony->curColor(screen));
+    muse::io::Buffer refused;
+    refused.open(muse::io::IODevice::WriteOnly);
+    EXPECT_FALSE(saveXml(score, &refused));
+    score->undoRedo(true, nullptr);
+    EXPECT_TRUE(harmony->meloEvidenceError().empty());
+    score->undoRedo(false, nullptr);
+    EXPECT_FALSE(harmony->meloEvidenceError().empty());
+    score->undoRedo(true, nullptr);
+    EXPECT_TRUE(harmony->meloEvidenceError().empty());
+
+    harmony->setHarmony(u"Re5");
+    EXPECT_EQ(harmony->meloEvidenceOrigin(), u"manual");
+    EXPECT_EQ(harmony->meloEvidence(), proof);
+    EXPECT_TRUE(harmony->meloEvidenceError().empty());
+    const String manual = exportToScratch(score, "manual-with-generation-history.musicxml");
+    EXPECT_TRUE(readAll(manual).contains(u"origin=\"manual\""));
+    MasterScore* manualAgain = ScoreRW::readScore(manual, true, importXml);
+    ASSERT_TRUE(manualAgain);
+    EXPECT_EQ(harmoniesInOrder(manualAgain).front()->meloEvidenceOrigin(), u"manual");
+    harmony->setHarmony(u"Do5");
+    EXPECT_EQ(harmony->meloEvidenceOrigin(), u"generated");
+    EXPECT_TRUE(harmony->meloEvidenceError().empty());
+    delete manualAgain;
+    delete again;
+    delete native;
+    delete score;
+}
+
+TEST_F(MusicXml_Melo_Tests, GeneratedEvidenceOptionalPrivateCorpus)
+{
+    const char* path = std::getenv("MELO_CHORD_EVIDENCE_SCORE");
+    if (!path) {
+        GTEST_SKIP() << "Private corpus score supplied only for the local corpus gate";
+    }
+    MasterScore* score = ScoreRW::readScore(String::fromUtf8(path), true);
+    ASSERT_TRUE(score);
+    for (Harmony* harmony : harmoniesInOrder(score)) {
+        EXPECT_TRUE(harmony->meloEvidenceError().empty())
+            << harmony->tick().toString().toStdString() << " " << harmony->harmonyName().toStdString()
+            << ": " << harmony->meloEvidenceError().toStdString();
+    }
+    delete score;
 }

@@ -9020,6 +9020,11 @@ bool ExportMusicXml::buildMeloExportPlan()
             m_meloPlan.error = mu::engraving::melo::exportChordFretDiagram();
             return false;
         }
+        const String evidenceError = harmony->meloEvidenceError();
+        if (!evidenceError.empty()) {
+            m_meloPlan.error = evidenceError;
+            return false;
+        }
         const String name = harmony->harmonyName();
         bool containsWhitespace = false;
         for (size_t i = 0; i < name.size(); ++i) {
@@ -9717,6 +9722,9 @@ void ExportMusicXml::harmony(Harmony const* const h, FretDiagram const* const fd
         switch (h->harmonyType()) {
         case HarmonyType::MELO:
             m_xml.tag("jims:chord-name", textName);
+            if (!h->meloEvidence().empty()) {
+                m_xml.tag("jims:chord-evidence", { { "origin", h->meloEvidenceOrigin() } }, h->meloEvidence());
+            }
             break;
         case HarmonyType::NASHVILLE: {
             String alter;

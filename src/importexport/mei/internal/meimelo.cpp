@@ -218,6 +218,10 @@ bool MeloMeiExporter::buildPlan(const Score* score)
             if (harmony->harmonyType() != HarmonyType::MELO) {
                 continue;
             }
+            if (!harmony->meloEvidenceError().empty()) {
+                m_error = harmony->meloEvidenceError();
+                return false;
+            }
             const String name = harmony->harmonyName();
             bool whitespace = false;
             for (size_t i = 0; i < name.size(); ++i) {
@@ -706,6 +710,11 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
         }
         pugi::xml_node ev = he.append_child("jm:event");
         ev.append_attribute("harm") = ("#" + entry.first).c_str();
+        if (!harmony->meloEvidence().empty()) {
+            auto proof = ev.append_child("jm:chord-evidence");
+            proof.append_attribute("origin") = harmony->meloEvidenceOrigin().toStdString().c_str();
+            proof.text().set(harmony->meloEvidence().toStdString().c_str());
+        }
         ev.append_attribute("measure") = int(mit->second) + 1;
         ev.append_attribute("off") = fracStr(quartersOf(segment->tick() - measure->tick())).c_str();
     }
@@ -1375,6 +1384,39 @@ bool MeloMeiImporter::apply(Score* score,
     if (anyState) {
         score->style().set(Sid::musicalSymbolFont, String(u"JiMSMusic"));
         score->style().set(Sid::hideInstrumentNameIfOneInstrument, false);
+    }
+    return true;
+}
+} // namespace mu::iex::mei
+
+namespace mu::iex::mei {
+bool MeloMeiImporter::onHarm(const std::string& xmlId, Harmony* harmony)
+{
+    auto events = childByLocal(childByLocal(m_record, "musicxml"), "harmony");
+    bool found = false;
+    for (auto event : events.children()) {
+        if (std::string(event.attribute("harm").value()) != "#" + xmlId) {
+            continue;
+        }
+        auto proof = childByLocal(event, "chord-evidence");
+        if (!proof) {
+            continue;
+        }
+        for (auto sibling = proof.next_sibling(); sibling; sibling = sibling.next_sibling()) {
+            if (localName(sibling) == "chord-evidence") {
+                m_error = u"Duplicate chord evidence carrier";
+                return false;
+            }
+        }
+        const String origin = String::fromUtf8(proof.attribute("origin").value());
+        harmony->setMeloEvidence(String::fromUtf8(proof.text().get()), origin == u"manual");
+        if (found || (origin != u"manual" && origin != u"generated") || harmony->meloEvidence().empty()
+            || !harmony->meloEvidenceError(false).empty()
+            || (origin == u"generated" && harmony->meloEvidenceOrigin() != u"generated")) {
+            m_error = u"Invalid or unbound generated chord evidence";
+            return false;
+        }
+        found = true;
     }
     return true;
 }

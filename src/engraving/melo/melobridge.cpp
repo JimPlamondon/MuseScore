@@ -60,6 +60,34 @@ bool validateChordBassSuffix(const String& name)
     return okResult(callBridge(String::fromUtf8(JsonDocument(envelope).toJson())), result);
 }
 
+bool validateChordEvidence(const String& evidence, const String& name, String& error, const String& live, const String& offset)
+{
+    std::string parseError;
+    JsonDocument proof = JsonDocument::fromJson(evidence.toUtf8(), &parseError);
+    if (!parseError.empty()) {
+        error = u"Invalid generated chord evidence JSON";
+        return false;
+    }
+    JsonObject envelope;
+    envelope.set("abi", 2);
+    envelope.set("op", "chord_evidence_validate");
+    envelope.set("evidence", proof.rootObject());
+    envelope.set("name", name);
+    if (!live.empty()) {
+        envelope.set("live", JsonDocument::fromJson(live.toUtf8()).rootArray());
+        envelope.set("offset", offset);
+    }
+    JsonDocument response = JsonDocument::fromJson(callBridge(String::fromUtf8(JsonDocument(envelope).toJson())).toUtf8());
+    if (response.rootObject().value("ok").toBool()) {
+        return true;
+    }
+    error = response.rootObject().value("error").toString();
+    if (error.empty()) {
+        error = u"Kernel could not validate generated chord evidence";
+    }
+    return false;
+}
+
 bool validateState(const String& stateJson, String& error)
 {
     String envelope = String(u"{\"abi\":2,\"op\":\"validate\",\"state\":%1}").arg(stateJson);
