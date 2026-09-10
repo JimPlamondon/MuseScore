@@ -500,6 +500,16 @@ TEST_F(Engraving_ChordSymbolTests, testAddHarmonyToFretDiagram)
     delete score;
 }
 
+TEST_F(Engraving_ChordSymbolTests, meloBassDegreesAndExceptionalNamesUseKernelValidation)
+{
+    for (const String& name : { String(u"Re:So7/3"), String(u"Do5/5"), String(u"Do:So5+Fi/Ti"), String(u"Ti:m3³/Le") }) {
+        EXPECT_TRUE(Harmony::isValidMeloName(name));
+    }
+    for (const String& name : { String(u"Re:So7/Fi"), String(u"Do5/Mi"), String(u"Do5/0"), String(u"Do5/8"), String(u"Ti:m3³/3") }) {
+        EXPECT_FALSE(Harmony::isValidMeloName(name));
+    }
+}
+
 TEST_F(Engraving_ChordSymbolTests, meloHarmonyCreationIsPerObjectUndoableCloneableAndAccessible)
 {
     MasterScore* score = test_pre(u"add-link");
@@ -557,8 +567,10 @@ TEST_F(Engraving_ChordSymbolTests, denseMeloHarmonyLabelsUseAlternatingVerticalL
     Harmony* first = score->addHarmony(HarmonyType::MELO, firstChordRest);
     Harmony* second = score->addHarmony(HarmonyType::MELO, secondChordRest);
     ASSERT_TRUE(first && second);
-    first->setHarmony(u"Fi@Te:M3²+La,Ti/Re—Fi@Te:M3²+La,Ti/Re");
-    second->setHarmony(u"!So7/Ti,Mi,La—!So7/Ti,Mi,La");
+    first->setHarmony(u"!Ri:Ti5+Le,Te/Re");
+    second->setHarmony(u"Fa5+Ri,Me/5");
+    first->setProperty(Pid::FONT_SIZE, 60.0);
+    second->setProperty(Pid::FONT_SIZE, 60.0);
     score->doLayout();
 
     const RectF firstBox = first->ldata()->bbox().translated(first->canvasPos());
@@ -588,7 +600,7 @@ TEST_F(Engraving_ChordSymbolTests, meloHarmonyRangeCopyPasteKeepsTypeAndCanonica
 
     Harmony* source = score->addHarmony(HarmonyType::MELO, sourceChordRest);
     ASSERT_TRUE(source);
-    source->setHarmony(u"!So7/Ti");
+    source->setHarmony(u"!So7/3");
 
     score->select(sourceMeasure);
     ASSERT_TRUE(score->selection().canCopy());
@@ -608,7 +620,7 @@ TEST_F(Engraving_ChordSymbolTests, meloHarmonyRangeCopyPasteKeepsTypeAndCanonica
     ASSERT_TRUE(pastedItem && pastedItem->isHarmony());
     Harmony* pasted = toHarmony(pastedItem);
     EXPECT_EQ(pasted->harmonyType(), HarmonyType::MELO);
-    EXPECT_EQ(pasted->harmonyName(), u"!So7/Ti");
+    EXPECT_EQ(pasted->harmonyName(), u"!So7/3");
     delete score;
 }
 

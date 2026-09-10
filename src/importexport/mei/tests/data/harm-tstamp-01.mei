@@ -38,15 +38,15 @@
                         </layer>
                      </staff>
                      <harm xml:id="h1" staff="1" tstamp="1.5">Si:m3²</harm>
-                     <harm xml:id="h6" staff="1" tstamp="1.5">Ti5/Re</harm>
+                     <harm xml:id="h6" staff="1" tstamp="1.5">Ti5/3</harm>
                      <harm xml:id="h2" staff="1" tstamp="1.75">Si:m3³/Ti</harm>
-                     <harm xml:id="h3" staff="1" tstamp="2.5">!Ri:Ti5+9/La</harm>
-                     <harm xml:id="h5" staff="1" tstamp="2.5">So7/Fa</harm>
+                     <harm xml:id="h3" staff="1" tstamp="2.5">!Ri:Ti5+9/5</harm>
+                     <harm xml:id="h5" staff="1" tstamp="2.5">So7/7</harm>
                      <harm xml:id="h10" staff="1" tstamp="2.75">Mi+Si,4,7</harm>
                      <harm xml:id="h4" staff="1" tstamp="3.5">So7</harm>
                      <harm xml:id="h7" staff="1" tstamp="3.5">So7</harm>
-                     <harm xml:id="h8" staff="1" tstamp="3.5">!So7/Ti</harm>
-                     <harm xml:id="h9" staff="1" tstamp="4.5">Re5/Fa</harm>
+                     <harm xml:id="h8" staff="1" tstamp="3.5">!So7/3</harm>
+                     <harm xml:id="h9" staff="1" tstamp="4.5">Re5/3</harm>
                   </measure>
                </section>
             </score>
