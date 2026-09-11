@@ -1,7 +1,0 @@
-<RCC>
-  <qresource prefix="/qt/qml/Muse/Vst/">
-    <file alias="VstEditor.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/vst/qml/Muse/Vst/VstEditor.qml</file>
-    <file alias="VstEditorDialog.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/vst/qml/Muse/Vst/VstEditorDialog.qml</file>
-  </qresource>
-</RCC>
-

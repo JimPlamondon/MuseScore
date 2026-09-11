@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/">
-    <file alias="/qt/qml/MuseScore/Braille">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/braille/qml/MuseScore/Braille</file>
-
-  </qresource>
-</RCC>

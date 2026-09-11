@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/qt/qml/Muse/UiComponents/">
-    <file alias="StyledRectangularShadow.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/uicomponents/qml/Muse/UiComponents/StyledRectangularShadow.qml</file>
-  </qresource>
-</RCC>
-

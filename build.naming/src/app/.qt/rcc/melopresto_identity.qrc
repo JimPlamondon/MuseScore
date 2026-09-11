@@ -1,7 +1,0 @@
-<RCC>
-  <qresource prefix="/melo/icons">
-    <file alias="score.svg">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/share/icons/melopresto/MeloPrestoScore.svg</file>
-    <file alias="document.svg">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/share/icons/melopresto/MeloPrestoScoreDocument.svg</file>
-  </qresource>
-</RCC>
-

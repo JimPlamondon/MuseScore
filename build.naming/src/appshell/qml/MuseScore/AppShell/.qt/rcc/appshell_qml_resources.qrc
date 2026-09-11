@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/">
-    <file alias="resources/OnlineSoundsPreview.gif">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/resources/OnlineSoundsPreview.gif</file>
-  </qresource>
-</RCC>
-

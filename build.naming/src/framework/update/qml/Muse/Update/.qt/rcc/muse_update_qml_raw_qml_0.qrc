@@ -1,9 +1,0 @@
-<RCC>
-  <qresource prefix="/qt/qml/Muse/Update/">
-    <file alias="AppReleaseInfoDialog.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/update/qml/Muse/Update/AppReleaseInfoDialog.qml</file>
-    <file alias="AppUpdateProgressDialog.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/update/qml/Muse/Update/AppUpdateProgressDialog.qml</file>
-    <file alias="internal/AppReleaseInfoBottomPanel.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/update/qml/Muse/Update/internal/AppReleaseInfoBottomPanel.qml</file>
-    <file alias="internal/ReleaseNotesView.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/update/qml/Muse/Update/internal/ReleaseNotesView.qml</file>
-  </qresource>
-</RCC>
-

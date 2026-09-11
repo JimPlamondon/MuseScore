@@ -1,7 +1,0 @@
-<RCC>
-  <qresource prefix="/qt/qml/MuseScore/Preferences/">
-    <file alias="internal/qmldir">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/preferences/qml/MuseScore/Preferences/internal/qmldir</file>
-    <file alias="internal/NoteInput/qmldir">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/preferences/qml/MuseScore/Preferences/internal/NoteInput/qmldir</file>
-  </qresource>
-</RCC>
-

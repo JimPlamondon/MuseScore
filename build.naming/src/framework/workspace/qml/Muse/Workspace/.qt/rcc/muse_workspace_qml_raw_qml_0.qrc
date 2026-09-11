@@ -1,9 +1,0 @@
-<RCC>
-  <qresource prefix="/qt/qml/Muse/Workspace/">
-    <file alias="NewWorkspaceDialog.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/workspace/qml/Muse/Workspace/NewWorkspaceDialog.qml</file>
-    <file alias="WorkspacesDialog.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/workspace/qml/Muse/Workspace/WorkspacesDialog.qml</file>
-    <file alias="internal/WorkspacesTopPanel.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/workspace/qml/Muse/Workspace/internal/WorkspacesTopPanel.qml</file>
-    <file alias="internal/WorkspacesView.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/workspace/qml/Muse/Workspace/internal/WorkspacesView.qml</file>
-  </qresource>
-</RCC>
-

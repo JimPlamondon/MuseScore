@@ -1,8 +1,0 @@
-<RCC>
-  <qresource prefix="/qt/qml/MuseScore/AppShell/">
-    <file alias="FirstLaunchSetup/resources/MuseSounds.png">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/FirstLaunchSetup/resources/MuseSounds.png</file>
-    <file alias="FirstLaunchSetup/resources/VideoTutorials.png">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/FirstLaunchSetup/resources/VideoTutorials.png</file>
-    <file alias="resources/mu_logo.svg">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/resources/mu_logo.svg</file>
-  </qresource>
-</RCC>
-

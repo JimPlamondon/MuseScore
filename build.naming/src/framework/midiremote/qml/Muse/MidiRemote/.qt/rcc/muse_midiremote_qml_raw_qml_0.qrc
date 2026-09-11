@@ -1,9 +1,0 @@
-<RCC>
-  <qresource prefix="/qt/qml/Muse/MidiRemote/">
-    <file alias="EditMidiMappingDialog.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/midiremote/qml/Muse/MidiRemote/EditMidiMappingDialog.qml</file>
-    <file alias="internal/MidiMappingBottomPanel.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/midiremote/qml/Muse/MidiRemote/internal/MidiMappingBottomPanel.qml</file>
-    <file alias="internal/MidiMappingTopPanel.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/midiremote/qml/Muse/MidiRemote/internal/MidiMappingTopPanel.qml</file>
-    <file alias="MidiDeviceMappingPage.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/midiremote/qml/Muse/MidiRemote/MidiDeviceMappingPage.qml</file>
-  </qresource>
-</RCC>
-

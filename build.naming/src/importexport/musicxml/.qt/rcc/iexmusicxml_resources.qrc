@@ -1,8 +1,0 @@
-<RCC>
-  <qresource prefix="/">
-    <file alias="schema/musicxml.xsd">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/importexport/musicxml/schema/musicxml.xsd</file>
-    <file alias="schema/xlink.xsd">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/importexport/musicxml/schema/xlink.xsd</file>
-    <file alias="schema/xml.xsd">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/importexport/musicxml/schema/xml.xsd</file>
-  </qresource>
-</RCC>
-

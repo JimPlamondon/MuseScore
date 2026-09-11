@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/qt/qml/Muse/Learn/">
-    <file alias="internal/qmldir">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/learn/qml/Muse/Learn/internal/qmldir</file>
-  </qresource>
-</RCC>
-

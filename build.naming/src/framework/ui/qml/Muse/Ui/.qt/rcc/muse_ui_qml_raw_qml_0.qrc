@@ -1,7 +1,0 @@
-<RCC>
-  <qresource prefix="/qt/qml/Muse/Ui/">
-    <file alias="InteractiveProvider.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/ui/qml/Muse/Ui/InteractiveProvider.qml</file>
-    <file alias="ToolTipProvider.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/ui/qml/Muse/Ui/ToolTipProvider.qml</file>
-  </qresource>
-</RCC>
-

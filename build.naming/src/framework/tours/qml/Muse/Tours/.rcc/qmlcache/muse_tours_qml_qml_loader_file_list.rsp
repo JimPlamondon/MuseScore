@@ -1,8 +1,0 @@
---resource
-/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/tours/qml/Muse/Tours/.qt/rcc/qmake_Muse_Tours.qrc
---resource
-/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/tours/qml/Muse/Tours/.qt/rcc/muse_tours_qml_raw_qml_0.qrc
---resource
-/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/tours/qml/Muse/Tours/.qt/rcc/muse_tours_qml_raw_qml_0_extra_qmldirs.qrc
-/qt/qml/Muse/Tours/ToursProvider.qml
-/qt/qml/Muse/Tours/internal/TourStepPopup.qml

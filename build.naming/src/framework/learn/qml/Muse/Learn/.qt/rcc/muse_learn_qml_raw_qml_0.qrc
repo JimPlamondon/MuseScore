@@ -1,9 +1,0 @@
-<RCC>
-  <qresource prefix="/qt/qml/Muse/Learn/">
-    <file alias="LearnPage.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/learn/qml/Muse/Learn/LearnPage.qml</file>
-    <file alias="internal/ClassesPage.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/learn/qml/Muse/Learn/internal/ClassesPage.qml</file>
-    <file alias="internal/Playlist.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/learn/qml/Muse/Learn/internal/Playlist.qml</file>
-    <file alias="internal/PlaylistItem.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/learn/qml/Muse/Learn/internal/PlaylistItem.qml</file>
-  </qresource>
-</RCC>
-

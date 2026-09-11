@@ -1,6 +1,0 @@
---resource
-/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/ui/qml/Muse/Ui/.qt/rcc/qmake_Muse_Ui.qrc
---resource
-/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/ui/qml/Muse/Ui/.qt/rcc/muse_ui_qml_raw_qml_0.qrc
-/qt/qml/Muse/Ui/InteractiveProvider.qml
-/qt/qml/Muse/Ui/ToolTipProvider.qml

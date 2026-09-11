@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/ui">
-    <file alias="data/MusescoreIcon.ttf">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/ui/data/MusescoreIcon.ttf</file>
-  </qresource>
-</RCC>
-

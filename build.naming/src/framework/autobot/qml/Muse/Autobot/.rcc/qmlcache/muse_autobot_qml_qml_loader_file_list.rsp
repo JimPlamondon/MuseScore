@@ -1,8 +1,0 @@
---resource
-/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/autobot/qml/Muse/Autobot/.qt/rcc/qmake_Muse_Autobot.qrc
---resource
-/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/autobot/qml/Muse/Autobot/.qt/rcc/muse_autobot_qml_raw_qml_0.qrc
-/qt/qml/Muse/Autobot/AutobotSelectFileDialog.qml
-/qt/qml/Muse/Autobot/ScriptsDialog.qml
-/qt/qml/Muse/Autobot/ScriptsPanel.qml
-/qt/qml/Muse/Autobot/TestCaseRunPanel.qml

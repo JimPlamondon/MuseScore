@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/qt/qml/Muse/Diagnostics">
-    <file alias="qmldir">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/diagnostics/qml/Muse/Diagnostics/qmldir</file>
-  </qresource>
-</RCC>
-

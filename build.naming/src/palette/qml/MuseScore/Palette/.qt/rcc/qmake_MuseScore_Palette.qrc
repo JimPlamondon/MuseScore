@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/qt/qml/MuseScore/Palette">
-    <file alias="qmldir">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/palette/qml/MuseScore/Palette/qmldir</file>
-  </qresource>
-</RCC>
-

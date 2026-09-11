@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/">
-    <file alias="/qt/qml/Muse/MultiWindows">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/multiwindows/qml/Muse/MultiWindows</file>
-
-  </qresource>
-</RCC>

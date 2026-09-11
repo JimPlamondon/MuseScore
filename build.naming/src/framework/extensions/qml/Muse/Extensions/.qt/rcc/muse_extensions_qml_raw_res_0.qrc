@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/qt/qml/Muse/Extensions/">
-    <file alias="internal/resources/placeholder.png">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/extensions/qml/Muse/Extensions/internal/resources/placeholder.png</file>
-  </qresource>
-</RCC>
-
