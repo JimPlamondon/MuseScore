@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Jim Plamondon
 # SPDX-License-Identifier: GPL-3.0-only
-"""Transcribe JiMS-enriched MusicXML identities into a fork .mscx score.
+"""Transcribe MeloPresto-enriched MusicXML identities into a fork .mscx score.
 
 Pure format transcription (JiMStaff Milestone 1, Decision 7 pipeline): the
-lattice identities and every staff state were derived by the JiMS Kernel
+lattice identities and every staff state were derived by the MeloPresto Kernel
 inside the enriched MusicXML (urn:jims:musicxml:1, :2, or :3); this script
 computes NO musical facts. It takes (a) the enriched MusicXML and (b) the
 .mscx produced by the fork's stock MusicXML import of the same arrangement,
 and:
-  1. rewrites the score's StaffType to the JiMS variant (jims12tet,
+  1. rewrites the score's StaffType to the MeloPresto variant (jims12tet,
      carrying the first staff-state JSON from the enriched file, with one
      extra stacked period when the melody needs it),
   2. for every LATER staff-state in the enriched file (V3 change events,

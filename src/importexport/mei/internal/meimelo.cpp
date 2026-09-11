@@ -546,7 +546,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
     if (!m_present) {
         return true;
     }
-    // Header fixups for the mei-jims profile: the fileDesc title carries
+    // Header fixups for the MeloPresto MEI profile: the fileDesc title carries
     // the movement title, workList the work title, and the composer rides
     // in a native composer element (the reader's authoritative carriers).
     {
