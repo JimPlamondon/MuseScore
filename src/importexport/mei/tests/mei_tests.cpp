@@ -214,7 +214,8 @@ TEST_F(Mei_Tests, mei_melo_roundtrip_01) {
     EXPECT_TRUE(mei.contains(u"melo-tonic-ambit"));
     EXPECT_TRUE(mei.contains(u"melo-melody-part"));
     EXPECT_TRUE(mei.contains(u"<ambitus>"));
-    EXPECT_TRUE(mei.contains(u"jims:tuning-trajectory"));
+    EXPECT_TRUE(mei.contains(u"melo:tuning-trajectory"));
+    EXPECT_FALSE(mei.contains(u"jims:"));
     delete score;
 }
 

@@ -472,7 +472,7 @@ void MeloMeiExporter::writeMeasureAnnots(pugi::xml_node measureNode, const Measu
                                ? ("melo-adj-" + std::to_string(i + 1)) : adj.annotId.toStdString();
         annot.append_attribute("xml:id") = id.c_str();
         annot.append_attribute("type") = "melo-adjudication";
-        annot.append_attribute("class") = ("#jims.outcome." + adj.outcome.toStdString()).c_str();
+        annot.append_attribute("class") = ("#melo.outcome." + adj.outcome.toStdString()).c_str();
         annot.append_attribute("tstamp")
             = tstampStr(tstampFrom(adj.tick - measure->tick(), measure->timesig())).c_str();
         if (!adj.reviewer.isEmpty()) {
@@ -518,8 +518,9 @@ void MeloMeiExporter::onHarm(pugi::xml_node harmNode, const Harmony* harmony, co
     // @type is a space-separated token list; ensure the profile token once.
     pugi::xml_attribute type = harmNode.attribute("type");
     const std::string current = type ? type.value() : "";
-    if ((" " + current + " ").find(" jims-chord-name ") == std::string::npos) {
-        const std::string merged = current.empty() ? "melo-chord-name" : current + " jims-chord-name";
+    const std::string padded = " " + current + " ";
+    if (padded.find(" melo-chord-name ") == std::string::npos && padded.find(" jims-chord-name ") == std::string::npos) {
+        const std::string merged = current.empty() ? "melo-chord-name" : current + " melo-chord-name";
         if (type) {
             type.set_value(merged.c_str());
         } else {
@@ -639,7 +640,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
             }
             pugi::xml_node ne = notes.append_child("jm:note");
             ne.append_attribute("ref") = ("#" + entry.first).c_str();
-            pugi::xml_node px = ne.append_child("jims:pitch");
+            pugi::xml_node px = ne.append_child("melo:pitch");
             px.append_attribute("n-per") = entry.second->meloNPer();
             px.append_attribute("n-gen") = entry.second->meloNGen();
         }
@@ -666,9 +667,9 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
             if (!t.placement.isEmpty()) {
                 te.append_attribute("placement") = t.placement.toStdString().c_str();
             }
-            pugi::xml_node tt = te.append_child("jims:tuning-trajectory");
+            pugi::xml_node tt = te.append_child("melo:tuning-trajectory");
             for (const melo::TrajectorySegment& seg : t.segments) {
-                pugi::xml_node sege = tt.append_child("jims:segment");
+                pugi::xml_node sege = tt.append_child("melo:segment");
                 // MeloPresto MEI canonical basis: 960 divisions per quarter note.
                 const Fraction div = (quartersOf(seg.duration) * Fraction(960, 1)).reduced();
                 if (div.denominator() != 1) {
@@ -680,7 +681,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
                 sege.append_attribute("end-cents") = seg.endCents.toStdString().c_str();
                 sege.append_attribute("interpolation") = seg.interpolation.toStdString().c_str();
                 for (const melo::TrajectoryControl& c : seg.controls) {
-                    pugi::xml_node ce = sege.append_child("jims:control");
+                    pugi::xml_node ce = sege.append_child("melo:control");
                     ce.append_attribute("time") = c.time.toStdString().c_str();
                     ce.append_attribute("value-cents") = c.valueCents.toStdString().c_str();
                 }
@@ -801,7 +802,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
         for (const melo::ProvenanceResource& r : prov.resources) {
             ++i;
             pugi::xml_node se = ss.append_child("jm:source");
-            se.append_attribute("ref") = ("#jims-src-prov-" + std::to_string(i)).c_str();
+            se.append_attribute("ref") = ("#melo-src-prov-" + std::to_string(i)).c_str();
             if (!r.role.isEmpty()) {
                 se.append_attribute("role") = r.role.toStdString().c_str();
             }
@@ -911,7 +912,7 @@ void MeloMeiImporter::capture(pugi::xml_node root)
         m_staffDefN[sd.node().attribute("xml:id").value()] = sd.node().attribute("n").as_int();
     }
     m_provResources.clear();
-    for (pugi::xpath_node src : root.select_nodes("//sourceDesc/source[@type='jims-provenance']")) {
+    for (pugi::xpath_node src : root.select_nodes("//sourceDesc/source[@type='melo-provenance' or @type='jims-provenance']")) {
         engraving::melo::ProvenanceResource resource;
         for (pugi::xpath_node ident : src.node().select_nodes(".//identifier")) {
             const std::string type = ident.node().attribute("type").value();
@@ -927,7 +928,7 @@ void MeloMeiImporter::capture(pugi::xml_node root)
         m_provResources.push_back(resource);
     }
     m_melodyToken.clear();
-    pugi::xml_node melody = root.select_node("//score/annot[@type='jims-melody-part']").node();
+    pugi::xml_node melody = root.select_node("//score/annot[@type='melo-melody-part' or @type='jims-melody-part']").node();
     if (melody) {
         m_melodyToken = String(melody.text().as_string());
     }
@@ -936,18 +937,18 @@ void MeloMeiImporter::capture(pugi::xml_node root)
     // reasons, and each adjudication's native annotation (its class,
     // prose, pointers, and exact timing).
     m_reviewerById.clear();
-    for (pugi::xpath_node pn : root.select_nodes("//respStmt/persName[@role='jims-reviewer']")) {
+    for (pugi::xpath_node pn : root.select_nodes("//respStmt/persName[@role='melo-reviewer' or @role='jims-reviewer']")) {
         m_reviewerById[pn.node().attribute("xml:id").value()] = String(pn.node().text().as_string());
     }
     m_focusedReviewReasons.clear();
-    pugi::xml_node fr = root.select_node("//score/annot[@type='jims-focused-review']").node();
+    pugi::xml_node fr = root.select_node("//score/annot[@type='melo-focused-review' or @type='jims-focused-review']").node();
     if (fr) {
         for (pugi::xml_node p : fr.children("p")) {
             m_focusedReviewReasons.push_back(String(p.text().as_string()));
         }
     }
     m_adjAnnots.clear();
-    for (pugi::xpath_node a : root.select_nodes("//measure/annot[@type='jims-adjudication']")) {
+    for (pugi::xpath_node a : root.select_nodes("//measure/annot[@type='melo-adjudication' or @type='jims-adjudication']")) {
         m_adjAnnots[a.node().attribute("xml:id").value()] = a.node();
     }
     m_changeById.clear();
@@ -961,7 +962,7 @@ void MeloMeiImporter::capture(pugi::xml_node root)
     m_adjMeasureIndex.clear();
     int mi = 0;
     for (pugi::xpath_node m : root.select_nodes("//section/measure")) {
-        for (pugi::xpath_node a : m.node().select_nodes("./annot[@type='jims-adjudication']")) {
+        for (pugi::xpath_node a : m.node().select_nodes("./annot[@type='melo-adjudication' or @type='jims-adjudication']")) {
             m_adjMeasureIndex[a.node().attribute("xml:id").value()] = mi;
         }
         ++mi;
@@ -1027,14 +1028,14 @@ bool MeloMeiImporter::stateJsonFromXml(pugi::xml_node staffStateNode, String& js
         || !childByLocal(staffStateNode, "mode-rotation")
         || !childByLocal(staffStateNode, "generator-cents")
         || !childByLocal(staffStateNode, "period-cents")) {
-        m_error = u"jims:staff-state in extMeta is missing a required child";
+        m_error = u"melo:staff-state in extMeta is missing a required child";
         return false;
     }
     bool okG = false, okP = false;
     const std::string gen = jsonNumber(childByLocal(staffStateNode, "generator-cents").text().as_string(), okG);
     const std::string per = jsonNumber(childByLocal(staffStateNode, "period-cents").text().as_string(), okP);
     if (!okG || !okP) {
-        m_error = u"jims:staff-state cents fields are not numbers";
+        m_error = u"melo:staff-state cents fields are not numbers";
         return false;
     }
     std::string referenceJson = "\"none\"";
