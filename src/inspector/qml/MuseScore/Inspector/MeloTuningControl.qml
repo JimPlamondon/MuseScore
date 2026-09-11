@@ -68,7 +68,7 @@ Column {
                 y: -figure.header
                 width: 461 * figure.factor
                 height: figure.height
-                source: "qrc:/jims/internal/jims/rank2_temperaments_fifth_octave.jpg"
+                source: "qrc:/melo/internal/melo/rank2_temperaments_fifth_octave.jpg"
                 layer.enabled: true
                 layer.effect: ShaderEffect {
                     property var source
@@ -89,7 +89,7 @@ Column {
                 y: -figure.header
                 width: 461 * figure.factor
                 height: figure.height
-                source: "qrc:/jims/internal/jims/rank2_temperaments_fifth_octave.jpg"
+                source: "qrc:/melo/internal/melo/rank2_temperaments_fifth_octave.jpg"
                 layer.enabled: true
                 layer.effect: ShaderEffect {
                     property var source
@@ -107,7 +107,7 @@ Column {
                 x: figure.slot / 2
                 width: 461 * figure.factor
                 height: figure.height
-                source: "qrc:/jims/internal/jims/rank2_temperaments_fifth_octave.jpg"
+                source: "qrc:/melo/internal/melo/rank2_temperaments_fifth_octave.jpg"
                 layer.enabled: true
                 layer.effect: ShaderEffect {
                     property var source
