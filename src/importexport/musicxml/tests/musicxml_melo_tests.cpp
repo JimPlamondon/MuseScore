@@ -1835,3 +1835,37 @@ TEST_F(MusicXml_Melo_Tests, GeneratedEvidenceOptionalPrivateCorpus)
     }
     delete score;
 }
+
+TEST_F(MusicXml_Melo_Tests, HarmonicSpanKeepsOneNameAcrossDelayedMember)
+{
+    MasterScore* score = readMelo("melo-harmonic-span-evidence.musicxml");
+    ASSERT_TRUE(score);
+    ASSERT_EQ(harmoniesInOrder(score).size(), 1u);
+    Harmony* harmony = harmoniesInOrder(score).front();
+    EXPECT_EQ(harmony->harmonyName(), u"Do5");
+    EXPECT_TRUE(harmony->meloEvidenceError().empty()) << harmony->meloEvidenceError().toStdString();
+    const String output = exportToScratch(score, "harmonic-span.musicxml");
+    auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
+        return importMusicXml(s, path.toQString(), false);
+    };
+    MasterScore* again = ScoreRW::readScore(output, true, importXml);
+    ASSERT_TRUE(again);
+    ASSERT_EQ(harmoniesInOrder(again).size(), 1u);
+    EXPECT_EQ(harmoniesInOrder(again).front()->meloEvidence(), harmony->meloEvidence());
+    EXPECT_TRUE(harmoniesInOrder(again).front()->meloEvidenceError().empty());
+    Note* arrivingRoot = nullptr;
+    for (const Note* note : notesInOrder(score, 0)) {
+        if (note->meloNGen() == -2) {
+            arrivingRoot = const_cast<Note*>(note);
+        }
+    }
+    ASSERT_TRUE(arrivingRoot);
+    score->startCmd(TranslatableString::untranslatable("Change later supporting root"));
+    arrivingRoot->undoChangeProperty(Pid::MELO_NPER, arrivingRoot->meloNPer() + 1);
+    score->endCmd();
+    EXPECT_FALSE(harmony->meloEvidenceError().empty());
+    score->undoRedo(true, nullptr);
+    EXPECT_TRUE(harmony->meloEvidenceError().empty());
+    delete again;
+    delete score;
+}
