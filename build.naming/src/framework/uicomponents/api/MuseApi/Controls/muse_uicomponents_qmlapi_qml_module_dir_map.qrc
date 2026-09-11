@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="/qt/qml/MuseApi/Controls">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/uicomponents/api/MuseApi/Controls</file>
+
+  </qresource>
+</RCC>

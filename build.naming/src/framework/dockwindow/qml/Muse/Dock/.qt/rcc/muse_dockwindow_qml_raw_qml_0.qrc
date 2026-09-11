@@ -1,0 +1,17 @@
+<RCC>
+  <qresource prefix="/qt/qml/Muse/Dock/">
+    <file alias="DockFloatingWindow.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/dockwindow/qml/Muse/Dock/DockFloatingWindow.qml</file>
+    <file alias="DockFrame.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/dockwindow/qml/Muse/Dock/DockFrame.qml</file>
+    <file alias="DockingHolder.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/dockwindow/qml/Muse/Dock/DockingHolder.qml</file>
+    <file alias="DockPage.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/dockwindow/qml/Muse/Dock/DockPage.qml</file>
+    <file alias="DockPanel.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/dockwindow/qml/Muse/Dock/DockPanel.qml</file>
+    <file alias="DockPanelTab.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/dockwindow/qml/Muse/Dock/DockPanelTab.qml</file>
+    <file alias="DockSeparator.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/dockwindow/qml/Muse/Dock/DockSeparator.qml</file>
+    <file alias="DockTabBar.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/dockwindow/qml/Muse/Dock/DockTabBar.qml</file>
+    <file alias="DockTitleBar.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/dockwindow/qml/Muse/Dock/DockTitleBar.qml</file>
+    <file alias="DockTitleBarMouseArea.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/dockwindow/qml/Muse/Dock/DockTitleBarMouseArea.qml</file>
+    <file alias="DockToolBar.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/dockwindow/qml/Muse/Dock/DockToolBar.qml</file>
+    <file alias="DockWidget.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/dockwindow/qml/Muse/Dock/DockWidget.qml</file>
+  </qresource>
+</RCC>
+

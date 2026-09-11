@@ -1,0 +1,15 @@
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/cloud/qml/Muse/Cloud/.qt/rcc/qmake_Muse_Cloud.qrc
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/cloud/qml/Muse/Cloud/.qt/rcc/muse_cloud_qml_raw_qml_0.qrc
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/cloud/qml/Muse/Cloud/.qt/rcc/muse_cloud_qml_raw_qml_0_extra_qmldirs.qrc
+/qt/qml/Muse/Cloud/AccountAvatar.qml
+/qt/qml/Muse/Cloud/AccountInfoButton.qml
+/qt/qml/Muse/Cloud/AccountPage.qml
+/qt/qml/Muse/Cloud/CloudScoresView.qml
+/qt/qml/Muse/Cloud/internal/CloudItem.qml
+/qt/qml/Muse/Cloud/internal/CloudScoresGridView.qml
+/qt/qml/Muse/Cloud/internal/CloudScoresListView.qml
+/qt/qml/Muse/Cloud/internal/CloudsListView.qml
+/qt/qml/Muse/Cloud/RequireAuthorizationDialog.qml

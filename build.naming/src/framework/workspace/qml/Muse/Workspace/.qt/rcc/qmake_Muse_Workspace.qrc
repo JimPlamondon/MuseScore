@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/qt/qml/Muse/Workspace">
+    <file alias="qmldir">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/workspace/qml/Muse/Workspace/qmldir</file>
+  </qresource>
+</RCC>
+

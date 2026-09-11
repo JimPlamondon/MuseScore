@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<score-partwise version="4.0" xmlns:melo="urn:melopresto:musicxml:4">
+  <work>
+    <work-title>12-TET diatonic Do-mode</work-title>
+    </work>
+  <identification>
+    <encoding>
+      <software>MuseScore 0.7.0</software>
+      <encoding-date>2007-09-10</encoding-date>
+      <supports element="accidental" type="yes"/>
+      <supports element="beam" type="yes"/>
+      <supports element="print" attribute="new-page" type="no"/>
+      <supports element="print" attribute="new-system" type="no"/>
+      <supports element="stem" type="yes"/>
+      </encoding>
+    </identification>
+  <part-list>
+    <score-part id="P1">
+      <part-name>JiMStaff</part-name>
+      <score-instrument id="P1-I1">
+        <instrument-name></instrument-name>
+        </score-instrument>
+      <midi-device id="P1-I1" port="1"></midi-device>
+      <midi-instrument id="P1-I1">
+        <midi-channel>1</midi-channel>
+        <midi-program>1</midi-program>
+        <volume>78.7402</volume>
+        <pan>0</pan>
+        </midi-instrument>
+      </score-part>
+    </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <key>
+          <fifths>0</fifths>
+          </key>
+        <staff-details>
+          <staff-lines>13</staff-lines>
+          </staff-details>
+        </attributes>
+      <attributes>
+              <melo:staff-state>
+        <melo:scale><melo:step>M2</melo:step><melo:step>m2</melo:step><melo:step>M2</melo:step><melo:step>M2</melo:step><melo:step>M2</melo:step><melo:step>m2</melo:step><melo:step>M2</melo:step></melo:scale>
+        <melo:collection-rotation>0</melo:collection-rotation>
+        <melo:mode-rotation>0</melo:mode-rotation>
+        <melo:generator-cents>700</melo:generator-cents>
+        <melo:period-cents>1200</melo:period-cents>
+        <melo:embedding large-steps="5" small-steps="2"/>
+        <melo:extent lower-n-per="0" lower-n-gen="-3" upper-n-per="0" upper-n-gen="3"/>
+        <melo:reference><melo:none/></melo:reference>
+      </melo:staff-state>
+        </attributes>
+      <note>
+        <pitch>
+          <step>C</step>
+          <octave>3</octave>
+          </pitch>
+        <melo:pitch n-per="0" n-gen="-2"/>
+        <duration>2</duration>
+        <voice>1</voice>
+        <type>half</type>
+        <stem>up</stem>
+        </note>
+      <note>
+        <pitch>
+          <step>D</step>
+          <octave>4</octave>
+          </pitch>
+        <melo:pitch n-per="0" n-gen="0"/>
+        <duration>2</duration>
+        <voice>1</voice>
+        <type>half</type>
+        <stem>down</stem>
+        </note>
+      <note>
+        <pitch>
+          <step>E</step>
+          <octave>5</octave>
+          </pitch>
+        <melo:pitch n-per="0" n-gen="2"/>
+        <duration>2</duration>
+        <voice>1</voice>
+        <type>half</type>
+        <stem>down</stem>
+        </note>
+      <note>
+        <pitch>
+          <step>F</step>
+          <octave>2</octave>
+          </pitch>
+        <melo:pitch n-per="0" n-gen="-3"/>
+        <duration>2</duration>
+        <voice>1</voice>
+        <type>half</type>
+        <stem>up</stem>
+        </note>
+      </measure>
+    <measure number="2">
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>3</octave>
+          </pitch>
+        <melo:pitch n-per="0" n-gen="-1"/>
+        <duration>2</duration>
+        <voice>1</voice>
+        <type>half</type>
+        <stem>up</stem>
+        </note>
+      <note>
+        <pitch>
+          <step>A</step>
+          <octave>4</octave>
+          </pitch>
+        <melo:pitch n-per="0" n-gen="1"/>
+        <duration>2</duration>
+        <voice>1</voice>
+        <type>half</type>
+        <stem>down</stem>
+        </note>
+      <note>
+        <pitch>
+          <step>B</step>
+          <octave>5</octave>
+          </pitch>
+        <melo:pitch n-per="0" n-gen="3"/>
+        <duration>2</duration>
+        <voice>1</voice>
+        <type>half</type>
+        <stem>down</stem>
+        </note>
+      <note>
+        <pitch>
+          <step>C</step>
+          <octave>4</octave>
+          </pitch>
+        <melo:pitch n-per="1" n-gen="-2"/>
+        <duration>2</duration>
+        <voice>1</voice>
+        <type>half</type>
+        <stem>down</stem>
+        </note>
+      </measure>
+    </part>
+  </score-partwise>

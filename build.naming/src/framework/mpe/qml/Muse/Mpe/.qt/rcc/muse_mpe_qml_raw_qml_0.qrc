@@ -1,0 +1,13 @@
+<RCC>
+  <qresource prefix="/qt/qml/Muse/Mpe/">
+    <file alias="ArrangementPatternControl.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/mpe/qml/Muse/Mpe/ArrangementPatternControl.qml</file>
+    <file alias="ArticulationPatternControlsTab.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/mpe/qml/Muse/Mpe/ArticulationPatternControlsTab.qml</file>
+    <file alias="ArticulationPatternPlot.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/mpe/qml/Muse/Mpe/ArticulationPatternPlot.qml</file>
+    <file alias="ArticulationPatternSegmentsList.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/mpe/qml/Muse/Mpe/ArticulationPatternSegmentsList.qml</file>
+    <file alias="ArticulationPatternsList.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/mpe/qml/Muse/Mpe/ArticulationPatternsList.qml</file>
+    <file alias="ArticulationPatternsTab.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/mpe/qml/Muse/Mpe/ArticulationPatternsTab.qml</file>
+    <file alias="ExpressionPatternControl.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/mpe/qml/Muse/Mpe/ExpressionPatternControl.qml</file>
+    <file alias="PitchPatternControl.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/mpe/qml/Muse/Mpe/PitchPatternControl.qml</file>
+  </qresource>
+</RCC>
+

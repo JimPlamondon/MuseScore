@@ -1,0 +1,593 @@
+[
+    {
+        "classes": [
+            {
+                "className": "QmlIoCContext",
+                "lineNumber": 81,
+                "object": true,
+                "qualifiedClassName": "muse::QmlIoCContext",
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "ioc.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "ApiObject",
+                "lineNumber": 35,
+                "object": true,
+                "qualifiedClassName": "muse::api::ApiObject",
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "QObject"
+                    },
+                    {
+                        "access": "public",
+                        "name": "Contextable"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "apiobject.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "FileSystemApi",
+                "lineNumber": 34,
+                "methods": [
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "path",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 0,
+                        "isConst": true,
+                        "lineNumber": 44,
+                        "name": "fileName",
+                        "returnType": "QString"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "path",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 1,
+                        "isConst": true,
+                        "lineNumber": 45,
+                        "name": "baseName",
+                        "returnType": "QString"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "path",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 2,
+                        "lineNumber": 48,
+                        "name": "remove",
+                        "returnType": "QVariantMap"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "path",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 3,
+                        "lineNumber": 49,
+                        "name": "clear",
+                        "returnType": "QVariantMap"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "src",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "dst",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "replace",
+                                "type": "bool"
+                            }
+                        ],
+                        "index": 4,
+                        "lineNumber": 50,
+                        "name": "copy",
+                        "returnType": "QVariantMap"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "src",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "dst",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 5,
+                        "isCloned": true,
+                        "lineNumber": 50,
+                        "name": "copy",
+                        "returnType": "QVariantMap"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "rootDir",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "filters",
+                                "type": "QStringList"
+                            },
+                            {
+                                "name": "mode",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 6,
+                        "isConst": true,
+                        "lineNumber": 59,
+                        "name": "scanFiles",
+                        "returnType": "QVariantMap"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "rootDir",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "filters",
+                                "type": "QStringList"
+                            }
+                        ],
+                        "index": 7,
+                        "isCloned": true,
+                        "isConst": true,
+                        "lineNumber": 59,
+                        "name": "scanFiles",
+                        "returnType": "QVariantMap"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "filePath",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "str",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 8,
+                        "isConst": true,
+                        "lineNumber": 63,
+                        "name": "writeTextFile",
+                        "returnType": "QVariantMap"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "filePath",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 9,
+                        "isConst": true,
+                        "lineNumber": 64,
+                        "name": "readTextFile",
+                        "returnType": "QVariantMap"
+                    }
+                ],
+                "object": true,
+                "qualifiedClassName": "muse::api::FileSystemApi",
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "fullyQualifiedName": "muse::api::ApiObject",
+                        "name": "ApiObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "filesystemapi.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "InteractiveApi",
+                "enums": [
+                    {
+                        "isClass": false,
+                        "isFlag": false,
+                        "lineNumber": 45,
+                        "name": "ButtonCode",
+                        "values": [
+                            "Ok",
+                            "Continue",
+                            "RestoreDefaults",
+                            "Reset",
+                            "Apply",
+                            "Help",
+                            "Discard",
+                            "Cancel",
+                            "Close",
+                            "Ignore",
+                            "Retry",
+                            "Abort",
+                            "NoToAll",
+                            "No",
+                            "YesToAll",
+                            "Yes",
+                            "Open",
+                            "DontSave",
+                            "SaveAll",
+                            "Save",
+                            "Next",
+                            "Back",
+                            "Select",
+                            "Clear",
+                            "Done"
+                        ]
+                    }
+                ],
+                "lineNumber": 31,
+                "methods": [
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "contentTitle",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "text",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 0,
+                        "lineNumber": 74,
+                        "name": "info",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "contentTitle",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "text",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 1,
+                        "lineNumber": 75,
+                        "name": "warning",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "contentTitle",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "text",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 2,
+                        "lineNumber": 76,
+                        "name": "error",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "contentTitle",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "text",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "buttons",
+                                "type": "QJSValueList"
+                            }
+                        ],
+                        "index": 3,
+                        "lineNumber": 78,
+                        "name": "question",
+                        "returnType": "QString"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "url",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 4,
+                        "lineNumber": 80,
+                        "name": "openUrl",
+                        "returnType": "void"
+                    }
+                ],
+                "object": true,
+                "qualifiedClassName": "muse::api::InteractiveApi",
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "fullyQualifiedName": "muse::api::ApiObject",
+                        "name": "ApiObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "interactiveapi.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "LogApi",
+                "lineNumber": 28,
+                "methods": [
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "message",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 0,
+                        "lineNumber": 34,
+                        "name": "error",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "tag",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "message",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 1,
+                        "lineNumber": 35,
+                        "name": "error",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "message",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 2,
+                        "lineNumber": 37,
+                        "name": "warn",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "tag",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "message",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 3,
+                        "lineNumber": 38,
+                        "name": "warn",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "message",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 4,
+                        "lineNumber": 40,
+                        "name": "info",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "tag",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "message",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 5,
+                        "lineNumber": 41,
+                        "name": "info",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "message",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 6,
+                        "lineNumber": 43,
+                        "name": "debug",
+                        "returnType": "void"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "tag",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "message",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 7,
+                        "lineNumber": 44,
+                        "name": "debug",
+                        "returnType": "void"
+                    }
+                ],
+                "object": true,
+                "qualifiedClassName": "muse::api::LogApi",
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "name": "api::ApiObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "logapi.h",
+        "outputRevision": 69
+    },
+    {
+        "classes": [
+            {
+                "className": "ProcessApi",
+                "lineNumber": 33,
+                "methods": [
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "program",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "arguments",
+                                "type": "QStringList"
+                            }
+                        ],
+                        "index": 0,
+                        "lineNumber": 42,
+                        "name": "execute",
+                        "returnType": "int"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "program",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 1,
+                        "isCloned": true,
+                        "lineNumber": 42,
+                        "name": "execute",
+                        "returnType": "int"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "program",
+                                "type": "QString"
+                            },
+                            {
+                                "name": "arguments",
+                                "type": "QStringList"
+                            }
+                        ],
+                        "index": 2,
+                        "lineNumber": 43,
+                        "name": "startDetached",
+                        "returnType": "bool"
+                    },
+                    {
+                        "access": "public",
+                        "arguments": [
+                            {
+                                "name": "program",
+                                "type": "QString"
+                            }
+                        ],
+                        "index": 3,
+                        "isCloned": true,
+                        "lineNumber": 43,
+                        "name": "startDetached",
+                        "returnType": "bool"
+                    }
+                ],
+                "object": true,
+                "qualifiedClassName": "muse::api::ProcessApi",
+                "superClasses": [
+                    {
+                        "access": "public",
+                        "fullyQualifiedName": "muse::api::ApiObject",
+                        "name": "ApiObject"
+                    }
+                ]
+            }
+        ],
+        "inputFile": "processapi.h",
+        "outputRevision": 69
+    }
+]

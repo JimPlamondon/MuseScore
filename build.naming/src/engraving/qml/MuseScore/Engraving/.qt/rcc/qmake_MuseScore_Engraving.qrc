@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/qt/qml/MuseScore/Engraving">
+    <file alias="qmldir">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/engraving/qml/MuseScore/Engraving/qmldir</file>
+  </qresource>
+</RCC>
+

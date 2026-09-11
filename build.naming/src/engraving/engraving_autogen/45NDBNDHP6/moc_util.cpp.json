@@ -1,0 +1,207 @@
+{
+    "classes": [
+        {
+            "className": "FileIO",
+            "lineNumber": 53,
+            "methods": [
+                {
+                    "access": "public",
+                    "index": 2,
+                    "lineNumber": 69,
+                    "name": "read",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "index": 3,
+                    "lineNumber": 71,
+                    "name": "exists",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "data",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 4,
+                    "lineNumber": 79,
+                    "name": "write",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "data",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 5,
+                    "lineNumber": 91,
+                    "name": "writeBinary",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "index": 6,
+                    "lineNumber": 93,
+                    "name": "remove",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "index": 7,
+                    "lineNumber": 95,
+                    "name": "homePath",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "index": 8,
+                    "lineNumber": 97,
+                    "name": "tempPath",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "index": 9,
+                    "lineNumber": 99,
+                    "name": "modifiedTime",
+                    "returnType": "int"
+                }
+            ],
+            "object": true,
+            "properties": [
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 0,
+                    "lineNumber": 59,
+                    "name": "source",
+                    "read": "source",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false,
+                    "write": "setSource"
+                }
+            ],
+            "qualifiedClassName": "mu::engraving::apiv1::FileIO",
+            "signals": [
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "msg",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 0,
+                    "lineNumber": 112,
+                    "name": "error",
+                    "returnType": "void"
+                }
+            ],
+            "slots": [
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "source",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 1,
+                    "lineNumber": 105,
+                    "name": "setSource",
+                    "returnType": "void"
+                }
+            ],
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "QObject"
+                }
+            ]
+        },
+        {
+            "className": "MsProcess",
+            "lineNumber": 127,
+            "object": true,
+            "qualifiedClassName": "mu::engraving::apiv1::MsProcess",
+            "slots": [
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "command",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 0,
+                    "lineNumber": 139,
+                    "name": "start",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "program",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "args",
+                            "type": "QStringList"
+                        }
+                    ],
+                    "index": 1,
+                    "lineNumber": 144,
+                    "name": "startWithArgs",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "msecs",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 2,
+                    "lineNumber": 146,
+                    "name": "waitForFinished",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "index": 3,
+                    "isCloned": true,
+                    "lineNumber": 146,
+                    "name": "waitForFinished",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "index": 4,
+                    "lineNumber": 148,
+                    "name": "readAllStandardOutput",
+                    "returnType": "QByteArray"
+                }
+            ],
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "QProcess"
+                }
+            ]
+        }
+    ],
+    "inputFile": "util.h",
+    "outputRevision": 69
+}

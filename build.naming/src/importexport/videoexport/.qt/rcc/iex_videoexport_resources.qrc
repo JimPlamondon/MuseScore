@@ -1,0 +1,7 @@
+<RCC>
+  <qresource prefix="/videoexport">
+    <file alias="internal/resources/video_made_with.mp4">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/importexport/videoexport/internal/resources/video_made_with.mp4</file>
+    <file alias="internal/resources/MuseSans-Medium.ttf">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/importexport/videoexport/internal/resources/MuseSans-Medium.ttf</file>
+  </qresource>
+</RCC>
+

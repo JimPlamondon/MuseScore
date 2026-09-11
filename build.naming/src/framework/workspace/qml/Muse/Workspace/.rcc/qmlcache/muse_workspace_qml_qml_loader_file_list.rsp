@@ -1,0 +1,10 @@
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/workspace/qml/Muse/Workspace/.qt/rcc/qmake_Muse_Workspace.qrc
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/workspace/qml/Muse/Workspace/.qt/rcc/muse_workspace_qml_raw_qml_0.qrc
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/workspace/qml/Muse/Workspace/.qt/rcc/muse_workspace_qml_raw_qml_0_extra_qmldirs.qrc
+/qt/qml/Muse/Workspace/NewWorkspaceDialog.qml
+/qt/qml/Muse/Workspace/WorkspacesDialog.qml
+/qt/qml/Muse/Workspace/internal/WorkspacesTopPanel.qml
+/qt/qml/Muse/Workspace/internal/WorkspacesView.qml

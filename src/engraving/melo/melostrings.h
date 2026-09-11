@@ -195,21 +195,21 @@ inline constexpr char exportProjectionFailed[] = "MeloPresto export projection f
 inline constexpr char musicXmlImport[] = "MeloPresto MusicXML import: ";
 inline constexpr char16_t unsupportedMusicXmlNamespace[]
     =
-        u"unsupported MeloPresto MusicXML namespace '%1' (this MuseScore understands urn:jims:musicxml:%2..%3); import refused so the document is not silently shown as a plain staff";
+        u"unsupported MeloPresto MusicXML namespace '%1' (this MuseScore understands urn:melopresto:musicxml:%2..%3 and the retired urn:jims:musicxml:%2..%3); import refused so the document is not silently shown as a plain staff";
 inline constexpr char16_t defaultNamespaceUnsupported[]
     = u"the MeloPresto namespace '%1' must be bound to a prefix, not used as the default namespace";
 inline constexpr char16_t conflictingMusicXmlProfiles[]
-    = u"two distinct MeloPresto profiles declared in one document (urn:jims:musicxml:%1 and %2)";
+    = u"two distinct MeloPresto profiles declared in one document (%1 and %2)";
 inline constexpr char16_t namespaceBoundTwice[] = u"MeloPresto namespace bound twice; keeping prefix '%1'";
 inline constexpr char16_t importBridgeUnavailable[] = u"MeloPresto Kernel bridge unavailable; cannot import a MeloPresto staff";
-inline constexpr char16_t importStateRejected[] = u"the MeloPresto Kernel rejected a jims:staff-state: %1";
+inline constexpr char16_t importStateRejected[] = u"the MeloPresto Kernel rejected a melo:staff-state: %1";
 inline constexpr char16_t importSharedStateFailed[] = u"MeloPresto import: the Kernel could not derive the shared state form: %1";
 inline constexpr char16_t importNormalizationFailed[] = u"the MeloPresto Kernel could not normalize imported note projections: %1";
 inline constexpr char16_t importedProjectionsNormalized[] = u"normalized %1 contradictory MeloPresto compatibility pitch projection(s)";
 inline constexpr char scoreUsesNotation[] = QT_TRANSLATE_NOOP("project/save", "This score uses MeloPresto notation");
 inline constexpr char16_t importTimelinesDiffer[]
     =
-        u"MeloPresto parts %1 and %2 carry different jims:staff-state timelines; every MeloPresto part of a document must share one state timeline";
+        u"MeloPresto parts %1 and %2 carry different melo:staff-state timelines; every MeloPresto part of a document must share one state timeline";
 }
 }
 

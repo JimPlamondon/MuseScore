@@ -1,0 +1,9 @@
+<RCC>
+  <qresource prefix="/qt/qml/MuseScore/NotationScene/">
+    <file alias="elementpopups/qmldir">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/notationscene/qml/MuseScore/NotationScene/elementpopups/qmldir</file>
+    <file alias="internal/qmldir">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/notationscene/qml/MuseScore/NotationScene/internal/qmldir</file>
+    <file alias="percussionpanel/qmldir">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/notationscene/qml/MuseScore/NotationScene/percussionpanel/qmldir</file>
+    <file alias="styledialog/qmldir">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/notationscene/qml/MuseScore/NotationScene/styledialog/qmldir</file>
+  </qresource>
+</RCC>
+

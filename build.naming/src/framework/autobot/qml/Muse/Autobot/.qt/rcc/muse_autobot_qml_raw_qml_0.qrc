@@ -1,0 +1,9 @@
+<RCC>
+  <qresource prefix="/qt/qml/Muse/Autobot/">
+    <file alias="AutobotSelectFileDialog.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/autobot/qml/Muse/Autobot/AutobotSelectFileDialog.qml</file>
+    <file alias="ScriptsDialog.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/autobot/qml/Muse/Autobot/ScriptsDialog.qml</file>
+    <file alias="ScriptsPanel.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/autobot/qml/Muse/Autobot/ScriptsPanel.qml</file>
+    <file alias="TestCaseRunPanel.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/autobot/qml/Muse/Autobot/TestCaseRunPanel.qml</file>
+  </qresource>
+</RCC>
+

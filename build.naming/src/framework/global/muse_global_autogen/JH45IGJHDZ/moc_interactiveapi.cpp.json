@@ -1,0 +1,141 @@
+{
+    "classes": [
+        {
+            "className": "InteractiveApi",
+            "enums": [
+                {
+                    "isClass": false,
+                    "isFlag": false,
+                    "lineNumber": 45,
+                    "name": "ButtonCode",
+                    "values": [
+                        "Ok",
+                        "Continue",
+                        "RestoreDefaults",
+                        "Reset",
+                        "Apply",
+                        "Help",
+                        "Discard",
+                        "Cancel",
+                        "Close",
+                        "Ignore",
+                        "Retry",
+                        "Abort",
+                        "NoToAll",
+                        "No",
+                        "YesToAll",
+                        "Yes",
+                        "Open",
+                        "DontSave",
+                        "SaveAll",
+                        "Save",
+                        "Next",
+                        "Back",
+                        "Select",
+                        "Clear",
+                        "Done"
+                    ]
+                }
+            ],
+            "lineNumber": 31,
+            "methods": [
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "contentTitle",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "text",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 0,
+                    "lineNumber": 74,
+                    "name": "info",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "contentTitle",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "text",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 1,
+                    "lineNumber": 75,
+                    "name": "warning",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "contentTitle",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "text",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 2,
+                    "lineNumber": 76,
+                    "name": "error",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "contentTitle",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "text",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "buttons",
+                            "type": "QJSValueList"
+                        }
+                    ],
+                    "index": 3,
+                    "lineNumber": 78,
+                    "name": "question",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "url",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 4,
+                    "lineNumber": 80,
+                    "name": "openUrl",
+                    "returnType": "void"
+                }
+            ],
+            "object": true,
+            "qualifiedClassName": "muse::api::InteractiveApi",
+            "superClasses": [
+                {
+                    "access": "public",
+                    "fullyQualifiedName": "muse::api::ApiObject",
+                    "name": "ApiObject"
+                }
+            ]
+        }
+    ],
+    "inputFile": "interactiveapi.h",
+    "outputRevision": 69
+}

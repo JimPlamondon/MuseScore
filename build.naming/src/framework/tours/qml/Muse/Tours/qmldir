@@ -1,0 +1,11 @@
+module Muse.Tours
+linktarget muse_tours_qmlplugin
+optional plugin muse_tours_qmlplugin
+classname Muse_ToursPlugin
+typeinfo muse_tours_qml.qmltypes
+import Muse.Ui
+import Muse.UiComponents
+prefer :/qt/qml/Muse/Tours/
+ToursProvider 1.0 ToursProvider.qml
+TourStepPopup 1.0 internal/TourStepPopup.qml
+

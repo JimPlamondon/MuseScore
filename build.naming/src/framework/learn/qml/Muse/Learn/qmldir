@@ -1,0 +1,13 @@
+module Muse.Learn
+linktarget muse_learn_qmlplugin
+optional plugin muse_learn_qmlplugin
+classname Muse_LearnPlugin
+typeinfo muse_learn_qml.qmltypes
+import Muse.Ui
+import Muse.UiComponents
+prefer :/qt/qml/Muse/Learn/
+LearnPage 1.0 LearnPage.qml
+ClassesPage 1.0 internal/ClassesPage.qml
+Playlist 1.0 internal/Playlist.qml
+PlaylistItem 1.0 internal/PlaylistItem.qml
+

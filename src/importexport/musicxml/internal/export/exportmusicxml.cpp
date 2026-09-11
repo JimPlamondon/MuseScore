@@ -429,8 +429,8 @@ private:
     void identification(XmlWriter& xml, Score const* const score);
 
     // Native JiMS MusicXML export (2026-08-17): the immutable, fail-closed
-    // plan built before any output — Kernel-produced complete jims:staff-state
-    // / jims:change fragments per (part, measure tick), staff-numbered by the
+    // plan built before any output — Kernel-produced complete melo:staff-state
+    // / melo:change fragments per (part, measure tick), staff-numbered by the
     // Kernel for multi-staff parts; every JiMS note's identity is checked
     // present. The fork composes no JiMS element text.
     struct MeloFragment {
@@ -7376,7 +7376,7 @@ void ExportMusicXml::identification(XmlWriter& xml, Score const* const score)
     }
 
     // MeloPresto provenance rides in identification before miscellaneous
-    // (urn:jims:musicxml:4); transported verbatim, only when the document
+    // (urn:melopresto:musicxml:4); transported verbatim, only when the document
     // is MeloPresto (the namespace is declared only then).
     if (m_meloPlan.present && !score->meloProvenance().empty()) {
         const melo::Provenance& prov = score->meloProvenance();
@@ -7384,22 +7384,22 @@ void ExportMusicXml::identification(XmlWriter& xml, Score const* const score)
         if (prov.strictFallback) {
             pattrs.push_back({ "fallback-profile", "strict" });
         }
-        xml.startElement("jims:provenance", pattrs);
+        xml.startElement("melo:provenance", pattrs);
         for (const melo::ProvenanceResource& r : prov.resources) {
             XmlWriter::Attributes rattrs = { { "role", r.role }, { "uri", r.uri }, { "media-type", r.mediaType } };
             if (!r.sha256.isEmpty()) {
                 rattrs.push_back({ "sha-256", r.sha256 });
             }
             if (r.text.isEmpty()) {
-                xml.tag("jims:resource", rattrs);
+                xml.tag("melo:resource", rattrs);
             } else {
-                xml.tag("jims:resource", rattrs, r.text);
+                xml.tag("melo:resource", rattrs, r.text);
             }
         }
         xml.endElement();
     }
     if (m_meloPlan.present && score->meloMelodyPart() != melo::MelodyPart::Soprano) {
-        xml.tag("jims:melody-part", melo::melodyPartToken(score->meloMelodyPart()));
+        xml.tag("melo:melody-part", melo::melodyPartToken(score->meloMelodyPart()));
     }
 
     if (!MScore::debugMode) {
@@ -9206,7 +9206,7 @@ void ExportMusicXml::writeMeloAttributesAtTick(const Fraction& tick, const int p
         return;
     }
     // A separate <attributes> block: the extension's Schematron forbids
-    // standard fixed staff-lines beside jims:staff-state, and the sequence
+    // standard fixed staff-lines beside melo:staff-state, and the sequence
     // must end (staff-state, change?)*. The Kernel's complete elements go in
     // verbatim through the trusted-fragment seam.
     m_attr.doAttr(m_xml, false);
@@ -9242,7 +9242,7 @@ void ExportMusicXml::writeMeloTrajectories(const Measure* const m, const int par
             }
             m_xml.startElement("direction", dattrs);
             m_xml.startElement("direction-type");
-            m_xml.startElement("jims:tuning-trajectory");
+            m_xml.startElement("melo:tuning-trajectory");
             for (const melo::TrajectorySegment& seg : t.segments) {
                 XmlWriter::Attributes sattrs = {
                     { "duration-divisions", calculateDurationInDivisions(seg.duration, m_div) },
@@ -9250,11 +9250,11 @@ void ExportMusicXml::writeMeloTrajectories(const Measure* const m, const int par
                     { "interpolation", seg.interpolation }
                 };
                 if (seg.controls.empty()) {
-                    m_xml.tag("jims:segment", sattrs);
+                    m_xml.tag("melo:segment", sattrs);
                 } else {
-                    m_xml.startElement("jims:segment", sattrs);
+                    m_xml.startElement("melo:segment", sattrs);
                     for (const melo::TrajectoryControl& c : seg.controls) {
-                        m_xml.tag("jims:control", { { "time", c.time }, { "value-cents", c.valueCents } });
+                        m_xml.tag("melo:control", { { "time", c.time }, { "value-cents", c.valueCents } });
                     }
                     m_xml.endElement();
                 }
@@ -9283,7 +9283,7 @@ void ExportMusicXml::writeMeloPitch(const Note* const note)
         return;
     }
     // Two stored integers (owner-settled 6.2): structured, escaped write.
-    m_xml.tag("jims:pitch", { { "n-per", note->meloNPer() }, { "n-gen", note->meloNGen() } });
+    m_xml.tag("melo:pitch", { { "n-per", note->meloNPer() }, { "n-gen", note->meloNGen() } });
 }
 
 bool ExportMusicXml::write(muse::io::IODevice* dev)
@@ -9311,7 +9311,7 @@ bool ExportMusicXml::write(muse::io::IODevice* dev)
 
     if (m_meloPlan.present) {
         // The V4 namespace is declared when a MeloPresto Staff or MeloPresto chord name is present.
-        m_xml.startElement("score-partwise", { { "version", "4.0" }, { "xmlns:jims", "urn:jims:musicxml:4" } });
+        m_xml.startElement("score-partwise", { { "version", "4.0" }, { "xmlns:melo", "urn:melopresto:musicxml:4" } });
     } else {
         m_xml.startElement("score-partwise", { { "version", "4.0" } });
     }
@@ -9721,9 +9721,9 @@ void ExportMusicXml::harmony(Harmony const* const h, FretDiagram const* const fd
         const String textName = info->textName();
         switch (h->harmonyType()) {
         case HarmonyType::MELO:
-            m_xml.tag("jims:chord-name", textName);
+            m_xml.tag("melo:chord-name", textName);
             if (!h->meloEvidence().empty()) {
-                m_xml.tag("jims:chord-evidence", { { "origin", h->meloEvidenceOrigin() } }, h->meloEvidence());
+                m_xml.tag("melo:chord-evidence", { { "origin", h->meloEvidenceOrigin() } }, h->meloEvidence());
             }
             break;
         case HarmonyType::NASHVILLE: {

@@ -1,0 +1,6 @@
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/global/muse_global_autogen/include/../7C5VGCY7QW/moc_ioc.cpp.json
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/global/muse_global_autogen/include/../JH45IGJHDZ/moc_apiobject.cpp.json
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/global/muse_global_autogen/include/../JH45IGJHDZ/moc_filesystemapi.cpp.json
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/global/muse_global_autogen/include/../JH45IGJHDZ/moc_interactiveapi.cpp.json
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/global/muse_global_autogen/include/../JH45IGJHDZ/moc_logapi.cpp.json
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/global/muse_global_autogen/include/../JH45IGJHDZ/moc_processapi.cpp.json

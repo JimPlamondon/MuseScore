@@ -1,0 +1,13 @@
+<RCC>
+  <qresource prefix="/qt/qml/Muse/UiComponents/LegacyTreeView/">
+    <file alias="BasicTableView.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/uicomponents/qml/Muse/UiComponents/LegacyTreeView/BasicTableView.qml</file>
+    <file alias="BasicTableViewStyle.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/uicomponents/qml/Muse/UiComponents/LegacyTreeView/BasicTableViewStyle.qml</file>
+    <file alias="LegacyTreeView.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/uicomponents/qml/Muse/UiComponents/LegacyTreeView/LegacyTreeView.qml</file>
+    <file alias="LegacyTreeViewItemDelegateLoader.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/uicomponents/qml/Muse/UiComponents/LegacyTreeView/LegacyTreeViewItemDelegateLoader.qml</file>
+    <file alias="LegacyTreeViewStyle.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/uicomponents/qml/Muse/UiComponents/LegacyTreeView/LegacyTreeViewStyle.qml</file>
+    <file alias="Style.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/uicomponents/qml/Muse/UiComponents/LegacyTreeView/Style.qml</file>
+    <file alias="TableViewColumn.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/uicomponents/qml/Muse/UiComponents/LegacyTreeView/TableViewColumn.qml</file>
+    <file alias="TableViewItemDelegateLoader.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/uicomponents/qml/Muse/UiComponents/LegacyTreeView/TableViewItemDelegateLoader.qml</file>
+  </qresource>
+</RCC>
+

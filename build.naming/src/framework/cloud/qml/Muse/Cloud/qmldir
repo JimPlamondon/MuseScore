@@ -1,0 +1,18 @@
+module Muse.Cloud
+linktarget muse_cloud_qmlplugin
+optional plugin muse_cloud_qmlplugin
+classname Muse_CloudPlugin
+typeinfo muse_cloud_qml.qmltypes
+import Muse.Ui
+import Muse.UiComponents
+prefer :/qt/qml/Muse/Cloud/
+AccountAvatar 1.0 AccountAvatar.qml
+AccountInfoButton 1.0 AccountInfoButton.qml
+AccountPage 1.0 AccountPage.qml
+CloudScoresView 1.0 CloudScoresView.qml
+CloudItem 1.0 internal/CloudItem.qml
+CloudScoresGridView 1.0 internal/CloudScoresGridView.qml
+CloudScoresListView 1.0 internal/CloudScoresListView.qml
+CloudsListView 1.0 internal/CloudsListView.qml
+RequireAuthorizationDialog 1.0 RequireAuthorizationDialog.qml
+

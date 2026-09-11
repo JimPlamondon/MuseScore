@@ -1,0 +1,14 @@
+module MuseScore.MuseSounds
+linktarget musesounds_qmlplugin
+optional plugin musesounds_qmlplugin
+classname MuseScore_MuseSoundsPlugin
+typeinfo musesounds_qml.qmltypes
+import Muse.Ui
+import Muse.UiComponents
+prefer :/qt/qml/MuseScore/MuseSounds/
+MuseSoundsPage 1.0 MuseSoundsPage.qml
+SoundCatalogueListView 1.0 internal/SoundCatalogueListView.qml
+SoundLibraryItem 1.0 internal/SoundLibraryItem.qml
+MuseSoundsReleaseInfoDialog 1.0 MuseSoundsReleaseInfoDialog.qml
+MuseSoundsReleaseInfoBottomPanel 1.0 internal/MuseSoundsReleaseInfoBottomPanel.qml
+

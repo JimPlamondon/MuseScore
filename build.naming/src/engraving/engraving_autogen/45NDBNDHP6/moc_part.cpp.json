@@ -1,0 +1,420 @@
+{
+    "classes": [
+        {
+            "className": "Part",
+            "lineNumber": 58,
+            "methods": [
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "tick",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 0,
+                    "lineNumber": 158,
+                    "name": "instrumentAtTick",
+                    "returnType": "apiv1::Instrument*"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "tick",
+                            "type": "apiv1::Fraction*"
+                        }
+                    ],
+                    "index": 1,
+                    "lineNumber": 163,
+                    "name": "instrumentAtTick",
+                    "returnType": "apiv1::Instrument*"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "tick",
+                            "type": "apiv1::Fraction*"
+                        }
+                    ],
+                    "index": 2,
+                    "lineNumber": 168,
+                    "name": "longNameAtTick",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "tick",
+                            "type": "apiv1::Fraction*"
+                        }
+                    ],
+                    "index": 3,
+                    "lineNumber": 172,
+                    "name": "shortNameAtTick",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "tick",
+                            "type": "apiv1::Fraction*"
+                        }
+                    ],
+                    "index": 4,
+                    "lineNumber": 176,
+                    "name": "instrumentNameAtTick",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "tick",
+                            "type": "apiv1::Fraction*"
+                        }
+                    ],
+                    "index": 5,
+                    "lineNumber": 180,
+                    "name": "instrumentIdAtTick",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "tick",
+                            "type": "apiv1::Fraction*"
+                        }
+                    ],
+                    "index": 6,
+                    "lineNumber": 184,
+                    "name": "currentHarpDiagramAtTick",
+                    "returnType": "apiv1::EngravingItem*"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "tick",
+                            "type": "apiv1::Fraction*"
+                        }
+                    ],
+                    "index": 7,
+                    "lineNumber": 188,
+                    "name": "nextHarpDiagramFromTick",
+                    "returnType": "apiv1::EngravingItem*"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "tick",
+                            "type": "apiv1::Fraction*"
+                        }
+                    ],
+                    "index": 8,
+                    "lineNumber": 192,
+                    "name": "prevHarpDiagramFromTick",
+                    "returnType": "apiv1::EngravingItem*"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "tick",
+                            "type": "apiv1::Fraction*"
+                        }
+                    ],
+                    "index": 9,
+                    "lineNumber": 196,
+                    "name": "tickOfCurrentHarpDiagram",
+                    "returnType": "apiv1::Fraction*"
+                }
+            ],
+            "object": true,
+            "properties": [
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 0,
+                    "lineNumber": 62,
+                    "name": "startTrack",
+                    "read": "startTrack",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 1,
+                    "lineNumber": 64,
+                    "name": "endTrack",
+                    "read": "endTrack",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 2,
+                    "lineNumber": 69,
+                    "name": "instrumentId",
+                    "read": "instrumentId",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 3,
+                    "lineNumber": 76,
+                    "name": "musicXmlId",
+                    "read": "musicXmlId",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 4,
+                    "lineNumber": 78,
+                    "name": "harmonyCount",
+                    "read": "harmonyCount",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 5,
+                    "lineNumber": 81,
+                    "name": "hasChordSymbol",
+                    "read": "hasChordSymbol",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 6,
+                    "lineNumber": 83,
+                    "name": "hasDrumStaff",
+                    "read": "hasDrumStaff",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 7,
+                    "lineNumber": 85,
+                    "name": "hasPitchedStaff",
+                    "read": "hasPitchedStaff",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 8,
+                    "lineNumber": 87,
+                    "name": "hasTabStaff",
+                    "read": "hasTabStaff",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 9,
+                    "lineNumber": 89,
+                    "name": "lyricCount",
+                    "read": "lyricCount",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 10,
+                    "lineNumber": 91,
+                    "name": "midiChannel",
+                    "read": "midiChannel",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 11,
+                    "lineNumber": 93,
+                    "name": "midiProgram",
+                    "read": "midiProgram",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 12,
+                    "lineNumber": 97,
+                    "name": "longName",
+                    "read": "longName",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 13,
+                    "lineNumber": 101,
+                    "name": "shortName",
+                    "read": "shortName",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 14,
+                    "lineNumber": 107,
+                    "name": "partName",
+                    "read": "partName",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 15,
+                    "lineNumber": 111,
+                    "name": "show",
+                    "read": "show",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false,
+                    "write": "setShow"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 16,
+                    "lineNumber": 115,
+                    "name": "instruments",
+                    "read": "instruments",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QQmlListProperty<apiv1::Instrument>",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 17,
+                    "lineNumber": 119,
+                    "name": "staves",
+                    "read": "staves",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QQmlListProperty<apiv1::Staff>",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 18,
+                    "lineNumber": 122,
+                    "name": "masterPart",
+                    "read": "masterPart",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "apiv1::Part*",
+                    "user": false
+                }
+            ],
+            "qualifiedClassName": "mu::engraving::apiv1::Part",
+            "superClasses": [
+                {
+                    "access": "public",
+                    "fullyQualifiedName": "mu::engraving::apiv1::ScoreElement",
+                    "name": "ScoreElement"
+                }
+            ]
+        }
+    ],
+    "inputFile": "part.h",
+    "outputRevision": 69
+}

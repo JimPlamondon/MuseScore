@@ -1,0 +1,34 @@
+<RCC>
+  <qresource prefix="/qt/qml/MuseScore/Playback/">
+    <file alias="internal/AudioProcessingProgressBar.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/AudioProcessingProgressBar.qml</file>
+    <file alias="internal/AudioResourceControl.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/AudioResourceControl.qml</file>
+    <file alias="internal/AuxSendControl.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/AuxSendControl.qml</file>
+    <file alias="internal/KnobControl.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/KnobControl.qml</file>
+    <file alias="internal/MeasureAndBeatFields.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/MeasureAndBeatFields.qml</file>
+    <file alias="internal/MixerAuxSendsSection.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/MixerAuxSendsSection.qml</file>
+    <file alias="internal/MixerBalanceSection.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/MixerBalanceSection.qml</file>
+    <file alias="internal/MixerFaderSection.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/MixerFaderSection.qml</file>
+    <file alias="internal/MixerFxSection.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/MixerFxSection.qml</file>
+    <file alias="internal/MixerMuteAndSoloSection.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/MixerMuteAndSoloSection.qml</file>
+    <file alias="internal/MixerPanelSection.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/MixerPanelSection.qml</file>
+    <file alias="internal/MixerPanelToolbar.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/MixerPanelToolbar.qml</file>
+    <file alias="internal/MixerSoundSection.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/MixerSoundSection.qml</file>
+    <file alias="internal/MixerTitleSection.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/MixerTitleSection.qml</file>
+    <file alias="internal/MixerVolumeSection.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/MixerVolumeSection.qml</file>
+    <file alias="internal/PlaybackSpeedPopup.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/PlaybackSpeedPopup.qml</file>
+    <file alias="internal/PlaybackSpeedSlider.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/PlaybackSpeedSlider.qml</file>
+    <file alias="internal/PlaybackToolBarActions.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/PlaybackToolBarActions.qml</file>
+    <file alias="internal/SoundFlag/MuseSoundsParams.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/SoundFlag/MuseSoundsParams.qml</file>
+    <file alias="internal/SoundFlag/ParamsGridView.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/SoundFlag/ParamsGridView.qml</file>
+    <file alias="internal/VolumePressureMeter.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/VolumePressureMeter.qml</file>
+    <file alias="internal/VolumeSlider.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/internal/VolumeSlider.qml</file>
+    <file alias="MixerPanel.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/MixerPanel.qml</file>
+    <file alias="NotationRegionsBeingProcessedView.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/NotationRegionsBeingProcessedView.qml</file>
+    <file alias="OnlineSoundsStatusView.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/OnlineSoundsStatusView.qml</file>
+    <file alias="PlaybackLoadingInfo.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/PlaybackLoadingInfo.qml</file>
+    <file alias="PlaybackToolBar.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/PlaybackToolBar.qml</file>
+    <file alias="SoundFlagPopup.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/SoundFlagPopup.qml</file>
+    <file alias="SoundProfilesDialog.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/playback/qml/MuseScore/Playback/SoundProfilesDialog.qml</file>
+  </qresource>
+</RCC>
+

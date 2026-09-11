@@ -1,0 +1,11 @@
+module Muse.Vst
+linktarget muse_vst_qmlplugin
+optional plugin muse_vst_qmlplugin
+classname Muse_VstPlugin
+typeinfo muse_vst_qml.qmltypes
+import Muse.Ui
+import Muse.UiComponents
+prefer :/qt/qml/Muse/Vst/
+VstEditor 1.0 VstEditor.qml
+VstEditorDialog 1.0 VstEditorDialog.qml
+

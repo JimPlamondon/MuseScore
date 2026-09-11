@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/qt/qml/Muse/MidiRemote/">
+    <file alias="internal/qmldir">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/midiremote/qml/Muse/MidiRemote/internal/qmldir</file>
+  </qresource>
+</RCC>
+

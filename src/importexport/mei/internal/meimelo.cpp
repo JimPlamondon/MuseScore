@@ -178,11 +178,11 @@ std::string MeloMeiExporter::respIdFor(const String& reviewer)
 {
     for (size_t i = 0; i < m_reviewers.size(); ++i) {
         if (m_reviewers.at(i) == reviewer) {
-            return "jims-resp-" + std::to_string(i + 1);
+            return "melo-resp-" + std::to_string(i + 1);
         }
     }
     m_reviewers.push_back(reviewer);
-    return "jims-resp-" + std::to_string(m_reviewers.size());
+    return "melo-resp-" + std::to_string(m_reviewers.size());
 }
 
 bool MeloMeiExporter::buildPlan(const Score* score)
@@ -252,7 +252,7 @@ bool MeloMeiExporter::buildPlan(const Score* score)
         StaffPlan plan;
         plan.staff = staff;
         plan.staffN = staffN;
-        plan.staffDefId = "jims-sd-" + std::to_string(staffN);
+        plan.staffDefId = "melo-sd-" + std::to_string(staffN);
         plan.states.push_back({ Fraction(0, 1), base->meloStateJson() });
         for (const Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
             for (const StaffTypeChange* carrier : melo::changeCarriers(m, staff->idx())) {
@@ -267,8 +267,8 @@ bool MeloMeiExporter::buildPlan(const Score* score)
         for (const auto& st : plan.states) {
             UNUSED(st);
             ++si;
-            plan.stateAnnotIds.push_back("jims-stannot-" + std::to_string(staffN) + "-" + std::to_string(si));
-            plan.jmStateIds.push_back("jims-state-" + std::to_string(staffN) + "-" + std::to_string(si));
+            plan.stateAnnotIds.push_back("melo-stannot-" + std::to_string(staffN) + "-" + std::to_string(si));
+            plan.jmStateIds.push_back("melo-state-" + std::to_string(staffN) + "-" + std::to_string(si));
         }
         if (m_tonicAmbit.empty()) {
             m_tonicAmbit = base->meloTonicAmbit();
@@ -425,16 +425,16 @@ void MeloMeiExporter::writeScoreAnnots(pugi::xml_node scoreNode)
     }
     if (!m_tonicAmbit.empty()) {
         pugi::xml_node annot = scoreNode.append_child("annot");
-        annot.append_attribute("xml:id") = "jims-ambit";
-        annot.append_attribute("type") = "jims-tonic-ambit";
-        annot.append_attribute("class") = ("#jims.ambit." + m_tonicAmbit.toStdString()).c_str();
+        annot.append_attribute("xml:id") = "melo-ambit";
+        annot.append_attribute("type") = "melo-tonic-ambit";
+        annot.append_attribute("class") = ("#melo.ambit." + m_tonicAmbit.toStdString()).c_str();
         annot.text().set(m_tonicAmbit.toStdString().c_str());
     }
     const melo::ReviewRecord& review = m_score->meloReview();
     if (!review.focusedReviewReasons.empty()) {
         pugi::xml_node fr = scoreNode.append_child("annot");
-        fr.append_attribute("xml:id") = "jims-focused-review";
-        fr.append_attribute("type") = "jims-focused-review";
+        fr.append_attribute("xml:id") = "melo-focused-review";
+        fr.append_attribute("type") = "melo-focused-review";
         for (const String& reason : review.focusedReviewReasons) {
             fr.append_child("p").text().set(reason.toStdString().c_str());
         }
@@ -442,9 +442,9 @@ void MeloMeiExporter::writeScoreAnnots(pugi::xml_node scoreNode)
     if (!m_staves.empty()) {
         const String token = melo::melodyPartToken(m_score->meloMelodyPart());
         pugi::xml_node annot = scoreNode.append_child("annot");
-        annot.append_attribute("xml:id") = "jims-melody";
-        annot.append_attribute("type") = "jims-melody-part";
-        annot.append_attribute("class") = ("#jims.melody." + token.toStdString()).c_str();
+        annot.append_attribute("xml:id") = "melo-melody";
+        annot.append_attribute("type") = "melo-melody-part";
+        annot.append_attribute("class") = ("#melo.melody." + token.toStdString()).c_str();
         for (const StaffPlan& plan : m_staves) {
             const Part* part = plan.staff->part();
             if (part && part->partName().toLower() == token) {
@@ -469,9 +469,9 @@ void MeloMeiExporter::writeMeasureAnnots(pugi::xml_node measureNode, const Measu
         }
         pugi::xml_node annot = measureNode.append_child("annot");
         const std::string id = adj.annotId.isEmpty()
-                               ? ("jims-adj-" + std::to_string(i + 1)) : adj.annotId.toStdString();
+                               ? ("melo-adj-" + std::to_string(i + 1)) : adj.annotId.toStdString();
         annot.append_attribute("xml:id") = id.c_str();
-        annot.append_attribute("type") = "jims-adjudication";
+        annot.append_attribute("type") = "melo-adjudication";
         annot.append_attribute("class") = ("#jims.outcome." + adj.outcome.toStdString()).c_str();
         annot.append_attribute("tstamp")
             = tstampStr(tstampFrom(adj.tick - measure->tick(), measure->timesig())).c_str();
@@ -484,12 +484,12 @@ void MeloMeiExporter::writeMeasureAnnots(pugi::xml_node measureNode, const Measu
         pugi::xml_node ptrs = annot.append_child("p");
         for (const String& ev : adj.evidence) {
             pugi::xml_node ptr = ptrs.append_child("ptr");
-            ptr.append_attribute("type") = "jims-evidence";
+            ptr.append_attribute("type") = "melo-evidence";
             ptr.append_attribute("target") = ev.toStdString().c_str();
         }
         if (!adj.sourceAnalysis.isEmpty()) {
             pugi::xml_node ptr = ptrs.append_child("ptr");
-            ptr.append_attribute("type") = "jims-source-analysis";
+            ptr.append_attribute("type") = "melo-source-analysis";
             ptr.append_attribute("target") = adj.sourceAnalysis.toStdString().c_str();
         }
         m_adjAnnotIds.push_back(id);
@@ -502,7 +502,7 @@ void MeloMeiExporter::writeMeasureAnnots(pugi::xml_node measureNode, const Measu
             }
             pugi::xml_node annot = measureNode.append_child("annot");
             annot.append_attribute("xml:id") = plan.stateAnnotIds.at(si).c_str();
-            annot.append_attribute("type") = "jims-tonal-state";
+            annot.append_attribute("type") = "melo-tonal-state";
             annot.append_attribute("staff") = plan.staffN;
             annot.append_attribute("tstamp") = tstampStr(tstampFrom(tick - measure->tick(), measure->timesig())).c_str();
             annot.append_attribute("corresp") = ("#" + plan.jmStateIds.at(si)).c_str();
@@ -519,7 +519,7 @@ void MeloMeiExporter::onHarm(pugi::xml_node harmNode, const Harmony* harmony, co
     pugi::xml_attribute type = harmNode.attribute("type");
     const std::string current = type ? type.value() : "";
     if ((" " + current + " ").find(" jims-chord-name ") == std::string::npos) {
-        const std::string merged = current.empty() ? "jims-chord-name" : current + " jims-chord-name";
+        const std::string merged = current.empty() ? "melo-chord-name" : current + " jims-chord-name";
         if (type) {
             type.set_value(merged.c_str());
         } else {
@@ -589,7 +589,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
     pugi::xml_node ext = revision ? meiHead.insert_child_before("extMeta", revision) : meiHead.append_child("extMeta");
     pugi::xml_node rec = ext.append_child("jm:record");
     rec.append_attribute("xmlns:jm") = MELO_MEI_NS;
-    rec.append_attribute("xmlns:jims") = MELO_MUSICXML_NS;
+    rec.append_attribute("xmlns:melo") = MELO_MUSICXML_NS;
     rec.append_attribute("version") = "1";
     pugi::xml_node mx = rec.append_child("jm:musicxml");
 
@@ -734,7 +734,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
             respStmt = titleStmt.append_child("respStmt");
         }
         for (size_t i = 0; i < m_reviewers.size(); ++i) {
-            const std::string id = "jims-resp-" + std::to_string(i + 1);
+            const std::string id = "melo-resp-" + std::to_string(i + 1);
             bool exists = false;
             for (pugi::xml_node pn : respStmt.children("persName")) {
                 if (id == pn.attribute("xml:id").value()) {
@@ -746,7 +746,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
             }
             pugi::xml_node pn = respStmt.append_child("persName");
             pn.append_attribute("xml:id") = id.c_str();
-            pn.append_attribute("role") = "jims-reviewer";
+            pn.append_attribute("role") = "melo-reviewer";
             pn.text().set(m_reviewers.at(i).toStdString().c_str());
         }
     }
@@ -765,7 +765,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
         int i = 0;
         for (const melo::ProvenanceResource& r : prov.resources) {
             ++i;
-            const std::string id = "jims-src-prov-" + std::to_string(i);
+            const std::string id = "melo-src-prov-" + std::to_string(i);
             bool exists = false;
             for (pugi::xml_node src : sourceDesc.children("source")) {
                 if (id == src.attribute("xml:id").value()) {
@@ -776,7 +776,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
                 continue;
             }
             pugi::xml_node src = sourceDesc.append_child("source");
-            src.append_attribute("type") = "jims-provenance";
+            src.append_attribute("type") = "melo-provenance";
             src.append_attribute("xml:id") = id.c_str();
             pugi::xml_node bibl = src.append_child("bibl");
             auto ident = [&bibl](const char* type, const String& value) {
@@ -833,7 +833,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
             // reuse the imported change identity so a round trip never
             // duplicates the native revision entry
             const std::string id = a.changeId.isEmpty()
-                                   ? ("jims-change-" + std::to_string(i + 1))
+                                   ? ("melo-change-" + std::to_string(i + 1))
                                    : a.changeId.toStdString();
             bool exists = false;
             for (pugi::xml_node ch : revisionDesc.children("change")) {
@@ -861,7 +861,7 @@ bool MeloMeiExporter::writeExtMeta(pugi::xml_node meiHead)
         for (size_t i = 0; i < review.adjudications.size(); ++i) {
             const melo::ReviewAdjudication& adj = review.adjudications.at(i);
             const std::string id = adj.annotId.isEmpty()
-                                   ? ("jims-adj-" + std::to_string(i + 1)) : adj.annotId.toStdString();
+                                   ? ("melo-adj-" + std::to_string(i + 1)) : adj.annotId.toStdString();
             const bool placed = std::find(m_adjAnnotIds.begin(), m_adjAnnotIds.end(), id) != m_adjAnnotIds.end();
             pugi::xml_node te = rv.append_child("jm:adjudication");
             if (placed) {
@@ -1324,9 +1324,9 @@ bool MeloMeiImporter::apply(Score* score,
                     if (p.child("ptr")) {
                         for (pugi::xml_node ptr : p.children("ptr")) {
                             const std::string type = ptr.attribute("type").value();
-                            if (type == "jims-evidence") {
+                            if (type == "melo-evidence") {
                                 adj.evidence.push_back(String(ptr.attribute("target").value()));
-                            } else if (type == "jims-source-analysis") {
+                            } else if (type == "melo-source-analysis") {
                                 adj.sourceAnalysis = String(ptr.attribute("target").value());
                             }
                         }

@@ -1,0 +1,10 @@
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/midiremote/qml/Muse/MidiRemote/.qt/rcc/qmake_Muse_MidiRemote.qrc
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/midiremote/qml/Muse/MidiRemote/.qt/rcc/muse_midiremote_qml_raw_qml_0.qrc
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/midiremote/qml/Muse/MidiRemote/.qt/rcc/muse_midiremote_qml_raw_qml_0_extra_qmldirs.qrc
+/qt/qml/Muse/MidiRemote/EditMidiMappingDialog.qml
+/qt/qml/Muse/MidiRemote/internal/MidiMappingBottomPanel.qml
+/qt/qml/Muse/MidiRemote/internal/MidiMappingTopPanel.qml
+/qt/qml/Muse/MidiRemote/MidiDeviceMappingPage.qml

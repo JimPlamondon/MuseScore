@@ -1,0 +1,23 @@
+module MuseScore.InstrumentsScene
+linktarget instrumentsscene_qmlplugin
+optional plugin instrumentsscene_qmlplugin
+classname MuseScore_InstrumentsScenePlugin
+typeinfo instrumentsscene_qml.qmltypes
+import Muse.Ui
+import Muse.UiComponents
+import Muse.UiComponents.LegacyTreeView
+prefer :/qt/qml/MuseScore/InstrumentsScene/
+ChooseInstrumentsPage 1.0 ChooseInstrumentsPage.qml
+InstrumentsDialog 1.0 InstrumentsDialog.qml
+FamilyView 1.0 internal/FamilyView.qml
+InstrumentSettingsPopup 1.0 internal/InstrumentSettingsPopup.qml
+InstrumentsOnScoreView 1.0 internal/InstrumentsOnScoreView.qml
+InstrumentsView 1.0 internal/InstrumentsView.qml
+LayoutControlPanel 1.0 internal/LayoutControlPanel.qml
+LayoutPanelAddButton 1.0 internal/LayoutPanelAddButton.qml
+LayoutPanelItemControl 1.0 internal/LayoutPanelItemControl.qml
+LayoutPanelItemDelegate 1.0 internal/LayoutPanelItemDelegate.qml
+StaffSettingsPopup 1.0 internal/StaffSettingsPopup.qml
+SystemObjectsLayerSettingsPopup 1.0 internal/SystemObjectsLayerSettingsPopup.qml
+LayoutPanel 1.0 LayoutPanel.qml
+

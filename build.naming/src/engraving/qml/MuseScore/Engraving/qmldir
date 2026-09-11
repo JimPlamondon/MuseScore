@@ -1,0 +1,15 @@
+module MuseScore.Engraving
+linktarget engraving_qmlplugin
+optional plugin engraving_qmlplugin
+classname MuseScore_EngravingPlugin
+typeinfo engraving_qml.qmltypes
+import Muse.Ui
+import Muse.UiComponents
+prefer :/qt/qml/MuseScore/Engraving/
+EngravingElementsDialog 1.0 devtools/EngravingElementsDialog.qml
+EngravingElementsPanel 1.0 devtools/EngravingElementsPanel.qml
+EngravingStyleDialog 1.0 devtools/EngravingStyleDialog.qml
+EngravingStylePanel 1.0 devtools/EngravingStylePanel.qml
+EngravingUndoStackDialog 1.0 devtools/EngravingUndoStackDialog.qml
+EngravingUndoStackPanel 1.0 devtools/EngravingUndoStackPanel.qml
+

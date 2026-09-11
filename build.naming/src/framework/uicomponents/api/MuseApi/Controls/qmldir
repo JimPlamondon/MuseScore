@@ -1,0 +1,71 @@
+module MuseApi.Controls
+linktarget muse_uicomponents_qmlapiplugin
+optional plugin muse_uicomponents_qmlapiplugin
+classname MuseApi_ControlsPlugin
+typeinfo muse_uicomponents_qmlapi.qmltypes
+import QtQuick
+prefer :/qt/qml/MuseApi/Controls/
+Border 1.0 MuseApi/Controls/Border.qml
+ButtonBox 1.0 MuseApi/Controls/ButtonBox.qml
+CheckBox 1.0 MuseApi/Controls/CheckBox.qml
+ColorPicker 1.0 MuseApi/Controls/ColorPicker.qml
+ContextMenuLoader 1.0 MuseApi/Controls/ContextMenuLoader.qml
+ExpandableBlank 1.0 MuseApi/Controls/ExpandableBlank.qml
+ExpandableBlankSection 1.0 MuseApi/Controls/ExpandableBlankSection.qml
+FilePicker 1.0 MuseApi/Controls/FilePicker.qml
+FlatButton 1.0 MuseApi/Controls/FlatButton.qml
+FlatButtonMenuIndicatorTriangle 1.0 MuseApi/Controls/FlatButtonMenuIndicatorTriangle.qml
+FlatRadioButton 1.0 MuseApi/Controls/FlatRadioButton.qml
+FlatRadioButtonList 1.0 MuseApi/Controls/FlatRadioButtonList.qml
+FlatToggleButton 1.0 MuseApi/Controls/FlatToggleButton.qml
+FocusableControl 1.0 MuseApi/Controls/FocusableControl.qml
+FocusableItem 1.0 MuseApi/Controls/FocusableItem.qml
+GradientRectangle 1.0 MuseApi/Controls/GradientRectangle.qml
+GridViewSectional 1.0 MuseApi/Controls/GridViewSectional.qml
+IncrementalPropertyControl 1.0 MuseApi/Controls/IncrementalPropertyControl.qml
+InfoPanel 1.0 MuseApi/Controls/InfoPanel.qml
+ListItemBlank 1.0 MuseApi/Controls/ListItemBlank.qml
+MenuButton 1.0 MuseApi/Controls/MenuButton.qml
+NumberInputField 1.0 MuseApi/Controls/NumberInputField.qml
+PageIndicator 1.0 MuseApi/Controls/PageIndicator.qml
+PageTabButton 1.0 MuseApi/Controls/PageTabButton.qml
+PopupPanel 1.0 MuseApi/Controls/PopupPanel.qml
+ProgressBar 1.0 MuseApi/Controls/ProgressBar.qml
+ProgressButton 1.0 MuseApi/Controls/ProgressButton.qml
+RadioButtonGroup 1.0 MuseApi/Controls/RadioButtonGroup.qml
+RealInputField 1.0 MuseApi/Controls/RealInputField.qml
+RoundedRadioButton 1.0 MuseApi/Controls/RoundedRadioButton.qml
+RoundedRectangle 1.0 MuseApi/Controls/RoundedRectangle.qml
+SearchField 1.0 MuseApi/Controls/SearchField.qml
+SelectMultipleDirectoriesDialog 1.0 MuseApi/Controls/SelectMultipleDirectoriesDialog.qml
+SeparatorLine 1.0 MuseApi/Controls/SeparatorLine.qml
+StyledBusyIndicator 1.0 MuseApi/Controls/StyledBusyIndicator.qml
+StyledDialogView 1.0 MuseApi/Controls/StyledDialogView.qml
+StyledDropdown 1.0 MuseApi/Controls/StyledDropdown.qml
+StyledFlickable 1.0 MuseApi/Controls/StyledFlickable.qml
+StyledGridView 1.0 MuseApi/Controls/StyledGridView.qml
+StyledGroupBox 1.0 MuseApi/Controls/StyledGroupBox.qml
+StyledIconLabel 1.0 MuseApi/Controls/StyledIconLabel.qml
+StyledListView 1.0 MuseApi/Controls/StyledListView.qml
+StyledMenuLoader 1.0 MuseApi/Controls/StyledMenuLoader.qml
+StyledPopupView 1.0 MuseApi/Controls/StyledPopupView.qml
+StyledScrollBar 1.0 MuseApi/Controls/StyledScrollBar.qml
+StyledSlider 1.0 MuseApi/Controls/StyledSlider.qml
+StyledTabBar 1.0 MuseApi/Controls/StyledTabBar.qml
+StyledTabButton 1.0 MuseApi/Controls/StyledTabButton.qml
+StyledTextLabel 1.0 MuseApi/Controls/StyledTextLabel.qml
+StyledToolBarItem 1.0 MuseApi/Controls/StyledToolBarItem.qml
+StyledToolBarView 1.0 MuseApi/Controls/StyledToolBarView.qml
+StyledToolTip 1.0 MuseApi/Controls/StyledToolTip.qml
+StyledTreeView 1.0 MuseApi/Controls/StyledTreeView.qml
+StyledViewScrollAndZoomArea 1.0 MuseApi/Controls/StyledViewScrollAndZoomArea.qml
+TextInputArea 1.0 MuseApi/Controls/TextInputArea.qml
+TextInputField 1.0 MuseApi/Controls/TextInputField.qml
+TimeInputField 1.0 MuseApi/Controls/TimeInputField.qml
+ToggleButton 1.0 MuseApi/Controls/ToggleButton.qml
+ValueAdjustControl 1.0 MuseApi/Controls/ValueAdjustControl.qml
+ValueList 1.0 MuseApi/Controls/ValueList.qml
+VisibilityBox 1.0 MuseApi/Controls/VisibilityBox.qml
+VisibilityControls 1.0 MuseApi/Controls/VisibilityControls.qml
+ExtensionBlank 1.0 ExtensionBlank.qml
+

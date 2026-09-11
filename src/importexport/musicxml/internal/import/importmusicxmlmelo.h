@@ -23,7 +23,7 @@
 
 // Native JiMS MusicXML import (owner decision 1a, 2026-08-16).
 //
-// The JiMS extension (urn:jims:musicxml:1 through :4) transports the Kernel's
+// The MeloPresto extension (urn:melopresto:musicxml:1 through :4; the retired urn:jims: stem is still read) transports the Kernel's
 // JiMStaffStateV2 as jims:staff-state (in attributes) and each note's lattice
 // identity as jims:pitch (in note). This unit is pure format transcription —
 // the same mapping the fixture converter tools/melo/enriched_to_melo_mscx.py

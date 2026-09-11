@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/qt/qml/MuseScore/Inspector">
+    <file alias="shaders/melofigure.frag.qsb">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/inspector/qml/MuseScore/Inspector/.qsb/shaders/melofigure.frag.qsb</file>
+  </qresource>
+</RCC>
+

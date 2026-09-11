@@ -1,0 +1,14 @@
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/uicomponents/qml/Muse/UiComponents/LegacyTreeView/.qt/rcc/qmake_Muse_UiComponents_LegacyTreeView.qrc
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/uicomponents/qml/Muse/UiComponents/LegacyTreeView/.qt/rcc/muse_legacytreeview_qml_raw_qml_0.qrc
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/uicomponents/qml/Muse/UiComponents/LegacyTreeView/.qt/rcc/muse_legacytreeview_qml_raw_res_0.qrc
+/qt/qml/Muse/UiComponents/LegacyTreeView/BasicTableView.qml
+/qt/qml/Muse/UiComponents/LegacyTreeView/BasicTableViewStyle.qml
+/qt/qml/Muse/UiComponents/LegacyTreeView/LegacyTreeView.qml
+/qt/qml/Muse/UiComponents/LegacyTreeView/LegacyTreeViewItemDelegateLoader.qml
+/qt/qml/Muse/UiComponents/LegacyTreeView/LegacyTreeViewStyle.qml
+/qt/qml/Muse/UiComponents/LegacyTreeView/Style.qml
+/qt/qml/Muse/UiComponents/LegacyTreeView/TableViewColumn.qml
+/qt/qml/Muse/UiComponents/LegacyTreeView/TableViewItemDelegateLoader.qml

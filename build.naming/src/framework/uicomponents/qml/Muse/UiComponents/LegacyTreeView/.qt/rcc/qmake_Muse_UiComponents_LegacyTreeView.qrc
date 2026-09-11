@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/qt/qml/Muse/UiComponents/LegacyTreeView">
+    <file alias="qmldir">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/uicomponents/qml/Muse/UiComponents/LegacyTreeView/qmldir</file>
+  </qresource>
+</RCC>
+

@@ -1,0 +1,11 @@
+<RCC>
+  <qresource prefix="/qt/qml/MuseScore/Engraving/">
+    <file alias="devtools/EngravingElementsDialog.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/engraving/qml/MuseScore/Engraving/devtools/EngravingElementsDialog.qml</file>
+    <file alias="devtools/EngravingElementsPanel.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/engraving/qml/MuseScore/Engraving/devtools/EngravingElementsPanel.qml</file>
+    <file alias="devtools/EngravingStyleDialog.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/engraving/qml/MuseScore/Engraving/devtools/EngravingStyleDialog.qml</file>
+    <file alias="devtools/EngravingStylePanel.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/engraving/qml/MuseScore/Engraving/devtools/EngravingStylePanel.qml</file>
+    <file alias="devtools/EngravingUndoStackDialog.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/engraving/qml/MuseScore/Engraving/devtools/EngravingUndoStackDialog.qml</file>
+    <file alias="devtools/EngravingUndoStackPanel.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/engraving/qml/MuseScore/Engraving/devtools/EngravingUndoStackPanel.qml</file>
+  </qresource>
+</RCC>
+

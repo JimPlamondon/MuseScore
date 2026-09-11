@@ -1,0 +1,16 @@
+-I
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/uicomponents/api
+-I
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/uicomponents/api/MuseApi/Controls
+-I
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/uicomponents/api/MuseApi/Controls
+-I
+/Users/jim/Qt/6.10.2/macos/qml
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/uicomponents/api/MuseApi/Controls/.qt/rcc/qmake_MuseApi_Controls.qrc
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/uicomponents/api/MuseApi/Controls/.qt/rcc/muse_uicomponents_qmlapi_raw_qml_0.qrc
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/uicomponents/api/MuseApi/Controls/.qt/rcc/muse_uicomponents_qmlapi_raw_qml_0_extra_qmldirs.qrc
+--module
+MuseApi.Controls

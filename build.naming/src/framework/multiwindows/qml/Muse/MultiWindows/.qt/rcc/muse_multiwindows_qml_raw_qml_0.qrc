@@ -1,0 +1,7 @@
+<RCC>
+  <qresource prefix="/qt/qml/Muse/MultiWindows/">
+    <file alias="MultiInstancesDevDialog.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/multiwindows/qml/Muse/MultiWindows/MultiInstancesDevDialog.qml</file>
+    <file alias="MultiInstancesDevPanel.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/multiwindows/qml/Muse/MultiWindows/MultiInstancesDevPanel.qml</file>
+  </qresource>
+</RCC>
+

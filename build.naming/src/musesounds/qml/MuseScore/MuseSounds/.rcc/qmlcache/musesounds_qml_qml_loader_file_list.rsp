@@ -1,0 +1,13 @@
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/musesounds/qml/MuseScore/MuseSounds/.qt/rcc/qmake_MuseScore_MuseSounds.qrc
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/musesounds/qml/MuseScore/MuseSounds/.qt/rcc/musesounds_qml_raw_qml_0.qrc
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/musesounds/qml/MuseScore/MuseSounds/.qt/rcc/musesounds_qml_raw_res_0.qrc
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/musesounds/qml/MuseScore/MuseSounds/.qt/rcc/musesounds_qml_raw_qml_0_extra_qmldirs.qrc
+/qt/qml/MuseScore/MuseSounds/MuseSoundsPage.qml
+/qt/qml/MuseScore/MuseSounds/internal/SoundCatalogueListView.qml
+/qt/qml/MuseScore/MuseSounds/internal/SoundLibraryItem.qml
+/qt/qml/MuseScore/MuseSounds/MuseSoundsReleaseInfoDialog.qml
+/qt/qml/MuseScore/MuseSounds/internal/MuseSoundsReleaseInfoBottomPanel.qml

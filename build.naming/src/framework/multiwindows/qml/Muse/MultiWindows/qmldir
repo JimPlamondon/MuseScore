@@ -1,0 +1,11 @@
+module Muse.MultiWindows
+linktarget muse_multiwindows_qmlplugin
+optional plugin muse_multiwindows_qmlplugin
+classname Muse_MultiWindowsPlugin
+typeinfo muse_multiwindows_qml.qmltypes
+import Muse.Ui
+import Muse.UiComponents
+prefer :/qt/qml/Muse/MultiWindows/
+MultiInstancesDevDialog 1.0 MultiInstancesDevDialog.qml
+MultiInstancesDevPanel 1.0 MultiInstancesDevPanel.qml
+

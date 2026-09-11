@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="/qt/qml/Muse/Shortcuts">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/shortcuts/qml/Muse/Shortcuts</file>
+
+  </qresource>
+</RCC>

@@ -1,0 +1,17 @@
+module Muse.Ui.Dialogs
+linktarget muse_ui_dialogs_qmlplugin
+optional plugin muse_ui_dialogs_qmlplugin
+classname Muse_Ui_DialogsPlugin
+typeinfo muse_ui_dialogs_qml.qmltypes
+import QtQuick
+import Muse.Ui
+import Muse.UiComponents
+prefer :/qt/qml/Muse/Ui/Dialogs/
+SampleDialog 1.0 dev/SampleDialog.qml
+ErrorDetailsView 1.0 ErrorDetailsView.qml
+FileDialog 1.0 FileDialog.qml
+FolderDialog 1.0 FolderDialog.qml
+ProgressDialog 1.0 ProgressDialog.qml
+StandardDialog 1.0 StandardDialog.qml
+StandardDialogPanel 1.0 StandardDialogPanel.qml
+

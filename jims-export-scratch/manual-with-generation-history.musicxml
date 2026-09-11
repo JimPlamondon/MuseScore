@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<score-partwise version="4.0" xmlns:melo="urn:melopresto:musicxml:4">
+  <work>
+    <work-title>JiMS chord names on a JiMStaff beside conventional harmony</work-title>
+    </work>
+  <identification>
+    <encoding>
+      <software>MuseScore 0.7.0</software>
+      <encoding-date>2007-09-10</encoding-date>
+      <supports element="accidental" type="yes"/>
+      <supports element="beam" type="yes"/>
+      <supports element="print" attribute="new-page" type="no"/>
+      <supports element="print" attribute="new-system" type="no"/>
+      <supports element="stem" type="yes"/>
+      </encoding>
+    </identification>
+  <part-list>
+    <score-part id="P1">
+      <part-name>JiMS chord names (JiMStaff)</part-name>
+      <score-instrument id="P1-I1">
+        <instrument-name></instrument-name>
+        </score-instrument>
+      <midi-device id="P1-I1" port="1"></midi-device>
+      <midi-instrument id="P1-I1">
+        <midi-channel>1</midi-channel>
+        <midi-program>1</midi-program>
+        <volume>78.7402</volume>
+        <pan>0</pan>
+        </midi-instrument>
+      </score-part>
+    </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <key>
+          <fifths>0</fifths>
+          </key>
+        <time>
+          <beats>4</beats>
+          <beat-type>4</beat-type>
+          </time>
+        <staff-details>
+          <staff-lines>13</staff-lines>
+          </staff-details>
+        </attributes>
+      <attributes>
+              <melo:staff-state>
+        <melo:scale><melo:step>M2</melo:step><melo:step>m2</melo:step><melo:step>M2</melo:step><melo:step>M2</melo:step><melo:step>M2</melo:step><melo:step>m2</melo:step><melo:step>M2</melo:step></melo:scale>
+        <melo:collection-rotation>0</melo:collection-rotation>
+        <melo:mode-rotation>0</melo:mode-rotation>
+        <melo:generator-cents>700</melo:generator-cents>
+        <melo:period-cents>1200</melo:period-cents>
+        <melo:embedding large-steps="5" small-steps="2"/>
+        <melo:extent lower-n-per="1" lower-n-gen="-2" upper-n-per="2" upper-n-gen="-2"/>
+        <melo:tonic-ambit>tonic-bounded</melo:tonic-ambit>
+        <melo:reference><melo:reference-pitch key-number="62"/></melo:reference>
+      </melo:staff-state>
+        </attributes>
+      <harmony placement="above" print-frame="no">
+        <melo:chord-name>Re5</melo:chord-name>
+        <melo:chord-evidence origin="manual">{&quot;analysis&quot;:{&quot;bass_basis&quot;:&quot;source_declared&quot;,&quot;construction_choice&quot;:{&quot;basis&quot;:&quot;declared_function&quot;,&quot;shape_root&quot;:&quot;Do&quot;},&quot;declared_additions&quot;:[],&quot;declared_members&quot;:[-2,2,-1],&quot;duration&quot;:&quot;4&quot;,&quot;id&quot;:&quot;fixture:C-major&quot;,&quot;identity&quot;:&quot;Do5&quot;,&quot;name&quot;:&quot;Do5&quot;,&quot;native_input&quot;:{&quot;analytical_root_ngen&quot;:-2,&quot;analytical_root_sounded&quot;:true,&quot;application_base_ngen&quot;:-2,&quot;bass_ngen&quot;:-2,&quot;function&quot;:{&quot;borrowed_from_mode&quot;:null,&quot;shape_root&quot;:&quot;Do&quot;},&quot;mode&quot;:&quot;Do-mode&quot;,&quot;notes_ngen&quot;:[-2,2,-1],&quot;out_of_scope_reason&quot;:null},&quot;offset&quot;:&quot;0&quot;,&quot;result&quot;:{&quot;folds&quot;:0,&quot;identity&quot;:&quot;Do5&quot;,&quot;kind&quot;:&quot;Named&quot;,&quot;name&quot;:&quot;Do5&quot;},&quot;source&quot;:{&quot;label&quot;:&quot;I&quot;,&quot;reader&quot;:&quot;synthetic-source&quot;},&quot;unrestricted_result&quot;:{&quot;folds&quot;:0,&quot;identity&quot;:&quot;Do5&quot;,&quot;kind&quot;:&quot;Named&quot;,&quot;name&quot;:&quot;Do5&quot;}},&quot;disagreements&quot;:{&quot;bass_differs&quot;:false,&quot;declared_only_members&quot;:[],&quot;observed_only_members&quot;:[]},&quot;function_basis&quot;:&quot;source_declared&quot;,&quot;interval&quot;:{&quot;duration&quot;:&quot;4&quot;,&quot;offset&quot;:&quot;0&quot;},&quot;naming&quot;:{&quot;construction_choice&quot;:{&quot;basis&quot;:&quot;declared_function&quot;,&quot;shape_root&quot;:&quot;Do&quot;},&quot;identity&quot;:&quot;Do5&quot;,&quot;name&quot;:&quot;Do5&quot;,&quot;native_input&quot;:{&quot;analytical_root_ngen&quot;:-2,&quot;analytical_root_sounded&quot;:true,&quot;application_base_ngen&quot;:-2,&quot;bass_ngen&quot;:-2,&quot;function&quot;:{&quot;borrowed_from_mode&quot;:null,&quot;shape_root&quot;:&quot;Do&quot;},&quot;mode&quot;:&quot;Do-mode&quot;,&quot;notes_ngen&quot;:[-2,-1,2],&quot;out_of_scope_reason&quot;:null},&quot;result&quot;:{&quot;folds&quot;:0,&quot;identity&quot;:&quot;Do5&quot;,&quot;kind&quot;:&quot;Named&quot;,&quot;name&quot;:&quot;Do5&quot;},&quot;unrestricted_result&quot;:{&quot;folds&quot;:0,&quot;identity&quot;:&quot;Do5&quot;,&quot;kind&quot;:&quot;Named&quot;,&quot;name&quot;:&quot;Do5&quot;}},&quot;observation&quot;:{&quot;bass_ngen&quot;:-2,&quot;notes&quot;:[{&quot;height&quot;:60,&quot;n_gen&quot;:-2,&quot;n_per&quot;:1},{&quot;height&quot;:64,&quot;n_gen&quot;:2,&quot;n_per&quot;:-1},{&quot;height&quot;:67,&quot;n_gen&quot;:-1,&quot;n_per&quot;:1},{&quot;height&quot;:72.0,&quot;n_gen&quot;:-2,&quot;n_per&quot;:2}],&quot;status&quot;:&quot;score_observed&quot;},&quot;schema&quot;:&quot;melo.chord-evidence.v1&quot;}</melo:chord-evidence>
+        </harmony>
+      <note>
+        <pitch>
+          <step>C</step>
+          <octave>4</octave>
+          </pitch>
+        <melo:pitch n-per="1" n-gen="-2"/>
+        <duration>4</duration>
+        <voice>1</voice>
+        <type>whole</type>
+        </note>
+      <note>
+        <chord/>
+        <pitch>
+          <step>E</step>
+          <octave>4</octave>
+          </pitch>
+        <melo:pitch n-per="-1" n-gen="2"/>
+        <duration>4</duration>
+        <voice>1</voice>
+        <type>whole</type>
+        </note>
+      <note>
+        <chord/>
+        <pitch>
+          <step>G</step>
+          <octave>4</octave>
+          </pitch>
+        <melo:pitch n-per="1" n-gen="-1"/>
+        <duration>4</duration>
+        <voice>1</voice>
+        <type>whole</type>
+        </note>
+      <note>
+        <chord/>
+        <pitch>
+          <step>C</step>
+          <octave>5</octave>
+          </pitch>
+        <melo:pitch n-per="2" n-gen="-2"/>
+        <duration>4</duration>
+        <voice>1</voice>
+        <type>whole</type>
+        </note>
+      </measure>
+    </part>
+  </score-partwise>

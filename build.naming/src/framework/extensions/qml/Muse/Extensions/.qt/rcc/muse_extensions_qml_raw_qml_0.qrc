@@ -1,0 +1,15 @@
+<RCC>
+  <qresource prefix="/qt/qml/Muse/Extensions/">
+    <file alias="ExtensionErrorMessage.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/extensions/qml/Muse/Extensions/ExtensionErrorMessage.qml</file>
+    <file alias="ExtensionsApiDump.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/extensions/qml/Muse/Extensions/ExtensionsApiDump.qml</file>
+    <file alias="ExtensionsApiDumpDialog.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/extensions/qml/Muse/Extensions/ExtensionsApiDumpDialog.qml</file>
+    <file alias="ExtensionsListPanel.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/extensions/qml/Muse/Extensions/ExtensionsListPanel.qml</file>
+    <file alias="ExtensionsToolBar.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/extensions/qml/Muse/Extensions/ExtensionsToolBar.qml</file>
+    <file alias="ExtensionViewer.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/extensions/qml/Muse/Extensions/ExtensionViewer.qml</file>
+    <file alias="ExtensionViewerDialog.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/extensions/qml/Muse/Extensions/ExtensionViewerDialog.qml</file>
+    <file alias="internal/EnablePanel.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/extensions/qml/Muse/Extensions/internal/EnablePanel.qml</file>
+    <file alias="internal/ExtensionItem.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/extensions/qml/Muse/Extensions/internal/ExtensionItem.qml</file>
+    <file alias="internal/ExtensionsListView.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/extensions/qml/Muse/Extensions/internal/ExtensionsListView.qml</file>
+  </qresource>
+</RCC>
+

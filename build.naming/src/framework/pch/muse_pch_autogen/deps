@@ -1,0 +1,5 @@
+muse_pch_autogen/timestamp: \
+	/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/buildscripts/pch/CMakeLists.txt \
+	/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/buildscripts/pch/pch.cpp \
+	/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/buildscripts/pch/pch.h \
+	/opt/homebrew/bin/cmake

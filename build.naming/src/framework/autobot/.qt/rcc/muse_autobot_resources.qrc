@@ -1,0 +1,9 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="examples/NewScore.js">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/autobot/examples/NewScore.js</file>
+    <file alias="examples/PutNote.js">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/autobot/examples/PutNote.js</file>
+    <file alias="examples/SimpleZoom.js">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/autobot/examples/SimpleZoom.js</file>
+    <file alias="examples/steps/NewScore.js">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/autobot/examples/steps/NewScore.js</file>
+  </qresource>
+</RCC>
+

@@ -1,0 +1,7 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="resources/std_sample.mscx">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/notationscene/widgets/resources/std_sample.mscx</file>
+    <file alias="resources/tab_sample.mscx">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/notationscene/widgets/resources/tab_sample.mscx</file>
+  </qresource>
+</RCC>
+

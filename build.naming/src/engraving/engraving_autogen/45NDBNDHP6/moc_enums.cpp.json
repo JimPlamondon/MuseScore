@@ -1,0 +1,18 @@
+{
+    "classes": [
+        {
+            "className": "Enum",
+            "lineNumber": 35,
+            "object": true,
+            "qualifiedClassName": "mu::engraving::apiv1::Enum",
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "QQmlPropertyMap"
+                }
+            ]
+        }
+    ],
+    "inputFile": "enums.h",
+    "outputRevision": 69
+}

@@ -1578,7 +1578,7 @@ void MusicXmlParserPass1::identification()
             if (engraving::melo::melodyPartFromToken(token, part)) {
                 m_score->setMeloMelodyPart(part);
             } else {
-                m_logger->logError(String(u"invalid jims:melody-part '%1'").arg(token), &m_e);
+                m_logger->logError(String(u"invalid melo:melody-part '%1'").arg(token), &m_e);
                 m_meloProvenanceError = true;
             }
         } else if (m_e.name() == "miscellaneous") {

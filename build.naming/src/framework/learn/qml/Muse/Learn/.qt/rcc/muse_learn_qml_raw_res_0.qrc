@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/qt/qml/Muse/Learn/">
+    <file alias="resources/marc_sabatella.jpg">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/learn/qml/Muse/Learn/resources/marc_sabatella.jpg</file>
+  </qresource>
+</RCC>
+

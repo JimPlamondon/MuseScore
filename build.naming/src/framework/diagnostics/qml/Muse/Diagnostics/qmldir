@@ -1,0 +1,21 @@
+module Muse.Diagnostics
+linktarget muse_diagnostics_qmlplugin
+optional plugin muse_diagnostics_qmlplugin
+classname Muse_DiagnosticsPlugin
+typeinfo muse_diagnostics_qml.qmltypes
+import Muse.Ui
+import Muse.UiComponents
+prefer :/qt/qml/Muse/Diagnostics/
+DiagnosticAccessibleDialog 1.0 DiagnosticAccessibleDialog.qml
+DiagnosticAccessiblePanel 1.0 DiagnosticAccessiblePanel.qml
+DiagnosticActionsDialog 1.0 DiagnosticActionsDialog.qml
+DiagnosticActionsPanel 1.0 DiagnosticActionsPanel.qml
+DiagnosticGraphicsInfoDialog 1.0 DiagnosticGraphicsInfoDialog.qml
+DiagnosticGraphicsInfoPanel 1.0 DiagnosticGraphicsInfoPanel.qml
+DiagnosticNavigationDialog 1.0 DiagnosticNavigationDialog.qml
+DiagnosticNavigationPanel 1.0 DiagnosticNavigationPanel.qml
+DiagnosticPathsDialog 1.0 DiagnosticPathsDialog.qml
+DiagnosticPathsPanel 1.0 DiagnosticPathsPanel.qml
+DiagnosticProfilerDialog 1.0 DiagnosticProfilerDialog.qml
+DiagnosticProfilerPanel 1.0 DiagnosticProfilerPanel.qml
+

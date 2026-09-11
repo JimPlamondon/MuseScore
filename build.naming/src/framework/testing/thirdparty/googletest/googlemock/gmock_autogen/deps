@@ -1,0 +1,10 @@
+gmock_autogen/timestamp: \
+	/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/testing/thirdparty/googletest/googlemock/CMakeLists.txt \
+	/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/testing/thirdparty/googletest/googlemock/src/gmock-all.cc \
+	/opt/homebrew/share/cmake/Modules/CheckCSourceCompiles.cmake \
+	/opt/homebrew/share/cmake/Modules/CheckIncludeFile.cmake \
+	/opt/homebrew/share/cmake/Modules/CheckLibraryExists.cmake \
+	/opt/homebrew/share/cmake/Modules/FindPackageHandleStandardArgs.cmake \
+	/opt/homebrew/share/cmake/Modules/FindPackageMessage.cmake \
+	/opt/homebrew/share/cmake/Modules/FindThreads.cmake \
+	/opt/homebrew/bin/cmake

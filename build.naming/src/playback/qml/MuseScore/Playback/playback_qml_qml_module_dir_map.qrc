@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="/qt/qml/MuseScore/Playback">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/playback/qml/MuseScore/Playback</file>
+
+  </qresource>
+</RCC>

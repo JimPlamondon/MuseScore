@@ -1,0 +1,6 @@
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/multiwindows/qml/Muse/MultiWindows/.qt/rcc/qmake_Muse_MultiWindows.qrc
+--resource
+/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/multiwindows/qml/Muse/MultiWindows/.qt/rcc/muse_multiwindows_qml_raw_qml_0.qrc
+/qt/qml/Muse/MultiWindows/MultiInstancesDevDialog.qml
+/qt/qml/Muse/MultiWindows/MultiInstancesDevPanel.qml

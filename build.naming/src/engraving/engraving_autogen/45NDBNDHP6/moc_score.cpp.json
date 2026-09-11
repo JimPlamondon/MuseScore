@@ -1,0 +1,1221 @@
+{
+    "classes": [
+        {
+            "className": "Score",
+            "lineNumber": 70,
+            "methods": [
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "tag",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 0,
+                    "isConst": true,
+                    "lineNumber": 379,
+                    "name": "metaTag",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "tag",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "val",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 1,
+                    "lineNumber": 386,
+                    "name": "setMetaTag",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "instrumentId",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 2,
+                    "lineNumber": 407,
+                    "name": "appendPart",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "instrumentMusicXmlId",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 3,
+                    "lineNumber": 414,
+                    "name": "appendPartByMusicXmlId",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "interval",
+                            "type": "int"
+                        },
+                        {
+                            "name": "lock",
+                            "type": "bool"
+                        }
+                    ],
+                    "index": 4,
+                    "lineNumber": 429,
+                    "name": "addRemoveSystemLocks",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "first",
+                            "type": "apiv1::MeasureBase*"
+                        },
+                        {
+                            "name": "last",
+                            "type": "apiv1::MeasureBase*"
+                        }
+                    ],
+                    "index": 5,
+                    "lineNumber": 438,
+                    "name": "makeIntoSystem",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 6,
+                    "isConst": true,
+                    "lineNumber": 453,
+                    "name": "extractLyrics",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "n",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 7,
+                    "lineNumber": 465,
+                    "name": "appendMeasures",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "tick",
+                            "type": "apiv1::Fraction*"
+                        }
+                    ],
+                    "index": 8,
+                    "lineNumber": 472,
+                    "name": "tick2measure",
+                    "returnType": "apiv1::Measure*"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "segmentType",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 9,
+                    "lineNumber": 481,
+                    "name": "firstSegment",
+                    "returnType": "apiv1::Segment*"
+                },
+                {
+                    "access": "public",
+                    "index": 10,
+                    "isCloned": true,
+                    "lineNumber": 481,
+                    "name": "firstSegment",
+                    "returnType": "apiv1::Segment*"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "types",
+                            "type": "int"
+                        },
+                        {
+                            "name": "tick",
+                            "type": "apiv1::Fraction*"
+                        }
+                    ],
+                    "index": 11,
+                    "lineNumber": 492,
+                    "name": "findSegmentAtTick",
+                    "returnType": "apiv1::Segment*"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "type",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "text",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 12,
+                    "lineNumber": 500,
+                    "name": "addText",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "startTick",
+                            "type": "apiv1::Fraction*"
+                        },
+                        {
+                            "name": "endTick",
+                            "type": "apiv1::Fraction*"
+                        }
+                    ],
+                    "index": 13,
+                    "lineNumber": 534,
+                    "name": "doLayout",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "part",
+                            "type": "apiv1::Part*"
+                        },
+                        {
+                            "name": "instrumentId",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 14,
+                    "lineNumber": 545,
+                    "name": "replaceInstrument",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "part",
+                            "type": "apiv1::Part*"
+                        },
+                        {
+                            "name": "visible",
+                            "type": "bool"
+                        }
+                    ],
+                    "index": 15,
+                    "lineNumber": 554,
+                    "name": "setPartVisible",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "part",
+                            "type": "apiv1::Part*"
+                        },
+                        {
+                            "name": "sharpFlat",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 16,
+                    "lineNumber": 563,
+                    "name": "setPartSharpFlat",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "part",
+                            "type": "apiv1::Part*"
+                        },
+                        {
+                            "name": "tick",
+                            "type": "apiv1::Fraction*"
+                        },
+                        {
+                            "name": "name",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 17,
+                    "lineNumber": 573,
+                    "name": "setInstrumentName",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "part",
+                            "type": "apiv1::Part*"
+                        },
+                        {
+                            "name": "tick",
+                            "type": "apiv1::Fraction*"
+                        },
+                        {
+                            "name": "abbreviature",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 18,
+                    "lineNumber": 583,
+                    "name": "setInstrumentAbbreviature",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "staff",
+                            "type": "apiv1::Staff*"
+                        },
+                        {
+                            "name": "staffTypeId",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 19,
+                    "lineNumber": 592,
+                    "name": "setStaffType",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "parts",
+                            "type": "QList<apiv1::Part*>"
+                        }
+                    ],
+                    "index": 20,
+                    "lineNumber": 600,
+                    "name": "removeParts",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "staves",
+                            "type": "QList<apiv1::Staff*>"
+                        }
+                    ],
+                    "index": 21,
+                    "lineNumber": 608,
+                    "name": "removeStaves",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "sourceParts",
+                            "type": "QList<apiv1::Part*>"
+                        },
+                        {
+                            "name": "destinationPart",
+                            "type": "apiv1::Part*"
+                        },
+                        {
+                            "name": "insertMode",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 22,
+                    "lineNumber": 618,
+                    "name": "moveParts",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "sourceStaves",
+                            "type": "QList<apiv1::Staff*>"
+                        },
+                        {
+                            "name": "destinationStaff",
+                            "type": "apiv1::Staff*"
+                        },
+                        {
+                            "name": "insertMode",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 23,
+                    "lineNumber": 629,
+                    "name": "moveStaves",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "staves",
+                            "type": "QList<apiv1::Staff*>"
+                        }
+                    ],
+                    "index": 24,
+                    "lineNumber": 637,
+                    "name": "addSystemObjects",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "staves",
+                            "type": "QList<apiv1::Staff*>"
+                        }
+                    ],
+                    "index": 25,
+                    "lineNumber": 645,
+                    "name": "removeSystemObjects",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "sourceStaff",
+                            "type": "apiv1::Staff*"
+                        },
+                        {
+                            "name": "destinationStaff",
+                            "type": "apiv1::Staff*"
+                        }
+                    ],
+                    "index": 26,
+                    "lineNumber": 654,
+                    "name": "moveSystemObjects",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "destinationPart",
+                            "type": "apiv1::Part*"
+                        }
+                    ],
+                    "index": 27,
+                    "lineNumber": 663,
+                    "name": "appendStaff",
+                    "returnType": "apiv1::Staff*"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "sourceStaff",
+                            "type": "apiv1::Staff*"
+                        },
+                        {
+                            "name": "destinationPart",
+                            "type": "apiv1::Part*"
+                        }
+                    ],
+                    "index": 28,
+                    "lineNumber": 674,
+                    "name": "appendLinkedStaff",
+                    "returnType": "apiv1::Staff*"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "staff",
+                            "type": "apiv1::Staff*"
+                        },
+                        {
+                            "name": "voiceIndex",
+                            "type": "int"
+                        },
+                        {
+                            "name": "visible",
+                            "type": "bool"
+                        }
+                    ],
+                    "index": 29,
+                    "lineNumber": 686,
+                    "name": "setVoiceVisible",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "part",
+                            "type": "apiv1::Part*"
+                        },
+                        {
+                            "name": "tick",
+                            "type": "apiv1::Fraction*"
+                        },
+                        {
+                            "name": "drumset",
+                            "type": "apiv1::Drumset*"
+                        }
+                    ],
+                    "index": 30,
+                    "lineNumber": 700,
+                    "name": "replaceDrumset",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "instrumentId",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "index",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 31,
+                    "lineNumber": 710,
+                    "name": "insertPart",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "part",
+                            "type": "apiv1::Part*"
+                        },
+                        {
+                            "name": "instrumentId",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 32,
+                    "lineNumber": 721,
+                    "name": "replacePart",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "orderId",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 33,
+                    "lineNumber": 730,
+                    "name": "setScoreOrder",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 34,
+                    "lineNumber": 737,
+                    "name": "newCursor",
+                    "returnType": "apiv1::Cursor*"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "qActionName",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 35,
+                    "lineNumber": 746,
+                    "name": "startCmd",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 36,
+                    "isCloned": true,
+                    "lineNumber": 746,
+                    "name": "startCmd",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "rollback",
+                            "type": "bool"
+                        }
+                    ],
+                    "index": 37,
+                    "lineNumber": 755,
+                    "name": "endCmd",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 38,
+                    "isCloned": true,
+                    "lineNumber": 755,
+                    "name": "endCmd",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "element",
+                            "type": "apiv1::EngravingItem*"
+                        },
+                        {
+                            "name": "staffIdx",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 39,
+                    "lineNumber": 768,
+                    "name": "showElementInScore",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "element",
+                            "type": "apiv1::EngravingItem*"
+                        }
+                    ],
+                    "index": 40,
+                    "isCloned": true,
+                    "lineNumber": 768,
+                    "name": "showElementInScore",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 41,
+                    "lineNumber": 777,
+                    "name": "createPlayEvents",
+                    "returnType": "void"
+                }
+            ],
+            "object": true,
+            "properties": [
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 0,
+                    "lineNumber": 78,
+                    "name": "scoreName",
+                    "read": "name",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false,
+                    "write": "setName"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 1,
+                    "lineNumber": 85,
+                    "name": "title",
+                    "read": "title",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 2,
+                    "lineNumber": 92,
+                    "name": "composer",
+                    "read": "composer",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 3,
+                    "lineNumber": 99,
+                    "name": "lyricist",
+                    "read": "lyricist",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 4,
+                    "lineNumber": 106,
+                    "name": "duration",
+                    "read": "duration",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 5,
+                    "lineNumber": 113,
+                    "name": "mscoreVersion",
+                    "read": "mscoreVersion",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 6,
+                    "lineNumber": 120,
+                    "name": "mscoreRevision",
+                    "read": "mscoreRevision",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QString",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 7,
+                    "lineNumber": 127,
+                    "name": "style",
+                    "read": "style",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "apiv1::MStyle*",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 8,
+                    "lineNumber": 135,
+                    "name": "keysig",
+                    "read": "keysig",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 9,
+                    "lineNumber": 142,
+                    "name": "npages",
+                    "read": "npages",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 10,
+                    "lineNumber": 150,
+                    "name": "pages",
+                    "read": "pages",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QQmlListProperty<apiv1::Page>",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 11,
+                    "lineNumber": 159,
+                    "name": "pageNumberOffset",
+                    "read": "pageNumberOffset",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false,
+                    "write": "setPageNumberOffset"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 12,
+                    "lineNumber": 166,
+                    "name": "parts",
+                    "read": "parts",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QQmlListProperty<apiv1::Part>",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 13,
+                    "lineNumber": 173,
+                    "name": "nstaves",
+                    "read": "nstaves",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 14,
+                    "lineNumber": 180,
+                    "name": "staves",
+                    "read": "staves",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QQmlListProperty<apiv1::Staff>",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 15,
+                    "lineNumber": 187,
+                    "name": "ntracks",
+                    "read": "ntracks",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 16,
+                    "lineNumber": 195,
+                    "name": "systems",
+                    "read": "systems",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QQmlListProperty<apiv1::System>",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 17,
+                    "lineNumber": 203,
+                    "name": "spanners",
+                    "read": "spanners",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QQmlListProperty<apiv1::Spanner>",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 18,
+                    "lineNumber": 210,
+                    "name": "hasHarmonies",
+                    "read": "hasHarmonies",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 19,
+                    "lineNumber": 217,
+                    "name": "harmonyCount",
+                    "read": "harmonyCount",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 20,
+                    "lineNumber": 224,
+                    "name": "hasLyrics",
+                    "read": "hasLyrics",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 21,
+                    "lineNumber": 231,
+                    "name": "lyricCount",
+                    "read": "lyricCount",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 22,
+                    "lineNumber": 239,
+                    "name": "lyrics",
+                    "read": "lyrics",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QQmlListProperty<apiv1::Lyrics>",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 23,
+                    "lineNumber": 246,
+                    "name": "nmeasures",
+                    "read": "nmeasures",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 24,
+                    "lineNumber": 253,
+                    "name": "firstMeasure",
+                    "read": "firstMeasure",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "apiv1::Measure*",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 25,
+                    "lineNumber": 261,
+                    "name": "firstMeasureMM",
+                    "read": "firstMeasureMM",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "apiv1::Measure*",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 26,
+                    "lineNumber": 268,
+                    "name": "lastMeasure",
+                    "read": "lastMeasure",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "apiv1::Measure*",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 27,
+                    "lineNumber": 276,
+                    "name": "lastMeasureMM",
+                    "read": "lastMeasureMM",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "apiv1::Measure*",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 28,
+                    "lineNumber": 283,
+                    "name": "lastSegment",
+                    "read": "lastSegment",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "apiv1::Segment*",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 29,
+                    "lineNumber": 290,
+                    "name": "layoutMode",
+                    "read": "layoutMode",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false,
+                    "write": "setLayoutMode"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 30,
+                    "lineNumber": 297,
+                    "name": "showVerticalFrames",
+                    "read": "isShowVBox",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false,
+                    "write": "setShowVBox"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 31,
+                    "lineNumber": 304,
+                    "name": "showInvisible",
+                    "read": "isShowInvisible",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false,
+                    "write": "setShowInvisible"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 32,
+                    "lineNumber": 311,
+                    "name": "showUnprintable",
+                    "read": "showUnprintable",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false,
+                    "write": "setShowUnprintable"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 33,
+                    "lineNumber": 318,
+                    "name": "showFrames",
+                    "read": "showFrames",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false,
+                    "write": "setShowFrames"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 34,
+                    "lineNumber": 325,
+                    "name": "showPageborders",
+                    "read": "showPageborders",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false,
+                    "write": "setShowPageborders"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 35,
+                    "lineNumber": 332,
+                    "name": "showSoundFlags",
+                    "read": "showSoundFlags",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false,
+                    "write": "setShowSoundFlags"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 36,
+                    "lineNumber": 339,
+                    "name": "markIrregularMeasures",
+                    "read": "showSoundFlags",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false,
+                    "write": "setMarkIrregularMeasures"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 37,
+                    "lineNumber": 346,
+                    "name": "showInstrumentNames",
+                    "read": "showInstrumentNames",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false,
+                    "write": "setShowInstrumentNames"
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 38,
+                    "lineNumber": 353,
+                    "name": "selection",
+                    "read": "selection",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "apiv1::Selection*",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 39,
+                    "lineNumber": 360,
+                    "name": "excerpts",
+                    "read": "excerpts",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QQmlListProperty<apiv1::Excerpt>",
+                    "user": false
+                }
+            ],
+            "qualifiedClassName": "mu::engraving::apiv1::Score",
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "apiv1::ScoreElement"
+                },
+                {
+                    "access": "public",
+                    "name": "muse::Contextable"
+                }
+            ]
+        }
+    ],
+    "inputFile": "score.h",
+    "outputRevision": 69
+}

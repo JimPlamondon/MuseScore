@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<museScore version="4.70">
+  <Score>
+    <eid>B_B</eid>
+    <Division>480</Division>
+    <Style>
+      <hideInstrumentNameIfOneInstrument>0</hideInstrumentNameIfOneInstrument>
+      <musicalSymbolFont>JiMSMusic</musicalSymbolFont>
+      <spatium>1.75</spatium>
+      </Style>
+    <showInvisible>1</showInvisible>
+    <showUnprintable>1</showUnprintable>
+    <showFrames>1</showFrames>
+    <showMargins>0</showMargins>
+    <metaTag name="arranger"></metaTag>
+    <metaTag name="composer"></metaTag>
+    <metaTag name="copyright"></metaTag>
+    <metaTag name="lyricist"></metaTag>
+    <metaTag name="movementNumber"></metaTag>
+    <metaTag name="movementTitle"></metaTag>
+    <metaTag name="source"></metaTag>
+    <metaTag name="translator"></metaTag>
+    <metaTag name="workNumber"></metaTag>
+    <metaTag name="workTitle">JiMS chord names on a JiMStaff beside conventional harmony</metaTag>
+    <Part id="1">
+      <Staff>
+        <eid>C_C</eid>
+        <StaffType group="pitched">
+          <name>jims12tet</name>
+          <lines>13</lines>
+          <clef>0</clef>
+          <jims>1</jims>
+          <jimsStateJson>{&quot;scale&quot;:[&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;M2&quot;,&quot;m2&quot;,&quot;M2&quot;],&quot;collection_rotation&quot;:0,&quot;mode_rotation&quot;:0,&quot;generator_cents&quot;:700.0,&quot;period_cents&quot;:1200.0,&quot;embedding&quot;:{&quot;large_steps&quot;:5,&quot;small_steps&quot;:2},&quot;extent&quot;:{&quot;lower&quot;:{&quot;nPer&quot;:1,&quot;nGen&quot;:-2},&quot;upper&quot;:{&quot;nPer&quot;:2,&quot;nGen&quot;:-2}},&quot;tonic_ambit&quot;:&quot;tonic-bounded&quot;,&quot;reference&quot;:{&quot;reference-pitch&quot;:{&quot;key_number&quot;:62}}}</jimsStateJson>
+          <jimsJiLines>1</jimsJiLines>
+          <keysig>0</keysig>
+          <ledgerlines>0</ledgerlines>
+          </StaffType>
+        </Staff>
+      <trackName>JiMS chord names (JiMStaff)</trackName>
+      <Instrument id="grand-piano">
+        <longName>JiMS chord names (JiMStaff)</longName>
+        <trackName></trackName>
+        <instrumentId>keyboard.piano.grand</instrumentId>
+        <Articulation>
+          <velocity>100</velocity>
+          <gateTime>100</gateTime>
+          </Articulation>
+        <Articulation name="staccatissimo">
+          <velocity>100</velocity>
+          <gateTime>33</gateTime>
+          </Articulation>
+        <Articulation name="staccato">
+          <velocity>100</velocity>
+          <gateTime>50</gateTime>
+          </Articulation>
+        <Articulation name="portato">
+          <velocity>100</velocity>
+          <gateTime>67</gateTime>
+          </Articulation>
+        <Articulation name="tenuto">
+          <velocity>100</velocity>
+          <gateTime>100</gateTime>
+          </Articulation>
+        <Articulation name="marcato">
+          <velocity>120</velocity>
+          <gateTime>67</gateTime>
+          </Articulation>
+        <Articulation name="sforzato">
+          <velocity>150</velocity>
+          <gateTime>100</gateTime>
+          </Articulation>
+        <Articulation name="sforzatoStaccato">
+          <velocity>150</velocity>
+          <gateTime>50</gateTime>
+          </Articulation>
+        <Articulation name="marcatoStaccato">
+          <velocity>120</velocity>
+          <gateTime>50</gateTime>
+          </Articulation>
+        <Articulation name="marcatoTenuto">
+          <velocity>120</velocity>
+          <gateTime>100</gateTime>
+          </Articulation>
+        <Channel>
+          <program value="0"/>
+          <controller ctrl="10" value="63"/>
+          </Channel>
+        </Instrument>
+      </Part>
+    <Part id="2">
+      <Staff>
+        <eid>D_D</eid>
+        <StaffType group="pitched">
+          <name>stdNormal</name>
+          </StaffType>
+        </Staff>
+      <trackName>Conventional chords (stock staff)</trackName>
+      <Instrument id="grand-piano">
+        <longName>Conventional chords (stock staff)</longName>
+        <trackName></trackName>
+        <instrumentId>keyboard.piano.grand</instrumentId>
+        <Articulation>
+          <velocity>100</velocity>
+          <gateTime>100</gateTime>
+          </Articulation>
+        <Articulation name="staccatissimo">
+          <velocity>100</velocity>
+          <gateTime>33</gateTime>
+          </Articulation>
+        <Articulation name="staccato">
+          <velocity>100</velocity>
+          <gateTime>50</gateTime>
+          </Articulation>
+        <Articulation name="portato">
+          <velocity>100</velocity>
+          <gateTime>67</gateTime>
+          </Articulation>
+        <Articulation name="tenuto">
+          <velocity>100</velocity>
+          <gateTime>100</gateTime>
+          </Articulation>
+        <Articulation name="marcato">
+          <velocity>120</velocity>
+          <gateTime>67</gateTime>
+          </Articulation>
+        <Articulation name="sforzato">
+          <velocity>150</velocity>
+          <gateTime>100</gateTime>
+          </Articulation>
+        <Articulation name="sforzatoStaccato">
+          <velocity>150</velocity>
+          <gateTime>50</gateTime>
+          </Articulation>
+        <Articulation name="marcatoStaccato">
+          <velocity>120</velocity>
+          <gateTime>50</gateTime>
+          </Articulation>
+        <Articulation name="marcatoTenuto">
+          <velocity>120</velocity>
+          <gateTime>100</gateTime>
+          </Articulation>
+        <Channel>
+          <program value="0"/>
+          <controller ctrl="10" value="63"/>
+          </Channel>
+        </Instrument>
+      </Part>
+    <Staff id="1">
+      <VBox>
+        <height>10</height>
+        <eid>E_E</eid>
+        <Text>
+          <eid>F_F</eid>
+          <style>title</style>
+          <text>JiMS chord names on a JiMStaff beside conventional harmony</text>
+          </Text>
+        </VBox>
+      <!-- Measure 1 -->
+      <Measure>
+        <eid>G_G</eid>
+        <LayoutBreak>
+          <eid>H_H</eid>
+          <subtype>line</subtype>
+          </LayoutBreak>
+        <voice>
+          <TimeSig>
+            <eid>I_I</eid>
+            <sigN>4</sigN>
+            <sigD>4</sigD>
+            </TimeSig>
+          <Harmony>
+            <harmonyType>3</harmonyType>
+            <harmonyInfo>
+              <name>!So7/3</name>
+              </harmonyInfo>
+            <eid>J_J</eid>
+            </Harmony>
+          <Chord>
+            <eid>K_K</eid>
+            <durationType>whole</durationType>
+            <Note>
+              <eid>L_L</eid>
+              <pitch>60</pitch>
+              <tpc>14</tpc>
+              <jimsNPer>1</jimsNPer>
+              <jimsNGen>-2</jimsNGen>
+              </Note>
+            </Chord>
+          </voice>
+        </Measure>
+      <!-- Measure 2 -->
+      <Measure>
+        <eid>M_M</eid>
+        <voice>
+          <Harmony>
+            <harmonyType>3</harmonyType>
+            <harmonyInfo>
+              <name>Re:So7</name>
+              </harmonyInfo>
+            <eid>N_N</eid>
+            </Harmony>
+          <Chord>
+            <eid>O_O</eid>
+            <durationType>whole</durationType>
+            <Note>
+              <eid>P_P</eid>
+              <pitch>72</pitch>
+              <tpc>14</tpc>
+              <jimsNPer>2</jimsNPer>
+              <jimsNGen>-2</jimsNGen>
+              </Note>
+            </Chord>
+          <BarLine>
+            <eid>Q_Q</eid>
+            </BarLine>
+          </voice>
+        </Measure>
+      </Staff>
+    <Staff id="2">
+      <!-- Measure 1 -->
+      <Measure>
+        <voice>
+          <Clef>
+            <concertClefType>G</concertClefType>
+            <transposingClefType>G</transposingClefType>
+            <isHeader>1</isHeader>
+            <eid>R_R</eid>
+            </Clef>
+          <TimeSig>
+            <eid>S_S</eid>
+            <sigN>4</sigN>
+            <sigD>4</sigD>
+            </TimeSig>
+          <Harmony>
+            <harmonyInfo>
+              <root>14</root>
+              </harmonyInfo>
+            <eid>T_T</eid>
+            </Harmony>
+          <Chord>
+            <eid>U_U</eid>
+            <durationType>whole</durationType>
+            <Note>
+              <eid>V_V</eid>
+              <pitch>60</pitch>
+              <tpc>14</tpc>
+              </Note>
+            </Chord>
+          </voice>
+        </Measure>
+      <!-- Measure 2 -->
+      <Measure>
+        <voice>
+          <Harmony>
+            <harmonyInfo>
+              <root>15</root>
+              </harmonyInfo>
+            <eid>W_W</eid>
+            </Harmony>
+          <Chord>
+            <eid>X_X</eid>
+            <durationType>whole</durationType>
+            <Note>
+              <eid>Y_Y</eid>
+              <pitch>67</pitch>
+              <tpc>15</tpc>
+              </Note>
+            </Chord>
+          <BarLine>
+            <eid>Z_Z</eid>
+            </BarLine>
+          </voice>
+        </Measure>
+      </Staff>
+    </Score>
+  </museScore>

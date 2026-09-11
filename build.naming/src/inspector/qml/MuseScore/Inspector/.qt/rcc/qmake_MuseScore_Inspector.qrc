@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/qt/qml/MuseScore/Inspector">
+    <file alias="qmldir">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/inspector/qml/MuseScore/Inspector/qmldir</file>
+  </qresource>
+</RCC>
+

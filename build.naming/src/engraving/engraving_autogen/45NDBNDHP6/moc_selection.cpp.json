@@ -1,0 +1,182 @@
+{
+    "classes": [
+        {
+            "className": "Selection",
+            "lineNumber": 37,
+            "methods": [
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "e",
+                            "type": "apiv1::EngravingItem*"
+                        },
+                        {
+                            "name": "add",
+                            "type": "bool"
+                        }
+                    ],
+                    "index": 0,
+                    "lineNumber": 92,
+                    "name": "select",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "e",
+                            "type": "apiv1::EngravingItem*"
+                        }
+                    ],
+                    "index": 1,
+                    "isCloned": true,
+                    "lineNumber": 92,
+                    "name": "select",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "startTick",
+                            "type": "int"
+                        },
+                        {
+                            "name": "endTick",
+                            "type": "int"
+                        },
+                        {
+                            "name": "startStaff",
+                            "type": "int"
+                        },
+                        {
+                            "name": "endStaff",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 2,
+                    "lineNumber": 93,
+                    "name": "selectRange",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "e",
+                            "type": "apiv1::EngravingItem*"
+                        }
+                    ],
+                    "index": 3,
+                    "lineNumber": 94,
+                    "name": "deselect",
+                    "returnType": "bool"
+                },
+                {
+                    "access": "public",
+                    "index": 4,
+                    "lineNumber": 95,
+                    "name": "clear",
+                    "returnType": "bool"
+                }
+            ],
+            "object": true,
+            "properties": [
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 0,
+                    "lineNumber": 42,
+                    "name": "elements",
+                    "read": "elements",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "QQmlListProperty<apiv1::EngravingItem>",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 1,
+                    "lineNumber": 47,
+                    "name": "isRange",
+                    "read": "isRange",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "bool",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 2,
+                    "lineNumber": 52,
+                    "name": "startSegment",
+                    "read": "startSegment",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "apiv1::Segment*",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 3,
+                    "lineNumber": 57,
+                    "name": "endSegment",
+                    "read": "endSegment",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "apiv1::Segment*",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 4,
+                    "lineNumber": 62,
+                    "name": "startStaff",
+                    "read": "startStaff",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                },
+                {
+                    "constant": false,
+                    "designable": true,
+                    "final": false,
+                    "index": 5,
+                    "lineNumber": 67,
+                    "name": "endStaff",
+                    "read": "endStaff",
+                    "required": false,
+                    "scriptable": true,
+                    "stored": true,
+                    "type": "int",
+                    "user": false
+                }
+            ],
+            "qualifiedClassName": "mu::engraving::apiv1::Selection",
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "QObject"
+                }
+            ]
+        }
+    ],
+    "inputFile": "selection.h",
+    "outputRevision": 69
+}

@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/qt/qml/MuseScore/MuseSounds/">
+    <file alias="resources/muse_sounds_promo.png">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/musesounds/qml/MuseScore/MuseSounds/resources/muse_sounds_promo.png</file>
+  </qresource>
+</RCC>
+

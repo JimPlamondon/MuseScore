@@ -1,0 +1,18 @@
+{
+    "classes": [
+        {
+            "className": "QmlIoCContext",
+            "lineNumber": 81,
+            "object": true,
+            "qualifiedClassName": "muse::QmlIoCContext",
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "QObject"
+                }
+            ]
+        }
+    ],
+    "inputFile": "ioc.h",
+    "outputRevision": 69
+}

@@ -1,0 +1,13 @@
+module Muse.Workspace
+linktarget muse_workspace_qmlplugin
+optional plugin muse_workspace_qmlplugin
+classname Muse_WorkspacePlugin
+typeinfo muse_workspace_qml.qmltypes
+import Muse.Ui
+import Muse.UiComponents
+prefer :/qt/qml/Muse/Workspace/
+NewWorkspaceDialog 1.0 NewWorkspaceDialog.qml
+WorkspacesDialog 1.0 WorkspacesDialog.qml
+WorkspacesTopPanel 1.0 internal/WorkspacesTopPanel.qml
+WorkspacesView 1.0 internal/WorkspacesView.qml
+

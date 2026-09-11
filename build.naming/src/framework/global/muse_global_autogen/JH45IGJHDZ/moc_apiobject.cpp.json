@@ -1,0 +1,22 @@
+{
+    "classes": [
+        {
+            "className": "ApiObject",
+            "lineNumber": 35,
+            "object": true,
+            "qualifiedClassName": "muse::api::ApiObject",
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "QObject"
+                },
+                {
+                    "access": "public",
+                    "name": "Contextable"
+                }
+            ]
+        }
+    ],
+    "inputFile": "apiobject.h",
+    "outputRevision": 69
+}

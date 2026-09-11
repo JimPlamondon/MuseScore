@@ -1,0 +1,412 @@
+{
+	"BUILD_DIR" : "/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/palette/palette_autogen",
+	"CMAKE_BINARY_DIR" : "/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming",
+	"CMAKE_CURRENT_BINARY_DIR" : "/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/palette",
+	"CMAKE_CURRENT_SOURCE_DIR" : "/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette",
+	"CMAKE_EXECUTABLE" : "/opt/homebrew/bin/cmake",
+	"CMAKE_LIST_FILES" : 
+	[
+		"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/CMakeLists.txt"
+	],
+	"CMAKE_SOURCE_DIR" : "/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue",
+	"CROSS_CONFIG" : false,
+	"DEP_FILE" : "/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/palette/palette_autogen/deps",
+	"DEP_FILE_RULE_NAME" : "palette_autogen/timestamp",
+	"HEADERS" : 
+	[
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/ipaletteprovider.h",
+			"MU",
+			"EGDWYGFDBT/moc_ipaletteprovider.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/mimedatautils.h",
+			"MU",
+			"EGDWYGFDBT/moc_mimedatautils.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/palette.h",
+			"MU",
+			"EGDWYGFDBT/moc_palette.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/paletteactionscontroller.h",
+			"MU",
+			"EGDWYGFDBT/moc_paletteactionscontroller.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/palettecell.h",
+			"MU",
+			"EGDWYGFDBT/moc_palettecell.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/palettecelliconengine.h",
+			"MU",
+			"EGDWYGFDBT/moc_palettecelliconengine.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/palettecompat.h",
+			"MU",
+			"EGDWYGFDBT/moc_palettecompat.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/paletteconfiguration.h",
+			"MU",
+			"EGDWYGFDBT/moc_paletteconfiguration.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/palettecreator.h",
+			"MU",
+			"EGDWYGFDBT/moc_palettecreator.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/palettemodel.h",
+			"MU",
+			"EGDWYGFDBT/moc_palettemodel.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/paletteprovider.h",
+			"MU",
+			"EGDWYGFDBT/moc_paletteprovider.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/palettetree.h",
+			"MU",
+			"EGDWYGFDBT/moc_palettetree.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/paletteuiactions.h",
+			"MU",
+			"EGDWYGFDBT/moc_paletteuiactions.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/paletteworkspacesetup.h",
+			"MU",
+			"EGDWYGFDBT/moc_paletteworkspacesetup.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/ipaletteconfiguration.h",
+			"MU",
+			"EWIEGA46WW/moc_ipaletteconfiguration.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/palettemodule.h",
+			"MU",
+			"EWIEGA46WW/moc_palettemodule.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/palettetypes.h",
+			"MU",
+			"EWIEGA46WW/moc_palettetypes.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/customizekitdialog.h",
+			"MU",
+			"IMAN36LHMA/moc_customizekitdialog.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/drumsetpalette.h",
+			"MU",
+			"IMAN36LHMA/moc_drumsetpalette.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/keycanvas.h",
+			"MU",
+			"IMAN36LHMA/moc_keycanvas.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/keyedit.h",
+			"MU",
+			"IMAN36LHMA/moc_keyedit.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/masterpalette.h",
+			"MU",
+			"IMAN36LHMA/moc_masterpalette.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/noteGroups.h",
+			"MU",
+			"IMAN36LHMA/moc_noteGroups.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/notegroupsexampleview.h",
+			"MU",
+			"IMAN36LHMA/moc_notegroupsexampleview.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/palettewidget.h",
+			"MU",
+			"IMAN36LHMA/moc_palettewidget.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/specialcharactersdialog.h",
+			"MU",
+			"IMAN36LHMA/moc_specialcharactersdialog.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/symboldialog.h",
+			"MU",
+			"IMAN36LHMA/moc_symboldialog.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/timedialog.h",
+			"MU",
+			"IMAN36LHMA/moc_timedialog.cpp",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/timesignaturepropertiesdialog.h",
+			"MU",
+			"IMAN36LHMA/moc_timesignaturepropertiesdialog.cpp",
+			null
+		]
+	],
+	"HEADER_EXTENSIONS" : [ "h", "hh", "h++", "hm", "hpp", "hxx", "in", "txx" ],
+	"INCLUDE_DIR" : "/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/palette/palette_autogen/include",
+	"MOC_COMPILATION_FILE" : "/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/palette/palette_autogen/mocs_compilation.cpp",
+	"MOC_DEFINITIONS" : 
+	[
+		"KORS_LOGGER_QT_SUPPORT",
+		"KORS_PROFILER_ENABLED",
+		"NDEBUG",
+		"QT_CORE_LIB",
+		"QT_GUI_LIB",
+		"QT_NETWORK_LIB",
+		"QT_NO_DEBUG",
+		"QT_OPENGL_LIB",
+		"QT_QMLINTEGRATION_LIB",
+		"QT_QML_LIB",
+		"QT_QUICK_LIB",
+		"QT_WIDGETS_LIB"
+	],
+	"MOC_DEPEND_FILTERS" : 
+	[
+		[
+			"Q_PLUGIN_METADATA",
+			"[\n][ \t]*Q_PLUGIN_METADATA[ \t]*\\([^\\)]*FILE[ \t]*\"([^\"]+)\""
+		]
+	],
+	"MOC_INCLUDES" : 
+	[
+		"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/palette",
+		"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette",
+		"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming",
+		"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src",
+		"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue",
+		"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/framework",
+		"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/framework/global",
+		"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/framework/testing/thirdparty/googletest/googletest/include",
+		"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework",
+		"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/global",
+		"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/framework/testing/thirdparty/googletest/googletest/include",
+		"/Users/jim/Qt/6.10.2/macos/lib/QtCore.framework/Headers",
+		"/Users/jim/Qt/6.10.2/macos/lib/QtCore.framework",
+		"/Users/jim/Qt/6.10.2/macos/mkspecs/macx-clang",
+		"/Users/jim/Qt/6.10.2/macos/include",
+		"/Users/jim/Qt/6.10.2/macos/lib/QtGui.framework/Headers",
+		"/Users/jim/Qt/6.10.2/macos/lib/QtGui.framework",
+		"/Users/jim/Qt/6.10.2/macos/lib/QtQuick.framework/Headers",
+		"/Users/jim/Qt/6.10.2/macos/lib/QtQuick.framework",
+		"/Users/jim/Qt/6.10.2/macos/lib/QtQml.framework/Headers",
+		"/Users/jim/Qt/6.10.2/macos/lib/QtQml.framework",
+		"/Users/jim/Qt/6.10.2/macos/include/QtQmlIntegration",
+		"/Users/jim/Qt/6.10.2/macos/lib/QtNetwork.framework/Headers",
+		"/Users/jim/Qt/6.10.2/macos/lib/QtNetwork.framework",
+		"/Users/jim/Qt/6.10.2/macos/lib/QtOpenGL.framework/Headers",
+		"/Users/jim/Qt/6.10.2/macos/lib/QtOpenGL.framework",
+		"/Users/jim/Qt/6.10.2/macos/lib/QtWidgets.framework/Headers",
+		"/Users/jim/Qt/6.10.2/macos/lib/QtWidgets.framework",
+		"/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1",
+		"/Library/Developer/CommandLineTools/usr/lib/clang/21/include",
+		"/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include",
+		"/Library/Developer/CommandLineTools/usr/include"
+	],
+	"MOC_MACRO_NAMES" : 
+	[
+		"Q_OBJECT",
+		"Q_GADGET",
+		"Q_NAMESPACE",
+		"Q_NAMESPACE_EXPORT",
+		"Q_GADGET_EXPORT",
+		"Q_ENUM_NS"
+	],
+	"MOC_OPTIONS" : [ "--output-json" ],
+	"MOC_PATH_PREFIX" : false,
+	"MOC_PREDEFS_CMD" : 
+	[
+		"/usr/bin/c++",
+		"-std=gnu++17",
+		"-w",
+		"-dM",
+		"-E",
+		"/opt/homebrew/share/cmake/Modules/CMakeCXXCompilerABI.cpp"
+	],
+	"MOC_PREDEFS_FILE" : "/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/palette/palette_autogen/moc_predefs.h",
+	"MOC_RELAXED_MODE" : false,
+	"MOC_SKIP" : [],
+	"MULTI_CONFIG" : false,
+	"PARALLEL" : 10,
+	"PARSE_CACHE_FILE" : "/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/palette/CMakeFiles/palette_autogen.dir/ParseCache.txt",
+	"QT_MOC_EXECUTABLE" : "/Users/jim/Qt/6.10.2/macos/libexec/moc",
+	"QT_UIC_EXECUTABLE" : "/Users/jim/Qt/6.10.2/macos/libexec/uic",
+	"QT_VERSION_MAJOR" : 6,
+	"QT_VERSION_MINOR" : 10,
+	"SETTINGS_FILE" : "/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/palette/CMakeFiles/palette_autogen.dir/AutogenUsed.txt",
+	"SOURCES" : 
+	[
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/palette.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/paletteactionscontroller.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/palettecell.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/palettecelliconengine.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/palettecompat.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/paletteconfiguration.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/palettecreator.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/palettemodel.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/paletteprovider.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/palettetree.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/paletteuiactions.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/internal/paletteworkspacesetup.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/palettemodule.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/customizekitdialog.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/drumsetpalette.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/keyedit.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/masterpalette.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/noteGroups.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/notegroupsexampleview.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/palettewidget.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/specialcharactersdialog.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/symboldialog.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/timedialog.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/palette/widgets/timesignaturepropertiesdialog.cpp",
+			"MU",
+			null
+		]
+	],
+	"UIC_OPTIONS" : [],
+	"UIC_SEARCH_PATHS" : [],
+	"UIC_SKIP" : [],
+	"UIC_UI_FILES" : [],
+	"USE_BETTER_GRAPH" : true,
+	"VERBOSITY" : 0
+}

@@ -1,0 +1,24 @@
+module MuseScore.Palette
+linktarget palette_qmlplugin
+optional plugin palette_qmlplugin
+classname MuseScore_PalettePlugin
+typeinfo palette_qml.qmltypes
+import Muse.Ui
+import Muse.UiComponents
+prefer :/qt/qml/MuseScore/Palette/
+DrumsetPanel 1.0 DrumsetPanel.qml
+AddPalettesPopup 1.0 internal/AddPalettesPopup.qml
+CreateCustomPalettePopup 1.0 internal/CreateCustomPalettePopup.qml
+MoreElementsPopup 1.0 internal/MoreElementsPopup.qml
+PaletteGridLinesCanvas 1.0 internal/PaletteGridLinesCanvas.qml
+PaletteGridView 1.0 internal/PaletteGridView.qml
+PalettePropertyItem 1.0 internal/PalettePropertyItem.qml
+PalettesPanelHeader 1.0 internal/PalettesPanelHeader.qml
+PaletteTree 1.0 internal/PaletteTree.qml
+PlaceholderManager 1.0 internal/PlaceholderManager.qml
+TreePaletteHeader 1.0 internal/TreePaletteHeader.qml
+PaletteUtils 1.0 internal/PaletteUtils.mjs
+PaletteCellPropertiesDialog 1.0 PaletteCellPropertiesDialog.qml
+PalettePropertiesDialog 1.0 PalettePropertiesDialog.qml
+PalettesPanel 1.0 PalettesPanel.qml
+

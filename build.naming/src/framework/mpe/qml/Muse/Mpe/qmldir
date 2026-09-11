@@ -1,0 +1,17 @@
+module Muse.Mpe
+linktarget muse_mpe_qmlplugin
+optional plugin muse_mpe_qmlplugin
+classname Muse_MpePlugin
+typeinfo muse_mpe_qml.qmltypes
+import Muse.Ui
+import Muse.UiComponents
+prefer :/qt/qml/Muse/Mpe/
+ArrangementPatternControl 1.0 ArrangementPatternControl.qml
+ArticulationPatternControlsTab 1.0 ArticulationPatternControlsTab.qml
+ArticulationPatternPlot 1.0 ArticulationPatternPlot.qml
+ArticulationPatternSegmentsList 1.0 ArticulationPatternSegmentsList.qml
+ArticulationPatternsList 1.0 ArticulationPatternsList.qml
+ArticulationPatternsTab 1.0 ArticulationPatternsTab.qml
+ExpressionPatternControl 1.0 ExpressionPatternControl.qml
+PitchPatternControl 1.0 PitchPatternControl.qml
+

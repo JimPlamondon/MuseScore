@@ -1,0 +1,38 @@
+<RCC>
+  <qresource prefix="/qt/qml/MuseScore/AppShell/">
+    <file alias="AboutDialog.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/AboutDialog.qml</file>
+    <file alias="AboutMusicXMLDialog.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/AboutMusicXMLDialog.qml</file>
+    <file alias="AppWindow.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/AppWindow.qml</file>
+    <file alias="DevTools/CorruptScore/CorruptScoreDevTools.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/DevTools/CorruptScore/CorruptScoreDevTools.qml</file>
+    <file alias="DevTools/CrashHandler/CrashHandlerDevTools.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/DevTools/CrashHandler/CrashHandlerDevTools.qml</file>
+    <file alias="DevTools/DevToolsMenu.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/DevTools/DevToolsMenu.qml</file>
+    <file alias="DevTools/DevToolsPage.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/DevTools/DevToolsPage.qml</file>
+    <file alias="DevTools/Extensions/ExtensionsListView.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/DevTools/Extensions/ExtensionsListView.qml</file>
+    <file alias="DevTools/Gallery/GeneralComponentsGallery.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/DevTools/Gallery/GeneralComponentsGallery.qml</file>
+    <file alias="DevTools/Interactive/InteractiveTests.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/DevTools/Interactive/InteractiveTests.qml</file>
+    <file alias="DevTools/KeyNav/KeyNavExample.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/DevTools/KeyNav/KeyNavExample.qml</file>
+    <file alias="DevTools/KeyNav/KeyNavSection.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/DevTools/KeyNav/KeyNavSection.qml</file>
+    <file alias="DevTools/KeyNav/KeyNavSubSection.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/DevTools/KeyNav/KeyNavSubSection.qml</file>
+    <file alias="DevTools/MPE/ArticulationsProfileEditorView.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/DevTools/MPE/ArticulationsProfileEditorView.qml</file>
+    <file alias="DevTools/Settings/SettingsPage.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/DevTools/Settings/SettingsPage.qml</file>
+    <file alias="FirstLaunchSetup/FirstLaunchSetupDialog.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/FirstLaunchSetup/FirstLaunchSetupDialog.qml</file>
+    <file alias="FirstLaunchSetup/Page.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/FirstLaunchSetup/Page.qml</file>
+    <file alias="FirstLaunchSetup/PlaybackPage.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/FirstLaunchSetup/PlaybackPage.qml</file>
+    <file alias="FirstLaunchSetup/ThemesPage.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/FirstLaunchSetup/ThemesPage.qml</file>
+    <file alias="FirstLaunchSetup/TutorialsPage.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/FirstLaunchSetup/TutorialsPage.qml</file>
+    <file alias="HomePage/HomeMenu.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/HomePage/HomeMenu.qml</file>
+    <file alias="HomePage/HomePage.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/HomePage/HomePage.qml</file>
+    <file alias="HomePage/PluginsPage.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/HomePage/PluginsPage.qml</file>
+    <file alias="MainToolBar.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/MainToolBar.qml</file>
+    <file alias="NotationPage/NotationPage.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/NotationPage/NotationPage.qml</file>
+    <file alias="NotationPage/NotationStatusBar.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/NotationPage/NotationStatusBar.qml</file>
+    <file alias="platform/AppButtonBackground.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/platform/AppButtonBackground.qml</file>
+    <file alias="platform/AppMenuBar.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/platform/AppMenuBar.qml</file>
+    <file alias="platform/PlatformMenuBar.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/platform/PlatformMenuBar.qml</file>
+    <file alias="PublishPage/PublishPage.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/PublishPage/PublishPage.qml</file>
+    <file alias="PublishPage/PublishToolBar.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/PublishPage/PublishToolBar.qml</file>
+    <file alias="WelcomeDialog.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/WelcomeDialog.qml</file>
+    <file alias="WindowContent.qml">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/src/appshell/qml/MuseScore/AppShell/WindowContent.qml</file>
+  </qresource>
+</RCC>
+

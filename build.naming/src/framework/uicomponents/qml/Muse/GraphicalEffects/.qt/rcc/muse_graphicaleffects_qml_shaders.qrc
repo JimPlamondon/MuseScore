@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/qt/qml/Muse/GraphicalEffects">
+    <file alias="shaders/roundcorners.frag.qsb">/Users/jim/Developer/MeloPresto/Temp/melopresto-score-claude-naming-residue/build.naming/src/framework/uicomponents/qml/Muse/GraphicalEffects/.qsb/shaders/roundcorners.frag.qsb</file>
+  </qresource>
+</RCC>
+

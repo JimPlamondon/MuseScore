@@ -1,0 +1,187 @@
+{
+    "classes": [
+        {
+            "className": "FileSystemApi",
+            "lineNumber": 34,
+            "methods": [
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "path",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 0,
+                    "isConst": true,
+                    "lineNumber": 44,
+                    "name": "fileName",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "path",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 1,
+                    "isConst": true,
+                    "lineNumber": 45,
+                    "name": "baseName",
+                    "returnType": "QString"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "path",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 2,
+                    "lineNumber": 48,
+                    "name": "remove",
+                    "returnType": "QVariantMap"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "path",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 3,
+                    "lineNumber": 49,
+                    "name": "clear",
+                    "returnType": "QVariantMap"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "src",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "dst",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "replace",
+                            "type": "bool"
+                        }
+                    ],
+                    "index": 4,
+                    "lineNumber": 50,
+                    "name": "copy",
+                    "returnType": "QVariantMap"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "src",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "dst",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 5,
+                    "isCloned": true,
+                    "lineNumber": 50,
+                    "name": "copy",
+                    "returnType": "QVariantMap"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "rootDir",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "filters",
+                            "type": "QStringList"
+                        },
+                        {
+                            "name": "mode",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 6,
+                    "isConst": true,
+                    "lineNumber": 59,
+                    "name": "scanFiles",
+                    "returnType": "QVariantMap"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "rootDir",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "filters",
+                            "type": "QStringList"
+                        }
+                    ],
+                    "index": 7,
+                    "isCloned": true,
+                    "isConst": true,
+                    "lineNumber": 59,
+                    "name": "scanFiles",
+                    "returnType": "QVariantMap"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "filePath",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "str",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 8,
+                    "isConst": true,
+                    "lineNumber": 63,
+                    "name": "writeTextFile",
+                    "returnType": "QVariantMap"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "filePath",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 9,
+                    "isConst": true,
+                    "lineNumber": 64,
+                    "name": "readTextFile",
+                    "returnType": "QVariantMap"
+                }
+            ],
+            "object": true,
+            "qualifiedClassName": "muse::api::FileSystemApi",
+            "superClasses": [
+                {
+                    "access": "public",
+                    "fullyQualifiedName": "muse::api::ApiObject",
+                    "name": "ApiObject"
+                }
+            ]
+        }
+    ],
+    "inputFile": "filesystemapi.h",
+    "outputRevision": 69
+}
