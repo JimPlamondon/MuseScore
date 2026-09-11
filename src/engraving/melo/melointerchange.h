@@ -22,10 +22,10 @@
 
 #pragma once
 
-// JiMS MusicXML extension (urn:jims:musicxml:3) interchange carriers that the
+// MeloPresto MusicXML extension (urn:melopresto:musicxml:3) interchange carriers that the
 // fork TRANSPORTS but does not interpret (owner decision 2026-08-19, item 5 of
-// the Add-JiMS-to-MuseScore follow-ups): jims:provenance (document
-// identification) and jims:tuning-trajectory (a printed continuous-tuning
+// the Add-JiMS-to-MuseScore follow-ups): melo:provenance (document
+// identification) and melo:tuning-trajectory (a printed continuous-tuning
 // instruction inside a MusicXML direction). Both are read on import, saved
 // in the score file, and written back on export exactly as carried — the
 // fork computes no musical fact from them (no rendering, no playback; a
@@ -83,7 +83,7 @@ inline bool melodyPartFromToken(const muse::String& token, MelodyPart& part)
     return false;
 }
 
-/// One `jims:resource` of `jims:provenance`.
+/// One `melo:resource` of `melo:provenance`.
 struct ProvenanceResource {
     muse::String role;        // source | master | arrangement
     muse::String uri;
@@ -97,7 +97,7 @@ struct ProvenanceResource {
     }
 };
 
-/// `jims:provenance` (in `identification`, before `miscellaneous`).
+/// `melo:provenance` (in `identification`, before `miscellaneous`).
 struct Provenance {
     bool strictFallback = false;               // fallback-profile="strict"
     std::vector<ProvenanceResource> resources;
@@ -107,7 +107,7 @@ struct Provenance {
     bool operator!=(const Provenance& o) const { return !(*this == o); }
 };
 
-/// One `jims:control` of a cubic-bezier segment. Numeric values are carried
+/// One `melo:control` of a cubic-bezier segment. Numeric values are carried
 /// as the exact text read (the fork never computes with them, and a
 /// re-formatted double would not be verbatim transport).
 struct TrajectoryControl {
@@ -117,7 +117,7 @@ struct TrajectoryControl {
     bool operator==(const TrajectoryControl& o) const { return time == o.time && valueCents == o.valueCents; }
 };
 
-/// One `jims:segment` of a tuning trajectory.
+/// One `melo:segment` of a tuning trajectory.
 struct TrajectorySegment {
     Fraction duration;                       // duration-divisions, as score time (rescaled to the export's divisions)
     muse::String startCents;                 // as written
@@ -132,7 +132,7 @@ struct TrajectorySegment {
     }
 };
 
-/// `jims:tuning-trajectory`: the direction it rode in gives its score time
+/// `melo:tuning-trajectory`: the direction it rode in gives its score time
 /// (measure position + offset), staff, and placement.
 struct TuningTrajectory {
     Fraction tick;                           // absolute score tick of the trajectory start

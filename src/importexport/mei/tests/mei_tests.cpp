@@ -150,7 +150,7 @@ TEST_F(Mei_Tests, timedConventionalInstrumentControlsWrittenOctave)
     EXPECT_EQ(actual, expected);
 }
 
-// MeloPresto MEI (mei-jims profile) focused round trip: typed state import,
+// MeloPresto MEI (MeloPresto MEI profile) focused round trip: typed state import,
 // native carriers, and extMeta regeneration on export.
 TEST_F(Mei_Tests, mei_melo_roundtrip_01) {
     auto importFunc = [](MasterScore* score, const muse::io::path_t& path) -> Err {
@@ -209,12 +209,13 @@ TEST_F(Mei_Tests, mei_melo_roundtrip_01) {
     const String mei = String::fromUtf8(meiBytes.constChar());
     out.close();
     EXPECT_TRUE(mei.contains(u"jm:record"));
-    EXPECT_TRUE(mei.contains(u"jims-tonal-state"));
-    EXPECT_TRUE(mei.contains(u"jims-chord-name"));
-    EXPECT_TRUE(mei.contains(u"jims-tonic-ambit"));
-    EXPECT_TRUE(mei.contains(u"jims-melody-part"));
+    EXPECT_TRUE(mei.contains(u"melo-tonal-state"));
+    EXPECT_TRUE(mei.contains(u"melo-chord-name"));
+    EXPECT_TRUE(mei.contains(u"melo-tonic-ambit"));
+    EXPECT_TRUE(mei.contains(u"melo-melody-part"));
     EXPECT_TRUE(mei.contains(u"<ambitus>"));
-    EXPECT_TRUE(mei.contains(u"jims:tuning-trajectory"));
+    EXPECT_TRUE(mei.contains(u"melo:tuning-trajectory"));
+    EXPECT_FALSE(mei.contains(u"jims:"));
     delete score;
 }
 

@@ -2508,7 +2508,7 @@ void MusicXmlParserPass2::part()
 
     part->setShow(showPart);
 
-    // Native MeloPresto import: apply the buffered jims:staff-state timeline now
+    // Native MeloPresto import: apply the buffered melo:staff-state timeline now
     // that every stock handler for this part has run (first state -> MeloPresto
     // StaffType at tick 0, later states -> StaffTypeChange carriers).
     if (m_melo.statesFor(id)) {
@@ -3215,7 +3215,7 @@ void MusicXmlParserPass2::attributes(const String& partId, Measure* measure, con
 //---------------------------------------------------------
 
 /**
- Parse a jims:staff-state (native MeloPresto import) into the Kernel's state JSON
+ Parse a melo:staff-state (native MeloPresto import) into the Kernel's state JSON
  and buffer it for the part; StaffType / StaffTypeChange construction happens
  after normal part parsing (end of part()) so no later stock handler can
  overwrite the MeloPresto staff type. A malformed state is a fatal import error.
@@ -7192,7 +7192,7 @@ Note* MusicXmlParserPass2::note(const String& partId,
 
     MusicXmlNoteDuration mnd { m_divs, m_logger, &m_pass1 };
     MusicXmlNotePitch mnp { m_logger };
-    bool hasMeloPitch = false;      // native MeloPresto import: jims:pitch identity
+    bool hasMeloPitch = false;      // native MeloPresto import: melo:pitch identity
     int meloNPer = 0;
     int meloNGen = 0;
 
@@ -8062,7 +8062,7 @@ void MusicXmlParserPass2::harmony(const String& partId, Measure* measure, const 
             if (!meloChordName.isEmpty() || name.isEmpty() || containsWhitespace || !Harmony::isValidMeloName(name)
                 || m_melo.version() < 4) {
                 m_logger->logError(
-                    u"invalid or duplicate jims:chord-name; use modal /1 through /7 or an exceptional /Xx bass in one whitespace-free name",
+                    u"invalid or duplicate melo:chord-name; use modal /1 through /7 or an exceptional /Xx bass in one whitespace-free name",
                     &m_e);
                 m_meloError = Err::FileBadFormat;
             } else {
@@ -8249,7 +8249,7 @@ void MusicXmlParserPass2::harmony(const String& partId, Measure* measure, const 
 
     if (!meloChordName.isEmpty() && hasConventionalHarmonyChord) {
         m_logger->logError(
-            u"jims:chord-name replaces the conventional harmony-chord group and cannot be mixed with it in one harmony event", &m_e);
+            u"melo:chord-name replaces the conventional harmony-chord group and cannot be mixed with it in one harmony event", &m_e);
         m_meloError = Err::FileBadFormat;
         ha->setHarmonyType(HarmonyType::MELO);
     }

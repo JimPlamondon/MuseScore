@@ -1654,10 +1654,10 @@ bool MeiExporter::writeVerse(const Lyrics* lyrics)
     meiVerse.Write(m_currentNode, xmlId);
     // mei-jims profile: a lyric extension on a dashed (begin/middle)
     // syllable cannot ride on syl@con (the dash occupies it); carry it as
-    // verse@label="jims-extend" (the importer enrolls it as an extender).
+    // verse@label="melo-extend" (the importer enrolls it as an extender).
     if (lyrics->ticks() != Fraction(0, 1)
         && (lyrics->syllabic() == LyricsSyllabic::BEGIN || lyrics->syllabic() == LyricsSyllabic::MIDDLE)) {
-        m_currentNode.append_attribute("label") = "jims-extend";
+        m_currentNode.append_attribute("label") = "melo-extend";
     }
 
     // Split the syllable into line blocks
