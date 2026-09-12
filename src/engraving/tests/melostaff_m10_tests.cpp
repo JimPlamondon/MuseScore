@@ -805,15 +805,11 @@ TEST(Engraving_MeloStaffM10SATBTests, eachStaffTypeSpanCollectsOnlyItsOwnNotes)
         double baseDo = 0.0;
         ASSERT_TRUE(melo::noteCentsAboveExtentLower(empty->meloStateJson(), 1, -2, emptyDo));
         ASSERT_TRUE(melo::noteCentsAboveExtentLower(base->meloStateJson(), 1, -2, baseDo));
-        // Both types describe the same rows relative to their own Do0; the
-        // Kernel may place a section a whole number of periods away for a
-        // shorter union (owner decision 2026-09-12, 1a), never by less.
-        const double topDelta = (view.topCents() - emptyDo) - (baseView.topCents() - baseDo);
-        const double bottomDelta = (view.bottomCents() - emptyDo) - (baseView.bottomCents() - baseDo);
-        const double periods = topDelta / empty->meloPeriodCents();
-        EXPECT_NEAR(periods, std::round(periods), 1e-6) << topDelta;
-        EXPECT_NEAR(topDelta, bottomDelta, 1e-6);
-        EXPECT_NEAR(view.heightLd(), baseView.heightLd(), 1e-6);
+        // Both types describe the same rows relative to their own Do0, exactly:
+        // the Do row is anchored and no section is ever moved by a period
+        // (owner ruling 2026-09-12).
+        EXPECT_NEAR(view.topCents() - emptyDo, baseView.topCents() - baseDo, 1e-6);
+        EXPECT_NEAR(view.bottomCents() - emptyDo, baseView.bottomCents() - baseDo, 1e-6);
         EXPECT_EQ(empty->meloStateJson(), emptyState);
     }
     delete score;
