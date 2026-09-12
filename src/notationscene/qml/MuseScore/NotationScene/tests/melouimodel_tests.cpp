@@ -319,7 +319,7 @@ TEST_F(MeloUiModelTests, TuningRoutesLiveGeneratorOnlyForTheCurrentScore)
     model.init();
     ASSERT_FALSE(routed.empty());
     EXPECT_EQ(routed.back().notation, notation);
-    EXPECT_EQ(routed.back().resourceId, muse::audio::AudioResourceId("JiMSynth"));
+    EXPECT_EQ(routed.back().resourceId, muse::audio::AudioResourceId("MeloPresto Synth"));
     EXPECT_EQ(routed.back().paramId, generatorParamId);
 
     const size_t callsBeforeRejectedPreview = routed.size();

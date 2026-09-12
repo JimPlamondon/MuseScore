@@ -16,7 +16,7 @@ using namespace mu::inspector;
 using namespace mu::engraving;
 
 namespace {
-const muse::audio::AudioResourceId MELO_SYNTH_RESOURCE_ID = "JiMSynth";
+const muse::audio::AudioResourceId MELO_SYNTH_RESOURCE_ID = "MeloPresto Synth";
 }
 
 MeloTuningModel::MeloTuningModel(QObject* parent)
