@@ -124,8 +124,8 @@ public:
     Steinberg::Vst::IComponentHandler* componentHandler() const { return m_componentHandler; }
 
 private:
-    muse::audio::AudioResourceId m_resourceId = "JiMSynth";
-    std::string m_name = "JiMSynth";
+    muse::audio::AudioResourceId m_resourceId = "MeloPresto Synth";
+    std::string m_name = "MeloPresto Synth";
     CapturingProcessor* m_processor = nullptr;
     PluginControllerPtr m_controller;
     PluginComponentPtr m_component;
