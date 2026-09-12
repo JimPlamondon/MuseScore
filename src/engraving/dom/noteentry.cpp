@@ -161,7 +161,7 @@ NoteVal Score::noteValForPosition(Position pos, AccidentalType at, bool& error)
                 const System* system = pos.segment && pos.segment->measure() ? pos.segment->measure()->system() : nullptr;
                 const StaffType::MeloFrameView& view = meloSt->meloFrameView(st->score(), st->idx(), system);
                 // `line` counts half line-distances below the staff top.
-                const double cents = view.bands.size() <= 1
+                const double cents = !view.banded
                                      ? meloSt->meloFrameTopCents()
                                      - double(line) * StaffType::MELO_CENTS_PER_LINE_DISTANCE / 2.0
                                      : view.centsFromYLd(double(line) / 2.0);

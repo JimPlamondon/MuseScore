@@ -1445,6 +1445,66 @@ TEST(MeloStaffTests, changeTerrainLabelsOnlyTheNewTonicAndSeparatesCompoundArrow
                                           / StaffType::MELO_CENTS_PER_LINE_DISTANCE * dist;
                 EXPECT_GT(std::abs(shafts[1] - shafts[0]), minimumGap);
             }
+            // Owner rule 2026-09-12 (2a), from the corpus census (mode-only is
+            // the rarest kind in every corpus): the mode arrow sits LEFT of the
+            // dots, between the dots and their labels; the key arrow sits RIGHT
+            // of the dots. The dot column is located from the terrain's flank
+            // strokes (bar-width pen, flat caps) through the one shared geometry.
+            const double flankWidth = score->style().styleMM(Sid::barWidth);
+            const double minShaft = *std::min_element(shafts.begin(), shafts.end());
+            const double maxShaft = *std::max_element(shafts.begin(), shafts.end());
+            double leftFlank = -1e9;
+            double rightFlank = 1e9;
+            std::function<void(const DrawData::Item&)> flanks = [&](const DrawData::Item& item) {
+                for (const auto& data : item.datas) {
+                    const auto& state = drawing->states.at(data.state);
+                    for (const auto& polygon : data.polygons) {
+                        if (polygon.mode == PolygonMode::Polyline && polygon.polygon.size() == 2
+                            && std::abs(polygon.polygon[0].x() - polygon.polygon[1].x()) < 1e-6
+                            && state.pen.capStyle() == PenCapStyle::FlatCap
+                            && std::abs(state.pen.widthF() - flankWidth) < 1e-6) {
+                            const double x = polygon.polygon[0].x();
+                            if (x < minShaft) {
+                                leftFlank = std::max(leftFlank, x);
+                            } else if (x > maxShaft) {
+                                rightFlank = std::min(rightFlank, x);
+                            }
+                        }
+                    }
+                }
+                for (const auto& child : item.chilren) {
+                    flanks(child);
+                }
+            };
+            flanks(drawing->item);
+            const StaffType::MeloHeaderGeometry g
+                = melo::changeTerrainGeometry(incoming, lines->spatium(), score->style().defaultSpatium(), model);
+            const double sp = lines->spatium();
+            double dotCenterX = 0.0;
+            if (placement == 2) {
+                ASSERT_GT(leftFlank, -1e9) << "courtesy terrain has its added stroke on the left";
+                dotCenterX = leftFlank + 0.3 * sp + g.changeLabelBand + g.changeLeftArrowLane + g.indicatorW;
+            } else {
+                ASSERT_LT(rightFlank, 1e9) << "start-of-bar and mid-bar terrains close with a stroke on the right";
+                dotCenterX = rightFlank - 0.3 * sp - g.changeArrowLane - g.changeRightLabelBand - g.indicatorW;
+                if (placement == 0) {
+                    ASSERT_GT(leftFlank, -1e9);
+                    EXPECT_NEAR(rightFlank - leftFlank, g.changeTerrainWidth, 1e-6) << "the two dashed flanks span the terrain";
+                }
+            }
+            const double dotLeft = dotCenterX - g.indicatorW;
+            const double dotRight = dotCenterX + g.indicatorW;
+            for (size_t i = 0; i < model.arrows.size(); ++i) {
+                SCOPED_TRACE(model.arrows[i].kind.toStdString());
+                if (model.arrows[i].kind == u"mode") {
+                    EXPECT_GT(shafts[i], dotLeft - g.changeLeftArrowLane - 1e-6) << "mode arrow inside its lane left of the dots";
+                    EXPECT_LT(shafts[i], dotLeft + 1e-6) << "mode arrow left of the dots";
+                } else {
+                    EXPECT_GT(shafts[i], dotRight + g.changeRightLabelBand - 1e-6) << "key arrow right of the dots";
+                    EXPECT_LT(shafts[i], dotRight + g.changeRightLabelBand + g.changeArrowLane + 1e-6)
+                        << "key arrow inside its lane";
+                }
+            }
             delete score;
         }
     }
