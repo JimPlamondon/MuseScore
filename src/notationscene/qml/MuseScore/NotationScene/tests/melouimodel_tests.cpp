@@ -15,6 +15,7 @@
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/chord.h"
 #include "engraving/dom/note.h"
+#include "engraving/dom/harmony.h"
 #include "engraving/dom/measure.h"
 #include "engraving/dom/segment.h"
 #include "engraving/dom/staff.h"
@@ -25,7 +26,10 @@
 #include "inspector/qml/MuseScore/Inspector/melostaffsettingsmodel.h"
 #include "inspector/qml/MuseScore/Inspector/meloscoresettingsmodel.h"
 #include "inspector/qml/MuseScore/Inspector/melotuningmodel.h"
+#include "inspector/qml/MuseScore/Inspector/notation/chordsymbols/chordsymbolsettingsmodel.h"
+#include "notation/tests/mocks/notationinteractionmock.h"
 #include "playback/tests/mocks/playbackcontrollermock.h"
+#include "notationscene/qml/MuseScore/NotationScene/noteinputbarmodel.h"
 #include "ui/qml/Muse/Ui/navigationpanel.h"
 using namespace mu;
 using namespace mu::engraving;
@@ -84,7 +88,8 @@ public:
     notation::INotationPaintingPtr painting() const override { return nullptr; }
     notation::INotationViewStatePtr viewState() const override { return nullptr; }
     notation::INotationSoloMuteStatePtr soloMuteState() const override { return nullptr; }
-    notation::INotationInteractionPtr interaction() const override { return nullptr; }
+    notation::INotationInteractionPtr interaction() const override { return testInteraction; }
+    notation::INotationInteractionPtr testInteraction;
     notation::INotationMidiInputPtr midiInput() const override { return nullptr; }
     notation::INotationUndoStackPtr undoStack() const override { return nullptr; }
     notation::INotationStylePtr style() const override { return nullptr; }
@@ -130,6 +135,85 @@ protected:
     std::shared_ptr<testing::NiceMock<playback::PlaybackControllerMock> > playback;
     ElementRepositoryService repository;
 };
+TEST_F(MeloUiModelTests, MeloChordCursorControlsUseExactDurationsWithoutEditingNotes) {
+    selectMeasure(0);
+    auto* segment = score->firstMeasure()->first(SegmentType::ChordRest);
+    auto* harmony = new Harmony(segment);
+    harmony->setTrack(0);
+    harmony->setHarmonyType(HarmonyType::MELO);
+    harmony->setHarmony(u"Do5");
+    segment->add(harmony);
+    repository.updateElementList({ harmony }, SelState::LIST);
+    auto interaction = std::make_shared<testing::NiceMock<notation::NotationInteractionMock> >();
+    notation->testInteraction = interaction;
+    class CursorModel : public ChordSymbolSettingsModel
+    {
+    public:
+        using ChordSymbolSettingsModel::ChordSymbolSettingsModel;
+        void useHarmony(Harmony* item) { m_elementList = { item }; }
+    };
+    CursorModel model(nullptr, muse::modularity::globalCtx(), &repository);
+    model.context.set(global);
+    model.useHarmony(harmony);
+    ASSERT_TRUE(model.hasMeloSelection());
+    QQmlEngine engine;
+    engine.addImportPath("qrc:/qt/qml");
+    QQmlComponent component(&engine, QUrl("qrc:/qt/qml/MuseScore/Inspector/notation/chordsymbols/ChordSymbolSettings.qml"));
+    ASSERT_TRUE(component.isReady()) << component.errorString().toStdString();
+    ASSERT_GE(model.metaObject()->indexOfMethod("advanceMeloChordCursor(int)"), 0);
+    ON_CALL(*interaction, isTextEditingStarted()).WillByDefault(testing::Return(false));
+    EXPECT_CALL(*interaction, startEditText(harmony, testing::_)).Times(3);
+    EXPECT_CALL(*interaction, navigateToHarmony(Fraction(1, 4))).Times(1);
+    EXPECT_CALL(*interaction, navigateToHarmony(Fraction(1, 8))).Times(1);
+    EXPECT_CALL(*interaction, navigateToHarmony(Fraction(1, 16))).Times(1);
+    ASSERT_TRUE(QMetaObject::invokeMethod(&model, "advanceMeloChordCursor", Q_ARG(int, 4)));
+    ASSERT_TRUE(QMetaObject::invokeMethod(&model, "advanceMeloChordCursor", Q_ARG(int, 8)));
+    ASSERT_TRUE(QMetaObject::invokeMethod(&model, "advanceMeloChordCursor", Q_ARG(int, 16)));
+    ASSERT_TRUE(QMetaObject::invokeMethod(&model, "advanceMeloChordCursor", Q_ARG(int, 0)));
+    ASSERT_TRUE(QMetaObject::invokeMethod(&model, "advanceMeloChordCursor", Q_ARG(int, 3)));
+}
+TEST_F(MeloUiModelTests, MeloAccidentalPickersUseTheMatchingNoteheads) {
+    selectMeasure(0);
+    const auto presentation = notation::NoteInputBarModel::accidentalPresentationForScore(score.get(), score->engravingFont());
+    const std::pair<const char*, NoteHeadGroup> cases[] = {
+        { "sharp", NoteHeadGroup::HEAD_TRIANGLE_UP },
+        { "flat", NoteHeadGroup::HEAD_TRIANGLE_DOWN },
+        { "sharp2", NoteHeadGroup::HEAD_DIAMOND },
+        { "flat2", NoteHeadGroup::HEAD_LA },
+    };
+    auto font = score->engravingFont();
+    for (const auto& [action, group] : cases) {
+        const auto item = presentation.value(action).toMap();
+        EXPECT_EQ(item.value("icon").toUInt(), font->symCode(Note::noteHead(0, group, NoteHeadType::HEAD_QUARTER))) << action;
+        EXPECT_FALSE(item.value("title").toString().isEmpty()) << action;
+    }
+    EXPECT_FALSE(presentation.contains("nat"));
+    EXPECT_FALSE(presentation.contains("quarter"));
+}
+
+TEST_F(MeloUiModelTests, AccidentalPickersFollowSelectionAndInputStaffType) {
+    selectMeasure(0);
+    ASSERT_FALSE(notation::NoteInputBarModel::accidentalPresentationForScore(score.get(), score->engravingFont()).isEmpty());
+    StaffType* type = score->staff(0)->staffType(Fraction(0, 1));
+    const StaffType original = *type;
+    *type = *StaffType::preset(StaffTypes::STANDARD);
+    EXPECT_TRUE(notation::NoteInputBarModel::accidentalPresentationForScore(score.get(), score->engravingFont()).isEmpty());
+    Measure* second = score->firstMeasure()->nextMeasure();
+    ASSERT_TRUE(second);
+    score->staff(0)->setStaffType(second->tick(), original);
+    auto& input = score->inputState();
+    input.setTrack(0);
+    input.setSegment(second->first(SegmentType::ChordRest));
+    input.setNoteEntryMode(true);
+    EXPECT_FALSE(notation::NoteInputBarModel::accidentalPresentationForScore(score.get(), score->engravingFont()).isEmpty());
+    input.setNoteEntryMode(false);
+    EXPECT_TRUE(notation::NoteInputBarModel::accidentalPresentationForScore(score.get(), score->engravingFont()).isEmpty());
+    *type = original;
+    score->deselectAll();
+    EXPECT_FALSE(notation::NoteInputBarModel::accidentalPresentationForScore(score.get(), score->engravingFont()).isEmpty());
+    EXPECT_TRUE(notation::NoteInputBarModel::accidentalPresentationForScore(nullptr, score->engravingFont()).isEmpty());
+}
+
 TEST_F(MeloUiModelTests, StaffSectionsAreRelevantOnlyForCompatibleSelection) {
     auto* selected = selectMeasure(0);
     ElementKeySet keys { AbstractInspectorModel::makeKey(selected) };

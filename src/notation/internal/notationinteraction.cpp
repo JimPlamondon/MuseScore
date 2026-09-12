@@ -525,6 +525,23 @@ bool NotationInteraction::doShowShadowNote(ShadowNote& shadowNote, ShadowNotePar
         voice = inputState.voice();
     }
 
+    if (staff->staffType(position.segment->tick())->isMelo()) {
+        // Show the shape selected for pointer entry without a conventional
+        // accidental beside the preview note.
+        switch (params.accidentalType) {
+        case AccidentalType::SHARP: noteheadGroup = NoteHeadGroup::HEAD_TRIANGLE_UP;
+            break;
+        case AccidentalType::FLAT: noteheadGroup = NoteHeadGroup::HEAD_TRIANGLE_DOWN;
+            break;
+        case AccidentalType::SHARP2: noteheadGroup = NoteHeadGroup::HEAD_DIAMOND;
+            break;
+        case AccidentalType::FLAT2: noteheadGroup = NoteHeadGroup::HEAD_LA;
+            break;
+        default: break;
+        }
+        params.accidentalType = AccidentalType::NONE;
+    }
+
     shadowNote.setVisible(true);
     shadowNote.mutldata()->setMag(mag);
     shadowNote.setTick(tick);

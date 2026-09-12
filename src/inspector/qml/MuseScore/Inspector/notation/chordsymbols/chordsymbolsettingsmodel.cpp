@@ -22,6 +22,7 @@
 #include "chordsymbolsettingsmodel.h"
 
 #include "translation.h"
+#include "notation/inotationinteraction.h"
 
 using namespace mu::inspector;
 
@@ -101,6 +102,24 @@ PropertyItem* ChordSymbolSettingsModel::durationType() const
 void ChordSymbolSettingsModel::addFretboardDiagram()
 {
     dispatcher()->dispatch("add-fretboard-diagram");
+}
+
+void ChordSymbolSettingsModel::advanceMeloChordCursor(int denominator)
+{
+    if ((denominator != 4 && denominator != 8 && denominator != 16) || m_elementList.size() != 1 || !hasMeloSelection()) {
+        return;
+    }
+    auto notation = currentNotation();
+    auto interaction = notation ? notation->interaction() : nullptr;
+    if (!interaction) {
+        return;
+    }
+    // Properties can take focus from the text editor. Resume the selected
+    // chord before using the same duration navigation as keyboard entry.
+    if (!interaction->isTextEditingStarted()) {
+        interaction->startEditText(m_elementList.front());
+    }
+    interaction->navigateToHarmony(engraving::Fraction(1, denominator));
 }
 
 bool ChordSymbolSettingsModel::hasLinkedFretboardDiagram() const

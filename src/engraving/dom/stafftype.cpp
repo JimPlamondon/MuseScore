@@ -959,7 +959,75 @@ StaffType::MeloHeaderGeometry StaffType::meloHeaderGeometry(double spatium, doub
 //    single-system scores rendered notes against the degenerate frame).
 //---------------------------------------------------------
 
+static std::vector<const StaffType*> meloSectionTypes(const Score* score, staff_idx_t staffIdx,
+                                                      const System* system = nullptr)
+{
+    std::vector<const StaffType*> types;
+    const Staff* staff = score ? score->staff(staffIdx) : nullptr;
+    if (!staff) {
+        return types;
+    }
+    auto add = [&](const StaffType* type) {
+        if (type && type->isMelo() && std::find(types.begin(), types.end(), type) == types.end()) {
+            types.push_back(type);
+        }
+    };
+    for (const Measure* measure = score->firstMeasure(); measure; measure = measure->nextMeasure()) {
+        if (system && measure->system() != system) {
+            continue;
+        }
+        add(staff->staffType(measure->tick()));
+        for (const StaffTypeChange* change : melo::changeCarriers(measure, staffIdx)) {
+            add(staff->staffType(change->tick()));
+        }
+    }
+    return types;
+}
+
 void StaffType::meloEnsureFrame(const Score* score, staff_idx_t staffIdx) const
+{
+    if (!isMelo() || !score || (m_meloFrameFrozen && !m_meloFrameSegments.empty())) {
+        return;
+    }
+    const auto types = meloSectionTypes(score, staffIdx);
+    if (types.size() <= 1) {
+        meloEnsureSectionFrame(score, staffIdx);
+        setMeloFrame(m_meloSectionFrameKey, m_meloSectionFrameSegments);
+        return;
+    }
+    String key = u"shared:";
+    std::vector<melo::FrameAlignmentSection> sections;
+    for (const StaffType* type : types) {
+        if (type->meloFrameFrozen() && !m_meloFrameSegments.empty()) {
+            return;
+        }
+        type->meloEnsureSectionFrame(score, staffIdx);
+        key += type->m_meloSectionFrameKey + u"|";
+        melo::FrameAlignmentSection section;
+        section.stateJson = type->meloStateJson();
+        for (const MeloSegment& segment : type->m_meloSectionFrameSegments) {
+            section.segments.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
+        }
+        sections.push_back(section);
+    }
+    if (m_meloFrameKey == key) {
+        return;
+    }
+    melo::FrameBands aligned;
+    std::vector<MeloSegment> segments;
+    if (melo::alignSectionFrames(meloStateJson(), sections, false, aligned)) {
+        for (const auto& band : aligned.bands) {
+            for (const auto& segment : band.segments) {
+                segments.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
+            }
+        }
+    } else {
+        LOGE() << "MeloPresto section frame alignment failed for staff " << staffIdx;
+    }
+    setMeloFrame(key, segments);
+}
+
+void StaffType::meloEnsureSectionFrame(const Score* score, staff_idx_t staffIdx) const
 {
     if (!isMelo() || !score) {
         return;
@@ -1014,7 +1082,7 @@ void StaffType::meloEnsureFrame(const Score* score, staff_idx_t staffIdx) const
     const muse::String key = meloStateJson() + u"|" + token + u"|" + melody
                              + (m_meloExtentIsEmptyDefault ? u"|empty:1" : u"|empty:0")
                              + u"|ratio:" + m_meloRatioLineExtentJson + u"|ind:" + indicatorKey;
-    if (meloFrameKey() != key) {
+    if (m_meloSectionFrameKey != key) {
         // Milestone 4: EVERY melody — including the empty one — asks the
         // Kernel (empty defaults span half P8 around their centre).
         // A changed input never reuses a stale
@@ -1061,7 +1129,8 @@ void StaffType::meloEnsureFrame(const Score* score, staff_idx_t staffIdx) const
                        << " (state/melody rejected); frame cleared";
             }
         }
-        setMeloFrame(key, cached);
+        m_meloSectionFrameKey = key;
+        m_meloSectionFrameSegments = cached;
     }
 }
 
@@ -1351,6 +1420,71 @@ bool StaffType::meloElisionActive(const Score* score, staff_idx_t staffIdx, cons
 
 const StaffType::MeloFrameView& StaffType::meloFrameView(const Score* score, staff_idx_t staffIdx,
                                                          const System* system) const
+{
+    if (!isMelo() || !score || !system || !meloElisionActive(score, staffIdx, system)) {
+        return meloWholeFrameView(score, staffIdx);
+    }
+    const auto types = meloSectionTypes(score, staffIdx, system);
+    if (types.size() <= 1) {
+        return meloSectionFrameView(score, staffIdx, system);
+    }
+    const String rangeKey = String(u"aligned:%1-%2").arg(system->firstMeasure()->tick().ticks())
+                            .arg(system->lastMeasure()->endTick().ticks());
+    auto found = m_meloFrameViews.find(rangeKey);
+    if (m_meloFrameFrozen && found != m_meloFrameViews.end()) {
+        return found->second;
+    }
+    String key;
+    std::vector<melo::FrameAlignmentSection> sections;
+    for (const StaffType* type : types) {
+        const MeloFrameView& local = type->meloSectionFrameView(score, staffIdx, system);
+        key += local.key + u"|";
+        melo::FrameAlignmentSection section;
+        section.stateJson = type->meloStateJson();
+        for (const auto& band : local.bands) {
+            for (const auto& segment : band.segments) {
+                section.segments.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
+            }
+        }
+        sections.push_back(section);
+    }
+    if (found != m_meloFrameViews.end() && found->second.key == key) {
+        return found->second;
+    }
+    MeloFrameView view;
+    view.key = key;
+    view.banded = true;
+    view.gapLd = m_lineDistance.val() > 0.0
+                 ? score->style().styleS(Sid::staffDistance).val() / m_lineDistance.val() : 0.0;
+    melo::FrameBands aligned;
+    if (melo::alignSectionFrames(meloStateJson(), sections, true, aligned)) {
+        for (const auto& source : aligned.bands) {
+            MeloFrameBand band;
+            for (const auto& segment : source.segments) {
+                band.segments.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
+            }
+            band.lowerCents = source.lowerCents;
+            band.upperCents = source.upperCents;
+            band.lowestPeriodIndex = source.lowestPeriodIndex;
+            band.highestPeriodIndex = source.highestPeriodIndex;
+            band.labelPeriodIndex = source.labelPeriodIndex;
+            band.tonicLabel = source.tonicLabel.label;
+            view.bands.push_back(band);
+        }
+        view.omittedPeriodCount = aligned.omittedPeriodCount;
+        double y = 0.0;
+        for (size_t i = view.bands.size(); i > 0; --i) {
+            view.bands[i - 1].yTopLd = y;
+            y += view.bands[i - 1].heightLd() + view.gapLd;
+        }
+    } else {
+        LOGE() << "MeloPresto section band alignment failed for staff " << staffIdx;
+    }
+    return m_meloFrameViews[rangeKey] = view;
+}
+
+const StaffType::MeloFrameView& StaffType::meloSectionFrameView(const Score* score, staff_idx_t staffIdx,
+                                                                const System* system) const
 {
     static const MeloFrameView noView;
     if (!isMelo() || !score) {

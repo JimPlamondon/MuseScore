@@ -2355,6 +2355,32 @@ static void changeAccidental2(Note* n, int pitch, int tpc)
         tpc2 = tpc;
     }
 
+    // Conventional pitch fields are only a projection on a MeloPresto staff.
+    // Re-enter the requested spelling through the Kernel for every affected
+    // note, including tied continuations with a different effective state.
+    const auto applyPitch = [&](Note* target) {
+        const StaffType* type = target->staff()->staffTypeForElement(target);
+        if (type && type->isMelo() && target->hasMeloPitch()) {
+            const int alter = int(tpc2alter(tpc1));
+            melo::SoundingPitch projection;
+            String error;
+            if (!melo::entryFromStandardPitch(type->meloStateJson(), "CDEFGAB"[tpc2step(tpc1)],
+                                              alter, (pitch - alter) / 12 - 1, projection, &error)) {
+                LOGE() << "MeloPresto accidental edit: " << error;
+                return;
+            }
+            const int projectedTpc = step2tpc(int(String(u"CDEFGAB").indexOf(Char(projection.step))),
+                                              AccidentalVal(projection.alter));
+            target->undoChangeProperty(Pid::MELO_NPER, projection.nPer);
+            target->undoChangeProperty(Pid::MELO_NGEN, projection.nGen);
+            score->undoChangePitch(target, projection.midiKey, projectedTpc, projectedTpc);
+            target->undoChangeProperty(Pid::TUNING, projection.centsOffset);
+            melo::widenExtentForNote(target);
+        } else {
+            score->undoChangePitch(target, pitch, tpc1, tpc2);
+        }
+    };
+
     if (!st->isTabStaff(chord->tick())) {
         //
         // handle ties
@@ -2371,12 +2397,12 @@ static void changeAccidental2(Note* n, int pitch, int tpc)
             while (nn && nn->tieFor()) {
                 nn = nn->tieFor()->endNote();
                 if (nn) {
-                    score->undo(new ChangePitch(nn, pitch, tpc1, tpc2));
+                    applyPitch(nn);
                 }
             }
         }
     }
-    score->undoChangePitch(n, pitch, tpc1, tpc2);
+    applyPitch(n);
 }
 
 //---------------------------------------------------------
@@ -2425,6 +2451,22 @@ void Score::changeAccidental(Note* note, AccidentalType accidental)
     int pitch = line2pitch(note->line(), clef, Key::C) + int(acc);
     if (!note->concertPitch()) {
         pitch += note->transposition();
+    }
+
+    const StaffType* type = estaff->staffTypeForElement(note);
+    if (type && type->isMelo() && note->hasMeloPitch()) {
+        // MeloPresto lines are not conventional diatonic clef positions.
+        // Preserve the Kernel's letter and octave when changing its accidental.
+        melo::SoundingPitch current;
+        melo::SoundingPitch requested;
+        String error;
+        if (!melo::noteSoundingPitch(type->meloStateJson(), note->meloNPer(), note->meloNGen(), current, &error)
+            || !melo::entryFromStandardPitch(type->meloStateJson(), current.step, int(acc), current.octave, requested, &error)) {
+            LOGE() << "MeloPresto accidental edit: " << error;
+            return;
+        }
+        step = int(String(u"CDEFGAB").indexOf(Char(requested.step)));
+        pitch = requested.midiKey;
     }
 
     int tpc = step2tpc(step, acc);

@@ -41,7 +41,55 @@ Column {
     spacing: 12
 
     function focusOnFirst() {
-        interpretationSection.focusOnFirst()
+        if (chordCursorControls.visible) {
+            advanceQuarterButton.navigation.requestActive()
+        } else {
+            interpretationSection.focusOnFirst()
+        }
+    }
+
+    Column {
+        id: chordCursorControls
+        width: parent.width
+        spacing: 8
+        visible: root.model ? root.model.hasMeloSelection && !root.model.insideFretBox : false
+
+        StyledTextLabel {
+            width: parent.width
+            horizontalAlignment: Text.AlignLeft
+            text: qsTrc("inspector", "Advance chord entry")
+        }
+
+        FlatButton {
+            id: advanceQuarterButton
+            objectName: "meloChordAdvanceQuarter"
+            width: parent.width
+            text: qsTrc("inspector", "Next quarter note")
+            toolTipDescription: qsTrc("inspector", "Advance by one quarter note, including within a held note.")
+            navigation.panel: root.navigationPanel
+            navigation.row: root.navigationRowStart + 1
+            onClicked: root.model.advanceMeloChordCursor(4)
+        }
+
+        FlatButton {
+            objectName: "meloChordAdvanceEighth"
+            width: parent.width
+            text: qsTrc("inspector", "Next eighth note")
+            toolTipDescription: qsTrc("inspector", "Advance by one eighth note, including within a held note.")
+            navigation.panel: root.navigationPanel
+            navigation.row: root.navigationRowStart + 2
+            onClicked: root.model.advanceMeloChordCursor(8)
+        }
+
+        FlatButton {
+            objectName: "meloChordAdvanceSixteenth"
+            width: parent.width
+            text: qsTrc("inspector", "Next sixteenth note")
+            toolTipDescription: qsTrc("inspector", "Advance by one sixteenth note, including within a held note.")
+            navigation.panel: root.navigationPanel
+            navigation.row: root.navigationRowStart + 3
+            onClicked: root.model.advanceMeloChordCursor(16)
+        }
     }
 
     FlatRadioButtonGroupPropertyView {
@@ -52,7 +100,7 @@ Column {
         visible: root.model ? !root.model.insideFretBox : true
 
         navigationPanel: root.navigationPanel
-        navigationRowStart: root.navigationRowStart + 1
+        navigationRowStart: root.navigationRowStart + 4
 
         model: [
             { text: qsTrc("inspector", "Literal"), value: true },

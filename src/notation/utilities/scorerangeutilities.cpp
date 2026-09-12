@@ -26,6 +26,7 @@
 #include "engraving/dom/score.h"
 #include "engraving/dom/segment.h"
 #include "engraving/dom/staff.h"
+#include "engraving/dom/stafftype.h"
 #include "engraving/dom/system.h"
 
 using namespace mu::notation;
@@ -57,17 +58,22 @@ std::vector<muse::RectF> ScoreRangeUtilities::boundingArea(const Score* score,
         const Staff* scoreLastStaff = score->staff(lastStaff);
 
         const double standardStaffHeight = 4 * scoreFirstStaff->spatium(Fraction(0, 1));
-        const double firstStaffHeight = scoreFirstStaff->staffHeight();
-        const double lastStaffHeight = scoreLastStaff->staffHeight();
+        // Melo frames can span or elide octave bands. Use the geometry already
+        // laid out for this system, rather than the nominal staff line count.
+        const Fraction tick = section.startSegment->tick();
+        const bool firstIsMelo = scoreFirstStaff->staffType(tick)->isMelo();
+        const bool lastIsMelo = scoreLastStaff->staffType(tick)->isMelo();
+        const double firstStaffHeight = firstIsMelo ? segmentFirstStaff->bbox().height() : scoreFirstStaff->staffHeight();
+        const double lastStaffHeight = lastIsMelo ? segmentLastStaff->bbox().height() : scoreLastStaff->staffHeight();
 
         double topY = 0.0;
-        if (firstStaffHeight < standardStaffHeight) {
+        if (!firstIsMelo && firstStaffHeight < standardStaffHeight) {
             const double diff = standardStaffHeight - firstStaffHeight;
             topY -= 0.5 * diff;
         }
 
         double bottomY = lastStaffHeight;
-        if (lastStaffHeight < standardStaffHeight) {
+        if (!lastIsMelo && lastStaffHeight < standardStaffHeight) {
             const double diff = standardStaffHeight - lastStaffHeight;
             bottomY += 0.5 * diff;
         }

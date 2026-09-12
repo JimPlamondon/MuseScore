@@ -1276,6 +1276,37 @@ TEST(MeloStaffTests, noteDragAnchorsAtStartCentsAndNeverCompounds)
     delete score;
 }
 
+TEST(MeloStaffTests, draggingBelowExtentKeepsTheOriginalCentsOrigin)
+{
+    std::unique_ptr<Score> score(ScoreRW::readScore(u"jimstaff_data/collision.mscx"));
+    ASSERT_TRUE(score);
+    score->doLayout();
+    Note* note = highestMeloNote(score.get());
+    ASSERT_TRUE(note);
+    const int startPer = note->meloNPer();
+    const int startGen = note->meloNGen();
+    const int startPitch = note->pitch();
+    const double sp = score->style().spatium();
+    EditData ed(nullptr);
+    EngravingItem* dragged = note;
+    dragged->startDrag(ed);
+    for (int event = 0; event < 4; ++event) {
+        ed.evtDelta = PointF(0.0, event == 0 ? 36.0 * sp : 0.0);
+        ed.moveDelta = PointF(0.0, 36.0 * sp);
+        dragged->drag(ed);
+        score->doLayout();
+        EXPECT_EQ(note->meloNPer(), startPer - 3) << "event " << event;
+        EXPECT_EQ(note->meloNGen(), startGen) << "event " << event;
+        EXPECT_EQ(note->pitch(), startPitch - 36) << "event " << event;
+    }
+    ed.moveDelta = PointF(0.0, 0.0);
+    dragged->drag(ed);
+    EXPECT_EQ(note->meloNPer(), startPer);
+    EXPECT_EQ(note->meloNGen(), startGen);
+    EXPECT_EQ(note->pitch(), startPitch);
+    dragged->endDrag(ed);
+}
+
 // M4 gate finding 4 (Jim, 2026-08-16): Cmd-Z after a drag did nothing.
 // The drag's undo record covered PITCH/TPC but not the JiMS lattice
 // identity the JiMStaff actually draws. Undo must restore identity AND

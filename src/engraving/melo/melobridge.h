@@ -73,6 +73,7 @@ bool tonicCentsAboveDo(const muse::String& stateJson, double& cents);
 /// `tonic-centered` (plagal). False — with `error` set — for an empty melody
 /// or one wider than the classifier's two-tonic-octave window; the caller
 /// then keeps the declared token (never a third value).
+bool songwideTonicAmbit(const muse::String& spansJson, muse::String& token, muse::String* error = nullptr);
 bool tonicAmbitForMelody(const muse::String& stateJson, const muse::String& melodyJson, muse::String& token, muse::String* error = nullptr);
 
 /// The staff's tuning metrics (generator and period widths in cents),
@@ -261,6 +262,12 @@ struct FrameBands {
     std::vector<FrameBand> bands;
     int omittedPeriodCount = 0;
 };
+struct FrameAlignmentSection {
+    muse::String stateJson;
+    std::vector<StaveSegment> segments;
+};
+bool alignSectionFrames(const muse::String& stateJson, const std::vector<FrameAlignmentSection>& sections, bool preserveGaps,
+                        FrameBands& out);
 bool frameBandsForMelody(const muse::String& stateJson, const muse::String& melodyJson, const muse::String& extentToken,
                          bool elideEmptyPeriods, int minBandPeriods, FrameBands& out, const std::vector<double>& extraCents = {},
                          const muse::String& ratioLineExtentJson = {}, bool retainWrittenExtent = false);
@@ -279,7 +286,8 @@ struct PitchHit {
 
 /// Quantize a drag target (owner rulings 2026-08-14): nearest realizable
 /// pitch; current identity retained at exact-midpoint ties when eligible.
-bool nearestPitch(const muse::String& stateJson, double targetCents, bool hasCurrent, int currentNPer, int currentNGen, PitchHit& hit);
+bool nearestPitch(const muse::String& stateJson, double targetCents, bool hasCurrent, int currentNPer, int currentNGen, PitchHit& hit,
+                  const muse::String& noteheadClass = {});
 
 /// Milestone 6 (editing workflow): one keyboard step from a JiMS note —
 /// `domain` is "lattice" (nearest realizable pitch strictly up/down),

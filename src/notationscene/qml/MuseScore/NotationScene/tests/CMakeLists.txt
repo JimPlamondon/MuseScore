@@ -39,6 +39,7 @@ set(MODULE_TEST_LINK
     engraving
     inspector_qml
     muse_ui_qml
+    muse_graphicaleffects_qml
     context
     notationscene_qml
     Qt::Quick
@@ -52,3 +53,4 @@ include(SetupGTest)
 target_compile_definitions(${MODULE_TEST} PRIVATE MELO_UI_TEST_DATA_ROOT="${PROJECT_SOURCE_DIR}/src/engraving/tests")
 
 target_include_directories(${MODULE_TEST} PRIVATE ${PROJECT_SOURCE_DIR}/src/inspector)
+target_include_directories(${MODULE_TEST} PRIVATE ${PROJECT_SOURCE_DIR}/src/inspector/qml/MuseScore/Inspector)

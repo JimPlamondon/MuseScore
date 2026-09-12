@@ -63,6 +63,7 @@ public:
     bool showStackModifiers() const;
 
     Q_INVOKABLE void addFretboardDiagram();
+    Q_INVOKABLE void advanceMeloChordCursor(int denominator);
 
 signals:
     void hasLinkedFretboardDiagramChanged();

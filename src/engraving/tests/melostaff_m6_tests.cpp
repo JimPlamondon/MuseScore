@@ -46,6 +46,8 @@
 #include "engraving/dom/utils.h"
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/measure.h"
+#include "engraving/dom/layoutbreak.h"
+#include "engraving/dom/system.h"
 #include "engraving/dom/note.h"
 #include "engraving/dom/partialtie.h"
 #include "engraving/dom/segment.h"
@@ -1148,6 +1150,75 @@ TEST(MeloStaffTests, m6LetterEntryEstablishesTheKernelIdentityOfTheNamedNote)
     delete score;
 }
 
+TEST(MeloStaffTests, accidentalEditingKeepsKernelIdentityAndPlaybackTogether)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/jims-template.mscx");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    InputState& input = score->inputState();
+    input.setTrack(0);
+    input.setSegment(score->tick2segment(Fraction(0, 1), false, SegmentType::ChordRest));
+    input.setDuration(DurationType::V_QUARTER);
+    input.setNoteEntryMode(true);
+    score->startCmd(TranslatableString::untranslatable("enter G4"));
+    score->cmdAddPitch(5 * 7 + 4, false, false);
+    score->endCmd();
+    input.setNoteEntryMode(false);
+    score->doLayout();
+    auto notes = meloNotes(score);
+    ASSERT_EQ(notes.size(), 1u);
+    Note* note = notes.front();
+    for (auto accidental : { AccidentalType::SHARP, AccidentalType::NATURAL, AccidentalType::FLAT }) {
+        melo::SoundingPitch expected;
+        ASSERT_TRUE(melo::entryFromStandardPitch(meloStaffType(score)->meloStateJson(), 'G',
+                                                 int(Accidental::subtype2value(accidental)), 4, expected));
+        const auto before = std::make_tuple(note->meloNPer(), note->meloNGen(), note->pitch(), note->tuning());
+        score->startCmd(TranslatableString::untranslatable("edit accidental"));
+        score->changeAccidental(note, accidental);
+        score->endCmd();
+        EXPECT_EQ(note->meloNPer(), expected.nPer);
+        EXPECT_EQ(note->meloNGen(), expected.nGen);
+        EXPECT_EQ(note->pitch(), expected.midiKey);
+        EXPECT_NEAR(note->tuning(), expected.centsOffset, 1e-9);
+        score->undoRedo(true, nullptr);
+        EXPECT_EQ(std::make_tuple(note->meloNPer(), note->meloNGen(), note->pitch(), note->tuning()), before);
+        score->undoRedo(false, nullptr);
+        EXPECT_EQ(note->meloNPer(), expected.nPer);
+        EXPECT_EQ(note->meloNGen(), expected.nGen);
+        EXPECT_EQ(note->pitch(), expected.midiKey);
+    }
+    delete score;
+}
+
+TEST(MeloStaffTests, explicitNaturalEntryOverridesEarlierSharpInTheMeasure)
+{
+    Score* score = ScoreRW::readScore(u"jimstaff_data/jims-template.mscx");
+    ASSERT_TRUE(score);
+    score->doLayout();
+    InputState& input = score->inputState();
+    input.setTrack(0);
+    input.setSegment(score->tick2segment(Fraction(0, 1), false, SegmentType::ChordRest));
+    input.setDuration(DurationType::V_QUARTER);
+    input.setNoteEntryMode(true);
+    for (int i = 0; i < 4; ++i) {
+        score->startCmd(TranslatableString::untranslatable("enter accidental sequence"));
+        input.setAccidentalType(i % 2 ? AccidentalType::NATURAL : AccidentalType::SHARP);
+        score->cmdAddPitch(4 * 7 + (i < 2 ? 4 : 3), false, false);
+        score->endCmd();
+    }
+    auto notes = meloNotes(score);
+    ASSERT_EQ(notes.size(), 4u);
+    for (size_t i = 0; i < notes.size(); ++i) {
+        melo::SoundingPitch expected;
+        ASSERT_TRUE(melo::entryFromStandardPitch(meloStaffType(score)->meloStateJson(), i < 2 ? 'G' : 'F',
+                                                 i % 2 ? 0 : 1, 3, expected));
+        EXPECT_EQ(notes[i]->pitch(), expected.midiKey) << i;
+        EXPECT_EQ(notes[i]->meloNPer(), expected.nPer) << i;
+        EXPECT_EQ(notes[i]->meloNGen(), expected.nGen) << i;
+    }
+    delete score;
+}
+
 TEST(MeloStaffTests, conventionalEntryUsesTheEffectivePostChangeState)
 {
     Score* score = ScoreRW::readScore(u"jimstaff_data/jims-template.mscx");
@@ -1277,4 +1348,104 @@ TEST(MeloStaffTests, m6WriteEditingScenario)
     }
     rec << "]}\n";
     delete score;
+}
+
+TEST(MeloStaffTests, changeTerrainLabelsOnlyTheNewTonicAndSeparatesCompoundArrows)
+{
+    struct Case {
+        const char* name;
+        bool key;
+        bool mode;
+        size_t arrows;
+        String tonic;
+    };
+    for (int placement : { 0, 1, 2 }) {
+        SCOPED_TRACE(placement); // mid-bar, bar boundary, end-of-system courtesy
+        for (const Case& c : { Case { "combined", true, true, 2, u"Do" },
+                               Case { "key-only", true, false, 1, u"La" },
+                               Case { "mode-only", false, true, 1, u"Do" } }) {
+            SCOPED_TRACE(c.name);
+            Score* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+            ASSERT_TRUE(score);
+            Measure* first = measureNo(score, 1);
+            Measure* measure = measureNo(score, 2);
+            String error;
+            ASSERT_TRUE(melo::applyChange(score, 0, first, u"bind:reference-pitch:62", error));
+            ASSERT_TRUE(melo::applyChange(score, 0, first, u"mode:1", error));
+            const Fraction tick = placement == 0 ? notesInMeasure(measure).back()->tick() : measure->tick();
+            if (placement == 2) {
+                auto lineBreak = Factory::createLayoutBreak(first);
+                lineBreak->setLayoutBreakType(LayoutBreakType::LINE);
+                lineBreak->setTrack(0);
+                first->add(lineBreak);
+            }
+            std::vector<String> choices;
+            if (c.key) {
+                choices.push_back(u"key:0:-1");
+            }
+            if (c.mode) {
+                choices.push_back(u"mode:-2");
+            }
+            ASSERT_TRUE(melo::applyChangeToAllMeloParts(score, measure, tick, choices, error));
+            score->doLayout();
+            melo::ChangeIndicator model;
+            const StaffType* incoming = nullptr;
+            if (placement == 0) {
+                ASSERT_TRUE(melo::midBarChangeIndicator(melo::changeCarrierAt(measure, 0, tick), model, &incoming));
+            } else if (placement == 1) {
+                ASSERT_TRUE(melo::midSystemChangeIndicator(measure, 0, model, &incoming));
+            } else {
+                ASSERT_NE(first->system(), measure->system());
+                ASSERT_TRUE(melo::courtesyChangeIndicator(first, 0, model));
+                incoming = score->staff(0)->staffType(tick);
+            }
+            ASSERT_EQ(model.arrows.size(), c.arrows);
+            auto provider = std::make_shared<BufferedPaintProvider>();
+            Painter painter(provider, "change-label-arrows");
+            painter.setViewport(RectF(0, 0, 4000, 4000));
+            const StaffLines* lines = (placement == 2 ? first : measure)->staffLines(0);
+            lines->renderer()->drawItem(lines, &painter, PaintOptions());
+            painter.endDraw();
+            melo::ConnectorGlyph head;
+            ASSERT_TRUE(melo::connectorGlyph(head));
+            const double dist = incoming->lineDistance().val() * lines->spatium();
+            const double shaftWidth = head.penCents / StaffType::MELO_CENTS_PER_LINE_DISTANCE * dist;
+            std::vector<double> shafts;
+            size_t pitchLabels = 0;
+            const auto drawing = provider->drawData();
+            std::function<void(const DrawData::Item&)> inspect = [&](const DrawData::Item& item) {
+                for (const auto& data : item.datas) {
+                    const auto& state = drawing->states.at(data.state);
+                    for (const auto& text : data.texts) {
+                        if (text.text.contains(u": ") && text.rect.x() >= 0.0) {
+                            ++pitchLabels;
+                            EXPECT_TRUE(text.text.endsWith(u": " + c.tonic)) << text.text.toStdString();
+                            EXPECT_TRUE(text.text.startsWith(c.key ? u"G" : u"C")) << text.text.toStdString();
+                        }
+                    }
+                    for (const auto& polygon : data.polygons) {
+                        if (polygon.mode == PolygonMode::Polyline && polygon.polygon.size() == 2
+                            && std::abs(polygon.polygon[0].x() - polygon.polygon[1].x()) < 1e-6
+                            && state.pen.capStyle() == PenCapStyle::RoundCap
+                            && std::abs(state.pen.widthF() - shaftWidth) < 1e-6) {
+                            shafts.push_back(polygon.polygon[0].x());
+                        }
+                    }
+                }
+                for (const auto& child : item.chilren) {
+                    inspect(child);
+                }
+            };
+            inspect(drawing->item);
+            // A key-only change need not include the tonic among its two dots.
+            EXPECT_EQ(pitchLabels, c.mode ? 1u : 0u);
+            ASSERT_EQ(shafts.size(), c.arrows);
+            if (shafts.size() == 2) {
+                const double minimumGap = 2.0 * head.headHalfWidthCents
+                                          / StaffType::MELO_CENTS_PER_LINE_DISTANCE * dist;
+                EXPECT_GT(std::abs(shafts[1] - shafts[0]), minimumGap);
+            }
+            delete score;
+        }
+    }
 }

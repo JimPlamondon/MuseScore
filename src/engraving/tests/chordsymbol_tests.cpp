@@ -551,6 +551,43 @@ TEST_F(Engraving_ChordSymbolTests, meloHarmonyCreationIsPerObjectUndoableCloneab
     delete score;
 }
 
+TEST_F(Engraving_ChordSymbolTests, typedColonStaysInsideMeloHarmonyName)
+{
+    MasterScore* score = test_pre(u"add-link");
+    ASSERT_TRUE(score);
+    Segment* segment = score->firstSegment(SegmentType::ChordRest);
+    ASSERT_TRUE(segment);
+    ChordRest* chordRest = segment->cr(0);
+    ASSERT_TRUE(chordRest);
+
+    Harmony* melo = score->addHarmony(HarmonyType::MELO, chordRest);
+    ASSERT_TRUE(melo);
+    melo->setHarmony(u"Mi");
+    score->doLayout();
+    EditData ed;
+    melo->startEdit(ed);
+    melo->cursor()->moveCursorToEnd();
+    ed.key = Key_Colon;
+    ed.s = String(u":");
+    EXPECT_TRUE(melo->isEditAllowed(ed));
+    EXPECT_TRUE(melo->edit(ed));
+    ed.key = 0;
+    ed.s = String(u"So7/7");
+    EXPECT_TRUE(melo->edit(ed));
+    melo->endEdit(ed);
+    EXPECT_EQ(melo->harmonyName().toStdString(), "Mi:So7/7");
+    EXPECT_EQ(melo->explicitParent(), segment);
+
+    ed.key = Key_Semicolon;
+    EXPECT_FALSE(melo->isEditAllowed(ed));
+    {
+        Harmony standard(segment);
+        ed.key = Key_Colon;
+        EXPECT_FALSE(standard.isEditAllowed(ed));
+    }
+    delete score;
+}
+
 TEST_F(Engraving_ChordSymbolTests, denseMeloHarmonyLabelsUseAlternatingVerticalLanes)
 {
     MasterScore* score = test_pre(u"add-link");

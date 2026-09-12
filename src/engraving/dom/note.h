@@ -557,6 +557,7 @@ private:
     int m_meloNGen = MELO_UNSET;
     double m_meloCentsAboveDo = 0.0;
     bool m_meloCentsValid = false;
+    String m_meloCentsState;
     int m_fret = -1;            // for tablature view
     float m_harmonicFret = -1.0;
     int m_harmonicPitchOffset = 0;

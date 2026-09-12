@@ -145,6 +145,25 @@ bool midBarChangeIndicator(const StaffTypeChange* carrier, ChangeIndicator& out,
     return indicatorForCarrier(carrier, out, newStaffType);
 }
 
+StaffType::MeloHeaderGeometry changeTerrainGeometry(const StaffType* staffType, double spatium,
+                                                    double defaultSpatium, const ChangeIndicator& model)
+{
+    auto geometry = staffType->meloHeaderGeometry(spatium, defaultSpatium);
+    if (model.arrows.size() > 1) {
+        const double dist = staffType->lineDistance().val() * spatium;
+        ConnectorGlyph head;
+        double lane = geometry.changeArrowLane;
+        if (connectorGlyph(head)) {
+            lane = std::max(lane, 2.0 * head.headHalfWidthCents
+                            / StaffType::MELO_CENTS_PER_LINE_DISTANCE * dist + 0.5 * dist);
+        }
+        const double lanes = lane * model.arrows.size();
+        geometry.changeTerrainWidth += lanes - geometry.changeArrowLane;
+        geometry.changeArrowLane = lanes;
+    }
+    return geometry;
+}
+
 double changeTerrainWidth(const Measure* measure)
 {
     if (!measure || !measure->score()) {
@@ -157,7 +176,7 @@ double changeTerrainWidth(const Measure* measure)
         const StaffType* st = nullptr;
         if (midSystemChangeIndicator(measure, s, model, &st) && st) {
             const double sp = score->style().spatium();
-            width = std::max(width, st->meloHeaderGeometry(sp, score->style().defaultSpatium()).changeTerrainWidth);
+            width = std::max(width, changeTerrainGeometry(st, sp, score->style().defaultSpatium(), model).changeTerrainWidth);
         }
     }
     return width;
@@ -176,7 +195,7 @@ double changeTerrainWidthAt(const Measure* measure, const Fraction& tick)
         const StaffType* st = nullptr;
         if (midBarChangeIndicator(carrier, model, &st) && st) {
             const double sp = score->style().spatium();
-            width = std::max(width, st->meloHeaderGeometry(sp, score->style().defaultSpatium()).changeTerrainWidth);
+            width = std::max(width, changeTerrainGeometry(st, sp, score->style().defaultSpatium(), model).changeTerrainWidth);
         }
     }
     return width;
@@ -221,8 +240,9 @@ double courtesyTerrainWidth(const Measure* measure)
         ChangeIndicator model;
         const StaffType* st = nullptr;
         if (courtesyChangeIndicator(measure, s, model, &st) && st) {
+            st = score->staff(s)->staffType(measure->nextMeasure()->tick());
             const double sp = score->style().spatium();
-            width = std::max(width, st->meloHeaderGeometry(sp, score->style().defaultSpatium()).changeTerrainWidth);
+            width = std::max(width, changeTerrainGeometry(st, sp, score->style().defaultSpatium(), model).changeTerrainWidth);
         }
     }
     return width;
@@ -250,13 +270,18 @@ double changeAnchorPeriodCents(const StaffType::MeloFrameView& view, const Chang
     if (offsets.empty()) {
         return fallback;
     }
-    // Candidate anchors: every Do-line inside a drawn segment, ascending.
+    // Period zero need not itself be visible: an arrow may start on Do in
+    // period one. Include anchors whose translated endpoints can fit, or
+    // extending a short frame can make the chosen anchor jump an octave.
     std::vector<double> candidates;
+    const auto offsetRange = std::minmax_element(offsets.begin(), offsets.end());
     for (const StaffType::MeloFrameBand& band : view.bands) {
         for (const StaffType::MeloSegment& seg : band.segments) {
             const double first = doCentsAboveExtentLower
-                                 + std::ceil((seg.lowerCents - doCentsAboveExtentLower - eps) / periodCents) * periodCents;
-            for (double b = first; b <= seg.upperCents + eps; b += periodCents) {
+                                 + std::floor((seg.lowerCents - doCentsAboveExtentLower) / periodCents
+                                              - *offsetRange.second) * periodCents;
+            const double last = seg.upperCents - *offsetRange.first * periodCents;
+            for (double b = first; b <= last + eps; b += periodCents) {
                 if (candidates.empty() || std::abs(candidates.back() - b) > eps) {
                     candidates.push_back(b);
                 }
@@ -460,7 +485,7 @@ int deriveTonicAmbits(Score* score)
     }
     const staff_idx_t melodyStaffIdx = melodyStaff->idx();
     int changed = 0;
-    // Section starts come from the explicitly designated melody staff.
+    // Tonal carriers are timeline spans, not separate melodies.
     std::vector<Fraction> starts = { Fraction(0, 1) };
     for (const Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
         for (const StaffTypeChange* carrier : changeCarriers(m, melodyStaffIdx)) {
@@ -469,21 +494,28 @@ int deriveTonicAmbits(Score* score)
             }
         }
     }
+    if (!score->lastMeasure()) {
+        return 0;
+    }
+    String spans = u"[";
     for (size_t i = 0; i < starts.size(); ++i) {
-        StaffType* authority = melodyStaff->staffType(starts[i]);
+        const StaffType* authority = melodyStaff->staffType(starts[i]);
         if (!authority || !authority->isMelo() || authority->meloStateJson().isEmpty()) {
-            continue;
+            return 0;
         }
-        const bool bounded = i + 1 < starts.size();
-        const Fraction end = bounded ? starts[i + 1] : Fraction(0, 1);
-        String melody = u"{\"notes\":[";
+        const Fraction end = i + 1 < starts.size() ? starts[i + 1] : score->lastMeasure()->endTick();
+        if (i > 0) {
+            spans += u",";
+        }
+        spans += String(u"{\"state\":%1,\"duration\":%2,\"melody\":{\"notes\":[")
+                 .arg(authority->meloStateJson()).arg((end - starts[i]).ticks());
         bool first = true;
         for (const Segment* seg = score->firstSegment(SegmentType::ChordRest); seg;
              seg = seg->next1(SegmentType::ChordRest)) {
             if (seg->tick() < starts[i]) {
                 continue;
             }
-            if (bounded && seg->tick() >= end) {
+            if (seg->tick() >= end) {
                 break;
             }
             for (track_idx_t track = melodyStaffIdx * VOICES; track < (melodyStaffIdx + 1) * VOICES; ++track) {
@@ -496,22 +528,21 @@ int deriveTonicAmbits(Score* score)
                         continue;
                     }
                     if (!first) {
-                        melody += u",";
+                        spans += u",";
                     }
-                    melody += String(u"{\"nPer\":%1,\"nGen\":%2}").arg(note->meloNPer()).arg(note->meloNGen());
                     first = false;
+                    spans += String(u"{\"nPer\":%1,\"nGen\":%2}").arg(note->meloNPer()).arg(note->meloNGen());
                 }
             }
         }
-        melody += u"]}";
-        if (first) {
-            continue;
-        }
-        String token;
-        String error;
-        if (!tonicAmbitForMelody(authority->meloStateJson(), melody, token, &error)) {
-            continue;
-        }
+        spans += u"]}}";
+    }
+    spans += u"]";
+    String token;
+    if (!songwideTonicAmbit(spans, token)) {
+        return 0;
+    }
+    for (size_t i = 0; i < starts.size(); ++i) {
         // The identical Kernel token is repeated through every staff carrier;
         // repetition is transport, never a second authority.
         for (staff_idx_t staffIdx = 0; staffIdx < score->nstaves(); ++staffIdx) {
