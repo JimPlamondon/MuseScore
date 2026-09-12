@@ -7,6 +7,11 @@ on:
   # melopresto-score: the upstream Thursday coverage schedule is removed (needs upstream S3 secrets).
   workflow_dispatch:
     inputs:
+      kernel_ref:
+        description: 'Kernel branch or commit to validate with this Score revision'
+        required: false
+        type: string
+        default: main
       code_coverage:
         description: 'Enable code coverage'
         required: false
@@ -71,7 +76,7 @@ jobs:
       uses: actions/checkout@v6
       with:
         repository: JimPlamondon/melopresto
-        ref: main
+        ref: ${{ inputs.kernel_ref || 'main' }}
         token: ${{ secrets.JIMS_KERNEL_TOKEN }}
         path: melo-kernel
     - name: Setup Rust (MeloPresto bridge)

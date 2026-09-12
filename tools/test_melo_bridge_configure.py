@@ -73,14 +73,14 @@ def configure(project: Path, build: Path, cargo_bin: Path, melo_root: Optional[P
     environment = os.environ.copy()
     environment["PATH"] = str(cargo_bin) + os.pathsep + environment.get("PATH", "")
     if melo_root is None:
-        environment.pop("JIMS_ROOT", None)
+        environment.pop("MELO_ROOT", None)
     else:
-        environment["JIMS_ROOT"] = str(melo_root)
+        environment["MELO_ROOT"] = str(melo_root)
 
     command = ["cmake", "-S", str(project), "-B", str(build)]
     command.append(f"-DCARGO_EXECUTABLE={cargo_bin / 'cargo'}")
     if explicit_root is not None:
-        command.append(f"-DJIMS_ROOT={explicit_root}")
+        command.append(f"-DMELO_ROOT={explicit_root}")
     return subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=environment)
 
 
@@ -121,30 +121,30 @@ def run_checks(bridge_cmake: Path, expect_env_reset: bool) -> None:
 
         require_success(configure(project, build, cargo_bin, checkout_a), "initial environment selection")
         if selected_root(build) != checkout_a.resolve():
-            fail("initial JIMS_ROOT environment selection was not recorded")
+            fail("initial MELO_ROOT environment selection was not recorded")
 
         if expect_env_reset:
             require_success(configure(project, build, cargo_bin, checkout_b), "historical environment-changed reconfiguration")
             if selected_root(build) != checkout_b.resolve():
-                fail("historical setup did not replace the root from changed JIMS_ROOT")
+                fail("historical setup did not replace the root from changed MELO_ROOT")
             return
 
         require_success(configure(project, build, cargo_bin, None), "environment-unset reconfiguration")
         unset_selection = selected_root(build)
         if unset_selection != checkout_a.resolve():
-            fail(f"unexpected root after unsetting JIMS_ROOT: {unset_selection}")
+            fail(f"unexpected root after unsetting MELO_ROOT: {unset_selection}")
 
         require_success(configure(project, build, cargo_bin, checkout_b), "environment-changed reconfiguration")
         changed_selection = selected_root(build)
         if changed_selection != checkout_a.resolve():
-            fail(f"unexpected root after changing JIMS_ROOT: {changed_selection}")
+            fail(f"unexpected root after changing MELO_ROOT: {changed_selection}")
 
         require_success(
             configure(project, build, cargo_bin, checkout_a, explicit_root=checkout_b),
-            "explicit -DJIMS_ROOT switch",
+            "explicit -DMELO_ROOT switch",
         )
         if selected_root(build) != checkout_b.resolve():
-            fail("explicit -DJIMS_ROOT switch did not replace the cached checkout")
+            fail("explicit -DMELO_ROOT switch did not replace the cached checkout")
 
         missing_build = temporary_path / "missing-build"
         missing_result = configure(project, missing_build, cargo_bin, checkout_a, explicit_root=missing_checkout)
@@ -159,7 +159,7 @@ def main() -> int:
     parser.add_argument("--bridge-cmake", type=Path, default=DEFAULT_BRIDGE_CMAKE,
                         help="bridge setup file to configure (default: checked-in file)")
     parser.add_argument("--expect-env-reset", action="store_true",
-                        help="expect historical behavior that replaces the root from JIMS_ROOT on reconfigure")
+                        help="expect historical behavior that replaces the root from MELO_ROOT on reconfigure")
     arguments = parser.parse_args()
     try:
         run_checks(arguments.bridge_cmake, arguments.expect_env_reset)

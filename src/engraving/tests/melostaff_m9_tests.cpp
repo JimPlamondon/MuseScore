@@ -24,14 +24,15 @@
 //
 // Three things are under test here.
 //
-// 1. The shipped "SATB (JiMStaff)" Choral template: four stock vocal Parts in
-//    open score, one JiMStaff each, following MuseScore's own choral
+// 1. The shipped "SATB (MeloPresto Staff)" Choral template
+//    (share/templates/02-Choral/12-SATB_(MeloPresto_Staff)): four stock vocal Parts in
+//    open score, one MeloPresto Staff each, following MuseScore's own choral
 //    conventions, registered in all three template-registration files.
 // 2. Empty-staff defaults. The Kernel derives each frame from the Part's
 //    declared amateur range; Bass alone uses the tonic-anchored exception.
 //    Framing is tonic-relative throughout.
 // 3. Owner decision 2a: a key/mode/scale change applied anywhere in a
-//    multi-part JiMS score reaches every JiMS part at the same measure as ONE
+//    multi-part MeloPresto score reaches every MeloPresto part at the same measure as ONE
 //    undo step, and a refusal anywhere mutates nothing.
 //
 // Every musical answer still comes from the Kernel. These tests assert what

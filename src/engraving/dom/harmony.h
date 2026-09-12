@@ -281,6 +281,10 @@ public:
     TranslatableString typeUserName() const override;
     static bool isValidMeloName(const String& text);
     String meloNameError() const;
+    const String& meloEvidence() const { return m_meloEvidence; }
+    void setMeloEvidence(const String& json, bool manual = false) { m_meloEvidence = json; m_meloEvidenceManual = manual; }
+    String meloEvidenceOrigin() const;
+    String meloEvidenceError(bool live = true) const;
     String accessibleInfo() const override;
     String generateScreenReaderInfo() const;
     String screenReaderInfo() const override;
@@ -338,6 +342,10 @@ private:
     Harmony* findInSeg(Segment* seg) const;
 
     bool m_isMisspelled = false;                         // show spell check warning
+    // Immutable generation history survives text edits and undo. Current origin
+    // becomes manual when the user changes the generated text.
+    String m_meloEvidence;
+    bool m_meloEvidenceManual = false;
     HarmonyType m_harmonyType = HarmonyType::STANDARD;   // used to control rendering, transposition, export, etc.
 
     mutable RealizedHarmony m_realizedHarmony;           // the realized harmony used for playback

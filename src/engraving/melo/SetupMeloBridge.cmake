@@ -8,22 +8,22 @@
 
 function(setup_melo_bridge target)
     # Preserve the selected checkout across automatic CMake reconfiguration.
-    # The environment supplies the initial default; -DJIMS_ROOT changes an
+    # The environment supplies the initial default; -DMELO_ROOT changes an
     # existing build explicitly.
-    if (NOT DEFINED JIMS_ROOT)
-        set(JIMS_ROOT "$ENV{JIMS_ROOT}")
-        if (NOT JIMS_ROOT)
-            set(JIMS_ROOT "/Users/jim/Developer/MeloPresto/GitHub/melopresto")
+    if (NOT DEFINED MELO_ROOT)
+        set(MELO_ROOT "$ENV{MELO_ROOT}")
+        if (NOT MELO_ROOT)
+            set(MELO_ROOT "/Users/jim/Developer/MeloPresto/GitHub/melopresto")
         endif()
     endif()
-    set(JIMS_ROOT "${JIMS_ROOT}" CACHE PATH "MeloPresto Kernel checkout used by this build")
-    set(MELO_WORKSPACE "${JIMS_ROOT}/Libraries/melo")
+    set(MELO_ROOT "${MELO_ROOT}" CACHE PATH "MeloPresto Kernel checkout used by this build")
+    set(MELO_WORKSPACE "${MELO_ROOT}/Libraries/melo")
     set(MELO_BRIDGE_CRATE "${MELO_WORKSPACE}/crates/melo-musescore-bridge")
 
     if (NOT EXISTS "${MELO_BRIDGE_CRATE}/Cargo.toml")
         message(FATAL_ERROR
                 "MeloPresto bridge crate not found at ${MELO_BRIDGE_CRATE}. "
-                "Configure with -DJIMS_ROOT=<path> to select a MeloPresto Kernel checkout containing "
+                "Configure with -DMELO_ROOT=<path> to select a MeloPresto Kernel checkout containing "
                 "crates/melo-musescore-bridge.")
     endif()
 

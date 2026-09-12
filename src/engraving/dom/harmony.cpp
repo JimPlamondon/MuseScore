@@ -21,6 +21,7 @@
  */
 
 #include "engraving/melo/melostrings.h"
+#include "engraving/melo/melobridge.h"
 #include "harmony.h"
 
 #include "containers.h"
@@ -35,6 +36,10 @@
 #include "../editing/transpose.h"
 
 #include "chordlist.h"
+#include "chord.h"
+#include "note.h"
+#include "stafftype.h"
+#include "serialization/json.h"
 #include "fret.h"
 #include "linkedobjects.h"
 #include "measure.h"
@@ -348,6 +353,8 @@ Harmony::Harmony(const Harmony& h)
     m_bassScale = h.m_bassScale;
     m_degreeList = h.m_degreeList;
     m_harmonyType = h.m_harmonyType;
+    m_meloEvidence = h.m_meloEvidence;
+    m_meloEvidenceManual = h.m_meloEvidenceManual;
     m_play       = h.m_play;
     m_realizedHarmony = h.m_realizedHarmony;
     m_realizedHarmony.setHarmony(this);
@@ -1171,8 +1178,8 @@ const ParsedChord* Harmony::parsedForm()const
 
 Color Harmony::curColor(const rendering::PaintOptions& opt) const
 {
-    if (!opt.isPrinting
-        && (m_harmonyType == HarmonyType::MELO && cursor() && cursor()->editing() ? !isValidMeloName(plainText()) : m_isMisspelled)) {
+    if ((m_harmonyType == HarmonyType::MELO && !meloNameError().empty())
+        || (!opt.isPrinting && m_isMisspelled)) {
         return configuration()->criticalColor();
     }
 
@@ -1337,21 +1344,90 @@ TranslatableString Harmony::typeUserName() const
 
 bool Harmony::isValidMeloName(const String& text)
 {
-    if (text.isEmpty() || text.contains(u'~')) {
-        return false;
+    return melo::validateChordBassSuffix(text);
+}
+
+String Harmony::meloEvidenceOrigin() const
+{
+    if (m_meloEvidence.empty() || m_meloEvidenceManual) {
+        return u"manual";
     }
-    for (size_t i = 0; i < text.size(); ++i) {
-        if (text.at(i).isSpace()) {
-            return false;
+    const String generated = muse::JsonDocument::fromJson(m_meloEvidence.toUtf8()).rootObject()
+                             .value("naming").toObject().value("name").toString();
+    return generated.empty() || generated == harmonyName() ? u"generated" : u"manual";
+}
+
+String Harmony::meloEvidenceError(bool live) const
+{
+    if (m_meloEvidence.empty()) {
+        return String();
+    }
+    const auto proof = muse::JsonDocument::fromJson(m_meloEvidence.toUtf8()).rootObject();
+    const String generated = proof.value("naming").toObject().value("name").toString();
+    String error;
+    if (!melo::validateChordEvidence(m_meloEvidence, generated, error)) {
+        return error;
+    }
+    if (!live || meloEvidenceOrigin() == u"manual") {
+        return String();
+    }
+    if (!score() || !explicitParent() || !explicitParent()->isSegment()) {
+        return u"Generated chord evidence needs its complete score and interval";
+    }
+    const auto interval = proof.value("interval").toObject();
+    const Fraction start = Fraction::fromString(interval.value("offset").toString()) / 4;
+    const Fraction end = start + Fraction::fromString(interval.value("duration").toString()) / 4;
+    muse::JsonArray notes;
+    for (const Segment* seg = score()->firstSegment(SegmentType::ChordRest); seg && seg->tick() < end;
+         seg = seg->next1(SegmentType::ChordRest)) {
+        for (track_idx_t track = 0; track < score()->ntracks(); ++track) {
+            const EngravingItem* item = seg->element(track);
+            if (!item || !item->isChord()) {
+                continue;
+            }
+            const Chord* chord = toChord(item);
+            const Fraction finish = chord->tick() + chord->actualTicks();
+            if (finish <= start) {
+                continue;
+            }
+            for (const Note* note : chord->notes()) {
+                if (!note->hasMeloPitch()) {
+                    return u"Generated chord name is stale: a supporting note has no Melo pitch";
+                }
+                const StaffType* st = note->staff()->staffTypeForElement(note);
+                melo::SoundingPitch pitch;
+                if (!st || !st->isMelo()
+                    || !melo::noteSoundingPitch(st->meloStateJson(), note->meloNPer(), note->meloNGen(), pitch, &error)) {
+                    return u"Generated chord evidence cannot resolve the current sounding notes";
+                }
+                muse::JsonObject point;
+                point.set("offset", (chord->tick() * 4).toString());
+                point.set("duration", (chord->actualTicks() * 4).toString());
+                point.set("n_per", note->meloNPer());
+                point.set("n_gen", note->meloNGen());
+                point.set("height", pitch.frequencyHz);
+                notes.append(point);
+            }
         }
     }
-    return true;
+    if (!melo::validateChordEvidence(m_meloEvidence, harmonyName(), error,
+                                     String::fromUtf8(muse::JsonDocument(notes).toJson()), (tick() * 4).toString())) {
+        return error;
+    }
+    return String();
 }
 
 String Harmony::meloNameError() const
 {
+    if (m_harmonyType == HarmonyType::MELO) {
+        const String evidenceError = meloEvidenceError();
+        if (!evidenceError.empty()) {
+            return evidenceError;
+        }
+    }
     return m_harmonyType == HarmonyType::MELO && (cursor() && cursor()->editing() ? !isValidMeloName(plainText()) : m_isMisspelled)
-           ? muse::mtrc("engraving", "Chord name refused: use one nonempty name without spaces or ~. The previous name is preserved.")
+           ? muse::mtrc("engraving",
+                        "Chord name refused: use /1 through /7 for a modal bass, or /Xx for an exceptional bass. Spaces and ~ are not allowed. The previous name is preserved.")
            : String();
 }
 

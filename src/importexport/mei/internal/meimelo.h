@@ -21,12 +21,12 @@
  */
 #pragma once
 
-// JiMS MEI carriage (the mei-jims profile, spec/MAPPING.md of the mei-jims
+// MeloPresto MEI carriage (the MeloPresto MEI profile, spec/MAPPING.md of the mei-jims
 // repository). Extends the Pull-Request-19 preservation pattern: native MEI
 // carries what it can express exactly (typed harm, ambitus, typed annots),
 // and the irreducibly JiMS-specific remainder rides as validated typed XML
-// in one extMeta jm:record (urn:jims:mei:1) embedding verbatim
-// urn:jims:musicxml:4 fragments produced by the Kernel bridge. Everything is
+// in one extMeta jm:record (urn:melopresto:mei:1) embedding verbatim
+// urn:melopresto:musicxml:4 fragments produced by the Kernel bridge. Everything is
 // regenerated from the score's typed JiMS state at export time — links can
 // never go stale — and imported back into the same typed state.
 
@@ -50,8 +50,11 @@ class Staff;
 }
 
 namespace mu::iex::mei {
-static constexpr const char* MELO_MEI_NS = "urn:jims:mei:1";
-static constexpr const char* MELO_MUSICXML_NS = "urn:jims:musicxml:4";
+static constexpr const char* MELO_MEI_NS = "urn:melopresto:mei:1";
+// Retired spellings (before 2026-09-11): still read, never written.
+static constexpr const char* RETIRED_MELO_MEI_NS = "urn:jims:mei:1";
+static constexpr const char* MELO_MUSICXML_NS = "urn:melopresto:musicxml:4";
+static constexpr const char* RETIRED_MELO_MUSICXML_NS = "urn:jims:musicxml:4";
 
 /// Export-side plan and emission.
 class MeloMeiExporter
@@ -120,6 +123,7 @@ public:
     void capture(pugi::xml_node root);
 
     bool present() const { return !m_record.empty(); }
+    bool onHarm(const std::string& xmlId, engraving::Harmony* harmony);
 
     /// Apply the captured record to the fully-built score: staff states
     /// (StaffType at tick 0 + StaffTypeChange at exact ticks, Kernel-

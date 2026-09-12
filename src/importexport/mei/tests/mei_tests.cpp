@@ -23,6 +23,11 @@
 #include <gtest/gtest.h>
 #include <QFile>
 #include <QTemporaryDir>
+#include <QXmlStreamReader>
+#include "engraving/dom/part.h"
+#include "engraving/dom/instrument.h"
+#include "engraving/dom/pitchspelling.h"
+#include "engraving/dom/measure.h"
 
 #include "io/file.h"
 
@@ -32,6 +37,7 @@
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/excerpt.h"
 #include "engraving/dom/note.h"
+#include "engraving/dom/harmony.h"
 #include "engraving/dom/segment.h"
 #include "engraving/dom/staff.h"
 #include "engraving/dom/stafftype.h"
@@ -96,7 +102,55 @@ void Mei_Tests::meiReadTest(const char* file)
     EXPECT_TRUE(ScoreComp::compareFiles(fileName + u".test.mei", ScoreRW::rootPath() + u"/" + MEI_DIR + fileName + u".mei"));
 }
 
-// MeloPresto MEI (mei-jims profile) focused round trip: typed state import,
+TEST_F(Mei_Tests, timedConventionalInstrumentControlsWrittenOctave)
+{
+    std::unique_ptr<MasterScore> score(ScoreRW::readScore(u"data/accid-01.mscx"));
+    ASSERT_TRUE(score);
+    ASSERT_FALSE(score->staff(0)->staffType(Fraction(0, 1))->isMelo());
+    Measure* second = score->firstMeasure()->nextMeasure();
+    ASSERT_TRUE(second);
+    Instrument later(*score->parts().front()->instrument());
+    later.setTranspose(Interval(7, 12));
+    score->parts().front()->setInstrument(later, second->tick());
+    std::vector<int> expected;
+    for (Segment* seg = score->firstSegment(SegmentType::ChordRest); seg; seg = seg->next1(SegmentType::ChordRest)) {
+        EngravingItem* item = seg->element(0);
+        if (!item || !item->isChord()) {
+            continue;
+        }
+        for (Note* note : toChord(item)->notes()) {
+            note->setTpcFromPitch();
+            const int offset = seg->tick() < second->tick() ? 0 : 12;
+            expected.push_back((note->pitch() - offset - tpc2alterByKey(note->tpc2(), Key::C)) / 12 - 1);
+        }
+    }
+    ASSERT_FALSE(expected.empty());
+    QTemporaryDir directory;
+    const String path = String::fromQString(directory.filePath("timed.mei"));
+    auto write = [](Score* source, const muse::io::path_t& destination) -> Err {
+        MeiWriter writer;
+        return writer.writeScore(source, destination);
+    };
+    ASSERT_TRUE(ScoreRW::saveScore(score.get(), path, write));
+    QFile file(path.toQString());
+    ASSERT_TRUE(file.open(QIODevice::ReadOnly));
+    QXmlStreamReader xml(&file);
+    std::vector<int> actual;
+    bool firstVoice = false;
+    while (!xml.atEnd()) {
+        xml.readNext();
+        if (xml.isStartElement() && xml.name() == u"layer") {
+            firstVoice = xml.attributes().value(u"n") == u"1";
+        }
+        if (xml.isStartElement() && xml.name() == u"note" && firstVoice) {
+            actual.push_back(xml.attributes().value(u"oct").toInt());
+        }
+    }
+    ASSERT_FALSE(xml.hasError());
+    EXPECT_EQ(actual, expected);
+}
+
+// MeloPresto MEI (MeloPresto MEI profile) focused round trip: typed state import,
 // native carriers, and extMeta regeneration on export.
 TEST_F(Mei_Tests, mei_melo_roundtrip_01) {
     auto importFunc = [](MasterScore* score, const muse::io::path_t& path) -> Err {
@@ -155,13 +209,56 @@ TEST_F(Mei_Tests, mei_melo_roundtrip_01) {
     const String mei = String::fromUtf8(meiBytes.constChar());
     out.close();
     EXPECT_TRUE(mei.contains(u"jm:record"));
-    EXPECT_TRUE(mei.contains(u"jims-tonal-state"));
-    EXPECT_TRUE(mei.contains(u"jims-chord-name"));
-    EXPECT_TRUE(mei.contains(u"jims-tonic-ambit"));
-    EXPECT_TRUE(mei.contains(u"jims-melody-part"));
+    EXPECT_TRUE(mei.contains(u"melo-tonal-state"));
+    EXPECT_TRUE(mei.contains(u"melo-chord-name"));
+    EXPECT_TRUE(mei.contains(u"melo-tonic-ambit"));
+    EXPECT_TRUE(mei.contains(u"melo-melody-part"));
     EXPECT_TRUE(mei.contains(u"<ambitus>"));
-    EXPECT_TRUE(mei.contains(u"jims:tuning-trajectory"));
+    EXPECT_TRUE(mei.contains(u"melo:tuning-trajectory"));
+    EXPECT_FALSE(mei.contains(u"jims:"));
     delete score;
+}
+
+TEST_F(Mei_Tests, generated_chord_evidence_roundtrip_and_stale_export)
+{
+    auto importFunc = [](MasterScore* score, const muse::io::path_t& path) -> Err {
+        MeiReader reader(nullptr);
+        return reader.import(score, path);
+    };
+    auto exportFunc = [](Score* score, const muse::io::path_t& path) -> Err {
+        MeiWriter writer;
+        return writer.writeScore(score, path);
+    };
+    std::unique_ptr<MasterScore> score(ScoreRW::readScore(MEI_DIR + u"jims/generated-chord-evidence.mei", false, importFunc));
+    ASSERT_TRUE(score);
+    Harmony* harmony = nullptr;
+    Note* note = nullptr;
+    for (Segment* seg = score->firstSegment(SegmentType::All); seg; seg = seg->next1()) {
+        for (EngravingItem* item : seg->annotations()) {
+            if (item->isHarmony()) {
+                harmony = toHarmony(item);
+            }
+        }
+        if (seg->isChordRestType() && seg->element(0) && seg->element(0)->isChord()) {
+            note = toChord(seg->element(0))->notes().front();
+        }
+    }
+    ASSERT_TRUE(harmony);
+    ASSERT_TRUE(note);
+    const String proof = harmony->meloEvidence();
+    EXPECT_FALSE(proof.empty());
+    EXPECT_EQ(harmony->meloEvidenceOrigin(), u"generated");
+    EXPECT_TRUE(harmony->meloEvidenceError().empty());
+    score->rebuildMidiMapping();
+    EXPECT_TRUE(ScoreRW::saveScore(score.get(), u"generated-evidence.test.mei", exportFunc));
+    std::unique_ptr<MasterScore> again(ScoreRW::readScore(u"generated-evidence.test.mei", true, importFunc));
+    ASSERT_TRUE(again);
+    muse::io::File file(muse::io::path_t(u"generated-evidence.test.mei"));
+    ASSERT_TRUE(file.open(muse::io::IODevice::ReadOnly));
+    EXPECT_TRUE(String::fromUtf8(file.readAll().constChar()).contains(proof));
+    note->setMeloPitch(note->meloNPer() + 1, note->meloNGen());
+    EXPECT_FALSE(harmony->meloEvidenceError().empty());
+    EXPECT_FALSE(ScoreRW::saveScore(score.get(), u"stale-evidence.test.mei", exportFunc));
 }
 
 TEST_F(Mei_Tests, mei_accid_01) {

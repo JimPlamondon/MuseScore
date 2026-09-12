@@ -50,6 +50,44 @@ bool available()
     return melo_musescore_bridge_abi_version() == 2;
 }
 
+bool validateChordBassSuffix(const String& name)
+{
+    JsonObject envelope;
+    envelope.set("abi", 2);
+    envelope.set("op", "chord_bass_suffix_validate");
+    envelope.set("name", name);
+    JsonValue result;
+    return okResult(callBridge(String::fromUtf8(JsonDocument(envelope).toJson())), result);
+}
+
+bool validateChordEvidence(const String& evidence, const String& name, String& error, const String& live, const String& offset)
+{
+    std::string parseError;
+    JsonDocument proof = JsonDocument::fromJson(evidence.toUtf8(), &parseError);
+    if (!parseError.empty()) {
+        error = u"Invalid generated chord evidence JSON";
+        return false;
+    }
+    JsonObject envelope;
+    envelope.set("abi", 2);
+    envelope.set("op", "chord_evidence_validate");
+    envelope.set("evidence", proof.rootObject());
+    envelope.set("name", name);
+    if (!live.empty()) {
+        envelope.set("live", JsonDocument::fromJson(live.toUtf8()).rootArray());
+        envelope.set("offset", offset);
+    }
+    JsonDocument response = JsonDocument::fromJson(callBridge(String::fromUtf8(JsonDocument(envelope).toJson())).toUtf8());
+    if (response.rootObject().value("ok").toBool()) {
+        return true;
+    }
+    error = response.rootObject().value("error").toString();
+    if (error.empty()) {
+        error = u"Kernel could not validate generated chord evidence";
+    }
+    return false;
+}
+
 bool validateState(const String& stateJson, String& error)
 {
     String envelope = String(u"{\"abi\":2,\"op\":\"validate\",\"state\":%1}").arg(stateJson);
@@ -822,6 +860,13 @@ bool noteContinuation(const String& stateJson, double frequencyHz, SoundingPitch
 {
     String envelope = String(u"{\"abi\":2,\"op\":\"note_continuation\",\"state\":%1,\"frequency_hz\":%2}")
                       .arg(stateJson).arg(String::number(frequencyHz, 17));
+    return readSoundingPitch(callBridge(envelope), out, error);
+}
+
+bool transposeNote(const String& stateJson, int nPer, int nGen, int steps, int keys, SoundingPitch& out, String* error)
+{
+    String envelope = String(u"{\"abi\":2,\"op\":\"transpose_note\",\"state\":%1,\"nPer\":%2,\"nGen\":%3,\"steps\":%4,\"keys\":%5}")
+                      .arg(stateJson).arg(nPer).arg(nGen).arg(steps).arg(keys);
     return readSoundingPitch(callBridge(envelope), out, error);
 }
 

@@ -148,8 +148,10 @@ bool MeiImporter::read(const muse::io::path_t& path)
         bool hasMeloCarrier = false;
         for (pugi::xpath_node node : root.select_nodes("//*[@type]")) {
             const String tokens = u" " + String(node.node().attribute("type").value()).simplified() + u" ";
-            for (const char* token : { "jims-melody-part", "jims-provenance", "jims-tonal-state", "jims-chord-name", "jims-tonic-ambit",
-                                       "jims-focused-review", "jims-adjudication" }) {
+            for (const char* token : { "melo-melody-part", "melo-provenance", "melo-tonal-state", "melo-chord-name", "melo-tonic-ambit",
+                                       "melo-focused-review", "melo-adjudication", "jims-melody-part", "jims-provenance",
+                                       "jims-tonal-state", "jims-chord-name", "jims-tonic-ambit", "jims-focused-review",
+                                       "jims-adjudication" }) {
                 if (tokens.contains(u" " + String::fromUtf8(token) + u" ")) {
                     hasMeloCarrier = true;
                 }
@@ -2170,9 +2172,11 @@ bool MeiImporter::readNote(pugi::xml_node noteNode, Measure* measure, int track,
     // If there is a reference to the note in the MEI, add it the maps (e.g., for ties)
     if (m_startIdChordRests.count(meiNote.m_xmlId)) {
         m_startIdNotes[meiNote.m_xmlId] = note;
+        m_startIdChordRests[meiNote.m_xmlId] = chord;
     }
     if (m_endIdChordRests.count(meiNote.m_xmlId)) {
         m_endIdNotes[meiNote.m_xmlId] = note;
+        m_endIdChordRests[meiNote.m_xmlId] = chord;
     }
 
     int tpc1 = Transpose::transposeTpc(pitchSt.tpc2, interval, true);
@@ -2369,10 +2373,12 @@ bool MeiImporter::readVerse(pugi::xml_node verseNode, Chord* chord)
     bool success = true;
 
     // If the verse has a syl with @con="u", add it to the lyrics to extend;
-    // verse@label="jims-extend" is the mei-jims carrier for an extension on
+    // verse@label="melo-extend" (retired spelling jims-extend still read) is the MeloPresto MEI carrier for an extension on
     // a dashed syllable (where @con carries the dash).
     pugi::xpath_node extender = verseNode.select_node("./syl[@con='u']");
-    if (extender || std::string(verseNode.attribute("label").value()) == "jims-extend") {
+    if (extender
+        || (std::string(verseNode.attribute("label").value()) == "melo-extend"
+            || std::string(verseNode.attribute("label").value()) == "jims-extend")) {
         m_lyricExtenders[chord->track()][no] = std::make_pair(lyrics, nullptr);
     }
 
@@ -2886,7 +2892,7 @@ bool MeiImporter::readHarm(pugi::xml_node harmNode, Measure* measure)
 
     Convert::harmFromMEI(harmony, meiLines, meiHarm, warning);
 
-    return true;
+    return m_melo.onHarm(meiHarm.m_xmlId, harmony);
 }
 
 /**

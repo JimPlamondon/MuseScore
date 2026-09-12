@@ -45,7 +45,9 @@ using namespace muse;
 using namespace mu::engraving;
 
 namespace mu::iex::musicxml {
-static const char* MELO_URI_STEM = "urn:jims:musicxml:";
+static const char* MELO_URI_STEM = "urn:melopresto:musicxml:";
+// The retired stem (before 2026-09-11) stays readable; the exporter never writes it.
+static const char* RETIRED_URI_STEM = "urn:jims:musicxml:";
 
 // Fatal MeloPresto import conditions go to the MusicXML logger (the import
 // dialog) AND the console log, so a refused import is never silent.
@@ -66,10 +68,12 @@ Err MeloImportContext::resolveFromRoot(const std::vector<XmlStreamReader::Attrib
 {
     for (const XmlStreamReader::Attribute& a : attributes) {
         const String name = String::fromAscii(a.name.ascii());
-        if (!a.value.startsWith(String::fromAscii(MELO_URI_STEM))) {
+        const char* stem = a.value.startsWith(String::fromAscii(MELO_URI_STEM)) ? MELO_URI_STEM
+                           : a.value.startsWith(String::fromAscii(RETIRED_URI_STEM)) ? RETIRED_URI_STEM : nullptr;
+        if (!stem) {
             continue;
         }
-        const String versionText = a.value.mid(String::fromAscii(MELO_URI_STEM).size());
+        const String versionText = a.value.mid(String::fromAscii(stem).size());
         bool ok = false;
         const int version = versionText.toInt(&ok);
         if (!ok || version < MIN_VERSION || version > MAX_VERSION) {
@@ -173,7 +177,7 @@ bool MeloImportContext::parseStaffState(XmlStreamReader& e, String& json, int& s
         bool ok = false;
         out = text.trimmed().toInt(&ok);
         if (!ok) {
-            fail(String(u"jims:staff-state %1 is not an integer: '%2'").arg(String::fromAscii(field), text));
+            fail(String(u"melo:staff-state %1 is not an integer: '%2'").arg(String::fromAscii(field), text));
         }
         return ok;
     };
@@ -202,12 +206,12 @@ bool MeloImportContext::parseStaffState(XmlStreamReader& e, String& json, int& s
         } else if (tag == u"generator-cents") {
             generatorCents = jsonNumber(e.readText(), haveGen);
             if (!haveGen) {
-                fail(u"jims:staff-state generator-cents is not a number");
+                fail(u"melo:staff-state generator-cents is not a number");
             }
         } else if (tag == u"period-cents") {
             periodCents = jsonNumber(e.readText(), havePer);
             if (!havePer) {
-                fail(u"jims:staff-state period-cents is not a number");
+                fail(u"melo:staff-state period-cents is not a number");
             }
         } else if (tag == u"embedding") {
             haveEmb = integer(e.attribute("large-steps"), "embedding/large-steps", largeSteps)
@@ -246,7 +250,7 @@ bool MeloImportContext::parseStaffState(XmlStreamReader& e, String& json, int& s
                     if (ok) {
                         reference = String(u"{\"frequency-hz\":{\"hertz\":%1}}").arg(hertz);
                     } else {
-                        fail(u"jims:reference frequency-hz is not a number");
+                        fail(u"melo:reference frequency-hz is not a number");
                     }
                 } else {
                     fail(String(u"unknown jims:reference form '%1'").arg(form));
@@ -254,7 +258,7 @@ bool MeloImportContext::parseStaffState(XmlStreamReader& e, String& json, int& s
                 }
             }
             if (forms != 1) {
-                fail(String(u"jims:reference must carry exactly one form, found %1").arg(forms));
+                fail(String(u"melo:reference must carry exactly one form, found %1").arg(forms));
             }
         } else {
             // Unknown MeloPresto-namespaced child: skip, never abort (Binding Requirement 3).
@@ -264,10 +268,10 @@ bool MeloImportContext::parseStaffState(XmlStreamReader& e, String& json, int& s
 
     if (!(haveScale && haveColl && haveMode && haveGen && havePer && haveEmb && haveExt)) {
         fail(
-            u"jims:staff-state is missing a required child (scale, collection-rotation, mode-rotation, generator-cents, period-cents, embedding, extent)");
+            u"melo:staff-state is missing a required child (scale, collection-rotation, mode-rotation, generator-cents, period-cents, embedding, extent)");
     }
     if (steps.empty()) {
-        fail(u"jims:staff-state scale carries no steps");
+        fail(u"melo:staff-state scale carries no steps");
     }
     if (!error.empty()) {
         return false;
@@ -355,7 +359,7 @@ bool MeloImportContext::applyToPart(Score* score, Part* part, const String& part
         if (s.staffNumber > 0) {
             idx = staffIndexForNumber(s.staffNumber);
             if (idx < 0 || idx >= int(part->nstaves())) {
-                meloFatal(logger, String(u"jims:staff-state number %1 names no staff of this part").arg(s.staffNumber));
+                meloFatal(logger, String(u"melo:staff-state number %1 names no staff of this part").arg(s.staffNumber));
                 return false;
             }
         }
@@ -383,12 +387,12 @@ bool MeloImportContext::applyToPart(Score* score, Part* part, const String& part
                 first = false;
             } else {
                 if (s->tick <= lastTick) {
-                    meloFatal(logger, u"jims:staff-state declarations must be in strictly increasing score-time order");
+                    meloFatal(logger, u"melo:staff-state declarations must be in strictly increasing score-time order");
                     return false;
                 }
                 Measure* measure = score->tick2measure(s->tick);
                 if (!measure || s->tick < measure->tick() || s->tick >= measure->endTick()) {
-                    meloFatal(logger, u"jims:staff-state does not sit inside a score measure");
+                    meloFatal(logger, u"melo:staff-state does not sit inside a score measure");
                     return false;
                 }
                 const Fraction rtick = s->tick - measure->tick();
@@ -436,7 +440,7 @@ bool MeloImportContext::parseProvenance(XmlStreamReader& e, engraving::melo::Pro
             r.mediaType = e.attribute("media-type");
             r.sha256 = e.attribute("sha-256");
             if (r.role.isEmpty() || r.uri.isEmpty() || r.mediaType.isEmpty()) {
-                error = u"jims:provenance resource is missing role, uri or media-type";
+                error = u"melo:provenance resource is missing role, uri or media-type";
                 e.skipCurrentElement();
                 return false;
             }
@@ -469,7 +473,7 @@ bool MeloImportContext::parseTuningTrajectory(XmlStreamReader& e, const std::fun
         bool ok = false;
         const int divisions = e.attribute("duration-divisions").toInt(&ok);
         if (!ok || divisions <= 0) {
-            error = u"jims:segment duration-divisions must be a positive integer";
+            error = u"melo:segment duration-divisions must be a positive integer";
             e.skipCurrentElement();
             return false;
         }
@@ -479,7 +483,7 @@ bool MeloImportContext::parseTuningTrajectory(XmlStreamReader& e, const std::fun
         seg.interpolation = e.attribute("interpolation");
         if (seg.startCents.isEmpty() || seg.endCents.isEmpty()
             || (seg.interpolation != u"linear" && seg.interpolation != u"cubic-bezier")) {
-            error = u"jims:segment needs start-cents, end-cents and interpolation linear|cubic-bezier";
+            error = u"melo:segment needs start-cents, end-cents and interpolation linear|cubic-bezier";
             e.skipCurrentElement();
             return false;
         }
@@ -493,7 +497,7 @@ bool MeloImportContext::parseTuningTrajectory(XmlStreamReader& e, const std::fun
             c.time = e.attribute("time");
             c.valueCents = e.attribute("value-cents");
             if (c.time.isEmpty() || c.valueCents.isEmpty()) {
-                error = u"jims:control needs time and value-cents";
+                error = u"melo:control needs time and value-cents";
                 e.skipCurrentElement();
                 return false;
             }
@@ -511,7 +515,7 @@ bool MeloImportContext::parseTuningTrajectory(XmlStreamReader& e, const std::fun
         out.segments.push_back(seg);
     }
     if (out.segments.empty()) {
-        error = u"jims:tuning-trajectory carries no segment";
+        error = u"melo:tuning-trajectory carries no segment";
         return false;
     }
     return true;

@@ -25,6 +25,10 @@ bool available();
 // `validate`); on rejection `error` carries the Kernel's message. The
 // importer computes no musical fact — the Kernel is the only gate.
 bool validateState(const muse::String& stateJson, muse::String& error);
+/// Validate generated evidence; optional live JSON includes exact intervals and Kernel frequencies.
+bool validateChordEvidence(const muse::String& evidence, const muse::String& name, muse::String& error,
+                           const muse::String& live = muse::String(), const muse::String& offset = muse::String());
+bool validateChordBassSuffix(const muse::String& name);
 
 /// A note's cents above the staff's explicit lower extent endpoint.
 bool noteCentsAboveExtentLower(const muse::String& stateJson, int nPer, int nGen, double& cents);
@@ -324,6 +328,10 @@ bool applyStateChange(const muse::String& stateJson, const muse::String& choiceI
 /// validated identity and its complete coherent projection.
 bool entryFromStandardPitch(const muse::String& stateJson, char step, int alter, int octave, SoundingPitch& out,
                             muse::String* error = nullptr);
+
+/// Apply an inherited notation interval to the canonical structural note.
+bool transposeNote(const muse::String& stateJson, int nPer, int nGen, int steps, int keys, SoundingPitch& out,
+                   muse::String* error = nullptr);
 
 /// Reinterpret an established full-tie frequency under a new effective state.
 /// The Kernel returns an exact identity/projection or a typed failure.

@@ -195,6 +195,7 @@ public:
 
     void setPitch(int val, bool notifyAboutChanged = true);
     void setPitch(int pitch, int tpc1, int tpc2);
+    int writtenTpcForConcert(int concertTpc) const;
     int pitch() const { return m_pitch; }
 
     double centOffset() const { return m_centOffset; }

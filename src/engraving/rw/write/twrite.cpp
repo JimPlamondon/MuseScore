@@ -1791,6 +1791,9 @@ void TWrite::write(const Harmony* item, XmlWriter& xml, WriteContext& ctx)
         return;
     }
     xml.startElement(item);
+    if (!item->meloEvidence().empty()) {
+        xml.tag("meloChordEvidence", { { "origin", item->meloEvidenceOrigin() } }, item->meloEvidence());
+    }
     writeProperty(item, xml, Pid::HARMONY_TYPE);
     writeProperty(item, xml, Pid::PLAY);
 

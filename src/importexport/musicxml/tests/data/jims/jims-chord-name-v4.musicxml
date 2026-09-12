@@ -27,7 +27,7 @@
           <jims:reference><jims:reference-pitch key-number="62"/></jims:reference>
         </jims:staff-state>
       </attributes>
-      <harmony placement="above"><jims:chord-name>!So7/Ti</jims:chord-name><staff>1</staff></harmony>
+      <harmony placement="above"><jims:chord-name>!So7/3</jims:chord-name><staff>1</staff></harmony>
       <note>
         <pitch><step>C</step><octave>4</octave></pitch>
         <jims:pitch n-per="1" n-gen="-2"/>
