@@ -1490,6 +1490,13 @@ TEST(MeloStaffTests, changeTerrainLabelsOnlyTheNewTonicAndSeparatesCompoundArrow
                 if (placement == 0) {
                     ASSERT_GT(leftFlank, -1e9);
                     EXPECT_NEAR(rightFlank - leftFlank, g.changeTerrainWidth, 1e-6) << "the two dashed flanks span the terrain";
+                    // Owner finding 2026-09-12: the terrain is placed so that its
+                    // closing flank stays a bar-note gap left of the note it
+                    // precedes, whatever the terrain's lane count.
+                    const Segment* anchor = measure->findSegmentR(Segment::CHORD_REST_OR_TIME_TICK_TYPE, tick - measure->tick());
+                    ASSERT_TRUE(anchor);
+                    EXPECT_LE(rightFlank, anchor->x() - score->style().styleMM(Sid::barNoteDistance) + 1e-6)
+                        << "mid-bar terrain overlaps the note it precedes";
                 }
             }
             const double dotLeft = dotCenterX - g.indicatorW;
