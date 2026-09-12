@@ -3270,7 +3270,10 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                     const double indicatorW = g.indicatorW;
                     // Terrain columns, left to right, from the measure's left edge.
                     const double labelRight = x0 + 0.3 * _spatium + g.changeLabelBand;
-                    const double dotCenterX = labelRight + indicatorW;
+                    // Owner rule 2026-09-12 (2a): the mode-arrow lane sits between
+                    // the labels and the dots; the key-arrow lane stays right of them.
+                    const double leftLaneLeft = labelRight;
+                    const double dotCenterX = labelRight + g.changeLeftArrowLane + indicatorW;
                     const double rightLabelLeft = dotCenterX + indicatorW;                 // Grey labels start here
                     const double arrowLaneLeft = rightLabelLeft + g.changeRightLabelBand;
                     // Period 0 of the model = the anchor Do-line: the lowest Do-line
@@ -3494,10 +3497,20 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                         const Color arrowInk = opt.isPrinting ? Color::BLACK
                                                : item->curColor(item->visible(),
                                                                 item->style().value(Sid::meloChangeArrowColor).value<Color>(), opt);
-                        const double laneWidth = g.changeArrowLane / std::max(size_t(1), model.arrows.size());
-                        size_t arrowIndex = 0;
+                        size_t modeArrows = 0;
+                        size_t keyArrows = 0;
                         for (const melo::ChangeArrow& a : model.arrows) {
-                            const double arrowX = arrowLaneLeft + (arrowIndex++ + 0.5) * laneWidth;
+                            (a.kind == u"mode" ? modeArrows : keyArrows)++;
+                        }
+                        const double leftLaneWidth = g.changeLeftArrowLane / std::max(size_t(1), modeArrows);
+                        const double rightLaneWidth = g.changeArrowLane / std::max(size_t(1), keyArrows);
+                        size_t modeIndex = 0;
+                        size_t keyIndex = 0;
+                        for (const melo::ChangeArrow& a : model.arrows) {
+                            const bool modeArrow = a.kind == u"mode";
+                            const double arrowX = modeArrow
+                                                  ? leftLaneLeft + (modeIndex++ + 0.5) * leftLaneWidth
+                                                  : arrowLaneLeft + (keyIndex++ + 0.5) * rightLaneWidth;
                             const double yFrom = yOf(centsOf(a.from));
                             const double yTo = yOf(centsOf(a.to));
                             painter->setPen(Pen(arrowInk, pen, PenStyle::SolidLine, PenCapStyle::RoundCap));

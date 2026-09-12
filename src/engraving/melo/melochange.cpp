@@ -149,17 +149,31 @@ StaffType::MeloHeaderGeometry changeTerrainGeometry(const StaffType* staffType, 
                                                     double defaultSpatium, const ChangeIndicator& model)
 {
     auto geometry = staffType->meloHeaderGeometry(spatium, defaultSpatium);
-    if (model.arrows.size() > 1) {
-        const double dist = staffType->lineDistance().val() * spatium;
-        ConnectorGlyph head;
+    if (!model.arrows.empty()) {
+        // Owner rule 2026-09-12 (2a), from the corpus census (mode-only is the
+        // rarest kind in every corpus, key-only the commonest): mode arrows
+        // take a lane LEFT of the dots, between the dots and their labels;
+        // key arrows take the lane RIGHT of the dots. The two kinds never
+        // share a side, so a combined change can never overlap its arrows.
         double lane = geometry.changeArrowLane;
-        if (connectorGlyph(head)) {
-            lane = std::max(lane, 2.0 * head.headHalfWidthCents
-                            / StaffType::MELO_CENTS_PER_LINE_DISTANCE * dist + 0.5 * dist);
+        if (model.arrows.size() > 1) {
+            const double dist = staffType->lineDistance().val() * spatium;
+            ConnectorGlyph head;
+            if (connectorGlyph(head)) {
+                lane = std::max(lane, 2.0 * head.headHalfWidthCents
+                                / StaffType::MELO_CENTS_PER_LINE_DISTANCE * dist + 0.5 * dist);
+            }
         }
-        const double lanes = lane * model.arrows.size();
-        geometry.changeTerrainWidth += lanes - geometry.changeArrowLane;
-        geometry.changeArrowLane = lanes;
+        size_t modeArrows = 0;
+        size_t keyArrows = 0;
+        for (const ChangeArrow& arrow : model.arrows) {
+            (arrow.kind == u"mode" ? modeArrows : keyArrows)++;
+        }
+        const double left = lane * double(modeArrows);
+        const double right = lane * double(keyArrows);
+        geometry.changeTerrainWidth += left + right - geometry.changeArrowLane;
+        geometry.changeLeftArrowLane = left;
+        geometry.changeArrowLane = right;
     }
     return geometry;
 }

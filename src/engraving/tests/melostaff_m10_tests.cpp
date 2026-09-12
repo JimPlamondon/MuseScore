@@ -14,6 +14,7 @@
 #include "engraving/dom/chord.h"
 #include "engraving/dom/factory.h"
 #include "engraving/dom/instrument.h"
+#include "engraving/dom/layoutbreak.h"
 #include "engraving/dom/input.h"
 #include "engraving/dom/masterscore.h"
 #include "engraving/dom/measure.h"
@@ -173,6 +174,88 @@ TEST(Engraving_MeloStaffM10SATBTests, stateChangesKeepDoLinesOnTheSystemHeaderRe
         }
         delete score;
     }
+}
+
+TEST(Engraving_MeloStaffM10SATBTests, systemsShowOnlyTheSectionsTheyContain)
+{
+    // Owner decision 2026-09-12 (1a): with octave elision off, a system shows
+    // the union of the coverage of exactly the state sections it contains,
+    // Do-line anchored within the system. A system without a state change
+    // therefore looks exactly as if the piece had none.
+    auto load = [](bool withChange) -> MasterScore* {
+        MasterScore* score = ScoreRW::readScore(u"jimstaff_data/collision.mscx");
+        EXPECT_TRUE(score);
+        if (!score) {
+            return nullptr;
+        }
+        score->style().set(Sid::meloElideEmptyOctaves, false);
+        Measure* first = score->firstMeasure();
+        Measure* third = first->nextMeasure()->nextMeasure();
+        auto lineBreak = Factory::createLayoutBreak(first);
+        lineBreak->setLayoutBreakType(LayoutBreakType::LINE);
+        lineBreak->setTrack(0);
+        first->add(lineBreak);
+        String error;
+        EXPECT_TRUE(melo::applyChange(score, 0, first, u"bind:reference-pitch:62", error)) << error.toStdString();
+        if (withChange) {
+            EXPECT_TRUE(melo::applyChange(score, 0, third, u"key:-1:1", error)) << error.toStdString();
+            // Give the new section a written note two periods up so its
+            // coverage, and therefore the union, is visibly taller.
+            StaffType* after = score->staff(0)->staffType(third->tick());
+            String widened;
+            EXPECT_TRUE(melo::widenExtent(after->meloStateJson(), 2, 0, widened));
+            after->setMeloStateJson(widened);
+        }
+        score->doLayout();
+        return score;
+    };
+    MasterScore* plain = load(false);
+    MasterScore* changed = load(true);
+    ASSERT_TRUE(plain && changed);
+    Measure* first = changed->firstMeasure();
+    Measure* second = first->nextMeasure();
+    Measure* third = second->nextMeasure();
+    ASSERT_NE(first->system(), second->system());
+    ASSERT_EQ(second->system(), third->system());
+    const StaffType* base = changed->staff(0)->staffType(first->tick());
+    const StaffType* after = changed->staff(0)->staffType(third->tick());
+    ASSERT_NE(base, after);
+    const StaffType* plainBase = plain->staff(0)->staffType(plain->firstMeasure()->tick());
+    const StaffType::MeloFrameView& plainView = plainBase->meloFrameView(plain, 0, plain->firstMeasure()->system());
+    const StaffType::MeloFrameView& firstView = base->meloFrameView(changed, 0, first->system());
+    const StaffType::MeloFrameView& secondView = base->meloFrameView(changed, 0, second->system());
+    const StaffType::MeloFrameView& afterView = after->meloFrameView(changed, 0, second->system());
+    ASSERT_FALSE(plainView.empty());
+    ASSERT_FALSE(firstView.empty());
+    ASSERT_FALSE(secondView.empty());
+    ASSERT_FALSE(afterView.empty());
+    EXPECT_NEAR(firstView.topCents(), plainView.topCents(), 1e-6)
+        << "a system without a state change must not pay for a later section's range";
+    EXPECT_NEAR(firstView.bottomCents(), plainView.bottomCents(), 1e-6);
+    EXPECT_GT(secondView.heightLd(), firstView.heightLd() + 1e-6)
+        << "the system holding both sections shows their union";
+    EXPECT_NEAR(afterView.heightLd(), secondView.heightLd(), 1e-6)
+        << "one union per system, expressed in each section's own coordinates";
+    // Do-line anchoring within the system: every Do-line of the changed
+    // measure sits on a Do-line of the measure before it.
+    std::vector<double> before;
+    for (const auto& line : second->staffLines(0)->meloGuideLines()) {
+        if (line.colorStyle == Sid::meloDoLineColor) {
+            before.push_back(line.line.y1());
+        }
+    }
+    ASSERT_FALSE(before.empty());
+    for (const auto& line : third->staffLines(0)->meloGuideLines()) {
+        if (line.colorStyle == Sid::meloDoLineColor) {
+            double nearest = 1e9;
+            for (double y : before) {
+                nearest = std::min(nearest, std::abs(y - line.line.y1()));
+            }
+            EXPECT_NEAR(nearest, 0.0, 1e-6) << "the Do-line keeps its position through the change";
+        }
+    }
+    delete plain;
+    delete changed;
 }
 
 TEST(Engraving_MeloStaffM10SATBTests, keyIndicatorFitsWhenItsPeriodZeroIsBelowTheStaff)
@@ -722,8 +805,15 @@ TEST(Engraving_MeloStaffM10SATBTests, eachStaffTypeSpanCollectsOnlyItsOwnNotes)
         double baseDo = 0.0;
         ASSERT_TRUE(melo::noteCentsAboveExtentLower(empty->meloStateJson(), 1, -2, emptyDo));
         ASSERT_TRUE(melo::noteCentsAboveExtentLower(base->meloStateJson(), 1, -2, baseDo));
-        EXPECT_NEAR(view.topCents() - emptyDo, baseView.topCents() - baseDo, 1e-6);
-        EXPECT_NEAR(view.bottomCents() - emptyDo, baseView.bottomCents() - baseDo, 1e-6);
+        // Both types describe the same rows relative to their own Do0; the
+        // Kernel may place a section a whole number of periods away for a
+        // shorter union (owner decision 2026-09-12, 1a), never by less.
+        const double topDelta = (view.topCents() - emptyDo) - (baseView.topCents() - baseDo);
+        const double bottomDelta = (view.bottomCents() - emptyDo) - (baseView.bottomCents() - baseDo);
+        const double periods = topDelta / empty->meloPeriodCents();
+        EXPECT_NEAR(periods, std::round(periods), 1e-6) << topDelta;
+        EXPECT_NEAR(topDelta, bottomDelta, 1e-6);
+        EXPECT_NEAR(view.heightLd(), baseView.heightLd(), 1e-6);
         EXPECT_EQ(empty->meloStateJson(), emptyState);
     }
     delete score;

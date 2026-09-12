@@ -281,7 +281,8 @@ public:
         // LEFT of the dots) + dot column + arrow lane + closing stroke.
         double changeLabelBand = 0.0;        // White-member labels, LEFT of the dots
         double changeRightLabelBand = 0.0;   // Grey (chromatic) labels, RIGHT of the dots (owner 2026-08-16)
-        double changeArrowLane = 0.0;
+        double changeLeftArrowLane = 0.0;    // mode arrow(s), LEFT of the dots between dots and labels (owner 2026-09-12)
+        double changeArrowLane = 0.0;        // key arrow(s), RIGHT of the dots
         double changeTerrainWidth = 0.0;
         double keyLabelAdvance = 0.0;        // "[PitchN]: " current-key label, left of the tonic row (owner spec 2026-08-17)
         // Milestone 8, owner ruling 3b (2026-08-18): a hollow stack follows the
@@ -545,8 +546,17 @@ private:
     mutable muse::String m_meloFrameKey;
     mutable muse::String m_meloSectionFrameKey;
     mutable std::vector<MeloSegment> m_meloSectionFrameSegments;
+    // The section frame before any change-indicator covering (rule 7b) and
+    // the melody it was derived from: the per-system union charges an
+    // indicator's overflow only to the system that draws it.
+    mutable std::vector<MeloSegment> m_meloSectionBaseFrameSegments;
+    mutable muse::String m_meloSectionMelodyJson;
     void meloEnsureSectionFrame(const Score* score, staff_idx_t staffIdx) const;
     const MeloFrameView& meloSectionFrameView(const Score* score, staff_idx_t staffIdx, const System* system) const;
+    // Owner decision 2026-09-12 (1a): with octave elision off, the union of
+    // the coverage of exactly the state sections a system contains, Do-line
+    // anchored within the system (melo::alignSectionFrames), as one band.
+    const MeloFrameView& meloSystemUnionFrameView(const Score* score, staff_idx_t staffIdx, const System* system) const;
     mutable bool m_meloFrameFrozen = false;
     mutable std::vector<MeloSegment> m_meloFrameSegments;
     // Milestone 8: explicit per-range frame views, keyed by the system

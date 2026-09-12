@@ -283,8 +283,8 @@ void BarLine::calcY()
     if (staffType1->isMelo() && !spanStaff) {
         const StaffType::MeloFrameView& view = staffType1->meloFrameView(score(), staffIdx1, system);
         data->meloBandDotRows.clear();
-        if (view.bands.size() > 1) {
-            for (size_t i = view.bands.size(); i > 0; --i) {   // top to bottom
+        if (view.banded) {
+            for (size_t i = view.bands.size(); view.bands.size() > 1 && i > 0; --i) {   // top to bottom
                 const StaffType::MeloFrameBand& band = view.bands[i - 1];
                 const double midLd = band.yTopLd + band.heightLd() / 2.0;
                 data->meloBandDotRows.push_back({ offset + (midLd - 0.5) * lineDistance,

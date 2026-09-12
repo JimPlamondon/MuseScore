@@ -1089,6 +1089,7 @@ void StaffType::meloEnsureSectionFrame(const Score* score, staff_idx_t staffIdx)
         // successful frame: on failure the cache holds an empty frame
         // and a diagnostic is emitted; nothing is synthesized fork-side.
         std::vector<MeloSegment> cached;
+        std::vector<MeloSegment> base;
         if (token.isEmpty()) {
             LOGE() << mu::engraving::melo::diagnostic::staffFrameMissingAmbit << staffIdx;
         } else {
@@ -1098,6 +1099,7 @@ void StaffType::meloEnsureSectionFrame(const Score* score, staff_idx_t staffIdx)
                 for (const melo::StaveSegment& segment : segments) {
                     cached.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
                 }
+                base = cached;
                 if (hasIndicator && meloPeriodCents() > 0.0) {
                     // Provisional one-band view -> overflow -> covering re-derivation.
                     MeloFrameView provisional;
@@ -1131,6 +1133,8 @@ void StaffType::meloEnsureSectionFrame(const Score* score, staff_idx_t staffIdx)
         }
         m_meloSectionFrameKey = key;
         m_meloSectionFrameSegments = cached;
+        m_meloSectionBaseFrameSegments = base;
+        m_meloSectionMelodyJson = melody;
     }
 }
 
@@ -1421,8 +1425,19 @@ bool StaffType::meloElisionActive(const Score* score, staff_idx_t staffIdx, cons
 const StaffType::MeloFrameView& StaffType::meloFrameView(const Score* score, staff_idx_t staffIdx,
                                                          const System* system) const
 {
-    if (!isMelo() || !score || !system || !meloElisionActive(score, staffIdx, system)) {
+    if (!isMelo() || !score || !system) {
         return meloWholeFrameView(score, staffIdx);
+    }
+    if (!meloElisionActive(score, staffIdx, system)) {
+        // Owner decision 2026-09-12 (1a): with octave elision off, a staff
+        // with more than one state section shows, on each system, the union
+        // of exactly the sections that system contains, Do-line anchored
+        // within the system, never the whole piece's union. A staff with one
+        // state keeps the whole-piece frame, bit for bit.
+        if (meloSectionTypes(score, staffIdx).size() <= 1) {
+            return meloWholeFrameView(score, staffIdx);
+        }
+        return meloSystemUnionFrameView(score, staffIdx, system);
     }
     const auto types = meloSectionTypes(score, staffIdx, system);
     if (types.size() <= 1) {
@@ -1480,6 +1495,175 @@ const StaffType::MeloFrameView& StaffType::meloFrameView(const Score* score, sta
     } else {
         LOGE() << "MeloPresto section band alignment failed for staff " << staffIdx;
     }
+    return m_meloFrameViews[rangeKey] = view;
+}
+
+const StaffType::MeloFrameView& StaffType::meloSystemUnionFrameView(const Score* score, staff_idx_t staffIdx,
+                                                                    const System* system) const
+{
+    const Measure* fm = system->firstMeasure();
+    const Measure* lm = system->lastMeasure();
+    if (!fm || !lm) {
+        return meloWholeFrameView(score, staffIdx);
+    }
+    const String rangeKey = String(u"union:%1-%2").arg(fm->tick().ticks()).arg(lm->endTick().ticks());
+    auto found = m_meloFrameViews.find(rangeKey);
+    if (m_meloFrameFrozen && found != m_meloFrameViews.end()) {
+        return found->second;
+    }
+    // The sections on this system, each with its indicator-free frame. A
+    // change indicator extends only the frame of the system that draws it
+    // (owner rule 7b applied per system): the indicators painted on this
+    // system, each against its displayed state, are collected below.
+    const Staff* staff = score->staff(staffIdx);
+    const std::vector<const StaffType*> types = meloSectionTypes(score, staffIdx, system);
+    String key = u"union:";
+    std::vector<melo::FrameAlignmentSection> sections;
+    std::vector<const StaffType*> sectionTypes;
+    for (const StaffType* type : types) {
+        type->meloEnsureSectionFrame(score, staffIdx);
+        key += type->m_meloSectionFrameKey + u"|";
+        melo::FrameAlignmentSection section;
+        section.stateJson = type->meloStateJson();
+        for (const MeloSegment& segment : type->m_meloSectionBaseFrameSegments) {
+            section.segments.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
+        }
+        if (!section.segments.empty()) {
+            sections.push_back(section);
+            sectionTypes.push_back(type);
+        }
+    }
+    struct DrawnIndicator {
+        melo::ChangeIndicator model;
+        const StaffType* displayed = nullptr;
+    };
+    std::vector<DrawnIndicator> drawn;
+    for (const Measure* measure = fm; measure; measure = measure->nextMeasure()) {
+        melo::ChangeIndicator model;
+        const StaffType* newType = nullptr;
+        if (melo::midSystemChangeIndicator(measure, staffIdx, model, &newType) && newType) {
+            drawn.push_back({ model, newType });
+        }
+        for (const StaffTypeChange* carrier : melo::changeCarriers(measure, staffIdx)) {
+            if (carrier->rtick().isZero()) {
+                continue;
+            }
+            const Fraction before = Fraction::fromTicks(std::max(0, carrier->tick().ticks() - 1));
+            const StaffType* oldType = staff ? staff->staffType(before) : nullptr;
+            melo::ChangeIndicator midBar;
+            if (oldType && melo::midBarChangeIndicator(carrier, midBar, nullptr)) {
+                drawn.push_back({ midBar, oldType });
+            }
+        }
+        if (measure == lm) {
+            break;
+        }
+    }
+    {
+        melo::ChangeIndicator courtesy;
+        const StaffType* courtesyType = nullptr;
+        if (melo::courtesyChangeIndicator(lm, staffIdx, courtesy, &courtesyType) && courtesyType) {
+            drawn.push_back({ courtesy, courtesyType });
+        }
+    }
+    for (const DrawnIndicator& d : drawn) {
+        key += u"ind:" + d.displayed->meloStateJson() + u"@";
+        for (const melo::ChangePoint& p : d.model.tonicIndicators) {
+            key += muse::String(u"t%1/%2;").arg(p.ordinate).arg(p.periodOffset);
+        }
+        for (const melo::ChangeArrow& a : d.model.arrows) {
+            key += muse::String(u"a%1/%2>%3/%4;").arg(a.from.ordinate).arg(a.from.periodOffset)
+                   .arg(a.to.ordinate).arg(a.to.periodOffset);
+        }
+        key += u"|";
+    }
+    if (found != m_meloFrameViews.end() && found->second.key == key) {
+        return found->second;
+    }
+    auto alignFor = [&](const StaffType* type, MeloFrameView& into) -> bool {
+        melo::FrameBands aligned;
+        if (sections.empty() || !melo::alignSectionFrames(type->meloStateJson(), sections, false, aligned)) {
+            return false;
+        }
+        into.bands.clear();
+        for (const auto& source : aligned.bands) {
+            MeloFrameBand band;
+            for (const auto& segment : source.segments) {
+                band.segments.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
+            }
+            band.lowerCents = source.lowerCents;
+            band.upperCents = source.upperCents;
+            band.lowestPeriodIndex = source.lowestPeriodIndex;
+            band.highestPeriodIndex = source.highestPeriodIndex;
+            band.labelPeriodIndex = source.labelPeriodIndex;
+            band.tonicLabel = source.tonicLabel.label;
+            into.bands.push_back(band);
+        }
+        into.omittedPeriodCount = aligned.omittedPeriodCount;
+        double y = 0.0;
+        for (size_t i = into.bands.size(); i > 0; --i) {
+            into.bands[i - 1].yTopLd = y;
+            y += into.bands[i - 1].heightLd() + into.gapLd;
+        }
+        return true;
+    };
+    // Cover each drawn indicator: its overflow against the union as seen by
+    // its displayed state re-derives that state's section covering the
+    // overflowing points (the Kernel's frame_for_melody with extra cents),
+    // then the union is realigned. Extras accumulate per displayed state.
+    std::map<const StaffType*, std::vector<double> > extras;
+    for (const DrawnIndicator& d : drawn) {
+        const StaffType* displayed = d.displayed;
+        if (!displayed || !displayed->isMelo() || displayed->meloPeriodCents() <= 0.0) {
+            continue;
+        }
+        MeloFrameView asDisplayed;
+        if (!alignFor(displayed, asDisplayed) || asDisplayed.empty()) {
+            continue;
+        }
+        melo::PeriodicOrigins origins;
+        if (!melo::periodicOrigins(displayed->meloStateJson(), origins)) {
+            continue;
+        }
+        const std::vector<double> extra = melo::changeIndicatorOverflowCents(
+            asDisplayed, d.model, displayed->meloPeriodCents(), origins.doCentsAboveExtentLower);
+        if (extra.empty()) {
+            continue;
+        }
+        std::vector<double>& all = extras[displayed];
+        all.insert(all.end(), extra.begin(), extra.end());
+        std::vector<melo::StaveSegment> covering;
+        if (!melo::frameForMelody(displayed->meloStateJson(), displayed->m_meloSectionMelodyJson,
+                                  displayed->meloTonicAmbit(), covering, all,
+                                  displayed->m_meloRatioLineExtentJson, !displayed->m_meloExtentIsEmptyDefault)) {
+            continue;
+        }
+        melo::FrameAlignmentSection section;
+        section.stateJson = displayed->meloStateJson();
+        for (const melo::StaveSegment& segment : covering) {
+            section.segments.push_back({ segment.lowerCents, segment.upperCents, segment.whole });
+        }
+        if (section.segments.empty()) {
+            continue;
+        }
+        auto at = std::find(sectionTypes.begin(), sectionTypes.end(), displayed);
+        if (at != sectionTypes.end()) {
+            sections[size_t(at - sectionTypes.begin())] = section;
+        } else {
+            sections.push_back(section);
+            sectionTypes.push_back(displayed);
+        }
+    }
+    MeloFrameView view;
+    view.key = key;
+    view.banded = true;   // one band whose top is this system's, not the whole piece's
+    view.gapLd = 0.0;
+    if (!alignFor(this, view)) {
+        LOGE() << "MeloPresto per-system frame union failed for staff " << staffIdx;
+    }
+    // An empty union (no derivable section frame) is "no frame", exactly as
+    // the whole-piece path reports it: never an empty banded view.
+    view.banded = !view.bands.empty();
     return m_meloFrameViews[rangeKey] = view;
 }
 

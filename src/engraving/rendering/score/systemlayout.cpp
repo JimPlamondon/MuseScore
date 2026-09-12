@@ -126,7 +126,9 @@ static void applyMeloBandOffsets(System* system, LayoutContext& ctx)
                 continue;
             }
             const StaffType::MeloFrameView& view = st->meloFrameView(score, staffIdx, system);
-            if (!view.banded || view.bands.size() <= 1) {
+            // A one-band per-system union (owner decision 2026-09-12, 1a) has
+            // its own top: shift into it exactly like a multi-band view.
+            if (!view.banded || view.empty()) {
                 continue;
             }
             const StaffType::MeloFrameView& whole = st->meloWholeFrameView(score, staffIdx);
