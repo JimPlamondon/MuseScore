@@ -3557,8 +3557,12 @@ void TDraw::draw(const StaffLines* item, Painter* painter, const PaintOptions& o
                 if (!anchor) {
                     continue;
                 }
-                const double g = midBarSt->meloHeaderGeometry(
-                    item->spatium(), item->score()->style().defaultSpatium()).changeTerrainWidth;
+                // The terrain's width is the ONE shared calculation for THIS
+                // indicator's lanes (owner finding 2026-09-12: the single-lane
+                // header width put a two-arrow terrain's closing flank on the
+                // note it precedes); horizontal spacing reserves the same width.
+                const double g = melo::changeTerrainGeometry(
+                    midBarSt, item->spatium(), item->score()->style().defaultSpatium(), midBar).changeTerrainWidth;
                 const double noteGap = item->style().styleMM(Sid::barNoteDistance);
                 paintChangeTerrain(midBar, midBarSt, meloSt, anchor->x() - g - noteGap, ChangePlacement::MID_BAR);
             }
