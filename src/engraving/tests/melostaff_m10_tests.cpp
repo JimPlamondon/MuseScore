@@ -91,7 +91,7 @@ muse::String extentXml(const muse::String& state)
     if (!melo::musicxmlStaffStateV3Xml(state, 0, xml, &error)) {
         return muse::String();
     }
-    const size_t begin = xml.indexOf(u"<jims:extent");
+    const size_t begin = xml.indexOf(u"<melo:extent");
     const size_t end = begin == muse::nidx ? muse::nidx : xml.indexOf(u"/>", begin);
     return begin == muse::nidx || end == muse::nidx ? muse::String() : xml.mid(begin, end + 2 - begin);
 }

@@ -572,10 +572,10 @@ TEST_F(Engraving_ChordSymbolTests, typedColonStaysInsideMeloHarmonyName)
     EXPECT_TRUE(melo->isEditAllowed(ed));
     EXPECT_TRUE(melo->edit(ed));
     ed.key = 0;
-    ed.s = String(u"So7/Re");
+    ed.s = String(u"So7/7");
     EXPECT_TRUE(melo->edit(ed));
     melo->endEdit(ed);
-    EXPECT_EQ(melo->harmonyName().toStdString(), "Mi:So7/Re");
+    EXPECT_EQ(melo->harmonyName().toStdString(), "Mi:So7/7");
     EXPECT_EQ(melo->explicitParent(), segment);
 
     ed.key = Key_Semicolon;
