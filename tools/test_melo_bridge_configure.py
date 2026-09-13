@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 from pathlib import Path
 import shutil
 import stat
@@ -45,6 +46,7 @@ def write_fake_cargo(directory: Path) -> None:
     cargo.write_text(
         "#!/bin/sh\n"
         "set -eu\n"
+        "if [ \"${1:-}\" = --version ]; then echo fixture-cargo; exit 0; fi\n"
         "test -f .melo-configure-fixture || { echo 'refusing non-fixture workspace' >&2; exit 1; }\n"
         "mkdir -p target/release\n"
         ": > target/release/libmelo_musescore_bridge.a\n",
@@ -69,7 +71,7 @@ def write_fixture_project(directory: Path, bridge_cmake: Path) -> None:
     (directory / "consumer.c").write_text("void melo_bridge_fixture(void) {}\n", encoding="utf-8")
 
 
-def configure(project: Path, build: Path, cargo_bin: Path, melo_root: Optional[Path], explicit_root: Optional[Path] = None) -> subprocess.CompletedProcess[str]:
+def configure(project: Path, build: Path, cargo_bin: Path, melo_root: Optional[Path], explicit_root: Optional[Path] = None, workflow_env: Optional[dict[str, str]] = None) -> subprocess.CompletedProcess[str]:
     environment = os.environ.copy()
     environment["PATH"] = str(cargo_bin) + os.pathsep + environment.get("PATH", "")
     if melo_root is None:
@@ -77,11 +79,34 @@ def configure(project: Path, build: Path, cargo_bin: Path, melo_root: Optional[P
     else:
         environment["MELO_ROOT"] = str(melo_root)
 
+    if workflow_env is not None:
+        environment.update(workflow_env)
+
     command = ["cmake", "-S", str(project), "-B", str(build)]
     command.append(f"-DCARGO_EXECUTABLE={cargo_bin / 'cargo'}")
     if explicit_root is not None:
         command.append(f"-DMELO_ROOT={explicit_root}")
     return subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=environment)
+
+
+def workflow_environment(workspace: Path, cargo_bin: Path) -> dict[str, str]:
+    """Execute the actual workflow export step, then consume GITHUB_ENV as Actions does."""
+    workflow = (REPOSITORY_ROOT / ".github/workflows/check_unit_tests.yml").read_text(encoding="utf-8")
+    match = re.search(r"    - name: Point the build at the Kernel\n      run: \|\n((?:        .*\n|\n)+)", workflow)
+    if match is None:
+        fail("Kernel environment step was not found in the unit-test workflow")
+    script = "\n".join(line[8:] for line in match.group(1).splitlines())
+    script = script.replace("${{ github.workspace }}", str(workspace))
+    environment_file = workspace / "github-env"
+    environment = os.environ.copy()
+    environment.pop("MELO_ROOT", None)
+    environment.pop("JIMS_ROOT", None)
+    environment["GITHUB_ENV"] = str(environment_file)
+    environment["PATH"] = str(cargo_bin) + os.pathsep + environment.get("PATH", "")
+    result = subprocess.run(["bash", "-eu", "-c", script], env=environment, text=True,
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    require_success(result, "workflow Kernel environment export")
+    return dict(line.split("=", 1) for line in environment_file.read_text().splitlines() if line)
 
 
 def selected_root(build: Path) -> Path:
@@ -118,6 +143,20 @@ def run_checks(bridge_cmake: Path, expect_env_reset: bool) -> None:
         project.mkdir()
         write_fixture_project(project, bridge_cmake)
         build = temporary_path / "build"
+
+        workflow_checkout = temporary_path / "melo-kernel"
+        write_checkout(workflow_checkout)
+        workflow_env = workflow_environment(temporary_path, cargo_bin)
+        workflow_build = temporary_path / "workflow-build"
+        require_success(configure(project, workflow_build, cargo_bin, None, workflow_env=workflow_env),
+                        "workflow-to-CMake selection")
+        if selected_root(workflow_build) != workflow_checkout.resolve():
+            fail("workflow did not select its checked-out Kernel")
+        require_success(configure(project, workflow_build, cargo_bin, checkout_b),
+                        "workflow cache survives changed environment")
+        if selected_root(workflow_build) != workflow_checkout.resolve():
+            fail("changed environment overrode the workflow's cached selection")
+
 
         require_success(configure(project, build, cargo_bin, checkout_a), "initial environment selection")
         if selected_root(build) != checkout_a.resolve():
