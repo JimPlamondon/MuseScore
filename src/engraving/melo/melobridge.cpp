@@ -388,6 +388,24 @@ bool musicxmlStaffStateV3Xml(const String& stateJson, int staffNumber, String& o
     return stringResult(callBridge(envelope), out, error);
 }
 
+bool sameReference(const String& stateJson, const String& otherStateJson, bool& same, String* error)
+{
+    const String envelope = String(u"{\"abi\":2,\"op\":\"same_reference\",\"state\":%1,\"other_state\":%2}")
+                            .arg(stateJson).arg(otherStateJson);
+    const String response = callBridge(envelope);
+    JsonValue result;
+    if (!okResult(response, result) || !result.isBool()) {
+        if (error) {
+            std::string parseError;
+            const JsonDocument doc = JsonDocument::fromJson(response.toUtf8(), &parseError);
+            *error = parseError.empty() ? doc.rootObject().value("error").toString() : mtrc("engraving", "bridge returned no JSON");
+        }
+        return false;
+    }
+    same = result.toBool();
+    return true;
+}
+
 bool musicxmlSharedStateV3Xml(const String& stateJson, String& out, String* error)
 {
     String envelope = String(u"{\"abi\":2,\"op\":\"musicxml_shared_state_v3_xml\",\"state\":%1}").arg(stateJson);

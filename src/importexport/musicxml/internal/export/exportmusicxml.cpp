@@ -33,6 +33,7 @@
 // TODO LVI 2011-10-30: determine how to report export errors.
 // Currently all output (both debug and error reports) are done using LOGD.
 
+#include "engraving/melo/melochangecontroller.h"
 #include "engraving/melo/melostrings.h"
 #include "exportmusicxml.h"
 
@@ -9114,38 +9115,10 @@ bool ExportMusicXml::buildMeloExportPlan()
     if (!m_meloPlan.present) {
         return true;
     }
-    // Owner rule 2026-08-19 (multi-part documents): several JiMS parts and
-    // mixed JiMS + stock parts are allowed, but every JiMS part must carry the
-    // same state timeline; a document that would export differing timelines
-    // is refused (fail closed, like every other JiMS export refusal).
-    //
-    // Narrowed by owner ruling 2026-08-22: parts are compared on the Kernel's
-    // shared projection, not the serialized element. The projection omits the
-    // per-staff fields (frame extent, tonic-ambit) — a four-voice SATB score
-    // legitimately differs in both, since each voice has its own frame and its
-    // own melody, while every piece-level musical fact must still agree. The
-    // Kernel owns which fields those are; the fork compares what it is handed.
-    {
-        std::vector<std::pair<int, String> > referenceTimeline;   // (tick, sharedStateXml)
-        int referencePart = -1;
-        std::map<int, std::vector<std::pair<int, String> > > timelines;   // partIndex -> (tick, sharedStateXml)*
-        for (const auto& entry : m_meloPlan.byPartTick) {
-            for (const MeloFragment& f : entry.second) {
-                timelines[entry.first.first].push_back({ entry.first.second, f.sharedStateXml });
-            }
-        }
-        for (const auto& tl : timelines) {
-            if (referencePart < 0) {
-                referencePart = tl.first;
-                referenceTimeline = tl.second;
-                continue;
-            }
-            if (tl.second != referenceTimeline) {
-                m_meloPlan.error = mu::engraving::melo::exportTimelinesDiffer()
-                                   .arg(referencePart + 1).arg(tl.first + 1);
-                return false;
-            }
-        }
+    // Compare effective states, not the number or placement of redundant
+    // transport carriers. The Kernel still defines all shared musical fields.
+    if (!melo::validateSharedStateTimeline(m_score, m_meloPlan.error)) {
+        return false;
     }
     // Every note on a MeloPresto staff must carry its lattice identity.
     for (const Segment* seg = m_score->firstSegment(SegmentType::ChordRest); seg; seg = seg->next1(SegmentType::ChordRest)) {
@@ -9188,7 +9161,7 @@ bool ExportMusicXml::buildMeloExportPlan()
             }
         }
     }
-    return true;
+    return melo::validateLatticeContent(m_score, m_meloPlan.error);
 }
 
 void ExportMusicXml::writeMeloAttributes(const Measure* const m, const int partIndex)

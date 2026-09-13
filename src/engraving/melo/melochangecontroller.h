@@ -15,16 +15,37 @@
 #define MU_ENGRAVING_MELOCHANGECONTROLLER_H
 
 #include "melobridge.h"
+#include "../dom/pitchspelling.h"
 #include "../types/types.h"
 
 namespace mu::engraving {
 class Measure;
+class Note;
+class Chord;
 class Score;
 class StaffType;
+class Staff;
+struct NoteVal;
 class StaffTypeChange;
 }
 
 namespace mu::engraving::melo {
+/// A prepared occurrence edit. The Kernel has already projected every tied
+/// and linked destination; callers can prepare a complete selection first.
+struct NoteEdit {
+    Note* note = nullptr;
+    SoundingPitch projection;
+    int tpc = Tpc::TPC_INVALID;
+};
+/// Validate a value at the chord and every linked copy before insertion.
+bool prepareLinkedNoteValue(NoteVal& value, const Chord* chord);
+Note* continuationNote(const Note* source, Chord* destination);
+bool validateTieEndpoints(const Note* source, const Note* destination);
+bool prepareContinuationValue(const NoteVal& source, const Staff* staff, const Fraction& sourceTick, const Fraction& targetTick,
+                              NoteVal& result);
+bool preparePitchEdit(Note* anchor, int nPer, int nGen, std::vector<NoteEdit>& edits, muse::String& error);
+void commitPitchEdits(Score* score, const std::vector<NoteEdit>& edits, bool widenExtent = true);
+
 /// The effective MeloPresto state at `measure` on `staffIdx`: the carrier's state
 /// when the measure carries a MeloPresto change, otherwise the staff type in
 /// force at the measure's tick. False when the staff is not a MeloPresto Staff.
@@ -49,9 +70,9 @@ bool canInsertChange(const Score* score, staff_idx_t staffIdx, const Measure* me
 /// StaffTypeChange carrier (a copy of the effective staff type carrying the
 /// new state) or updates the existing carrier's state — one undo step.
 /// A choice yielding a state identical to the effective one is a no-op
-/// (returns true, edits nothing). A `bind:` choice is staff-wide: it edits
-/// the base staff type and every unbound carrier on the staff (never creates
-/// a carrier). False with `error` on refusal.
+/// (returns true, edits nothing). A `bind:` choice binds every unbound Melo staff and carrier in
+/// the composition, preserving authored shared later references and extents
+/// (never creates a carrier). False with `error` on refusal.
 bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const muse::String& choiceId, muse::String& error);
 bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fraction& tick, const muse::String& choiceId,
                  muse::String& error);
@@ -74,8 +95,7 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
 /// opens; if any one is refused, nothing is mutated and `error` carries the
 /// reason. Non-JiMS parts are ignored.
 ///
-/// `bind:` is NOT routed through here: a reference names what one staff's
-/// Re0 is, which stays staff-wide (owner decision 9). Use `applyChange`.
+/// `bind:` uses the composition-wide binding operation in `applyChange`.
 bool applyChangeToAllMeloParts(Score* score, Measure* measure, const std::vector<muse::String>& choiceIds, muse::String& error);
 bool applyChangeToAllMeloParts(Score* score, Measure* measure, const Fraction& tick, const std::vector<muse::String>& choiceIds,
                                muse::String& error);
@@ -85,8 +105,16 @@ bool applyChangeToAllMeloParts(Score* score, Measure* measure, const Fraction& t
 bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, muse::String& error);
 bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fraction& tick, muse::String& error);
 
+/// Read-only validation shared by native and interchange boundaries. Refuses
+/// missing coordinates, contradictory full ties/links and shared references.
+bool validateLatticeContent(const Score* score, muse::String& error);
+
+/// Compare each part's Kernel-owned shared musical projection at every effective change
+/// boundary. Redundant transport carriers and local drawing extents are allowed.
+bool validateSharedStateTimeline(const Score* score, muse::String& error);
+
 /// Enforce the persisted MeloPresto authority contract after native load or import.
-/// Authoritative identity plus effective state replace contradictory ordinary
+/// Validated coordinates plus effective state replace contradictory ordinary
 /// pitch fields in one undoable repair command. `repairs` counts notes, while
 /// callers emit at most one document-level diagnostic.
 bool normalizeStoredPitchesAfterLoad(Score* score, size_t& repairs, muse::String& error, bool undoable = true, bool commandOpen = false);

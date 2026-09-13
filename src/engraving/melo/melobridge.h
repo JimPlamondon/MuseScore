@@ -181,6 +181,7 @@ bool musicxmlStaffStateV3Xml(const muse::String& stateJson, int staffNumber, mus
 /// which fields those are — currently only frame extent — and the fork
 /// compares what it is handed without deciding field-by-field itself.
 /// Comparison form only: never serialized.
+bool sameReference(const muse::String& stateJson, const muse::String& otherStateJson, bool& same, muse::String* error = nullptr);
 bool musicxmlSharedStateV3Xml(const muse::String& stateJson, muse::String& out, muse::String* error = nullptr);
 bool musicxmlChangeEventV3Xml(const muse::String& oldStateJson, const muse::String& newStateJson, muse::String& out,
                               muse::String* error = nullptr);

@@ -34,6 +34,7 @@
 #include "engraving/dom/stafftype.h"
 #include "engraving/dom/stafftypechange.h"
 #include "engraving/melo/melobridge.h"
+#include "engraving/melo/melochangecontroller.h"
 #include "engraving/style/style.h"
 
 #include "importmusicxmllogger.h"
@@ -525,54 +526,12 @@ bool MeloImportContext::parseTuningTrajectory(XmlStreamReader& e, const std::fun
 //   checkSharedStatesAcrossParts
 //---------------------------------------------------------
 
-bool MeloImportContext::checkSharedStatesAcrossParts(MusicXmlLogger* logger) const
+bool MeloImportContext::checkSharedStatesAcrossParts(const Score* score, MusicXmlLogger* logger) const
 {
-    // Timeline signature per part: the ordered (tick, staff number, state) list.
-    //
-    // Narrowed by owner ruling 2026-08-22 (mirrors the export side): parts are
-    // compared on the Kernel's shared projection of each state, not the raw
-    // state JSON. The projection omits only the per-staff extent; tonic-ambit
-    // remains compared because it is one song-wide value repeated through
-    // transport carriers. The Kernel owns the field classification; the fork
-    // compares only the projection it is handed.
-    auto sharedForm = [&logger](const BufferedState& s, String& out) {
-        String err;
-        if (!melo::musicxmlSharedStateV3Xml(s.json, out, &err)) {
-            meloFatal(logger, String(mu::engraving::melo::diagnostic::importSharedStateFailed).arg(err));
-            return false;
-        }
-        return true;
-    };
-
-    const std::vector<BufferedState>* reference = nullptr;
-    String referenceId;
-    for (const auto& entry : m_states) {
-        const String& partId = entry.first;
-        const std::vector<BufferedState>& states = entry.second;
-        if (!reference) {
-            reference = &states;
-            referenceId = partId;
-            continue;
-        }
-        bool same = states.size() == reference->size();
-        for (size_t i = 0; same && i < states.size(); ++i) {
-            const BufferedState& a = (*reference)[i];
-            const BufferedState& b = states[i];
-            if (a.tick != b.tick || a.staffNumber != b.staffNumber) {
-                same = false;
-                break;
-            }
-            String sharedA, sharedB;
-            if (!sharedForm(a, sharedA) || !sharedForm(b, sharedB)) {
-                return false;
-            }
-            same = sharedA == sharedB;
-        }
-        if (!same) {
-            meloFatal(logger, String(mu::engraving::melo::diagnostic::importTimelinesDiffer)
-                      .arg(referenceId, partId));
-            return false;
-        }
+    String error;
+    if (!melo::validateSharedStateTimeline(score, error)) {
+        meloFatal(logger, error);
+        return false;
     }
     return true;
 }

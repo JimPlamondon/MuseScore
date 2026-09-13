@@ -720,7 +720,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9StockPartsAreLeftUntouchedAndASinglePartS
     delete score;
 }
 
-TEST(Engraving_MeloStaffM9SATBTests, m9BindStaysStaffWideAndIsNeverPropagatedAcrossParts)
+TEST(Engraving_MeloStaffM9SATBTests, m9AlreadyBoundCompositionPreservesTheBindingNoOp)
 {
     MasterScore* score = openShippedTemplate();
     ASSERT_TRUE(score);
@@ -739,8 +739,7 @@ TEST(Engraving_MeloStaffM9SATBTests, m9BindStaysStaffWideAndIsNeverPropagatedAcr
     }
 
     // A staff that already states its key keeps it: `bind:` binds an UNBOUND
-    // state and leaves a bound one alone (M6 rule, unchanged by M9). Either
-    // way it is applied to one staff and never reaches another part.
+    // state and leaves a coherent bound composition alone.
     muse::String error;
     ASSERT_TRUE(melo::applyChange(score, 0, m2, u"bind:reference-pitch:64", error)) << error.toStdString();
     score->doLayout();
@@ -749,12 +748,12 @@ TEST(Engraving_MeloStaffM9SATBTests, m9BindStaysStaffWideAndIsNeverPropagatedAcr
             << "a binding applied to the Soprano changed part " << i;
     }
 
-    // And the score-wide seam refuses a binding outright rather than widening it.
-    EXPECT_FALSE(melo::applyChangeToAllMeloParts(score, m2, { u"bind:reference-pitch:65" }, error));
-    EXPECT_FALSE(error.empty());
-    for (staff_idx_t i = 1; i < 4; ++i) {
+    // The composition-wide entry point preserves the same no-op contract.
+    ASSERT_TRUE(melo::applyChangeToAllMeloParts(score, m2, { u"bind:reference-pitch:65" }, error));
+    EXPECT_TRUE(error.empty());
+    for (staff_idx_t i = 0; i < 4; ++i) {
         EXPECT_EQ(score->staff(i)->staffType(Fraction(0, 1))->meloStateJson(), othersBefore[i])
-            << "a refused binding must mutate nothing, part " << i;
+            << "an already-bound composition must remain unchanged, part " << i;
     }
 
     delete score;

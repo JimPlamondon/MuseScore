@@ -29,11 +29,22 @@
 #include "engraving/dom/instrtemplate.h"
 #include "engraving/dom/mscore.h"
 #include "modularity/ioc.h"
+#include "notation/tests/mocks/notationconfigurationmock.h"
 #include "shortcuts/ishortcutsregister.h"
 #include "stubs/shortcuts/shortcutsregisterstub.h"
 #include "ui/internal/navigationcontroller.h"
 
 namespace {
+class NotationConfigurationTestModule : public muse::modularity::IModuleSetup
+{
+public:
+    std::string moduleName() const override { return "lattice_drag_test_configuration"; }
+    void registerExports() override
+    {
+        ioc()->registerExport<mu::notation::INotationConfiguration>(moduleName(),
+                                                                    new testing::NiceMock<mu::notation::NotationConfigurationMock>());
+    }
+};
 class ShortcutRegisterTestModule : public muse::modularity::IModuleSetup
 {
 public:
@@ -58,7 +69,7 @@ public:
 static muse::testing::SuiteEnvironment notation_se
     = muse::testing::SuiteEnvironment()
       .setDependencyModules({ new muse::draw::DrawModule(), new mu::engraving::EngravingModule(), new ShortcutRegisterTestModule(),
-                              new NavigationTestModule() })
+                              new NavigationTestModule(), new NotationConfigurationTestModule() })
       .setPostInit([]() {
     LOGI() << "notationscene_qml tests suite post init";
 

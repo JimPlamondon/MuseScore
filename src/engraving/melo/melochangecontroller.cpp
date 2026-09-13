@@ -12,7 +12,9 @@
 #include "../dom/factory.h"
 #include "../dom/chord.h"
 #include "../dom/measure.h"
+#include "../dom/masterscore.h"
 #include "../dom/note.h"
+#include "../dom/part.h"
 #include "../dom/score.h"
 #include "../dom/segment.h"
 #include "../dom/staff.h"
@@ -39,12 +41,6 @@ struct StateEdit {
     Fraction tick;
     Fraction stop { -1, 1 };
     String state;
-};
-
-struct NoteEdit {
-    Note* note = nullptr;
-    SoundingPitch projection;
-    int tpc = Tpc::TPC_INVALID;
 };
 
 Fraction nextCarrierTick(const Score* score, staff_idx_t staffIdx, const Fraction& tick)
@@ -115,12 +111,12 @@ bool sameProjection(const SoundingPitch& a, const SoundingPitch& b)
            && std::abs(a.frequencyHz - b.frequencyHz) < 1e-9;
 }
 
-bool prepareNoteEdits(Score* score, const std::vector<StateEdit>& stateEdits,
+bool prepareNoteEdits(Score*, const std::vector<StateEdit>& stateEdits,
                       std::vector<NoteEdit>& noteEdits, String& error)
 {
     std::set<Note*> seen;
     for (const StateEdit& edit : stateEdits) {
-        Measure* start = score->tick2measure(edit.tick);
+        Measure* start = edit.staff->score()->tick2measure(edit.tick);
         for (Measure* measure = start; measure; measure = measure->nextMeasure()) {
             if (!edit.stop.negative() && measure->tick() > edit.stop) {
                 break;
@@ -187,6 +183,122 @@ void commitNoteEdits(Score* score, const std::vector<NoteEdit>& edits)
     }
 }
 
+// Persisted coordinates are structural. Loading may repair projections only;
+// state-edit continuation is intentionally not used by this validation path.
+bool prepareStoredProjections(const Score* score, std::vector<NoteEdit>& projected, String& error)
+{
+    std::set<Note*> seen;
+    for (Segment* segment = score->firstSegment(SegmentType::ChordRest); segment;
+         segment = segment->next1(SegmentType::ChordRest)) {
+        for (track_idx_t track = 0; track < score->ntracks(); ++track) {
+            EngravingItem* item = segment->element(track);
+            if (!item || !item->isChord()) {
+                continue;
+            }
+            std::vector<Chord*> chords = toChord(item)->graceNotes();
+            chords.push_back(toChord(item));
+            for (Chord* chord : chords) {
+                for (Note* note : chord->notes()) {
+                    const StaffType* type = note->staff()->staffTypeForElement(note);
+                    if (!type->isMelo() || seen.count(note)) {
+                        continue;
+                    }
+                    SoundingPitch projection;
+                    if (!note->hasMeloPitch()
+                        || !noteSoundingPitch(type->meloStateJson(), note->meloNPer(), note->meloNGen(), projection, &error)) {
+                        error = mtrc("engraving", "A lattice note has missing or invalid coordinates.");
+                        return false;
+                    }
+                    if (Tie* tie = note->tieBackNonPartial()) {
+                        Note* start = tie->startNote();
+                        const StaffType* startType = start && start->staff() ? start->staff()->staffTypeForElement(start) : nullptr;
+                        SoundingPitch startProjection;
+                        if (!startType || !startType->isMelo() || !start->hasMeloPitch()
+                            || !noteSoundingPitch(startType->meloStateJson(), start->meloNPer(), start->meloNGen(), startProjection, &error)
+                            || std::abs(startProjection.frequencyHz - projection.frequencyHz) >= 1e-9) {
+                            error = mtrc("engraving",
+                                         "A full tie connects contradictory lattice sounds. Its coordinates were not changed.");
+                            return false;
+                        }
+                    }
+                    for (EngravingObject* object : note->linkList()) {
+                        Note* linked = toNote(object);
+                        const StaffType* linkedType = linked->staff() ? linked->staff()->staffTypeForElement(linked) : nullptr;
+                        SoundingPitch linkedProjection;
+                        if (!linkedType || !linkedType->isMelo() || !linked->hasMeloPitch()
+                            || !noteSoundingPitch(linkedType->meloStateJson(), linked->meloNPer(), linked->meloNGen(), linkedProjection,
+                                                  &error)
+                            || !sameProjection(projection, linkedProjection)) {
+                            error = conflictingLinkedProjections();
+                            return false;
+                        }
+                        seen.insert(linked);
+                    }
+                    const int step = int(String(u"CDEFGAB").indexOf(Char(projection.step)));
+                    projected.push_back({ note, projection, step2tpc(step, AccidentalVal(projection.alter)) });
+                }
+            }
+        }
+    }
+    return true;
+}
+
+bool validateReferences(const Score* score, const std::vector<StateEdit>& edits, String& error)
+{
+    std::set<Fraction> ticks { Fraction(0, 1) };
+    std::vector<const Staff*> staves;
+    for (const Score* related : score->masterScore()->scoreList()) {
+        for (const Staff* staff : related->staves()) {
+            staves.push_back(staff);
+        }
+        for (const Measure* measure = related->firstMeasure(); measure; measure = measure->nextMeasure()) {
+            for (const EngravingItem* item : measure->el()) {
+                if (item->isStaffTypeChange()) {
+                    ticks.insert(item->tick());
+                }
+            }
+        }
+    }
+    for (const StateEdit& edit : edits) {
+        ticks.insert(edit.tick);
+    }
+    for (const Fraction& tick : ticks) {
+        String first;
+        staff_idx_t firstIdx = 0;
+        for (const Staff* staff : staves) {
+            const StaffType* type = staff->staffType(tick);
+            if (!type || !type->isMelo()) {
+                continue;
+            }
+            String state = type->meloStateJson();
+            for (const StateEdit& edit : edits) {
+                if (edit.staff == staff && edit.tick <= tick && (edit.stop.negative() || tick < edit.stop)) {
+                    state = edit.state;
+                    break;
+                }
+            }
+            if (!validateState(state, error)) {
+                return false;
+            }
+            if (first.isEmpty()) {
+                first = state;
+                firstIdx = staff->idx();
+                continue;
+            }
+            bool same = false;
+            if (!sameReference(first, state, same, &error)) {
+                return false;
+            }
+            if (!same) {
+                error = mtrc("engraving", "Reference Pitch disagrees between staves %1 and %2 at tick %3.")
+                        .arg(int(firstIdx) + 1).arg(int(staff->idx()) + 1).arg(tick.ticks());
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 /// Replace the MeloPresto state of the staff type in force at `tick` on `staff`
 /// (the base type or a carrier's copy in the staff's list) — one undoable
 /// flip, layout invalidated (the same shape the tuning controller uses).
@@ -235,6 +347,250 @@ const StaffTypeChange* anyCarrierAt(const Measure* measure, staff_idx_t staffIdx
     }
     return nullptr;
 }
+}
+
+bool validateSharedStateTimeline(const Score* score, String& error)
+{
+    if (!score) {
+        return false;
+    }
+    std::set<Fraction> ticks { Fraction(0, 1) };
+    for (const Measure* measure = score->firstMeasure(); measure; measure = measure->nextMeasure()) {
+        for (const EngravingItem* item : measure->el()) {
+            if (item->isStaffTypeChange()) {
+                ticks.insert(item->tick());
+            }
+        }
+    }
+    // Retain the interchange contract's numbered staff structure within each
+    // part. Compare each part's effective shared projections, not carrier lists.
+    for (const Fraction& tick : ticks) {
+        std::vector<String> reference;
+        int firstPart = -1;
+        for (size_t partIndex = 0; partIndex < score->parts().size(); ++partIndex) {
+            std::vector<String> shared;
+            const Part* part = score->parts()[partIndex];
+            for (const Staff* staff : part->staves()) {
+                const StaffType* type = staff->staffType(tick);
+                if (!type || !type->isMelo()) {
+                    continue;
+                }
+                String projection;
+                if (!musicxmlSharedStateV3Xml(type->meloStateJson(), projection, &error)) {
+                    return false;
+                }
+                shared.push_back(projection);
+            }
+            if (shared.empty()) {
+                continue;
+            }
+            if (firstPart < 0) {
+                firstPart = int(partIndex);
+                reference = shared;
+            } else if (shared != reference) {
+                error = exportTimelinesDiffer().arg(firstPart + 1).arg(int(partIndex) + 1);
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool validateLatticeContent(const Score* score, String& error)
+{
+    std::vector<NoteEdit> projected;
+    return score && validateReferences(score, {}, error) && prepareStoredProjections(score, projected, error);
+}
+
+bool prepareLinkedNoteValue(NoteVal& value, const Chord* chord)
+{
+    if (!chord || !Note::prepareNval(value, chord->staff(), chord->tick())) {
+        return false;
+    }
+    const StaffType* type = chord->staff() ? chord->staff()->staffType(chord->tick()) : nullptr;
+    SoundingPitch expected;
+    const bool lattice = type && type->isMelo();
+    if (lattice && !noteSoundingPitch(type->meloStateJson(), value.meloNPer, value.meloNGen, expected)) {
+        MScore::setError(MsError::CANNOT_RESOLVE_LATTICE_NOTE);
+        return false;
+    }
+    for (EngravingObject* object : chord->linkList()) {
+        const Chord* linked = toChord(object);
+        const StaffType* linkedType = linked->staff() ? linked->staff()->staffType(linked->tick()) : nullptr;
+        NoteVal projection = value;
+        SoundingPitch sounding;
+        if (!Note::prepareNval(projection, linked->staff(), linked->tick())
+            || (lattice != bool(linkedType && linkedType->isMelo()))
+            || (lattice && (!noteSoundingPitch(linkedType->meloStateJson(), projection.meloNPer, projection.meloNGen, sounding)
+                            || !sameProjection(expected, sounding)))) {
+            MScore::setError(MsError::CANNOT_RESOLVE_LATTICE_NOTE);
+            return false;
+        }
+    }
+    return true;
+}
+
+bool validateTieEndpoints(const Note* source, const Note* destination)
+{
+    if (!source || !destination || !source->hasMeloPitch() || !destination->hasMeloPitch()) {
+        return false;
+    }
+    const StaffType* a = source->staff() ? source->staff()->staffTypeForElement(source) : nullptr;
+    const StaffType* b = destination->staff() ? destination->staff()->staffTypeForElement(destination) : nullptr;
+    SoundingPitch from, to;
+    return a && b && a->isMelo() && b->isMelo()
+           && noteSoundingPitch(a->meloStateJson(), source->meloNPer(), source->meloNGen(), from)
+           && noteSoundingPitch(b->meloStateJson(), destination->meloNPer(), destination->meloNGen(), to)
+           && std::abs(from.frequencyHz - to.frequencyHz) < 1e-9;
+}
+
+Note* continuationNote(const Note* source, Chord* destination)
+{
+    if (!source || !source->hasMeloPitch() || !destination) {
+        return nullptr;
+    }
+    const StaffType* a = source->staff() ? source->staff()->staffTypeForElement(source) : nullptr;
+    const StaffType* b = destination->staff() ? destination->staff()->staffType(destination->tick()) : nullptr;
+    SoundingPitch from, target;
+    if (!a || !b || !a->isMelo() || !b->isMelo()
+        || !noteSoundingPitch(a->meloStateJson(), source->meloNPer(), source->meloNGen(), from)) {
+        return nullptr;
+    }
+    if (!noteSoundingPitch(b->meloStateJson(), source->meloNPer(), source->meloNGen(), target)
+        || std::abs(from.frequencyHz - target.frequencyHz) >= 1e-9) {
+        if (!noteContinuation(b->meloStateJson(), from.frequencyHz, target)) {
+            return nullptr;
+        }
+    }
+    // Ordinals distinguish repeated occurrences of the SAME position only.
+    int ordinal = 0;
+    for (Note* note : source->chord()->notes()) {
+        if (note == source) {
+            break;
+        }
+        if (note->hasMeloPitch() && note->meloNPer() == source->meloNPer() && note->meloNGen() == source->meloNGen()) {
+            ++ordinal;
+        }
+    }
+    for (Note* note : destination->notes()) {
+        if (note->hasMeloPitch() && note->meloNPer() == target.nPer && note->meloNGen() == target.nGen && ordinal-- == 0) {
+            return note;
+        }
+    }
+    return nullptr;
+}
+
+bool prepareContinuationValue(const NoteVal& source, const Staff* staff, const Fraction& sourceTick,
+                              const Fraction& targetTick, NoteVal& result)
+{
+    result = source;
+    const StaffType* from = staff ? staff->staffType(sourceTick) : nullptr;
+    const StaffType* to = staff ? staff->staffType(targetTick) : nullptr;
+    if (!from || !to || (!from->isMelo() && !to->isMelo()) || source.isRest()) {
+        return Note::prepareNval(result, staff, targetTick);
+    }
+    SoundingPitch established, continuation;
+    if (!from->isMelo() || !to->isMelo() || !source.hasMeloPitch
+        || !noteSoundingPitch(from->meloStateJson(), source.meloNPer, source.meloNGen, established)) {
+        MScore::setError(MsError::CANNOT_RESOLVE_LATTICE_NOTE);
+        return false;
+    }
+    if (!noteSoundingPitch(to->meloStateJson(), source.meloNPer, source.meloNGen, continuation)
+        || std::abs(continuation.frequencyHz - established.frequencyHz) >= 1e-9) {
+        if (!noteContinuation(to->meloStateJson(), established.frequencyHz, continuation)) {
+            MScore::setError(MsError::CANNOT_RESOLVE_LATTICE_NOTE);
+            return false;
+        }
+    }
+    result.meloNPer = continuation.nPer;
+    result.meloNGen = continuation.nGen;
+    return Note::prepareNval(result, staff, targetTick);
+}
+
+bool preparePitchEdit(Note* anchor, int nPer, int nGen, std::vector<NoteEdit>& edits, String& error)
+{
+    const StaffType* anchorType = anchor && anchor->staff() ? anchor->staff()->staffTypeForElement(anchor) : nullptr;
+    SoundingPitch requested;
+    if (!anchorType || !anchorType->isMelo() || !anchor->hasMeloPitch()
+        || !noteSoundingPitch(anchorType->meloStateJson(), nPer, nGen, requested, &error)) {
+        return false;
+    }
+    std::set<Note*> affected;
+    std::vector<Note*> pending { anchor };
+    for (size_t i = 0; i < pending.size(); ++i) {
+        Note* note = pending[i];
+        if (!affected.insert(note).second) {
+            continue;
+        }
+        if (note->incomingPartialTie() || note->outgoingPartialTie()) {
+            error = partialTieCrossesState();
+            return false;
+        }
+        for (Note* tied : note->tiedNotes()) {
+            if (!affected.count(tied)) {
+                pending.push_back(tied);
+            }
+        }
+        for (EngravingObject* linked : note->linkList()) {
+            if (!affected.count(toNote(linked))) {
+                pending.push_back(toNote(linked));
+            }
+        }
+    }
+    std::vector<NoteEdit> prepared;
+    std::set<Note*> linkedSeen;
+    for (Note* note : affected) {
+        if (linkedSeen.count(note)) {
+            continue;
+        }
+        SoundingPitch projection;
+        const StaffType* type = note->staff() ? note->staff()->staffTypeForElement(note) : nullptr;
+        SoundingPitch existing;
+        if (!type || !type->isMelo() || !note->hasMeloPitch()
+            || !noteSoundingPitch(type->meloStateJson(), note->meloNPer(), note->meloNGen(), existing, &error)) {
+            error = linkedNoteMissingState();
+            return false;
+        }
+        // Retain the requested exact position whenever it sustains the target
+        // sound. Different settings may require the Kernel's continuation.
+        if (!noteSoundingPitch(type->meloStateJson(), nPer, nGen, projection, &error)
+            || std::abs(projection.frequencyHz - requested.frequencyHz) >= 1e-9) {
+            if (!noteContinuation(type->meloStateJson(), requested.frequencyHz, projection, &error)) {
+                return false;
+            }
+        }
+        for (EngravingObject* linkedObject : note->linkList()) {
+            Note* linked = toNote(linkedObject);
+            const StaffType* linkedType = linked->staff() ? linked->staff()->staffTypeForElement(linked) : nullptr;
+            SoundingPitch linkedProjection, linkedExisting;
+            if (!linkedType || !linkedType->isMelo() || !linked->hasMeloPitch()
+                || !noteSoundingPitch(linkedType->meloStateJson(), linked->meloNPer(), linked->meloNGen(), linkedExisting, &error)
+                || !noteSoundingPitch(linkedType->meloStateJson(), projection.nPer, projection.nGen, linkedProjection, &error)
+                || !sameProjection(projection, linkedProjection)) {
+                error = conflictingLinkedProjections();
+                return false;
+            }
+            linkedSeen.insert(linked);
+        }
+        const int step = int(String(u"CDEFGAB").indexOf(Char(projection.step)));
+        prepared.push_back({ note, projection, step2tpc(step, AccidentalVal(projection.alter)) });
+    }
+    edits.insert(edits.end(), prepared.begin(), prepared.end());
+    return true;
+}
+
+void commitPitchEdits(Score* score, const std::vector<NoteEdit>& edits, bool widenExtent)
+{
+    commitNoteEdits(score, edits);
+    for (const NoteEdit& edit : edits) {
+        for (EngravingObject* linked : edit.note->linkList()) {
+            Note* note = toNote(linked);
+            if (widenExtent) {
+                widenExtentForNote(note);
+            }
+            note->triggerLayout();
+        }
+    }
 }
 
 bool effectiveState(const Score* score, staff_idx_t staffIdx, const Measure* measure,
@@ -321,6 +677,60 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
     String current;
     const StaffType* effective = nullptr;
     effectiveState(score, staffIdx, measure, tick, current, &effective);
+    if (choiceId.startsWith(u"bind:")) {
+        Score* composition = score->masterScore();
+        std::vector<StateEdit> edits;
+        for (Score* related : composition->scoreList()) {
+            for (Staff* target : related->staves()) {
+                auto consider = [&](const StaffType* type, const Fraction& at) {
+                    if (!type || !type->isMelo()) {
+                        return true;
+                    }
+                    StateChangeOptions options;
+                    if (!stateChangeOptions(type->meloStateJson(), options)) {
+                        error = mtrc("engraving", "Cannot read the current reference binding.");
+                        return false;
+                    }
+                    if (options.referenceBound) {
+                        return true; // Preserve authored later shared references.
+                    }
+                    String bound;
+                    if (!applyStateChange(type->meloStateJson(), choiceId, bound, error)) {
+                        return false;
+                    }
+                    edits.push_back({ target, target->idx(), at, nextCarrierTick(related, target->idx(), at), bound });
+                    return true;
+                };
+                if (!consider(target->staffType(Fraction(0, 1)), Fraction(0, 1))) {
+                    return false;
+                }
+                for (const Measure* m = related->firstMeasure(); m; m = m->nextMeasure()) {
+                    for (const StaffTypeChange* carrier : changeCarriers(m, target->idx())) {
+                        if (!consider(carrier->staffType(), carrier->tick())) {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        if (!validateReferences(composition, edits, error)) {
+            return false;
+        }
+        if (edits.empty()) {
+            return true; // A coherent bound composition is an existing no-op.
+        }
+        std::vector<NoteEdit> notes;
+        if (!prepareNoteEdits(composition, edits, notes, error)) {
+            return false;
+        }
+        composition->startCmd(bindReferenceAction());
+        for (const StateEdit& edit : edits) {
+            composition->undo(new MeloChangeStateAt(edit.staff, edit.tick, edit.state));
+        }
+        commitNoteEdits(composition, notes);
+        composition->endCmd();
+        return true;
+    }
     String next;
     if (!applyStateChange(current, choiceId, next, error)) {
         return false;
@@ -336,75 +746,11 @@ bool applyChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fra
     Staff* staff = score->staff(staffIdx);
     const bool origin = tick.isZero();
     const bool hasCarrier = changeCarrierAt(measure, staffIdx, tick) != nullptr;
-    if (choiceId.startsWith(u"bind:")) {
-        // Binding Re0 names what the staff's reference IS — a staff-wide
-        // fact, not a per-bar change (M6 gate finding, 2026-08-17: binding
-        // at a change bar left the base unbound, so later key changes had
-        // no anchor and drew no indicator). Apply the same Kernel choice to
-        // the base staff type and to every carrier on this staff whose
-        // state the Kernel reports as unbound; bound carriers (key changes)
-        // keep their own reference. One undo step; no carrier is created.
-        std::vector<std::pair<Fraction, String> > edits;
-        auto consider = [&](const StaffType* st, const Fraction& tick) {
-            if (!st || !st->isMelo()) {
-                return true;
-            }
-            StateChangeOptions opts;
-            if (!stateChangeOptions(st->meloStateJson(), opts)) {
-                return true;
-            }
-            if (opts.referenceBound) {
-                return true;
-            }
-            String bound;
-            String err;
-            if (!applyStateChange(st->meloStateJson(), choiceId, bound, err)) {
-                error = err;
-                return false;
-            }
-            if (!defaultExtentForEmptyStaffSpan(staff, tick, nextCarrierTick(score, staffIdx, tick), bound, bound)) {
-                error = mu::engraving::melo::emptyStaffCentreUnavailable();
-                return false;
-            }
-            if (bound != st->meloStateJson()) {
-                edits.emplace_back(tick, bound);
-            }
-            return true;
-        };
-        if (!consider(staff->staffType(Fraction(0, 1)), Fraction(0, 1))) {
-            return false;
-        }
-        for (const Measure* m = score->firstMeasure(); m; m = m->nextMeasure()) {
-            for (const StaffTypeChange* c : changeCarriers(m, staffIdx)) {
-                if (!consider(c->staffType(), c->tick())) {
-                    return false;
-                }
-            }
-        }
-        if (edits.empty()) {
-            return true;
-        }
-        std::vector<StateEdit> stateEdits;
-        for (const auto& e : edits) {
-            stateEdits.push_back({ staff, staffIdx, e.first, nextCarrierTick(score, staffIdx, e.first), e.second });
-        }
-        std::vector<NoteEdit> noteEdits;
-        if (!prepareNoteEdits(score, stateEdits, noteEdits, error)) {
-            return false;
-        }
-        score->startCmd(mu::engraving::melo::bindReferenceAction());
-        for (const auto& e : edits) {
-            score->undo(new MeloChangeStateAt(staff, e.first, e.second));
-        }
-        commitNoteEdits(score, noteEdits);
-        score->endCmd();
-        return true;
-    }
     const std::vector<StateEdit> stateEdits {
         { staff, staffIdx, tick, nextCarrierTick(score, staffIdx, tick), next }
     };
     std::vector<NoteEdit> noteEdits;
-    if (!prepareNoteEdits(score, stateEdits, noteEdits, error)) {
+    if (!validateReferences(score, stateEdits, error) || !prepareNoteEdits(score, stateEdits, noteEdits, error)) {
         return false;
     }
     score->startCmd(mu::engraving::melo::insertChangeAction());
@@ -450,10 +796,15 @@ bool applyChangeToAllMeloParts(Score* score, Measure* measure, const Fraction& t
         return true;
     }
     for (const String& choiceId : choiceIds) {
-        // A reference names what ONE staff's Re0 is, so it stays staff-wide
-        // (owner decision 9). Routing it here would widen it by inference.
         if (choiceId.startsWith(u"bind:")) {
-            error = mtrc("engraving", "a reference binding is staff-wide; apply it to one staff");
+            if (choiceIds.size() == 1) {
+                for (Staff* staff : score->staves()) {
+                    if (staff->staffType(tick)->isMelo()) {
+                        return applyChange(score, staff->idx(), measure, tick, choiceId, error);
+                    }
+                }
+            }
+            error = mtrc("engraving", "Apply Reference Pitch binding as a separate composition-wide action.");
             return false;
         }
     }
@@ -530,7 +881,7 @@ bool applyChangeToAllMeloParts(Score* score, Measure* measure, const Fraction& t
                                nextCarrierTick(score, p.staffIdx, tick), p.next });
     }
     std::vector<NoteEdit> noteEdits;
-    if (!prepareNoteEdits(score, stateEdits, noteEdits, error)) {
+    if (!validateReferences(score, stateEdits, error) || !prepareNoteEdits(score, stateEdits, noteEdits, error)) {
         return false;
     }
 
@@ -580,7 +931,7 @@ bool removeChange(Score* score, staff_idx_t staffIdx, Measure* measure, const Fr
         { staff, staffIdx, tick, nextCarrierTick(score, staffIdx, tick), previousType->meloStateJson() }
     };
     std::vector<NoteEdit> noteEdits;
-    if (!prepareNoteEdits(score, stateEdits, noteEdits, error)) {
+    if (!validateReferences(score, stateEdits, error) || !prepareNoteEdits(score, stateEdits, noteEdits, error)) {
         return false;
     }
     score->startCmd(mu::engraving::melo::removeChangeAction());
@@ -597,28 +948,8 @@ bool normalizeStoredPitchesAfterLoad(Score* score, size_t& repairs, String& erro
         error = mtrc("engraving", "no score to normalize");
         return false;
     }
-    std::vector<StateEdit> stateEdits;
-    for (staff_idx_t staffIdx = 0; staffIdx < score->nstaves(); ++staffIdx) {
-        Staff* staff = score->staff(staffIdx);
-        const StaffType* base = staff ? staff->staffType(Fraction(0, 1)) : nullptr;
-        if (!base || !base->isMelo()) {
-            continue;
-        }
-        stateEdits.push_back({ staff, staffIdx, Fraction(0, 1),
-                               nextCarrierTick(score, staffIdx, Fraction(0, 1)), base->meloStateJson() });
-        for (Measure* measure = score->firstMeasure(); measure; measure = measure->nextMeasure()) {
-            for (const StaffTypeChange* carrier : changeCarriers(measure, staffIdx)) {
-                if (!carrier->staffType() || !carrier->staffType()->isMelo()) {
-                    continue;
-                }
-                stateEdits.push_back({ staff, staffIdx, carrier->tick(),
-                                       nextCarrierTick(score, staffIdx, carrier->tick()),
-                                       carrier->staffType()->meloStateJson() });
-            }
-        }
-    }
     std::vector<NoteEdit> projected;
-    if (!prepareNoteEdits(score, stateEdits, projected, error)) {
+    if (!validateReferences(score, {}, error) || !prepareStoredProjections(score, projected, error)) {
         return false;
     }
     std::vector<NoteEdit> repairsNeeded;
@@ -647,8 +978,7 @@ bool normalizeStoredPitchesAfterLoad(Score* score, size_t& repairs, String& erro
         for (const NoteEdit& edit : repairsNeeded) {
             for (EngravingObject* linkedObject : edit.note->linkList()) {
                 Note* linked = toNote(linkedObject);
-                linked->setMeloPitch(edit.projection.nPer, edit.projection.nGen);
-                widenExtentForNote(linked);
+                // Validated coordinates and extents remain untouched.
                 linked->setPitch(edit.projection.midiKey, edit.tpc, edit.tpc);
                 linked->setTuning(edit.projection.centsOffset);
             }
