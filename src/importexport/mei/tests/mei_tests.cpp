@@ -22,6 +22,8 @@
 
 #include <gtest/gtest.h>
 #include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QTemporaryDir>
 #include <QXmlStreamReader>
 #include "engraving/dom/part.h"
@@ -569,5 +571,105 @@ TEST_F(Mei_Tests, unrelatedTypeTokenDoesNotClaimTheFileUsesTheProfile)
     };
     std::unique_ptr<MasterScore> score(ScoreRW::readScore(String::fromQString(output.fileName()), true, import));
     EXPECT_TRUE(score);
+}
+
+TEST_F(Mei_Tests, latticeExportRefusesMissingIdentityAndDivergentReferencesBeforeWriting)
+{
+    for (bool missingIdentity : { true, false }) {
+        std::unique_ptr<MasterScore> score(ScoreRW::readScore(u"../../../engraving/tests/jimstaff_data/m9-satb-hymn.mscx"));
+        ASSERT_TRUE(score);
+        score->rebuildMidiMapping();
+        QTemporaryDir directory;
+        const QString path = directory.filePath("protected.mei");
+        MeiWriter writer;
+        ASSERT_EQ(writer.writeScore(score.get(), path), Err::NoError);
+        QFile original(path);
+        ASSERT_TRUE(original.open(QIODevice::ReadOnly));
+        const QByteArray before = original.readAll();
+        original.close();
+        if (missingIdentity) {
+            Note* note = toChord(score->firstSegment(SegmentType::ChordRest)->element(0))->notes().front();
+            ASSERT_TRUE(note->hasMeloPitch());
+            note->setMeloPitch(INT_MIN, INT_MIN);
+        } else {
+            auto* type = score->staff(1)->staffType(Fraction(0, 1));
+            auto json = QJsonDocument::fromJson(type->meloStateJson().toQString().toUtf8()).object();
+            auto reference = json["reference"].toObject();
+            auto pitch = reference["reference-pitch"].toObject();
+            ASSERT_TRUE(pitch.contains("key_number"));
+            pitch["key_number"] = 64;
+            reference["reference-pitch"] = pitch;
+            json["reference"] = reference;
+            type->setMeloStateJson(String::fromUtf8(QJsonDocument(json).toJson(QJsonDocument::Compact).constData()));
+        }
+        EXPECT_NE(writer.writeScore(score.get(), path), Err::NoError);
+        ASSERT_TRUE(original.open(QIODevice::ReadOnly));
+        EXPECT_EQ(original.readAll(), before);
+    }
+}
+
+TEST_F(Mei_Tests, latticeImportRefusesOmittedIdentityWithoutChangingInput)
+{
+    QFile source(QString::fromUtf8(iex_mei_tests_DATA_ROOT) + "/data/jims/jims-synthetic.mei");
+    ASSERT_TRUE(source.open(QIODevice::ReadOnly));
+    QByteArray xml = source.readAll();
+    const int start = xml.indexOf("<jm:note ref=");
+    const int end = xml.indexOf("</jm:note>", start);
+    ASSERT_GE(start, 0);
+    ASSERT_GT(end, start);
+    xml.remove(start, end + int(sizeof("</jm:note>") - 1) - start);
+    QTemporaryDir directory;
+    QFile stripped(directory.filePath("omitted-identity.mei"));
+    ASSERT_TRUE(stripped.open(QIODevice::WriteOnly));
+    ASSERT_EQ(stripped.write(xml), xml.size());
+    stripped.close();
+    muse::Ret received;
+    auto import = [&received](MasterScore* score, const muse::io::path_t& input) {
+        MeiReader reader(nullptr);
+        received = reader.read(score, input);
+        return received ? Err::NoError : Err::FileCriticallyCorrupted;
+    };
+    std::unique_ptr<MasterScore> refused(ScoreRW::readScore(String::fromQString(stripped.fileName()), true, import));
+    EXPECT_FALSE(refused);
+    EXPECT_FALSE(received);
+    EXPECT_NE(received.text().find("coordinates"), std::string::npos) << received.text();
+    ASSERT_TRUE(stripped.open(QIODevice::ReadOnly));
+    EXPECT_EQ(stripped.readAll(), xml);
+}
+
+TEST_F(Mei_Tests, latticeImportRefusesDivergentReferencesWithoutChangingInput)
+{
+    std::unique_ptr<MasterScore> score(ScoreRW::readScore(u"../../../engraving/tests/jimstaff_data/m9-satb-hymn.mscx"));
+    ASSERT_TRUE(score);
+    score->rebuildMidiMapping();
+    QTemporaryDir directory;
+    QFile file(directory.filePath("reference.mei"));
+    MeiWriter writer;
+    ASSERT_EQ(writer.writeScore(score.get(), file.fileName()), Err::NoError);
+    ASSERT_TRUE(file.open(QIODevice::ReadOnly));
+    QByteArray xml = file.readAll();
+    file.close();
+    const int first = xml.indexOf("<jm:part ");
+    const int second = xml.indexOf("<jm:part ", first + 1);
+    const int reference = xml.indexOf("key-number=\"62\"", second);
+    ASSERT_GE(first, 0);
+    ASSERT_GT(second, first);
+    ASSERT_GT(reference, second);
+    xml.replace(reference, int(sizeof("key-number=\"62\"") - 1), "key-number=\"64\"");
+    ASSERT_TRUE(file.open(QIODevice::WriteOnly));
+    ASSERT_EQ(file.write(xml), xml.size());
+    file.close();
+    muse::Ret received;
+    auto import = [&received](MasterScore* destination, const muse::io::path_t& input) {
+        MeiReader reader(nullptr);
+        received = reader.read(destination, input);
+        return received ? Err::NoError : Err::FileCriticallyCorrupted;
+    };
+    std::unique_ptr<MasterScore> refused(ScoreRW::readScore(String::fromQString(file.fileName()), true, import));
+    EXPECT_FALSE(refused);
+    EXPECT_FALSE(received);
+    EXPECT_NE(received.text().find("Reference Pitch disagrees"), std::string::npos) << received.text();
+    ASSERT_TRUE(file.open(QIODevice::ReadOnly));
+    EXPECT_EQ(file.readAll(), xml);
 }
 }
