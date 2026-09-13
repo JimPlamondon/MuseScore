@@ -1386,7 +1386,8 @@ bool MeloMeiImporter::apply(Score* score,
         score->setMeloProvenance(prov);
     }
 
-    if (!melo::validateLatticeContent(score, m_error)) {
+    size_t repairs = 0;
+    if (!melo::normalizeStoredPitchesAfterLoad(score, repairs, m_error, false)) {
         return false;
     }
     if (anyState) {

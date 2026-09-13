@@ -43,6 +43,7 @@
 #include "engraving/dom/segment.h"
 #include "engraving/dom/staff.h"
 #include "engraving/dom/stafftype.h"
+#include "engraving/melo/melotuningcontroller.h"
 
 #include "modularity/ioc.h"
 #include "importexport/mei/imeiconfiguration.h"
@@ -671,5 +672,50 @@ TEST_F(Mei_Tests, latticeImportRefusesDivergentReferencesWithoutChangingInput)
     EXPECT_NE(received.text().find("Reference Pitch disagrees"), std::string::npos) << received.text();
     ASSERT_TRUE(file.open(QIODevice::ReadOnly));
     EXPECT_EQ(file.readAll(), xml);
+}
+
+TEST_F(Mei_Tests, exactEqualTemperamentRoundTripRestoresDerivedTuning)
+{
+    for (double generator : { 700.0, 1200.0 * 4.0 / 7.0, 720.0 }) {
+        SCOPED_TRACE(generator);
+        std::unique_ptr<MasterScore> score(ScoreRW::readScore(u"../../../engraving/tests/jimstaff_data/m9-satb-hymn.mscx"));
+        ASSERT_TRUE(score);
+        melo::TuningController tuning(score.get(), 0);
+        ASSERT_TRUE(tuning.beginPreview());
+        ASSERT_TRUE(tuning.commit(generator));
+        auto values = [](Score* score) {
+            std::vector<std::pair<NoteVal, double> > result;
+            for (Segment* segment = score->firstSegment(SegmentType::ChordRest); segment;
+                 segment = segment->next1(SegmentType::ChordRest)) {
+                for (track_idx_t track = 0; track < score->ntracks(); ++track) {
+                    auto* item = segment->element(track);
+                    if (item && item->isChord()) {
+                        for (Note* note : toChord(item)->notes()) {
+                            result.emplace_back(note->noteVal(), note->tuning());
+                        }
+                    }
+                }
+            }
+            return result;
+        };
+        const auto before = values(score.get());
+        score->rebuildMidiMapping();
+        QTemporaryDir directory;
+        const QString path = directory.filePath("tempered.mei");
+        MeiWriter writer;
+        ASSERT_EQ(writer.writeScore(score.get(), path), Err::NoError);
+        auto import = [](MasterScore* destination, const muse::io::path_t& input) {
+            MeiReader reader(nullptr);
+            return reader.import(destination, input);
+        };
+        std::unique_ptr<MasterScore> reopened(ScoreRW::readScore(String::fromQString(path), true, import));
+        ASSERT_TRUE(reopened);
+        const auto after = values(reopened.get());
+        ASSERT_EQ(after.size(), before.size());
+        for (size_t i = 0; i < before.size(); ++i) {
+            EXPECT_TRUE(after[i].first == before[i].first) << "note " << i;
+            EXPECT_NEAR(after[i].second, before[i].second, 1e-8) << "note " << i;
+        }
+    }
 }
 }
