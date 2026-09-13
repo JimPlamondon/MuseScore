@@ -187,11 +187,15 @@ NoteVal Score::noteValForPosition(Position pos, AccidentalType at, bool& error)
                     mu::engraving::melo::SoundingPitch projection;
                     if (mu::engraving::melo::noteSoundingPitch(meloSt->meloStateJson(), hit.nPer, hit.nGen, projection)) {
                         const int stepIndex = int(muse::String(u"CDEFGAB").indexOf(muse::Char(projection.step)));
+                        nval.hasMeloPitch = true;
+                        nval.meloNPer = hit.nPer;
+                        nval.meloNGen = hit.nGen;
                         nval.pitch = projection.midiKey;
                         nval.tpc1 = step2tpc(stepIndex, AccidentalVal(projection.alter));
                         nval.tpc2 = nval.tpc1;
                     }
                 }
+                error = !nval.hasMeloPitch;
                 break;
             }
         }
@@ -236,6 +240,9 @@ Note* Score::addPitch(NoteVal& nval, bool addFlag, InputState* externalInputStat
         return addPitchToChord(nval, toChord(c), externalInputState);
     }
 
+    if (!is.segment() || !Note::prepareNval(nval, staff(track2staff(is.track())), is.segment()->tick())) {
+        return nullptr;
+    }
     expandVoice(is.segment(), is.track());
 
     // insert note
@@ -288,6 +295,9 @@ Note* Score::addPitch(NoteVal& nval, bool addFlag, InputState* externalInputStat
         }
     }
 
+    if (!note) {
+        return nullptr;
+    }
     if (is.slur()) {
         //
         // extend slur
@@ -356,6 +366,9 @@ Note* Score::addPitchToChord(NoteVal& nval, Chord* chord, InputState* externalIn
         note = addNote(chord, nval, forceAccidental, /* articulationIds */ {}, externalInputState);
     }
 
+    if (!note) {
+        return nullptr;
+    }
     if (is.usingNoteEntryMethod(NoteEntryMethod::REPITCH)) {
         // move cursor to next note
         ChordRest* next = nextChordRest(note->chord());
@@ -415,13 +428,12 @@ Ret Score::putNote(const Position& p, bool replace)
     Staff* st   = staff(p.staffIdx);
     Segment* s  = p.segment;
 
-    m_is.setTrack(p.staffIdx * VOICES + m_is.voice());
-    m_is.setSegment(s);
+    const track_idx_t targetTrack = p.staffIdx * VOICES + m_is.voice();
 
     if (mu::engraving::Excerpt* excerpt = score()->excerpt()) {
         const TracksMap& tracks = excerpt->tracksMapping();
 
-        if (!tracks.empty() && muse::key(tracks, m_is.track(), muse::nidx) == muse::nidx) {
+        if (!tracks.empty() && muse::key(tracks, targetTrack, muse::nidx) == muse::nidx) {
             return make_ret(Ret::Code::UnknownError);
         }
     }
@@ -432,6 +444,9 @@ Ret Score::putNote(const Position& p, bool replace)
     if (error) {
         return make_ret(Ret::Code::UnknownError);
     }
+
+    m_is.setTrack(targetTrack);
+    m_is.setSegment(s);
 
     // warn and delete MeasureRepeat if necessary
     Measure* m = m_is.segment()->measure();
@@ -690,6 +705,9 @@ Ret Score::repitchNote(const Position& p, bool replace)
     }
 
     auto [note, lastTiedNote] = repitchReplaceNote(chord, nval, forceAccidental);
+    if (!note) {
+        return make_ret(Ret::Code::UnknownError);
+    }
     setPlayChord(true);
 
     // move to next Chord
@@ -709,7 +727,10 @@ std::pair<Note*, Note*> Score::repitchReplaceNote(Chord* chord, const NoteVal& n
     Note* note = Factory::createNote(chord);
     note->setParent(chord);
     note->setTrack(chord->track());
-    note->setNval(nval);
+    if (!note->setNval(nval)) {
+        delete note;
+        return { nullptr, nullptr };
+    }
 
     Note* firstTiedNote = nullptr;
     Note* lastTiedNote = note;

@@ -89,6 +89,11 @@ void MScoreErrorsController::checkAndShowMScoreError()
         title = muse::trc("notation", "No note or rest or chord symbol selected");
         message = muse::trc("notation", "Please select a note or rest or chord symbol and retry");
         break;
+    case MsError::CANNOT_RESOLVE_LATTICE_NOTE:
+        title = muse::trc("notation", "Cannot resolve this note");
+        message = muse::trc("notation",
+                            "This input does not identify one valid lattice position under the current settings. No note was entered. Select an exact note position and retry.");
+        break;
     case MsError::CANNOT_INSERT_TUPLET:
         title = muse::trc("notation", "Cannot insert chord/rest in tuplet");
         break;

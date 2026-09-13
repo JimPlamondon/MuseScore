@@ -65,6 +65,7 @@
 #include "../dom/measurerepeat.h"
 #include "../dom/navigate.h"
 #include "../dom/note.h"
+#include "../melo/melochange.h"
 #include "../dom/noteline.h"
 #include "../dom/ornament.h"
 #include "../dom/ottava.h"
@@ -591,8 +592,12 @@ Note* Score::addNote(Chord* chord, const NoteVal& noteVal, bool forceAccidental,
     Note* note = Factory::createNote(chord);
     note->setParent(chord);
     note->setTrack(chord->track());
-    note->setNval(noteVal);
+    if (!note->setNval(noteVal)) {
+        delete note;
+        return nullptr;
+    }
     undoAddElement(note);
+    melo::widenExtentForNote(note);
     if (forceAccidental) {
         int tpc = style().styleB(Sid::concertPitch) ? noteVal.tpc1 : noteVal.tpc2;
         AccidentalVal alter = tpc2alter(tpc);
@@ -2142,6 +2147,9 @@ void Score::cmdAddTie(bool addToChord)
         NoteVal nval(note->noteVal());
         if (!n) {
             n = addPitch(nval, addFlag);
+            if (!n) {
+                return;
+            }
             if (staffMove != 0) {
                 undo(new ChangeChordStaffMove(n->chord(), staffMove));
             }
@@ -2556,15 +2564,15 @@ void Score::cmdFlip()
             flipOnce(artic, [artic]() {
                 ArticulationAnchor articAnchor = artic->anchor();
                 switch (articAnchor) {
-                    case ArticulationAnchor::TOP:
-                        articAnchor = ArticulationAnchor::BOTTOM;
-                        break;
-                    case ArticulationAnchor::BOTTOM:
-                        articAnchor = ArticulationAnchor::TOP;
-                        break;
-                    case ArticulationAnchor::AUTO:
-                        articAnchor = artic->up() ? ArticulationAnchor::BOTTOM : ArticulationAnchor::TOP;
-                        break;
+                case ArticulationAnchor::TOP:
+                    articAnchor = ArticulationAnchor::BOTTOM;
+                    break;
+                case ArticulationAnchor::BOTTOM:
+                    articAnchor = ArticulationAnchor::TOP;
+                    break;
+                case ArticulationAnchor::AUTO:
+                    articAnchor = artic->up() ? ArticulationAnchor::BOTTOM : ArticulationAnchor::TOP;
+                    break;
                 }
                 PropertyFlags pf = artic->propertyFlags(Pid::ARTICULATION_ANCHOR);
                 if (pf == PropertyFlags::STYLED) {
@@ -2603,15 +2611,15 @@ void Score::cmdFlip()
                 ArticulationAnchor articAnchor = ArticulationAnchor(ornament->getProperty(Pid::ARTICULATION_ANCHOR).toInt());
 
                 switch (articAnchor) {
-                    case ArticulationAnchor::TOP:
-                        articAnchor = ArticulationAnchor::BOTTOM;
-                        break;
-                    case ArticulationAnchor::BOTTOM:
-                        articAnchor = ArticulationAnchor::TOP;
-                        break;
-                    case ArticulationAnchor::AUTO:
-                        articAnchor = ornament->up() ? ArticulationAnchor::BOTTOM : ArticulationAnchor::TOP;
-                        break;
+                case ArticulationAnchor::TOP:
+                    articAnchor = ArticulationAnchor::BOTTOM;
+                    break;
+                case ArticulationAnchor::BOTTOM:
+                    articAnchor = ArticulationAnchor::TOP;
+                    break;
+                case ArticulationAnchor::AUTO:
+                    articAnchor = ornament->up() ? ArticulationAnchor::BOTTOM : ArticulationAnchor::TOP;
+                    break;
                 }
                 PropertyFlags pf = ornament->propertyFlags(Pid::ARTICULATION_ANCHOR);
                 if (pf == PropertyFlags::STYLED) {

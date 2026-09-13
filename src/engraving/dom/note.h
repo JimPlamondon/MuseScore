@@ -359,7 +359,8 @@ public:
     int qmlDotsCount();
     void updateAccidental(AccidentalState*);
     void updateLine();
-    void setNval(const NoteVal&, Fraction = { -1, 1 });
+    static bool prepareNval(NoteVal&, const Staff*, const Fraction&);
+    [[nodiscard]] bool setNval(const NoteVal&, Fraction = { -1, 1 });
     NoteEventList& playEvents() { return m_playEvents; }
     const NoteEventList& playEvents() const { return m_playEvents; }
     NoteEvent* noteEvent(int idx) { return &m_playEvents[idx]; }

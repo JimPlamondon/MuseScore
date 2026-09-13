@@ -803,8 +803,12 @@ void Score::addInterval(int val, const std::vector<Note*>& nl)
         Note* note = Factory::createNote(chord);
         note->setParent(chord);
         note->setTrack(chord->track());
-        note->setNval(nval, tick);
+        if (!note->setNval(nval, tick)) {
+            delete note;
+            return;
+        }
         undoAddElement(note);
+        melo::widenExtentForNote(note);
 
         if (forceAccidental) {
             Accidental* a = Factory::createAccidental(note);
@@ -880,7 +884,10 @@ Note* Score::setGraceNote(Chord* ch, int pitch, NoteType type, int len)
     // find corresponding note within chord and use its tpc information
     // if no note with same pitch found, derive tpc from pitch / key
     if (Note* n = ch->findNote(pitch)) {
-        note->setNval(n->noteVal(), ch->tick());
+        if (!note->setNval(n->noteVal(), ch->tick())) {
+            delete chord;
+            return nullptr;
+        }
     } else {
         note->setPitch(pitch);
         note->setTpcFromPitch();
@@ -1100,6 +1107,9 @@ Segment* Score::setNoteRest(Segment* segment, track_idx_t track, NoteVal nval, F
 
     bool isRest   = nval.isRest();
     Fraction tick = segment->tick();
+    if (!Note::prepareNval(nval, staff(track2staff(track)), tick)) {
+        return nullptr;
+    }
     EngravingItem* nr   = nullptr;
     Tie* tie      = nullptr;
     ChordRest* cr = toChordRest(segment->element(track));
@@ -1163,7 +1173,10 @@ Segment* Score::setNoteRest(Segment* segment, track_idx_t track, NoteVal nval, F
                         undoChangeParent(grace, chord, chord->staffIdx());
                     }
                 }
-                note->setNval(nval, tick);
+                if (!note->setNval(nval, tick)) {
+                    delete chord;
+                    return nullptr;
+                }
                 if (forceAccidental) {
                     int tpc = style().styleB(Sid::concertPitch) ? nval.tpc1 : nval.tpc2;
                     AccidentalVal alter = tpc2alter(tpc);
@@ -1188,6 +1201,9 @@ Segment* Score::setNoteRest(Segment* segment, track_idx_t track, NoteVal nval, F
             }
             tuplet = 0;
             undoAddCR(ncr, measure, tick);
+            if (note) {
+                melo::widenExtentForNote(note);
+            }
             if (addTie) {
                 undoAddElement(addTie);
             }
@@ -4268,6 +4284,9 @@ bool Score::cmdImplode()
                             }
                             bool forceAccidental = n->accidental() && n->accidental()->role() == AccidentalRole::USER;
                             Note* nn = addNote(dstChord, nv, forceAccidental);
+                            if (!nn) {
+                                return false;
+                            }
                             // move articulations
                             for (Articulation* artic : srcChord->articulations()) {
                                 if (dstChord->hasArticulation(artic)) {
@@ -4747,7 +4766,10 @@ void Score::cmdRealizeChordSymbols(bool literal, Voicing voicing, HDuration dura
                 nval.tpc2 = p.second;
             }
             chord->add(note);       //add note first to set track and such
-            note->setNval(nval, tick);
+            if (!note->setNval(nval, tick)) {
+                delete chord;
+                return;
+            }
         }
 
         if (!seg->isChordRestType()) {
@@ -5300,9 +5322,13 @@ void Score::cmdAddPitch(int step, bool addFlag, bool insert)
                 nval.tpc2 = nval.tpc1;
                 const bool forceAccidental = m_is.accidentalType() != AccidentalType::NONE;
                 if (targetChord) {
-                    addNote(targetChord, nval, forceAccidental, m_is.articulationIds());
+                    if (!addNote(targetChord, nval, forceAccidental, m_is.articulationIds())) {
+                        return;
+                    }
                 } else {
-                    addPitch(nval, false);
+                    if (!addPitch(nval, false)) {
+                        return;
+                    }
                 }
                 m_is.setAccidentalType(AccidentalType::NONE);
                 return;
@@ -5331,9 +5357,13 @@ void Score::cmdAddPitch(int step, bool addFlag, bool insert)
                 forceAccidental = (nval.pitch == nval2.pitch);
             }
             if (inputState().usingNoteEntryMethod(NoteEntryMethod::REPITCH)) {
-                addPitchToChord(nval, chord, /* externalInputState */ nullptr, forceAccidental);
+                if (!addPitchToChord(nval, chord, /* externalInputState */ nullptr, forceAccidental)) {
+                    return;
+                }
             } else {
-                addNote(chord, nval, forceAccidental, m_is.articulationIds());
+                if (!addNote(chord, nval, forceAccidental, m_is.articulationIds())) {
+                    return;
+                }
             }
             m_is.setAccidentalType(AccidentalType::NONE);
             return;
