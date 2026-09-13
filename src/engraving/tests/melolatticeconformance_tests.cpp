@@ -69,7 +69,7 @@ TEST(MeloLatticeConformanceTests, NoteValueTransferKeepsCoordinatesAcrossTunings
     ASSERT_TRUE(s);
     Chord* c=notes(s)[0]->chord();
     int mismatches=0, checked=0;
-    for (double gen : { 686.0, 700.0, 720.0 }) {
+    for (double gen : { 1200.0 * 4.0 / 7.0, 686.0, 700.0, 720.0 }) {
         melo::TuningController tune(s, 0);
         ASSERT_TRUE(tune.beginPreview());
         ASSERT_TRUE(tune.commit(gen));
@@ -307,7 +307,7 @@ TEST(MeloLatticeConformanceTests, GraceUsesSelectedOccurrenceNotFirstMatchingMid
 {
     QTemporaryDir directory;
     ASSERT_TRUE(directory.isValid());
-    for (double generator:{ 700.0, 701.0 }) {
+    for (double generator:{ 700.0, 701.0, 1200.0 * 4.0 / 7.0, 720.0 }) {
         for (bool chooseOther:{ false, true }) {
             auto* s=ScoreRW::readScore(u"jimstaff_data/m9-dense-voices.mscx");
             ASSERT_TRUE(s);
@@ -319,9 +319,10 @@ TEST(MeloLatticeConformanceTests, GraceUsesSelectedOccurrenceNotFirstMatchingMid
             ASSERT_TRUE(place(a, 0, 0));
             Note* other=Factory::createNote(chord);
             other->setTrack(a->track());
-            ASSERT_TRUE(place(other, -7, 12));
+            ASSERT_TRUE(place(other, generator < 690.0 ? -4 : generator == 720.0 ? -3 : -7,
+                              generator < 690.0 ? 7 : generator == 720.0 ? 5 : 12));
             chord->add(other);
-            if (generator == 700.0) {
+            if (generator != 701.0) {
                 EXPECT_NEAR(hz(a), hz(other), 1e-8);
             } else {
                 EXPECT_GT(std::abs(hz(a) - hz(other)), 0.1);
@@ -1425,5 +1426,51 @@ TEST(MeloLatticeConformanceTests, ReferenceTimelineEditsRefusePartialStaffDisagr
             }
         }
         delete s;
+    }
+}
+
+TEST(MeloLatticeConformanceTests, ExactEqualTemperamentSatbTuningPreservesWrittenContentAndReopens)
+{
+    for (const auto& [divisions, generator] : std::vector<std::pair<int, double> > { { 12, 700.0 }, { 7, 1200.0 * 4.0 / 7.0 },
+             { 5, 720.0 } }) {
+        SCOPED_TRACE(divisions);
+        std::unique_ptr<MasterScore> score(ScoreRW::readScore(u"jimstaff_data/m9-satb-hymn.mscx"));
+        ASSERT_TRUE(score);
+        std::vector<Note*> written;
+        std::vector<std::pair<int, int> > coordinates;
+        for (Segment* segment = score->firstSegment(SegmentType::ChordRest); segment; segment = segment->next1(SegmentType::ChordRest)) {
+            for (track_idx_t track = 0; track < score->ntracks(); ++track) {
+                auto* item = segment->element(track);
+                if (item && item->isChord()) {
+                    for (Note* note : toChord(item)->notes()) {
+                        written.push_back(note);
+                        coordinates.emplace_back(note->meloNPer(), note->meloNGen());
+                    }
+                }
+            }
+        }
+        melo::TuningController tuning(score.get(), 0);
+        ASSERT_TRUE(tuning.beginPreview());
+        ASSERT_TRUE(tuning.commit(generator));
+        EXPECT_DOUBLE_EQ(tuning.currentGeneratorCents(), generator);
+        for (size_t i = 0; i < written.size(); ++i) {
+            EXPECT_EQ(std::make_pair(written[i]->meloNPer(), written[i]->meloNGen()), coordinates[i]);
+            melo::SoundingPitch expected;
+            ASSERT_TRUE(melo::noteSoundingPitch(written[i]->staff()->staffTypeForElement(written[i])->meloStateJson(),
+                                                coordinates[i].first, coordinates[i].second, expected));
+            EXPECT_EQ(written[i]->pitch(), expected.midiKey);
+            EXPECT_NEAR(written[i]->tuning(), expected.centsOffset, 1e-9);
+        }
+        QTemporaryDir directory;
+        const String path = String::fromQString(directory.filePath("tempered-hymn.mscx"));
+        ASSERT_TRUE(ScoreRW::saveScore(score.get(), path));
+        std::unique_ptr<MasterScore> reopened(ScoreRW::readScore(path, true));
+        ASSERT_TRUE(reopened);
+        melo::TuningController loaded(reopened.get(), 0);
+        EXPECT_DOUBLE_EQ(loaded.currentGeneratorCents(), generator);
+        EXPECT_EQ(reopened->parts().size(), 4u);
+        if (const char* output = std::getenv("MELO_LATTICE_SENSORY_OUT")) {
+            ASSERT_TRUE(ScoreRW::saveScore(reopened.get(), String::fromUtf8(output) + u"/hymn-" + String::number(divisions) + u"tet.mscx"));
+        }
     }
 }

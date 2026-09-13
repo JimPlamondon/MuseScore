@@ -619,6 +619,45 @@ TEST_F(Engraving_MeloStaffM7PlaybackTests, coincidentWrittenPositionsRetainExact
     }
 }
 
+TEST_F(Engraving_MeloStaffM7PlaybackTests, exactTwelveSevenFiveEqualTemperamentPlayback)
+{
+    for (double generator : { 700.0, 1200.0 * 4.0 / 7.0, 720.0 }) {
+        Score* score = ScoreRW::readScore(u"jimstaff_data/m5-key-up.mscx");
+        ASSERT_TRUE(score);
+        melo::TuningController tuning(score, 0);
+        ASSERT_TRUE(tuning.beginPreview());
+        ASSERT_TRUE(tuning.commit(generator));
+        const auto notes = notesOf(score);
+        ASSERT_GE(notes.size(), 2u);
+        for (Note* note : notes) {
+            note->setPlay(note == notes[0] || note == notes[1]);
+        }
+        NoteVal value = notes[0]->noteVal();
+        value.hasMeloPitch = true;
+        value.meloNPer = 0;
+        value.meloNGen = 0;
+        ASSERT_TRUE(notes[0]->setNval(value));
+        value.meloNPer = 0;
+        value.meloNGen = 1;
+        ASSERT_TRUE(notes[1]->setNval(value));
+        const auto exact = exactPitches(score);
+        ASSERT_EQ(exact.size(), 2u);
+        ASSERT_TRUE(exact[0]);
+        ASSERT_TRUE(exact[1]);
+        EXPECT_NEAR(exact[0]->frequencyHz, 293.6647679174076, 1e-9);
+        EXPECT_NEAR(exact[1]->frequencyHz, 293.6647679174076 * std::exp2(generator / 1200.0), 1e-9);
+        EXPECT_NEAR(exact[1]->frequencyHz, kernelSoundingPitch(notes[1]).frequencyHz, 1e-9);
+        if (const char* output = std::getenv("MELO_LATTICE_SENSORY_OUT")) {
+            ASSERT_TRUE(ScoreRW::saveScore(score,
+                                           String::fromUtf8(output) + u"/tempered-sequence-" + String::number(generator
+                                                                                                              == 700.0 ? 12 : generator
+                                                                                                              == 720.0 ? 5 : 7)
+                                           + u".mscx"));
+        }
+        delete score;
+    }
+}
+
 // Negative control: a stock (non-MeloPresto) score's pitch levels are exactly
 // the stock formula — byte-identical playback for every non-MeloPresto staff.
 TEST_F(Engraving_MeloStaffM7PlaybackTests, m7StockPlaybackPitchIsUnchanged)

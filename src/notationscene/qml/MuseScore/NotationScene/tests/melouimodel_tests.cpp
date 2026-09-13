@@ -603,179 +603,196 @@ TEST_F(MeloUiModelTests, LatticeTuningIsDerivedWhileConventionalTuningRemainsEdi
 
 TEST_F(MeloUiModelTests, RealDragCancellationAndReleaseRestoreWholeTie)
 {
-    for (bool fromPart : { false, true }) {
-        score.reset(ScoreRW::readScore(muse::String::fromUtf8(MELO_UI_TEST_DATA_ROOT) + u"/jimstaff_data/m5-key-up.mscx", true));
-        ASSERT_TRUE(score);
-        std::vector<Note*> notes;
-        for (Segment* segment = score->firstSegment(SegmentType::ChordRest); segment; segment = segment->next1(SegmentType::ChordRest)) {
-            EngravingItem* item = segment->element(0);
-            if (item && item->isChord()) {
-                notes.push_back(toChord(item)->notes().front());
+    for (double generator : { 700.0, 1200.0 * 4.0 / 7.0, 720.0 }) {
+        SCOPED_TRACE(generator);
+        for (bool fromPart : { false, true }) {
+            score.reset(ScoreRW::readScore(muse::String::fromUtf8(MELO_UI_TEST_DATA_ROOT) + u"/jimstaff_data/m5-key-up.mscx", true));
+            ASSERT_TRUE(score);
+            if (generator != 700.0) {
+                String error;
+                auto* second = score->firstMeasure()->nextMeasure();
+                ASSERT_TRUE(melo::removeChange(score.get(), 0, second, error));
+                ASSERT_TRUE(melo::applyChange(score.get(), 0, second, u"key:-1:0", error));
+                melo::TuningController tuning(score.get(), 0);
+                ASSERT_TRUE(tuning.beginPreview());
+                ASSERT_TRUE(tuning.commit(generator));
+                EXPECT_DOUBLE_EQ(tuning.currentGeneratorCents(), generator);
             }
-        }
-        ASSERT_GE(notes.size(), 5u);
-        Note* a = notes[3];
-        Note* b = notes[4];
-        NoteVal source = a->noteVal();
-        source.hasMeloPitch = true;
-        source.meloNPer = 0;
-        source.meloNGen = 0;
-        ASSERT_TRUE(a->setNval(source));
-        NoteVal target;
-        ASSERT_TRUE(melo::prepareContinuationValue(a->noteVal(), a->staff(), a->tick(), b->tick(), target));
-        ASSERT_TRUE(b->setNval(target));
-        Tie* tie = Factory::createTie(score->dummy());
-        tie->setStartNote(a);
-        tie->setEndNote(b);
-        tie->setTrack(0);
-        tie->setTick(a->tick());
-        tie->setTick2(b->tick());
-        score->startCmd(muse::TranslatableString::untranslatable("Tie drag fixture"));
-        score->undoAddElement(tie);
-        score->endCmd();
-        score->doLayout();
-        Score* part=TestUtils::createPart(score.get());
-        ASSERT_TRUE(part);
-        std::vector<Note*> linkedNotes;
-        for (Note* note : { a, b }) {
-            for (EngravingObject* object:note->linkList()) {
-                if (object->score() == part) {
-                    linkedNotes.push_back(toNote(object));
+
+            std::vector<Note*> notes;
+            for (Segment* segment = score->firstSegment(SegmentType::ChordRest); segment;
+                 segment = segment->next1(SegmentType::ChordRest)) {
+                EngravingItem* item = segment->element(0);
+                if (item && item->isChord()) {
+                    notes.push_back(toChord(item)->notes().front());
                 }
             }
-        }
-        ASSERT_EQ(linkedNotes.size(), 2u);
-        if (fromPart) {
-            std::swap(a, linkedNotes[0]);
-            std::swap(b, linkedNotes[1]);
-        }
-        notation::Notation actual(nullptr, muse::modularity::globalCtx(), a->score());
-        auto interaction = actual.interaction();
-        const NoteVal originalA = a->noteVal(), originalB = b->noteVal();
-        const double tuningA = a->tuning(), tuningB = b->tuning();
-        const StaffType* type = a->staff()->staffTypeForElement(a);
-        const String state = type->meloStateJson();
-        const bool empty = type->meloExtentIsEmptyDefault();
-        const auto index = score->undoStack()->currentIndex();
-        const muse::PointF origin(10, 10), moved(10, 10 - 24 * a->spatium() * type->lineDistance().val());
-        std::vector<const StaffType*> types;
-        std::vector<String> states;
-        std::vector<Note*> affected { a, b, linkedNotes[0], linkedNotes[1] };
-        std::vector<NoteVal> values;
-        for (Note* note:affected) {
-            const StaffType* current=note->staff()->staffTypeForElement(note);
-            types.push_back(current);
-            states.push_back(current->meloStateJson());
-            values.push_back(note->noteVal());
-        }
-        if (!fromPart) {
-            // The 400-cent target has an ambiguous continuation at the later
-            // reference. A real drag must refuse it before changing either score.
-            a->score()->select(a, SelectType::SINGLE);
-            interaction->startDrag({ a }, {}, [](const EngravingItem*) { return true; });
-            melo::PitchHit ambiguous;
-            ASSERT_TRUE(melo::nearestPitch(type->meloStateJson(), a->meloCentsAboveDo() + 400,
-                                           true, a->meloNPer(), a->meloNGen(), ambiguous));
-            std::vector<melo::NoteEdit> rejected;
-            String refusal;
-            ASSERT_FALSE(melo::preparePitchEdit(a, ambiguous.nPer, ambiguous.nGen, rejected, refusal));
-            for (int repeat = 0; repeat < 5; ++repeat) {
-                if (repeat >= 2) {
-                    QTest::qWait(40);
-                }
-                interaction->drag(origin, muse::PointF(10, 10 - 4 * a->spatium() * type->lineDistance().val()), notation::DragMode::OnlyY);
-                for (size_t i = 0; i < affected.size(); ++i) {
-                    EXPECT_TRUE(affected[i]->noteVal() == values[i]);
-                }
-            }
-            interaction->clearSelection();
-            EXPECT_EQ(score->undoStack()->currentIndex(), index);
-            EXPECT_FALSE(score->undoStack()->hasActiveCommand());
-            for (size_t i = 0; i < affected.size(); ++i) {
-                EXPECT_EQ(types[i]->meloStateJson(), states[i]);
-                EXPECT_FALSE(types[i]->meloFrameFrozen());
-            }
-        }
-        for (bool cancel : { true, false }) {
-            a->score()->select(a, SelectType::SINGLE);
-            interaction->startDrag({ a }, {}, [](const EngravingItem*) { return true; });
-            EXPECT_TRUE(interaction->isDragStarted());
-            EXPECT_FALSE(interaction->isEditingElement());
-            ASSERT_TRUE(a->meloCentsValid());
-            melo::PitchHit expected;
-            ASSERT_TRUE(melo::nearestPitch(type->meloStateJson(), a->meloCentsAboveDo() + 2400,
-                                           true, a->meloNPer(), a->meloNGen(), expected));
-            ASSERT_FALSE(expected.nPer == a->meloNPer() && expected.nGen == a->meloNGen());
-            std::vector<melo::NoteEdit> probe;
-            String error;
-            ASSERT_TRUE(melo::preparePitchEdit(a, expected.nPer, expected.nGen, probe, error)) << error.toStdString();
-            EXPECT_TRUE(type->meloFrameFrozen());
-            interaction->drag(origin, moved, notation::DragMode::OnlyY);
-            const auto previewA = a->noteVal();
-            EXPECT_FALSE(previewA == originalA);
-            for (int repeat = 0; repeat < 5; ++repeat) {
-                if (repeat >= 2) {
-                    QTest::qWait(40);
-                }
-                interaction->drag(origin, moved, notation::DragMode::OnlyY);
-                EXPECT_TRUE(a->noteVal() == previewA);
-                melo::SoundingPitch first, last;
-                ASSERT_TRUE(melo::noteSoundingPitch(type->meloStateJson(), a->meloNPer(), a->meloNGen(), first));
-                ASSERT_TRUE(melo::noteSoundingPitch(b->staff()->staffTypeForElement(b)->meloStateJson(), b->meloNPer(), b->meloNGen(),
-                                                    last));
-                EXPECT_NEAR(first.frequencyHz, last.frequencyHz, 1e-8);
-            }
-            if (cancel) {
-                interaction->clearSelection();
-            } else {
-                interaction->endDrag();
-                EXPECT_EQ(score->undoStack()->currentIndex(), index + 1);
-                for (size_t i=0; i < linkedNotes.size(); ++i) {
-                    EXPECT_NE(types[i + 2]->meloStateJson(), states[i + 2]);
-                    EXPECT_TRUE(linkedNotes[i]->noteVal() == (i == 0 ? a : b)->noteVal());
-                }
-                interaction->undo();
-            }
-            EXPECT_FALSE(interaction->isDragStarted());
-            EXPECT_FALSE(score->undoStack()->hasActiveCommand());
-            EXPECT_FALSE(type->meloFrameFrozen());
-            EXPECT_EQ(score->undoStack()->currentIndex(), index);
-            EXPECT_TRUE(a->noteVal() == originalA);
-            EXPECT_TRUE(b->noteVal() == originalB);
-            EXPECT_DOUBLE_EQ(a->tuning(), tuningA);
-            EXPECT_DOUBLE_EQ(b->tuning(), tuningB);
-            EXPECT_EQ(type->meloStateJson(), state);
-            EXPECT_EQ(type->meloExtentIsEmptyDefault(), empty);
-            for (size_t i=0; i < affected.size(); ++i) {
-                EXPECT_TRUE(affected[i]->noteVal() == values[i]);
-                EXPECT_EQ(types[i]->meloStateJson(), states[i]);
-                EXPECT_FALSE(types[i]->meloFrameFrozen());
-            }
-        }
-        if (!fromPart) {
-            score->select(a, SelectType::SINGLE);
-            score->startCmd(muse::TranslatableString::untranslatable("Keyboard after drag cancellation"));
-            score->upDown(true, UpDownMode::OCTAVE);
+            ASSERT_GE(notes.size(), 5u);
+            Note* a = notes[3];
+            Note* b = notes[4];
+            NoteVal source = a->noteVal();
+            source.hasMeloPitch = true;
+            source.meloNPer = 0;
+            source.meloNGen = 0;
+            ASSERT_TRUE(a->setNval(source));
+            NoteVal target;
+            ASSERT_TRUE(melo::prepareContinuationValue(a->noteVal(), a->staff(), a->tick(), b->tick(), target));
+            ASSERT_TRUE(b->setNval(target));
+            Tie* tie = Factory::createTie(score->dummy());
+            tie->setStartNote(a);
+            tie->setEndNote(b);
+            tie->setTrack(0);
+            tie->setTick(a->tick());
+            tie->setTick2(b->tick());
+            score->startCmd(muse::TranslatableString::untranslatable("Tie drag fixture"));
+            score->undoAddElement(tie);
             score->endCmd();
-            interaction->undo();
-            EXPECT_TRUE(a->noteVal() == originalA);
-            EXPECT_TRUE(b->noteVal() == originalB);
-            if (const char* output = std::getenv("MELO_LATTICE_SENSORY_OUT")) {
-                for (Segment* segment = score->firstSegment(SegmentType::ChordRest); segment;
-                     segment = segment->next1(SegmentType::ChordRest)) {
-                    for (track_idx_t track = 0; track < score->ntracks(); ++track) {
-                        auto* item = segment->element(track);
-                        if (item && item->isChord()) {
-                            for (Note* note : toChord(item)->notes()) {
-                                note->setPlay(note == a || note == b);
+            score->doLayout();
+            Score* part=TestUtils::createPart(score.get());
+            ASSERT_TRUE(part);
+            std::vector<Note*> linkedNotes;
+            for (Note* note : { a, b }) {
+                for (EngravingObject* object:note->linkList()) {
+                    if (object->score() == part) {
+                        linkedNotes.push_back(toNote(object));
+                    }
+                }
+            }
+            ASSERT_EQ(linkedNotes.size(), 2u);
+            if (fromPart) {
+                std::swap(a, linkedNotes[0]);
+                std::swap(b, linkedNotes[1]);
+            }
+            notation::Notation actual(nullptr, muse::modularity::globalCtx(), a->score());
+            auto interaction = actual.interaction();
+            const NoteVal originalA = a->noteVal(), originalB = b->noteVal();
+            const double tuningA = a->tuning(), tuningB = b->tuning();
+            const StaffType* type = a->staff()->staffTypeForElement(a);
+            const String state = type->meloStateJson();
+            const bool empty = type->meloExtentIsEmptyDefault();
+            const auto index = score->undoStack()->currentIndex();
+            const muse::PointF origin(10, 10), moved(10, 10 - 24 * a->spatium() * type->lineDistance().val());
+            std::vector<const StaffType*> types;
+            std::vector<String> states;
+            std::vector<Note*> affected { a, b, linkedNotes[0], linkedNotes[1] };
+            std::vector<NoteVal> values;
+            for (Note* note:affected) {
+                const StaffType* current=note->staff()->staffTypeForElement(note);
+                types.push_back(current);
+                states.push_back(current->meloStateJson());
+                values.push_back(note->noteVal());
+            }
+            if (!fromPart && generator == 700.0) {
+                // The 400-cent target has an ambiguous continuation at the later
+                // reference. A real drag must refuse it before changing either score.
+                a->score()->select(a, SelectType::SINGLE);
+                interaction->startDrag({ a }, {}, [](const EngravingItem*) { return true; });
+                melo::PitchHit ambiguous;
+                ASSERT_TRUE(melo::nearestPitch(type->meloStateJson(), a->meloCentsAboveDo() + 400,
+                                               true, a->meloNPer(), a->meloNGen(), ambiguous));
+                std::vector<melo::NoteEdit> rejected;
+                String refusal;
+                ASSERT_FALSE(melo::preparePitchEdit(a, ambiguous.nPer, ambiguous.nGen, rejected, refusal));
+                for (int repeat = 0; repeat < 5; ++repeat) {
+                    if (repeat >= 2) {
+                        QTest::qWait(40);
+                    }
+                    interaction->drag(origin, muse::PointF(10, 10 - 4 * a->spatium() * type->lineDistance().val()),
+                                      notation::DragMode::OnlyY);
+                    for (size_t i = 0; i < affected.size(); ++i) {
+                        EXPECT_TRUE(affected[i]->noteVal() == values[i]);
+                    }
+                }
+                interaction->clearSelection();
+                EXPECT_EQ(score->undoStack()->currentIndex(), index);
+                EXPECT_FALSE(score->undoStack()->hasActiveCommand());
+                for (size_t i = 0; i < affected.size(); ++i) {
+                    EXPECT_EQ(types[i]->meloStateJson(), states[i]);
+                    EXPECT_FALSE(types[i]->meloFrameFrozen());
+                }
+            }
+            for (bool cancel : { true, false }) {
+                a->score()->select(a, SelectType::SINGLE);
+                interaction->startDrag({ a }, {}, [](const EngravingItem*) { return true; });
+                EXPECT_TRUE(interaction->isDragStarted());
+                EXPECT_FALSE(interaction->isEditingElement());
+                ASSERT_TRUE(a->meloCentsValid());
+                melo::PitchHit expected;
+                ASSERT_TRUE(melo::nearestPitch(type->meloStateJson(), a->meloCentsAboveDo() + 2400,
+                                               true, a->meloNPer(), a->meloNGen(), expected));
+                ASSERT_FALSE(expected.nPer == a->meloNPer() && expected.nGen == a->meloNGen());
+                std::vector<melo::NoteEdit> probe;
+                String error;
+                ASSERT_TRUE(melo::preparePitchEdit(a, expected.nPer, expected.nGen, probe, error)) << error.toStdString();
+                EXPECT_TRUE(type->meloFrameFrozen());
+                interaction->drag(origin, moved, notation::DragMode::OnlyY);
+                const auto previewA = a->noteVal();
+                EXPECT_FALSE(previewA == originalA);
+                for (int repeat = 0; repeat < 5; ++repeat) {
+                    if (repeat >= 2) {
+                        QTest::qWait(40);
+                    }
+                    interaction->drag(origin, moved, notation::DragMode::OnlyY);
+                    EXPECT_TRUE(a->noteVal() == previewA);
+                    melo::SoundingPitch first, last;
+                    ASSERT_TRUE(melo::noteSoundingPitch(type->meloStateJson(), a->meloNPer(), a->meloNGen(), first));
+                    ASSERT_TRUE(melo::noteSoundingPitch(b->staff()->staffTypeForElement(b)->meloStateJson(), b->meloNPer(), b->meloNGen(),
+                                                        last));
+                    EXPECT_NEAR(first.frequencyHz, last.frequencyHz, 1e-8);
+                }
+                if (cancel) {
+                    interaction->clearSelection();
+                } else {
+                    interaction->endDrag();
+                    EXPECT_EQ(score->undoStack()->currentIndex(), index + 1);
+                    for (size_t i=0; i < linkedNotes.size(); ++i) {
+                        EXPECT_NE(types[i + 2]->meloStateJson(), states[i + 2]);
+                        EXPECT_TRUE(linkedNotes[i]->noteVal() == (i == 0 ? a : b)->noteVal());
+                    }
+                    interaction->undo();
+                }
+                EXPECT_FALSE(interaction->isDragStarted());
+                EXPECT_FALSE(score->undoStack()->hasActiveCommand());
+                EXPECT_FALSE(type->meloFrameFrozen());
+                EXPECT_EQ(score->undoStack()->currentIndex(), index);
+                EXPECT_TRUE(a->noteVal() == originalA);
+                EXPECT_TRUE(b->noteVal() == originalB);
+                EXPECT_DOUBLE_EQ(a->tuning(), tuningA);
+                EXPECT_DOUBLE_EQ(b->tuning(), tuningB);
+                EXPECT_EQ(type->meloStateJson(), state);
+                EXPECT_EQ(type->meloExtentIsEmptyDefault(), empty);
+                for (size_t i=0; i < affected.size(); ++i) {
+                    EXPECT_TRUE(affected[i]->noteVal() == values[i]);
+                    EXPECT_EQ(types[i]->meloStateJson(), states[i]);
+                    EXPECT_FALSE(types[i]->meloFrameFrozen());
+                }
+            }
+            if (!fromPart) {
+                score->select(a, SelectType::SINGLE);
+                score->startCmd(muse::TranslatableString::untranslatable("Keyboard after drag cancellation"));
+                score->upDown(true, UpDownMode::OCTAVE);
+                score->endCmd();
+                interaction->undo();
+                EXPECT_TRUE(a->noteVal() == originalA);
+                EXPECT_TRUE(b->noteVal() == originalB);
+                if (const char* output = std::getenv("MELO_LATTICE_SENSORY_OUT")) {
+                    for (Segment* segment = score->firstSegment(SegmentType::ChordRest); segment;
+                         segment = segment->next1(SegmentType::ChordRest)) {
+                        for (track_idx_t track = 0; track < score->ntracks(); ++track) {
+                            auto* item = segment->element(track);
+                            if (item && item->isChord()) {
+                                for (Note* note : toChord(item)->notes()) {
+                                    note->setPlay(note == a || note == b);
+                                }
                             }
                         }
                     }
+                    const String path = String::fromUtf8(output) + u"/cross-reference-full-tie-after-cancel-undo-"
+                                        + String::number(generator == 700.0 ? 12 : generator == 720.0 ? 5 : 7) + u"tet.mscx";
+                    ASSERT_TRUE(ScoreRW::saveScore(score.get(), path));
+                    std::unique_ptr<MasterScore> reopened(ScoreRW::readScore(path, true));
+                    ASSERT_TRUE(reopened);
                 }
-                const String path = String::fromUtf8(output) + u"/cross-reference-full-tie-after-cancel-undo.mscx";
-                ASSERT_TRUE(ScoreRW::saveScore(score.get(), path));
-                std::unique_ptr<MasterScore> reopened(ScoreRW::readScore(path, true));
-                ASSERT_TRUE(reopened);
             }
         }
     }
