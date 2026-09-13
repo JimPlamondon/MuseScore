@@ -38,6 +38,7 @@
 #include <QFile>
 
 #include "engraving/dom/masterscore.h"
+#include "engraving/dom/factory.h"
 #include "engraving/dom/fret.h"
 #include "engraving/dom/harmony.h"
 #include "engraving/rendering/paintoptions.h"
@@ -1866,6 +1867,36 @@ TEST_F(MusicXml_Melo_Tests, HarmonicSpanKeepsOneNameAcrossDelayedMember)
     EXPECT_FALSE(harmony->meloEvidenceError().empty());
     score->undoRedo(true, nullptr);
     EXPECT_TRUE(harmony->meloEvidenceError().empty());
+    delete again;
+    delete score;
+}
+
+TEST_F(MusicXml_Melo_Tests, RedundantCarrierPreservesSharedEffectiveTimeline)
+{
+    MasterScore* score=readMelo("jims-multi-part-shared.musicxml");
+    ASSERT_TRUE(score);
+    Measure* measure=score->firstMeasure();
+    StaffTypeChange* carrier=Factory::createStaffTypeChange(measure);
+    carrier->setTrack(0);
+    carrier->setRtick(Fraction(1, 4));
+    carrier->setStaffType(new StaffType(*score->staff(0)->staffType(Fraction(0, 1))), true);
+    measure->add(carrier);
+    score->rebuildMidiMapping();
+    score->doLayout();
+    muse::io::Buffer buffer;
+    buffer.open(muse::io::IODevice::WriteOnly);
+    EXPECT_TRUE(saveXml(score, &buffer));
+    EXPECT_FALSE(buffer.data().empty());
+    const MeloSnapshot before = snapshotOf(score);
+    const String output = exportToScratch(score, "redundant-carrier-roundtrip.musicxml");
+    auto importXml = [](MasterScore* s, const muse::io::path_t& path) -> engraving::Err {
+        return importMusicXml(s, path.toQString(), false);
+    };
+    MasterScore* again = ScoreRW::readScore(output, true, importXml);
+    ASSERT_TRUE(again);
+    EXPECT_EQ(snapshotOf(again).identities, before.identities);
+    EXPECT_EQ(snapshotOf(again).baseStates, before.baseStates);
+    EXPECT_EQ(snapshotOf(again).carriers, before.carriers);
     delete again;
     delete score;
 }

@@ -359,7 +359,7 @@ Note* Score::addPitchToChord(NoteVal& nval, Chord* chord, InputState* externalIn
     Note* note = nullptr;
     if (isTied(chord)) {
         note = addNoteToTiedChord(chord, nval, forceAccidental);
-        if (!note) {
+        if (!note && !chord->staff()->staffType(chord->tick())->isMelo()) {
             note = addNote(chord, nval, forceAccidental, /* articulationIds */ {}, externalInputState);
         }
     } else {
@@ -546,7 +546,18 @@ Ret Score::putNote(const Position& p, bool replace)
             } else {                            // not TAB
                 // if a note with the same pitch already exists in the chord, remove it
                 Chord* chord = toChord(cr);
-                Note* note = chord->findNote(nval.pitch);
+                Note* note = nullptr;
+                if (st->staffType(cr->tick())->isMelo()) {
+                    for (Note* candidate : chord->notes()) {
+                        if (candidate->hasMeloPitch() && nval.hasMeloPitch
+                            && candidate->meloNPer() == nval.meloNPer && candidate->meloNGen() == nval.meloNGen) {
+                            note = candidate;
+                            break;
+                        }
+                    }
+                } else {
+                    note = chord->findNote(nval.pitch);
+                }
                 if (note) {
                     if (chord->notes().size() > 1) {
                         undoRemoveElement(note);
@@ -625,6 +636,9 @@ void Score::handleOverlappingChordRest(InputState& inputState)
             const std::vector<TDuration> durationList = toDurationList(difference, true);
             for (const TDuration& dur : durationList) {
                 prevChord = ms->addChord(startTick, dur, prevChord, /*genTie*/ bool(prevChord), prevChord->tuplet());
+                if (!prevChord) {
+                    return;
+                }
                 startTick += dur.fraction();
             }
         }
@@ -724,6 +738,34 @@ Ret Score::repitchNote(const Position& p, bool replace)
 
 std::pair<Note*, Note*> Score::repitchReplaceNote(Chord* chord, const NoteVal& nval, bool forceAccidental)
 {
+    if (chord->staff()->staffType(chord->tick())->isMelo()) {
+        NoteVal value = nval;
+        if (chord->notes().empty() || !Note::prepareNval(value, chord->staff(), chord->tick())) {
+            return { nullptr, nullptr };
+        }
+        Note* anchor = chord->notes().front();
+        std::vector<melo::NoteEdit> edits;
+        String error;
+        if (!melo::preparePitchEdit(anchor, value.meloNPer, value.meloNGen, edits, error)) {
+            MScore::setError(MsError::CANNOT_RESOLVE_LATTICE_NOTE);
+            return { nullptr, nullptr };
+        }
+        // Repitch reduces these chords to the chosen occurrence, while the
+        // prepared edit preserves the complete sustained sound and its links.
+        for (const melo::NoteEdit& edit : edits) {
+            const auto siblings = edit.note->chord()->notes();
+            for (Note* sibling : siblings) {
+                if (sibling != edit.note) {
+                    undoRemoveElement(sibling);
+                }
+            }
+        }
+        melo::commitPitchEdits(this, edits);
+        Note* last = anchor->lastTiedNote();
+        setPlayNote(true);
+        select(last);
+        return { anchor, last };
+    }
     Note* note = Factory::createNote(chord);
     note->setParent(chord);
     note->setTrack(chord->track());
@@ -924,6 +966,9 @@ Ret Score::insertChordByInsertingTime(const Position& pos)
                         Chord* prototype = prevChord ? prevChord : chord;
                         const bool genTie = bool(prevChord);
                         prevChord = ms->addChord(p, dur, prototype, genTie, /* tuplet */ nullptr);
+                        if (!prevChord) {
+                            return make_ret(Ret::Code::UnknownError);
+                        }
                         p += dur.fraction();
                     }
                     // TODO: reconnect ties if this chord was tied to other

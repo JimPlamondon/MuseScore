@@ -19,6 +19,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "engraving/melo/melochangecontroller.h"
 #include "meimelo.h"
 
 #include <algorithm>
@@ -190,6 +191,9 @@ bool MeloMeiExporter::buildPlan(const Score* score)
     m_score = score;
     m_present = false;
     m_error.clear();
+    if (!melo::validateLatticeContent(score, m_error)) {
+        return false;
+    }
     m_staves.clear();
     m_tonicAmbit.clear();
     m_measures.clear();
@@ -1382,6 +1386,9 @@ bool MeloMeiImporter::apply(Score* score,
         score->setMeloProvenance(prov);
     }
 
+    if (!melo::validateLatticeContent(score, m_error)) {
+        return false;
+    }
     if (anyState) {
         score->style().set(Sid::musicalSymbolFont, String(u"JiMSMusic"));
         score->style().set(Sid::hideInstrumentNameIfOneInstrument, false);

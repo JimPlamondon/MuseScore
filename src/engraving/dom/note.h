@@ -386,6 +386,8 @@ public:
 
     bool removeSpannerFor(Spanner* e) { return muse::remove(m_spannerFor, e); }
 
+    bool prepareDiatonicTranspose(int interval, bool keepAlterations, bool useDoubleAccidentals, NoteVal& result) const;
+    bool prepareTranspose(Interval interval, bool useDoubleSharpsFlats, NoteVal& result) const;
     bool transposeDiatonic(int interval, bool keepAlterations, bool useDoubleAccidentals);
     bool transpose(Interval interval, bool useDoubleSharpsFlats);
 

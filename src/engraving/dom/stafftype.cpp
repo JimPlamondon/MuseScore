@@ -1022,7 +1022,7 @@ void StaffType::meloEnsureFrame(const Score* score, staff_idx_t staffIdx) const
             }
         }
     } else {
-        LOGE() << "MeloPresto section frame alignment failed for staff " << staffIdx;
+        LOGE() << melo::sectionFrameAlignmentFailed << staffIdx;
     }
     setMeloFrame(key, segments);
 }
@@ -1493,7 +1493,7 @@ const StaffType::MeloFrameView& StaffType::meloFrameView(const Score* score, sta
             y += view.bands[i - 1].heightLd() + view.gapLd;
         }
     } else {
-        LOGE() << "MeloPresto section band alignment failed for staff " << staffIdx;
+        LOGE() << melo::sectionBandAlignmentFailed << staffIdx;
     }
     return m_meloFrameViews[rangeKey] = view;
 }
@@ -1659,7 +1659,7 @@ const StaffType::MeloFrameView& StaffType::meloSystemUnionFrameView(const Score*
     view.banded = true;   // one band whose top is this system's, not the whole piece's
     view.gapLd = 0.0;
     if (!alignFor(this, view)) {
-        LOGE() << "MeloPresto per-system frame union failed for staff " << staffIdx;
+        LOGE() << melo::systemFrameUnionFailed << staffIdx;
     }
     // An empty union (no derivable section frame) is "no frame", exactly as
     // the whole-piece path reports it: never an empty banded view.

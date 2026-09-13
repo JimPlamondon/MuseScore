@@ -53,8 +53,8 @@ class ChangeMeloExtent : public UndoCommand
     }
 
 public:
-    ChangeMeloExtent(Staff* staff, const Fraction& tick, String state)
-        : m_staff(staff), m_tick(tick), m_state(std::move(state)) {}
+    ChangeMeloExtent(Staff* staff, const Fraction& tick, String state, bool emptyDefault = false)
+        : m_staff(staff), m_tick(tick), m_state(std::move(state)), m_emptyDefault(emptyDefault) {}
     UNDO_NAME("ChangeMeloExtent")
     UNDO_CHANGED_OBJECTS({ m_staff })
 };
@@ -582,7 +582,13 @@ int deriveTonicAmbits(Score* score)
                 }
                 state = state.left(close) + u",\"tonic_ambit\":\"" + token + u"\"}";
             }
-            st->setMeloStateJson(state);
+            if (score->undoStack()->hasActiveCommand()) {
+                // A melody edit affects every repeated carrier. Capture those
+                // derived fields in the same command so cancel/undo is complete.
+                score->undo(new ChangeMeloExtent(staff, starts[i], state, st->meloExtentIsEmptyDefault()));
+            } else {
+                st->setMeloStateJson(state);
+            }
             ++changed;
         }
     }

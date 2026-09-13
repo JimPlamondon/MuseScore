@@ -16,6 +16,11 @@
 #include "types/translatablestring.h"
 
 namespace mu::engraving::melo {
+inline constexpr char synthResourceId[] = "MeloPresto Synth";
+inline constexpr char accidentalEditFailed[] = "MeloPresto accidental edit: ";
+inline constexpr char sectionFrameAlignmentFailed[] = "MeloPresto section frame alignment failed for staff ";
+inline constexpr char sectionBandAlignmentFailed[] = "MeloPresto section band alignment failed for staff ";
+inline constexpr char systemFrameUnionFailed[] = "MeloPresto per-system frame union failed for staff ";
 inline muse::TranslatableString changeActionName() { return muse::TranslatableString("action", "MeloPresto change…"); }
 inline muse::String featureName() { return muse::mtrc("engraving", "MeloPresto Staff"); }
 inline muse::String staffUserName() { return muse::mtrc("engraving", "MeloPresto Staff"); }

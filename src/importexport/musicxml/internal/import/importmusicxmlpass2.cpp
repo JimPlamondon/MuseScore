@@ -2175,8 +2175,17 @@ void MusicXmlParserPass2::scorePartwise()
     }
     // Native JiMS import, owner rule 2026-08-19: every JiMS part shares one
     // state timeline (several JiMS parts and mixed JiMS + stock parts are fine).
-    if (m_melo.anyBuffered() && !m_melo.checkSharedStatesAcrossParts(m_logger)) {
+    if (m_melo.anyBuffered() && !m_melo.checkSharedStatesAcrossParts(m_score, m_logger)) {
         m_meloError = Err::FileBadFormat;
+    } else if (m_melo.anyBuffered() && m_meloError == Err::NoError) {
+        size_t repairs = 0;
+        String repairError;
+        if (!melo::normalizeStoredPitchesAfterLoad(m_score, repairs, repairError, false)) {
+            m_logger->logError(String(mu::engraving::melo::diagnostic::importNormalizationFailed).arg(repairError), &m_e);
+            m_meloError = Err::FileBadFormat;
+        } else if (repairs > 0) {
+            m_logger->logDebugInfo(String(mu::engraving::melo::diagnostic::importedProjectionsNormalized).arg(repairs), &m_e);
+        }
     }
 
     // set last measure barline to normal or MuseScore will generate light-heavy EndBarline
@@ -2516,15 +2525,6 @@ void MusicXmlParserPass2::part()
         auto staffIndexForNumber = [&meloPart](int number) { return meloPart.staffNumberToIndex(number); };
         if (!m_melo.applyToPart(m_score, part, id, staffIndexForNumber, m_logger)) {
             m_meloError = Err::FileBadFormat;
-        } else {
-            size_t repairs = 0;
-            String repairError;
-            if (!melo::normalizeStoredPitchesAfterLoad(m_score, repairs, repairError, false)) {
-                m_logger->logError(String(mu::engraving::melo::diagnostic::importNormalizationFailed).arg(repairError), &m_e);
-                m_meloError = Err::FileBadFormat;
-            } else if (repairs > 0) {
-                m_logger->logDebugInfo(String(mu::engraving::melo::diagnostic::importedProjectionsNormalized).arg(repairs), &m_e);
-            }
         }
     }
 

@@ -23,6 +23,7 @@ set(MODULE_TEST notationscene_qml_tests)
 set(MODULE_TEST_SRC
     ${PROJECT_SOURCE_DIR}/src/engraving/tests/utils/scorerw.cpp
     ${PROJECT_SOURCE_DIR}/src/engraving/tests/utils/scorerw.h
+    ${PROJECT_SOURCE_DIR}/src/engraving/tests/utils/testutils.cpp
     ${PROJECT_SOURCE_DIR}/src/framework/stubs/shortcuts/shortcutsregisterstub.cpp
     ${PROJECT_SOURCE_DIR}/src/framework/stubs/shortcuts/shortcutsregisterstub.h
 
@@ -36,6 +37,7 @@ set(MODULE_TEST_SRC
 find_package(Qt6 REQUIRED COMPONENTS Test)
 
 set(MODULE_TEST_LINK
+    notation
     engraving
     inspector_qml
     muse_ui_qml
